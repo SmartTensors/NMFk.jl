@@ -1,8 +1,28 @@
 using NMF
 using Clustering
+using Wells
+
+dd = Wells.solve( Wells.WellsD, Wells.WellsQ, Wells.Points, Wells.time, Wells.T, Wells.S )
+println(keys(dd))
+#println(collect(keys(dd))[1])
+#println(size(collect(keys(dd))))
+#println(size(values(dd[1])))
+numrows = size(collect(keys(dd)))[1]
+#println(dd[collect(keys(dd))[1]])
+#println(size(dd[collect(keys(dd))[1]]))
+numcols = size(dd[collect(keys(dd))[1]])[1]
+X = Array(Float64, numrows, numcols)
+k = 0
+for i in keys(dd)
+	k += 1
+	println(i)
+	# println(dd[i])
+	X[k,:] = dd[i]
+end
+println(size(X))
 
 # we need to read X; this is the WL data
-X = rand(5, 1000)
+# X = rand(5, 1000)
 
 #TODO add a loop to perform a large number of NMF's
 k = 5 #TODO add a loop to solve for k = 1, 2, 3 , 4, 5
