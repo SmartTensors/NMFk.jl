@@ -19,13 +19,13 @@ for i in keys(dd)
 	# println(dd[i])
 	X[k,:] = dd[i]
 end
-println(size(X))
+println("Size of the matrix to solve ",size(X))
 
 # we need to read X; this is the WL data
 # X = rand(5, 1000)
 
 #TODO add a loop to perform a large number of NMF's
-k = 5 #TODO add a loop to solve for k = 1, 2, 3 , 4, 5
+k = 6 #TODO add a loop to solve for k = 1, 2, 3 , 4, 5
 # initialize W & H matrices
 W, H = NMF.randinit(X, k, normalize=true)
 
@@ -36,7 +36,9 @@ W, H = NMF.randinit(X, k, normalize=true)
 # Solve NMF
 NMF.solve!(NMF.MultUpdate(obj=:mse,maxiter=100), X, W, H)
 #NMF.solve!(NMF.ProjectedALS(maxiter=50), X, W, H)
-#NMF.solve!(NMF.ALSPGrad(maxiter=50, tolg=1.0e-6), X, W, H)
+#+NMF.solve!(NMF.ALSPGrad(maxiter=50, tolg=1.0e-6), X, W, H)
+println("NMF done.")
+println("W = ", W )
 
 # performs K-means over H, trying to group them into k clusters
 # set maximum number of iterations to 200
@@ -65,4 +67,4 @@ M = R.centers
 # K-medoids is a clustering algorithm that seeks a subset of points out of a given set such that
 # the total costs or distances between each point to the closest point in the chosen subset is minimal.
 # This chosen subset of points are called medoids.
-Q = kmedoids(W, 4; maxiter=200, display=:iter)
+# Q = kmedoids(W, 4; maxiter=200, display=:iter)
