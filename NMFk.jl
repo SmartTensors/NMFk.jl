@@ -6,6 +6,8 @@ using Clustering
 using MultivariateStats
 using Wells
 
+testproblem = "20141012"
+nNMF = 1000
 intermediate_figs = false
 dd = Wells.solve( Wells.WellsD, Wells.WellsQ, Wells.Points, Wells.time, Wells.T, Wells.S )
 println(keys(dd))
@@ -14,6 +16,15 @@ numcols = size(dd[collect(keys(dd))[1]])[1]
 X = Array(Float64, numrows, numcols)
 df = Array(Any, numrows)
 pl = Array(Plot, numrows)
+dW = Wells.solve( "R-28", Wells.WellsD, Wells.WellsQ, Wells.Points, Wells.time, Wells.T, Wells.S )
+i = 0
+for w in keys(Wells.WellsD)
+	i += 1
+	pl[i] = plot( x=Wells.time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
+end
+nWells = i
+p = vstack( pl[1:nWells] )
+draw(PNG(string("nmfk-test-$testproblem-r28-dd.png"), 18inch, 12inch), p)
 dW = Wells.solve( 0.1, Wells.WellsD, Wells.WellsQ, Wells.time, Wells.T, Wells.S )
 i = 0
 for w in keys(Wells.WellsD)
@@ -22,7 +33,7 @@ for w in keys(Wells.WellsD)
 end
 nWells = i
 p = vstack( pl[1:nWells] )
-draw(PNG(string("nmfk-test-20141005-wdd.png"), 18inch, 12inch), p)
+draw(PNG(string("nmfk-test-$testproblem-wdd.png"), 18inch, 12inch), p)
 i = 0
 for k in keys(dd)
 	i += 1
@@ -38,16 +49,15 @@ else
 	cs = reshape([Context[render(pl[i]) for i in 1:numrows],[context() for i in remainder+1:numfigrows]],numfigrows,iceil(numrows/numfigrows));
 end
 p = gridstack(cs)
-draw(PNG(string("nmfk-test-20141005-input.png"), 18inch, 12inch), p)
+draw(PNG(string("nmfk-test-$testproblem-input.png"), 18inch, 12inch), p)
 println("Size of the matrix to solve ",size(X))
-# writecsv("nmfk-test-20141005-well-names.csv",collect(keys(dd))')
-# writecsv("nmfk-test-20141005.csv",X')
+# writecsv("nmfk-test-$testproblem-well-names.csv",collect(keys(dd))')
+# writecsv("nmfk-test-$testproblem.csv",X')
 
 # RANDOM test
 # X = rand(5, 1000)
 
 nk = 6 # TODO add a loop to solve for nk = 1, 2, 3 , 4, 5
-nNMF = 1
 WBig = Array(Float64, numrows, 0)
 HBig = Array(Float64, 0, numcols)
 P = Array(Float64, numrows, numcols)
@@ -67,8 +77,8 @@ for n = 1:nNMF
 
 	# Solve NMF
 	NMF.solve!(NMF.MultUpdate(obj=:mse,maxiter=100), X, W, H)
-	# NMF.solve!(NMF.ProjectedALS(maxiter=50), X, W, H)
-	# NMF.solve!(NMF.ALSPGrad(maxiter=50, tolg=1.0e-6), X, W, H)
+	# NMF.solve!(NMF.ProjectedALS(maxiter=100), X, W, H)
+	# NMF.solve!(NMF.ALSPGrad(maxiter=100, tolg=1.0e-6), X, W, H)
 	P = W * H
 	E = X - P
 	phi[n] = sum( E' * E )
@@ -93,12 +103,12 @@ for n = 1:nNMF
 		end
 		# p = vstack( pl )
 		p = gridstack(cs)
-		draw(PNG(string("nmfk-test-20141005-output-",n,".png"), 18inch, 12inch), p)
+		draw(PNG(string("nmfk-test-$testproblem-output-",n,".png"), 18inch, 12inch), p)
 		for i in 1:nk
 			pl[i] = plot( x=Wells.time, y=H[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
 		end
 		p = vstack( pl[1:nk] )
-		draw(PNG(string("nmfk-test-20141005-sources-",n,".png"), 18inch, 12inch), p)
+		draw(PNG(string("nmfk-test-$testproblem-sources-",n,".png"), 18inch, 12inch), p)
 	end
 	# println("Size of W = ", size(W) )
 	# println("Size of WBig = ", size(WBig) )
@@ -160,13 +170,13 @@ else
 	Wa = WBig
 end
 
-writecsv(string("nmfk-test-20141005-sources-NMFk=",nk,"-",nNMF,".csv"),Ha)
+writecsv(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".csv"),Ha)
 for i in 1:nk
 	pl[i] = plot( x=Wells.time, y=Ha[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
 end
 p = vstack( pl[1:nk] )
-draw(PNG(string("nmfk-test-20141005-sources-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
-writecsv(string("nmfk-test-20141005-weights-NMFk=",nk,"-",nNMF,".csv"),Wa)
+draw(PNG(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
+writecsv(string("nmfk-test-$testproblem-weights-NMFk=",nk,"-",nNMF,".csv"),Wa)
 i = 0
 for k in keys(dd)
 	i += 1
@@ -181,4 +191,4 @@ else
 	cs = reshape([Context[render(pl[i]) for i in 1:numrows],[context() for i in remainder+1:numfigrows]],numfigrows,iceil(numrows/numfigrows));
 end
 p = gridstack(cs)
-draw(PNG(string("nmfk-test-20141005-output-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
+draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
