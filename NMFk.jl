@@ -6,60 +6,32 @@ using Clustering
 using MultivariateStats
 using Wells
 
-testproblem = "20141012"
-WellsQ = [
-"O-4" =>[0 10000; 50 0],
-"PM-1"=>[0 0; 100 10000; 150 0],
-"PM-2"=>[0 0; 200 10000; 250 0],
-"PM-3"=>[0 0; 300 10000; 350 0],
-"PM-4"=>[0 0; 400 10000; 450 0],
-"PM-5"=>[0 0; 500 10000; 550 0]
-]
-Points = [
-"R-1"=>(497542,539374),
-"R-11"=>(499860,539299),
-"R-13"=>(500174,538580),
-"R-15"=>(498442,538969),
-"R-28"=>(499564,538996),
-"R-33"=>(497861,539049),
-"R-34"=>(500968,537676),
-"R-35a"=>(500581,539286),
-"R-36"=>(501063,538806),
-"R-42"=>(499174,539123),
-"R-43"=>(499030,539379),
-"R-44"=>(499891,538615),
-"R-45"=>(499948,538892),
-"R-50"=>(499465,538608),
-"R-61"=>(498987,538710),
-"R-62"=>(498512,539326),
-"RO-4"=>(499060.43,540608.91),
-"RM-2"=>(498865.4,536371.86),
-"RM-4"=>(498537.89,537692.75),
-"RM-5"=>(497267.13,538822.39)
-]
+include("nmfk-test-20141013.jl")
+#include("nmfk-test-20141012.jl")
+#include("nmfk-test-20141005.jl")
 intermediate_figs = false
-nNMF=1000
-dd = Wells.solve( Wells.WellsD, WellsQ, Points, Wells.time, Wells.T, Wells.S )
+nNMF=1
+dd = Wells.solve( WellsD, WellsQ, Points, time, T, S )
 println(keys(dd))
 numrows = size(collect(keys(dd)))[1]
 numcols = size(dd[collect(keys(dd))[1]])[1]
 X = Array(Float64, numrows, numcols)
 df = Array(Any, numrows)
 pl = Array(Plot, numrows)
-dW = Wells.solve( "R-28", Wells.WellsD, WellsQ, Points, Wells.time, Wells.T, Wells.S )
+dW = Wells.solve( "R-28", WellsD, WellsQ, Points, time, T, S )
 i = 0
-for w in keys(Wells.WellsD)
+for w in keys(WellsD)
 	i += 1
-	pl[i] = plot( x=Wells.time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
+	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
 end
 nWells = i
 p = vstack( pl[1:nWells] )
 draw(PNG(string("nmfk-test-$testproblem-r28-dd.png"), 18inch, 12inch), p)
-dW = Wells.solve( 0.1, Wells.WellsD, WellsQ, Wells.time, Wells.T, Wells.S )
+dW = Wells.solve( 0.1, WellsD, WellsQ, time, T, S )
 i = 0
-for w in keys(Wells.WellsD)
+for w in keys(WellsD)
 	i += 1
-	pl[i] = plot( x=Wells.time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
+	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
 end
 nWells = i
 p = vstack( pl[1:nWells] )
@@ -69,7 +41,7 @@ for k in keys(dd)
 	i += 1
 	println(k)
 	X[i,:] = dd[k]
-	pl[i] = plot(x=Wells.time, y=dd[k], Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line )
+	pl[i] = plot(x=time, y=dd[k], Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line )
 end
 numfigrows = 3
 remainder = numrows % numfigrows
@@ -81,13 +53,12 @@ end
 p = gridstack(cs)
 draw(PNG(string("nmfk-test-$testproblem-input.png"), 18inch, 12inch), p)
 println("Size of the matrix to solve ",size(X))
-# writecsv("nmfk-test-$testproblem-well-names.csv",collect(keys(dd))')
-# writecsv("nmfk-test-$testproblem.csv",X')
+writecsv("nmfk-test-$testproblem-well-names.csv",collect(keys(dd))')
+writecsv("nmfk-test-$testproblem.csv",X')
 
 # RANDOM test
 # X = rand(5, 1000)
 
-nk = 6 # TODO add a loop to solve for nk = 1, 2, 3 , 4, 5
 WBig = Array(Float64, numrows, 0)
 HBig = Array(Float64, 0, numcols)
 P = Array(Float64, numrows, numcols)
@@ -117,13 +88,13 @@ for n = 1:nNMF
 		i = 0
 		for k in keys(dd)
 			i += 1
-			#df1 = DataFrame(x=Wells.time, y=dd[k], label="data")
-			#df2 = DataFrame(x=Wells.time, y=dd[k], label="model")
+			#df1 = DataFrame(x=time, y=dd[k], label="data")
+			#df2 = DataFrame(x=time, y=dd[k], label="model")
 			#df[i] = vcat(df1, df2)
 			#pl[i] = plot(df, x="x", y="y", color="label", Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line, Scale.discrete_color_manual("blue","red") )
 			pl[i] = plot(
-			layer(x=Wells.time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
-			layer(x=Wells.time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
+			layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
+			layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
 			Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
 		end
 		if remainder == 0 
@@ -135,7 +106,7 @@ for n = 1:nNMF
 		p = gridstack(cs)
 		draw(PNG(string("nmfk-test-$testproblem-output-",n,".png"), 18inch, 12inch), p)
 		for i in 1:nk
-			pl[i] = plot( x=Wells.time, y=H[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
+			pl[i] = plot( x=time, y=H[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
 		end
 		p = vstack( pl[1:nk] )
 		draw(PNG(string("nmfk-test-$testproblem-sources-",n,".png"), 18inch, 12inch), p)
@@ -202,7 +173,7 @@ end
 
 writecsv(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".csv"),Ha)
 for i in 1:nk
-	pl[i] = plot( x=Wells.time, y=Ha[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
+	pl[i] = plot( x=time, y=Ha[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
 end
 p = vstack( pl[1:nk] )
 draw(PNG(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
@@ -211,8 +182,8 @@ i = 0
 for k in keys(dd)
 	i += 1
 	pl[i] = plot(
-	layer(x=Wells.time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
-	layer(x=Wells.time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
+	layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
+	layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
 	Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
 end
 if remainder == 0 
