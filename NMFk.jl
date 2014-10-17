@@ -19,6 +19,7 @@ nP = numrows = size(collect(keys(dd)))[1]
 nT = numcols = size(dd[collect(keys(dd))[1]])[1]
 X = Array(Float64, nP, nT)
 W = Array(Float64, nP, nk)
+H = Array(Float64, nk, nT)
 Hcheat = Array(Float64, nk, nT)
 df = Array(Any, numrows)
 pl = Array(Plot, numrows)
@@ -29,8 +30,8 @@ for w in sort(collect(keys(WellsD)))
 	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
 	Hcheat[i,:] = dW[w]
 end
-nWells = i
-p = vstack( pl[1:nWells] )
+nW= i
+p = vstack( pl[1:nW] )
 draw(PNG(string("nmfk-test-$testproblem-r28-dd.png"), 18inch, 12inch), p)
 dW = Wells.solve( 0.1, WellsD, WellsQ, time, T, S )
 i = 0
@@ -38,8 +39,8 @@ for w in sort(collect(keys(WellsD)))
 	i += 1
 	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
 end
-nWells = i
-p = vstack( pl[1:nWells] )
+nW = i
+p = vstack( pl[1:nW] )
 draw(PNG(string("nmfk-test-$testproblem-wdd.png"), 18inch, 12inch), p)
 i = 0
 for k in sort(collect(keys(dd)))
@@ -64,7 +65,7 @@ writecsv("nmfk-test-$testproblem.csv",X')
 # RANDOM test
 # X = rand(5, 1000)
 
-Wt = llsq(H',X'; bias=false)
+Wt = llsq(Hcheat',X'; bias=false)
 W = Wt'
 # println("Size of W = ", size(W) )
 # println("Size of H = ", size(H) )
@@ -74,15 +75,14 @@ HBig = Array(Float64, 0, numcols)
 P = Array(Float64, numrows, numcols)
 phi = Array(Float64, nNMF)
 for n = 1:nNMF
-	println("NMF ", n)
-
 	# initialize W & H matrices randomly
-	#W, H = NMF.randinit(X, nk, normalize=true)
+	# W, H = NMF.randinit(X, nk, normalize=true)
+	W, H = NMF.randinit(X, nk)
 
 	# initialize W & H using Non-Negative Double Singular Value Decomposition (NNDSVD) algorithm
 	# Reference: C. Boutsidis, and E. Gallopoulos. SVD based initialization: A head start for nonnegative matrix factorization. Pattern Recognition, 2007.
-	W, H = NMF.nndsvd(X, nk)
-	H = Hcheat
+	# W, H = NMF.nndsvd(X, nk)
+	# H = Hcheat
 
 	# println("Size of W = ", size(W) )
 	# println("Size of H = ", size(H) )
@@ -94,7 +94,7 @@ for n = 1:nNMF
 	P = W * H
 	E = X - P
 	phi[n] = sum( E' * E )
-	println("Objective function = ", phi[n], " Max error = ", maximum(E), " Min error = ", minimum(E) )
+	println("NMF ", n, " Objective function = ", phi[n], " Max error = ", maximum(E), " Min error = ", minimum(E) )
 	if intermediate_figs
 		i = 0
 		for k in sort(collect(keys(dd)))
@@ -130,9 +130,9 @@ for n = 1:nNMF
 	# println(WBig)
 	# println(W)
 end
-println("NMF done.")
 
 if nNMF > 1 
+	println("NMFk done.")
 	println("Size of WBig = ", size(WBig) )
 	println("Size of HBig = ", size(HBig) )
 	# performs K-means over W, trying to group them into nk clusters
@@ -224,10 +224,25 @@ for k in sort(collect(keys(Points)))
 	end
 end
 
+nW = length(collect(keys(WellsD)))
+wname = Array(String,nW)
+wx = Array(Float64,nW)
+wy = Array(Float64,nW)
+i = 0
+for k in sort(collect(keys(WellsD)))
+	i += 1
+	wx[i] = WellsD[k][1]
+	wy[i] = WellsD[k][2]
+	wname[i] = k
+end
+dfw = DataFrame(x=wx, y=wy, label=wname, label2=wname, category="wells")
+
 function r1( x::Vector )	
-	d = Array(Float64,nP)
+	d = Array(Float64,nP) 
+	println( x )
 	for k in 1:nP
-		d[k] = target[k] - ( x[1] / sqrt( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) )
+		d[k] = ( x[1] / sqrt( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) ) - target[k]
+		println( target[k], "->", x[1] / sqrt( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) )
 	end
 	return d
 end
@@ -236,7 +251,7 @@ function r1g( x::Vector )
 	l = length(x)
 	d = Array(Float64,nP,l)
 	for k in 1:nP
-		d[k,1] = -1 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)
+		d[k,1] = - 1 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)
 		d[k,2] = ((-((-2 * (px[k] - x[2])) * (0.5 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2))) * x[1]) / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)^2)
 		d[k,3] = ((-((-2 * (py[k] - x[3])) * (0.5 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2))) * x[1]) / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)^2)
 	end
@@ -246,7 +261,7 @@ end
 function r2( x::Vector )	
 	d = Array(Float64,nP)
 	for k in 1:nP
-		d[k] = target[k] - ( x[1] / ( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) )
+		d[k] = ( x[1] / ( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) ) - target[k]
 	end
 	return d
 end
@@ -262,14 +277,61 @@ function r2g( x::Vector )
 	return d
 end
 
+function rn( x::Vector )	
+	d = Array(Float64,nP)
+	for k in 1:nP
+		d[k] = ( x[1] / ( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 )^x[4] ) - target[k]
+	end
+	return d
+end
+
+function rng( x::Vector )
+	l = length(x)
+	d = Array(Float64,nP,l)
+	for k in 1:nP
+		d[k,1] = (1 / ((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])
+		d[k,2] = ((-(x[4] * (-2 * (px[k] - x[2])) * ((px[k] - x[2])^2 + (py[k] - x[3])^2)^(x[4] - 1)) * x[1]) / (((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])^2)
+		d[k,3] = ((-(x[4] * (-2 * (py[k] - x[3])) * ((px[k] - x[2])^2 + (py[k] - x[3])^2)^(x[4] - 1)) * x[1]) / (((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])^2)
+		d[k,4] = ((-(((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4] * log((px[k] - x[2])^2 + (py[k] - x[3])^2)) * x[1]) / (((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])^2)
+	end
+	return d
+end
+
+function logr2( x::Vector )	
+	d = Array(Float64,nP)
+	for k in 1:nP
+		d[k] = ( x[1] * log ( x[2] / ( ( px[k] - x[3] )^2 + ( py[k] - x[4] )^2 ) ) ) - target[k]
+	end
+	return d
+end
+
+function logr2g( x::Vector )
+	l = length(x)
+	d = Array(Float64,nP,l)
+	for k in 1:nP
+		d[k,1] = (log(x[2] / ((px[k] - x[2])^2 + (py[k] - x[3])^2)))
+		d[k,2] = (x[1] * ((1 / ((px[k] - x[3])^2 + (py[k] - x[4])^2)) * (1 / (x[2] / ((px[k] - x[3])^2 + (py[k] - x[4])^2)))))
+		d[k,3] = (x[1] * (((-(-2 * (px[k] - x[3])) * x[2]) / ((px[k] - x[3])^2 + (py[k] - x[4])^2)^2) * (1 / (x[2] / ((px[k] - x[3])^2 + (py[k] - x[4])^2)))))
+		d[k,4] = (x[1] * (((-(-2 * (py[k] - x[4])) * x[2]) / ((px[k] - x[3])^2 + (py[k] - x[4])^2)^2) * (1 / (x[2] / ((px[k] - x[3])^2 + (py[k] - x[4])^2)))))
+	end
+	return d
+end
+
 target = Array(Float64, nP)
 for i in 1:nk
-	df = DataFrame(x=px, y=py, label=pname, label2=collect(pl[i,:]))
-	p = plot(df, x="x", y="y", label=4, Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), 
-	Guide.title("Source $i"), Geom.point, Geom.label )
-	draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-S$i.png"), 8inch, 6inch), p)
 	target = collect(pz[i,:])
 	# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
-	results = Optim.levenberg_marquardt(r1, r1g, [1.0,499100.0,539100.0], maxIter=1000)
+	results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
+	# results = Optim.levenberg_marquardt(logr2, logr2g, [1.0,1000000,499100.0,539100.0], maxIter=1000, tolG=1e-19)
+	# results = Optim.levenberg_marquardt(r2, r2g, [10000.0,499100.0,539100.0], maxIter=1000, tolG=1e-19)
 	println(results)
+	pred = rn( results.minimum )
+	for j in 1:nP
+		pl[i,j] = @sprintf( "%.2f-%.2f=%.2f", pred[j]-target[j],target[j],pred[j])
+	end
+	df = DataFrame(x=px, y=py, label=pname, label2=collect(pl[i,:]), category="points" )
+	dfr = DataFrame(x=results.minimum[2], y=results.minimum[3], label="E", label2="E", category="result" )
+	p = plot(vcat(df,dfw,dfr), x="x", y="y", label=4, color="category", Geom.point, Geom.label, 
+	Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.title("Source $i") )
+	draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-S$i.png"), 8inch, 6inch), p)
 end
