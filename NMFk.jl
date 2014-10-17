@@ -5,6 +5,8 @@ using NMF
 using Clustering
 using MultivariateStats
 using Wells
+using Optim
+using Calculus
 
 include("nmfk-test-20141013.jl")
 #include("nmfk-test-20141012.jl")
@@ -12,24 +14,27 @@ include("nmfk-test-20141013.jl")
 intermediate_figs = false
 nNMF=1
 dd = Wells.solve( WellsD, WellsQ, Points, time, T, S )
-println(keys(dd))
-numrows = size(collect(keys(dd)))[1]
-numcols = size(dd[collect(keys(dd))[1]])[1]
-X = Array(Float64, numrows, numcols)
+println(sort(collect(keys(dd))))
+nP = numrows = size(collect(keys(dd)))[1]
+nT = numcols = size(dd[collect(keys(dd))[1]])[1]
+X = Array(Float64, nP, nT)
+W = Array(Float64, nP, nk)
+Hcheat = Array(Float64, nk, nT)
 df = Array(Any, numrows)
 pl = Array(Plot, numrows)
 dW = Wells.solve( "R-28", WellsD, WellsQ, Points, time, T, S )
 i = 0
-for w in keys(WellsD)
+for w in sort(collect(keys(WellsD)))
 	i += 1
 	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
+	Hcheat[i,:] = dW[w]
 end
 nWells = i
 p = vstack( pl[1:nWells] )
 draw(PNG(string("nmfk-test-$testproblem-r28-dd.png"), 18inch, 12inch), p)
 dW = Wells.solve( 0.1, WellsD, WellsQ, time, T, S )
 i = 0
-for w in keys(WellsD)
+for w in sort(collect(keys(WellsD)))
 	i += 1
 	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
 end
@@ -37,7 +42,7 @@ nWells = i
 p = vstack( pl[1:nWells] )
 draw(PNG(string("nmfk-test-$testproblem-wdd.png"), 18inch, 12inch), p)
 i = 0
-for k in keys(dd)
+for k in sort(collect(keys(dd)))
 	i += 1
 	println(k)
 	X[i,:] = dd[k]
@@ -59,6 +64,11 @@ writecsv("nmfk-test-$testproblem.csv",X')
 # RANDOM test
 # X = rand(5, 1000)
 
+Wt = llsq(H',X'; bias=false)
+W = Wt'
+# println("Size of W = ", size(W) )
+# println("Size of H = ", size(H) )
+
 WBig = Array(Float64, numrows, 0)
 HBig = Array(Float64, 0, numcols)
 P = Array(Float64, numrows, numcols)
@@ -67,17 +77,18 @@ for n = 1:nNMF
 	println("NMF ", n)
 
 	# initialize W & H matrices randomly
-	W, H = NMF.randinit(X, nk, normalize=true)
+	#W, H = NMF.randinit(X, nk, normalize=true)
 
 	# initialize W & H using Non-Negative Double Singular Value Decomposition (NNDSVD) algorithm
 	# Reference: C. Boutsidis, and E. Gallopoulos. SVD based initialization: A head start for nonnegative matrix factorization. Pattern Recognition, 2007.
-	# W, H = NMF.nndsvd(X, nk)
+	W, H = NMF.nndsvd(X, nk)
+	H = Hcheat
 
 	# println("Size of W = ", size(W) )
 	# println("Size of H = ", size(H) )
 
 	# Solve NMF
-	NMF.solve!(NMF.MultUpdate(obj=:mse,maxiter=100), X, W, H)
+	NMF.solve!(NMF.MultUpdate(obj=:div,maxiter=200000,tol=1.0e-6,lambda=1,lambda=1.0e-9), X, W, H)
 	# NMF.solve!(NMF.ProjectedALS(maxiter=100), X, W, H)
 	# NMF.solve!(NMF.ALSPGrad(maxiter=100, tolg=1.0e-6), X, W, H)
 	P = W * H
@@ -86,7 +97,7 @@ for n = 1:nNMF
 	println("Objective function = ", phi[n], " Max error = ", maximum(E), " Min error = ", minimum(E) )
 	if intermediate_figs
 		i = 0
-		for k in keys(dd)
+		for k in sort(collect(keys(dd)))
 			i += 1
 			#df1 = DataFrame(x=time, y=dd[k], label="data")
 			#df2 = DataFrame(x=time, y=dd[k], label="model")
@@ -149,9 +160,10 @@ if nNMF > 1
 	println("Size of matrix containing cluster centers = ", size(M))
 	# println("Cluser centers = ", M)
 	Ha = M'
-	Wa = llsq(Ha',X'; bias=false)
+	Wt = llsq(Ha',X'; bias=false)
+	Wa = Wt'
 	println("Size of the new weigth matrix = ", size(Wa))
-	P = Wa' * Ha
+	P = Wa * Ha
 	E = X - P
 	phi_final = sum( E' * E )
 	println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
@@ -179,7 +191,7 @@ p = vstack( pl[1:nk] )
 draw(PNG(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
 writecsv(string("nmfk-test-$testproblem-weights-NMFk=",nk,"-",nNMF,".csv"),Wa)
 i = 0
-for k in keys(dd)
+for k in sort(collect(keys(dd)))
 	i += 1
 	pl[i] = plot(
 	layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
@@ -193,3 +205,71 @@ else
 end
 p = gridstack(cs)
 draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
+
+# println(Wa)
+pname = sort(collect(keys(Points)))
+nP = length(pname)
+px = Array(Float64,nP)
+py = Array(Float64,nP)
+pz = Array(Float64,nk,nP)
+pl = Array(String,nk,nP)
+i = 0
+for k in sort(collect(keys(Points)))
+	i += 1
+	px[i] = Points[k][1]
+	py[i] = Points[k][2]
+	for j in 1:nk
+		pz[j,i] = Wa[i,j]
+		pl[j,i] = @sprintf( "%.3f", Wa[i,j])
+	end
+end
+
+function r1( x::Vector )	
+	d = Array(Float64,nP)
+	for k in 1:nP
+		d[k] = target[k] - ( x[1] / sqrt( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) )
+	end
+	return d
+end
+
+function r1g( x::Vector )
+	l = length(x)
+	d = Array(Float64,nP,l)
+	for k in 1:nP
+		d[k,1] = -1 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)
+		d[k,2] = ((-((-2 * (px[k] - x[2])) * (0.5 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2))) * x[1]) / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)^2)
+		d[k,3] = ((-((-2 * (py[k] - x[3])) * (0.5 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2))) * x[1]) / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)^2)
+	end
+	return d
+end
+
+function r2( x::Vector )	
+	d = Array(Float64,nP)
+	for k in 1:nP
+		d[k] = target[k] - ( x[1] / ( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) )
+	end
+	return d
+end
+
+function r2g( x::Vector )
+	l = length(x)
+	d = Array(Float64,nP,l)
+	for k in 1:nP
+		d[k,1] = -1 / ((px[k] - x[2])^2 + (py[k] - x[3])^2)
+		d[k,2] = -(-(-2 * (px[k] - x[2])) * x[1]) / ((px[k] - x[2])^2 + (py[k] - x[3])^2)^2
+		d[k,3] = -(-(-2 * (py[k] - x[3])) * x[1]) / ((px[k] - x[2])^2 + (py[k] - x[3])^2)^2
+	end
+	return d
+end
+
+target = Array(Float64, nP)
+for i in 1:nk
+	df = DataFrame(x=px, y=py, label=pname, label2=collect(pl[i,:]))
+	p = plot(df, x="x", y="y", label=4, Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), 
+	Guide.title("Source $i"), Geom.point, Geom.label )
+	draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-S$i.png"), 8inch, 6inch), p)
+	target = collect(pz[i,:])
+	# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
+	results = Optim.levenberg_marquardt(r1, r1g, [1.0,499100.0,539100.0], maxIter=1000)
+	println(results)
+end
