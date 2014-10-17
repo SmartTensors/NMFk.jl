@@ -6,13 +6,12 @@ using Clustering
 using MultivariateStats
 using Wells
 using Optim
-using Calculus
 
 include("nmfk-test-20141013.jl")
 #include("nmfk-test-20141012.jl")
 #include("nmfk-test-20141005.jl")
 intermediate_figs = false
-nNMF=1
+nNMF=10
 dd = Wells.solve( WellsD, WellsQ, Points, time, T, S )
 println(sort(collect(keys(dd))))
 nP = numrows = size(collect(keys(dd)))[1]
@@ -61,6 +60,33 @@ draw(PNG(string("nmfk-test-$testproblem-input.png"), 18inch, 12inch), p)
 println("Size of the matrix to solve ",size(X))
 writecsv("nmfk-test-$testproblem-well-names.csv",collect(keys(dd))')
 writecsv("nmfk-test-$testproblem.csv",X')
+
+# prepare the data for the DataFrames
+nP = length(collect(keys(Points)))
+pname = Array(String,nP)
+px = Array(Float64,nP)
+py = Array(Float64,nP)
+i = 0
+for k in sort(collect(keys(Points)))
+	i += 1
+	px[i] = Points[k][1]
+	py[i] = Points[k][2]
+	pname[i] = k
+end
+dfp = DataFrame(x=px, y=py, label=pname, info=pname, category="points")
+
+nW = length(collect(keys(WellsD)))
+wname = Array(String,nW)
+wx = Array(Float64,nW)
+wy = Array(Float64,nW)
+i = 0
+for k in sort(collect(keys(WellsD)))
+	i += 1
+	wx[i] = WellsD[k][1]
+	wy[i] = WellsD[k][2]
+	wname[i] = k
+end
+dfw = DataFrame(x=wx, y=wy, label=wname, info=wname, category="wells")
 
 # RANDOM test
 # X = rand(5, 1000)
@@ -207,131 +233,24 @@ p = gridstack(cs)
 draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
 
 # println(Wa)
-pname = sort(collect(keys(Points)))
-nP = length(pname)
-px = Array(Float64,nP)
-py = Array(Float64,nP)
-pz = Array(Float64,nk,nP)
-pl = Array(String,nk,nP)
-i = 0
-for k in sort(collect(keys(Points)))
-	i += 1
-	px[i] = Points[k][1]
-	py[i] = Points[k][2]
-	for j in 1:nk
-		pz[j,i] = Wa[i,j]
-		pl[j,i] = @sprintf( "%.3f", Wa[i,j])
-	end
-end
-
-nW = length(collect(keys(WellsD)))
-wname = Array(String,nW)
-wx = Array(Float64,nW)
-wy = Array(Float64,nW)
-i = 0
-for k in sort(collect(keys(WellsD)))
-	i += 1
-	wx[i] = WellsD[k][1]
-	wy[i] = WellsD[k][2]
-	wname[i] = k
-end
-dfw = DataFrame(x=wx, y=wy, label=wname, label2=wname, category="wells")
-
-function r1( x::Vector )	
-	d = Array(Float64,nP) 
-	println( x )
-	for k in 1:nP
-		d[k] = ( x[1] / sqrt( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) ) - target[k]
-		println( target[k], "->", x[1] / sqrt( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) )
-	end
-	return d
-end
-
-function r1g( x::Vector )
-	l = length(x)
-	d = Array(Float64,nP,l)
-	for k in 1:nP
-		d[k,1] = - 1 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)
-		d[k,2] = ((-((-2 * (px[k] - x[2])) * (0.5 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2))) * x[1]) / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)^2)
-		d[k,3] = ((-((-2 * (py[k] - x[3])) * (0.5 / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2))) * x[1]) / sqrt((px[k] - x[2])^2 + (py[k] - x[3])^2)^2)
-	end
-	return d
-end
-
-function r2( x::Vector )	
-	d = Array(Float64,nP)
-	for k in 1:nP
-		d[k] = ( x[1] / ( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 ) ) - target[k]
-	end
-	return d
-end
-
-function r2g( x::Vector )
-	l = length(x)
-	d = Array(Float64,nP,l)
-	for k in 1:nP
-		d[k,1] = -1 / ((px[k] - x[2])^2 + (py[k] - x[3])^2)
-		d[k,2] = -(-(-2 * (px[k] - x[2])) * x[1]) / ((px[k] - x[2])^2 + (py[k] - x[3])^2)^2
-		d[k,3] = -(-(-2 * (py[k] - x[3])) * x[1]) / ((px[k] - x[2])^2 + (py[k] - x[3])^2)^2
-	end
-	return d
-end
-
-function rn( x::Vector )	
-	d = Array(Float64,nP)
-	for k in 1:nP
-		d[k] = ( x[1] / ( ( px[k] - x[2] )^2 + ( py[k] - x[3] )^2 )^x[4] ) - target[k]
-	end
-	return d
-end
-
-function rng( x::Vector )
-	l = length(x)
-	d = Array(Float64,nP,l)
-	for k in 1:nP
-		d[k,1] = (1 / ((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])
-		d[k,2] = ((-(x[4] * (-2 * (px[k] - x[2])) * ((px[k] - x[2])^2 + (py[k] - x[3])^2)^(x[4] - 1)) * x[1]) / (((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])^2)
-		d[k,3] = ((-(x[4] * (-2 * (py[k] - x[3])) * ((px[k] - x[2])^2 + (py[k] - x[3])^2)^(x[4] - 1)) * x[1]) / (((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])^2)
-		d[k,4] = ((-(((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4] * log((px[k] - x[2])^2 + (py[k] - x[3])^2)) * x[1]) / (((px[k] - x[2])^2 + (py[k] - x[3])^2)^x[4])^2)
-	end
-	return d
-end
-
-function logr2( x::Vector )	
-	d = Array(Float64,nP)
-	for k in 1:nP
-		d[k] = ( x[1] * log ( x[2] / ( ( px[k] - x[3] )^2 + ( py[k] - x[4] )^2 ) ) ) - target[k]
-	end
-	return d
-end
-
-function logr2g( x::Vector )
-	l = length(x)
-	d = Array(Float64,nP,l)
-	for k in 1:nP
-		d[k,1] = (log(x[2] / ((px[k] - x[2])^2 + (py[k] - x[3])^2)))
-		d[k,2] = (x[1] * ((1 / ((px[k] - x[3])^2 + (py[k] - x[4])^2)) * (1 / (x[2] / ((px[k] - x[3])^2 + (py[k] - x[4])^2)))))
-		d[k,3] = (x[1] * (((-(-2 * (px[k] - x[3])) * x[2]) / ((px[k] - x[3])^2 + (py[k] - x[4])^2)^2) * (1 / (x[2] / ((px[k] - x[3])^2 + (py[k] - x[4])^2)))))
-		d[k,4] = (x[1] * (((-(-2 * (py[k] - x[4])) * x[2]) / ((px[k] - x[3])^2 + (py[k] - x[4])^2)^2) * (1 / (x[2] / ((px[k] - x[3])^2 + (py[k] - x[4])^2)))))
-	end
-	return d
-end
+println("Number of sources = ", size(WBig)[2])
 
 target = Array(Float64, nP)
-for i in 1:nk
-	target = collect(pz[i,:])
+dfr = DataFrame(x = Float64[], y = Float64[], label = String[], info = String[], category =  String[])
+include("radial-functions.jl")
+for i in 1:size(WBig)[2]
+	target = collect(WBig[:,i])
 	# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
-	results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
 	# results = Optim.levenberg_marquardt(logr2, logr2g, [1.0,1000000,499100.0,539100.0], maxIter=1000, tolG=1e-19)
 	# results = Optim.levenberg_marquardt(r2, r2g, [10000.0,499100.0,539100.0], maxIter=1000, tolG=1e-19)
+	results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
 	println(results)
-	pred = rn( results.minimum )
-	for j in 1:nP
-		pl[i,j] = @sprintf( "%.2f-%.2f=%.2f", pred[j]-target[j],target[j],pred[j])
-	end
-	df = DataFrame(x=px, y=py, label=pname, label2=collect(pl[i,:]), category="points" )
-	dfr = DataFrame(x=results.minimum[2], y=results.minimum[3], label="E", label2="E", category="result" )
-	p = plot(vcat(df,dfw,dfr), x="x", y="y", label=4, color="category", Geom.point, Geom.label, 
-	Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.title("Source $i") )
-	draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-S$i.png"), 8inch, 6inch), p)
+	push!(dfr,(results.minimum[2],results.minimum[3],"","","results"))
+	#pred = rn( results.minimum )
+	#for j in 1:nP
+	#	dfp[:info][j] = @sprintf( "%.2f-%.2f=%.2f", target[j],target[j]-pred[j],pred[j])
+	#end
 end
+p = plot(vcat(dfp,dfw,dfr), x="x", y="y", label=3, color="category", Geom.point, Geom.label, 
+Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.title("Sources"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
+draw(SVG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.svg"), 8inch, 6inch), p)
