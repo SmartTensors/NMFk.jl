@@ -1,7 +1,7 @@
 # loading librarires
 @everywhere begin
 	cd("/home/boian/Desktop/NMF_2014/Julia/");
-	include("NMFk_module.jl");
+	include("NMFk.jl");
 
 	# setting directory and adjusting params
 	inputFile = "input/input.txt";
