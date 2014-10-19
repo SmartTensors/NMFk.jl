@@ -4,8 +4,9 @@ using Compose
 using NMF
 using Clustering
 using MultivariateStats
-using Wells
 using Optim
+using Wells
+using NMFk
 
 include("nmfk-test-20141013.jl")
 #include("nmfk-test-20141012.jl")
