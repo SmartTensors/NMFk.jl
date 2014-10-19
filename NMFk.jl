@@ -68,10 +68,10 @@ px = Array(Float64,nP)
 py = Array(Float64,nP)
 i = 0
 for k in sort(collect(keys(Points)))
-	i += 1
-	px[i] = Points[k][1]
-	py[i] = Points[k][2]
-	pname[i] = k
+i += 1
+px[i] = Points[k][1]
+py[i] = Points[k][2]
+pname[i] = k
 end
 dfp = DataFrame(x=px, y=py, label=pname, info=pname, category="points")
 
@@ -81,10 +81,10 @@ wx = Array(Float64,nW)
 wy = Array(Float64,nW)
 i = 0
 for k in sort(collect(keys(WellsD)))
-	i += 1
-	wx[i] = WellsD[k][1]
-	wy[i] = WellsD[k][2]
-	wname[i] = k
+i += 1
+wx[i] = WellsD[k][1]
+wy[i] = WellsD[k][2]
+wname[i] = k
 end
 dfw = DataFrame(x=wx, y=wy, label=wname, info=wname, category="wells")
 
@@ -101,60 +101,60 @@ HBig = Array(Float64, 0, numcols)
 P = Array(Float64, numrows, numcols)
 phi = Array(Float64, nNMF)
 for n = 1:nNMF
-	# initialize W & H matrices randomly
-	# W, H = NMF.randinit(X, nk, normalize=true)
-	W, H = NMF.randinit(X, nk)
+# initialize W & H matrices randomly
+# W, H = NMF.randinit(X, nk, normalize=true)
+W, H = NMF.randinit(X, nk)
 
-	# initialize W & H using Non-Negative Double Singular Value Decomposition (NNDSVD) algorithm
-	# Reference: C. Boutsidis, and E. Gallopoulos. SVD based initialization: A head start for nonnegative matrix factorization. Pattern Recognition, 2007.
-	# W, H = NMF.nndsvd(X, nk)
-	# H = Hcheat
+# initialize W & H using Non-Negative Double Singular Value Decomposition (NNDSVD) algorithm
+# Reference: C. Boutsidis, and E. Gallopoulos. SVD based initialization: A head start for nonnegative matrix factorization. Pattern Recognition, 2007.
+# W, H = NMF.nndsvd(X, nk)
+# H = Hcheat
 
-	# println("Size of W = ", size(W) )
-	# println("Size of H = ", size(H) )
+# println("Size of W = ", size(W) )
+# println("Size of H = ", size(H) )
 
-	# Solve NMF
-	NMF.solve!(NMF.MultUpdate(obj=:div,maxiter=200000,tol=1.0e-6,lambda=1,lambda=1.0e-9), X, W, H)
-	# NMF.solve!(NMF.ProjectedALS(maxiter=100), X, W, H)
-	# NMF.solve!(NMF.ALSPGrad(maxiter=100, tolg=1.0e-6), X, W, H)
-	P = W * H
-	E = X - P
-	phi[n] = sum( E' * E )
-	println("NMF ", n, " Objective function = ", phi[n], " Max error = ", maximum(E), " Min error = ", minimum(E) )
-	if intermediate_figs
-		i = 0
-		for k in sort(collect(keys(dd)))
-			i += 1
-			#df1 = DataFrame(x=time, y=dd[k], label="data")
-			#df2 = DataFrame(x=time, y=dd[k], label="model")
-			#df[i] = vcat(df1, df2)
-			#pl[i] = plot(df, x="x", y="y", color="label", Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line, Scale.discrete_color_manual("blue","red") )
-			pl[i] = plot(
-			layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
-			layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
-			Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
-		end
-		if remainder == 0 
-			cs = reshape([Context[render(pl[i]) for i in 1:numrows]],numfigrows,iround(numrows/numfigrows));
-		else
-			cs = reshape([Context[render(pl[i]) for i in 1:numrows],[context() for i in remainder+1:numfigrows]],numfigrows,iceil(numrows/numfigrows));
-		end
-		# p = vstack( pl )
-		p = gridstack(cs)
-		draw(PNG(string("nmfk-test-$testproblem-output-",n,".png"), 18inch, 12inch), p)
-		for i in 1:nk
-			pl[i] = plot( x=time, y=H[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
-		end
-		p = vstack( pl[1:nk] )
-		draw(PNG(string("nmfk-test-$testproblem-sources-",n,".png"), 18inch, 12inch), p)
+# Solve NMF
+NMF.solve!(NMF.MultUpdate(obj=:div,maxiter=200000,tol=1.0e-6,lambda=1,lambda=1.0e-9), X, W, H)
+# NMF.solve!(NMF.ProjectedALS(maxiter=100), X, W, H)
+# NMF.solve!(NMF.ALSPGrad(maxiter=100, tolg=1.0e-6), X, W, H)
+P = W * H
+E = X - P
+phi[n] = sum( E' * E )
+println("NMF ", n, " Objective function = ", phi[n], " Max error = ", maximum(E), " Min error = ", minimum(E) )
+if intermediate_figs
+	i = 0
+	for k in sort(collect(keys(dd)))
+		i += 1
+		#df1 = DataFrame(x=time, y=dd[k], label="data")
+		#df2 = DataFrame(x=time, y=dd[k], label="model")
+		#df[i] = vcat(df1, df2)
+		#pl[i] = plot(df, x="x", y="y", color="label", Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line, Scale.discrete_color_manual("blue","red") )
+		pl[i] = plot(
+		layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
+		layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
+		Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
 	end
-	# println("Size of W = ", size(W) )
-	# println("Size of WBig = ", size(WBig) )
-	# println("Size of HBig = ", size(HBig) )
-	WBig=[WBig W]
-	HBig=[HBig, H]
-	# println(WBig)
-	# println(W)
+	if remainder == 0 
+		cs = reshape([Context[render(pl[i]) for i in 1:numrows]],numfigrows,iround(numrows/numfigrows));
+	else
+		cs = reshape([Context[render(pl[i]) for i in 1:numrows],[context() for i in remainder+1:numfigrows]],numfigrows,iceil(numrows/numfigrows));
+	end
+	# p = vstack( pl )
+	p = gridstack(cs)
+	draw(PNG(string("nmfk-test-$testproblem-output-",n,".png"), 18inch, 12inch), p)
+	for i in 1:nk
+	pl[i] = plot( x=time, y=H[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
+end
+p = vstack( pl[1:nk] )
+draw(PNG(string("nmfk-test-$testproblem-sources-",n,".png"), 18inch, 12inch), p)
+end
+# println("Size of W = ", size(W) )
+# println("Size of WBig = ", size(WBig) )
+# println("Size of HBig = ", size(HBig) )
+WBig=[WBig W]
+HBig=[HBig, H]
+# println(WBig)
+# println(W)
 end
 
 if nNMF > 1 
@@ -211,18 +211,18 @@ end
 
 writecsv(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".csv"),Ha)
 for i in 1:nk
-	pl[i] = plot( x=time, y=Ha[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
+pl[i] = plot( x=time, y=Ha[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
 end
 p = vstack( pl[1:nk] )
 draw(PNG(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
 writecsv(string("nmfk-test-$testproblem-weights-NMFk=",nk,"-",nNMF,".csv"),Wa)
 i = 0
 for k in sort(collect(keys(dd)))
-	i += 1
-	pl[i] = plot(
-	layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
-	layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
-	Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
+i += 1
+pl[i] = plot(
+layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
+layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
+Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
 end
 if remainder == 0 
 	cs = reshape([Context[render(pl[i]) for i in 1:numrows]],numfigrows,iround(numrows/numfigrows));
@@ -239,17 +239,17 @@ target = Array(Float64, nP)
 dfr = DataFrame(x = Float64[], y = Float64[], label = String[], info = String[], category =  String[])
 include("radial-functions.jl")
 for i in 1:size(WBig)[2]
-	target = collect(WBig[:,i])
-	# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
-	# results = Optim.levenberg_marquardt(logr2, logr2g, [1.0,1000000,499100.0,539100.0], maxIter=1000, tolG=1e-19)
-	# results = Optim.levenberg_marquardt(r2, r2g, [10000.0,499100.0,539100.0], maxIter=1000, tolG=1e-19)
-	results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
-	println(results)
-	push!(dfr,(results.minimum[2],results.minimum[3],"","","results"))
-	#pred = rn( results.minimum )
-	#for j in 1:nP
-	#	dfp[:info][j] = @sprintf( "%.2f-%.2f=%.2f", target[j],target[j]-pred[j],pred[j])
-	#end
+target = collect(WBig[:,i])
+# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
+# results = Optim.levenberg_marquardt(logr2, logr2g, [1.0,1000000,499100.0,539100.0], maxIter=1000, tolG=1e-19)
+# results = Optim.levenberg_marquardt(r2, r2g, [10000.0,499100.0,539100.0], maxIter=1000, tolG=1e-19)
+results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
+println(results)
+push!(dfr,(results.minimum[2],results.minimum[3],"","","results"))
+#pred = rn( results.minimum )
+#for j in 1:nP
+#	dfp[:info][j] = @sprintf( "%.2f-%.2f=%.2f", target[j],target[j]-pred[j],pred[j])
+#end
 end
 p = plot(vcat(dfp,dfw,dfr), x="x", y="y", label=3, color="category", Geom.point, Geom.label, 
 Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.title("Sources"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))

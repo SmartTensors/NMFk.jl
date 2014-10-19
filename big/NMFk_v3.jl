@@ -9,7 +9,7 @@
 	iterPerNode = 10;
 	nmfIter = 100000;
 	numberOfProcesses = 2;
-	
+
 
 	# reading input file and initilizing arrays
 	inputMatrix = readdlm(inputFile, '\t');
@@ -31,8 +31,8 @@ allProcesses = zeros( numberOfPoints, numberOfProcesses, globalIter );
 allMixtures  = zeros( numberOfProcesses, numberOfSamples, globalIter );
 
 for my_id_i = 1 : totalNodes
-  allProcesses[:,:, ((my_id_i-1)*iterPerNode+1):(my_id_i*iterPerNode) ] = remotecall_fetch(my_id_i, ()->allProcessesPerNode);
-   allMixtures[:,:, ((my_id_i-1)*iterPerNode+1):(my_id_i*iterPerNode) ] = remotecall_fetch(my_id_i, ()->allMixturesPerNode);	
+	allProcesses[:,:, ((my_id_i-1)*iterPerNode+1):(my_id_i*iterPerNode) ] = remotecall_fetch(my_id_i, ()->allProcessesPerNode);
+	allMixtures[:,:, ((my_id_i-1)*iterPerNode+1):(my_id_i*iterPerNode) ] = remotecall_fetch(my_id_i, ()->allMixturesPerNode);	
 end
 
 # clustering extracted processes
@@ -46,6 +46,5 @@ dataRecon = processes * mixtures;
 dataReconCorr = zeros(numberOfSamples, 1);
 
 for i = 1 : numberOfSamples
-  dataReconCorr[i] = cor( inputMatrix[:,i], dataRecon[:, i] );
+	dataReconCorr[i] = cor( inputMatrix[:,i], dataRecon[:, i] );
 end
-
