@@ -6,17 +6,17 @@ using Stats
 
 # setting directory and adjusting params
 cd("/home/boian/Desktop/NMF_2014/Julia/");
-globalIter = 10;
-nmfIter = 100000;
-numberOfProcesses = 2;
+globalIter = 10; # nNMF; number of NMF's
+nmfIter = 100000; # number of NMF interations
+numberOfProcesses = 2; # nk
 
 # reading input file and initilizing arrays
 inputMatrix = readdlm("input/input.txt", '\t');
-numberOfPoints   = size(inputMatrix, 1);
-numberOfSamples = size(inputMatrix, 2);
+numberOfPoints   = size(inputMatrix, 1); # nT; number of observations for each point
+numberOfSamples = size(inputMatrix, 2);  # nP; number of observation points (number of observation records)
 
-allProcesses = zeros( numberOfPoints, numberOfProcesses, globalIter );
-allMixtures  = zeros( numberOfProcesses, numberOfSamples, globalIter );
+allProcesses = zeros( numberOfPoints, numberOfProcesses, globalIter ); # HBig; here it is transposed ( nT, nk, nNMF )
+allMixtures  = zeros( numberOfProcesses, numberOfSamples, globalIter ); # WBig; here it is transposed ( nk, nP, nNMF )
 
 # nonnegative matrix factorization over multiple iterations
 for curentIteration = 1 : globalIter

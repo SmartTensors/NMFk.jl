@@ -1,4 +1,5 @@
 module NMFk
+
 using NMF
 using Clustering
 using Distances
@@ -20,13 +21,21 @@ function NMF_single_iter(inputMatrix, numberOfProcesses, nmfIter)
 	return processes, mixtures;
 end
 
-function cluster_NMF_solutions(allProcesses, clusterRepeatMax)
+function cluster_NMF_solutions(HBigT, clusterRepeatMax)
 
-	numberOfPoints = size(allProcesses, 1);
-	numberOfProcesses = size(allProcesses, 2);
-	globalIter =  size(allProcesses, 3);
+	nNMF = clusterRepeatMax;
+	println( size(HBigT) );
+	nT = size(HBigT, 1);
+	nW = size(HBigT, 2);
+	nk = convert(Int, nW / nNMF );
+	# numberOfPoints = size(allProcesses, 1); # nT
+	# numberOfProcesses = size(allProcesses, 2); # nk
+	# globalIter =  size(allProcesses, 3); # nNMF
+	numberOfPoints = nT;
+	numberOfProcesses = nk;
+	globalIter = nNMF;
 
-	centroids = allProcesses[:, :, 1];
+	centroids = HBigT[:, 1:nk];
 	idx = zeros(Int, numberOfProcesses, globalIter);
 	# idx_old = zeros(Int, numberOfProcesses, globalIter);
 
@@ -43,7 +52,7 @@ function cluster_NMF_solutions(allProcesses, clusterRepeatMax)
 				for processID = 1 : numberOfProcesses
 					for centroidID = 1 : numberOfProcesses
 						if ( (centroidsTaken[centroidID] == 0) && ( processesTaken[processID] == 0) )
-							distMatrix[processID, centroidID] = cosine_dist(allProcesses[:, processID, globalIterID], centroids[:,centroidID]);
+							distMatrix[processID, centroidID] = cosine_dist(HBigT[:, ( processID - 1 ) * nNMF +  globalIterID], centroids[:,centroidID]);
 						end
 					end
 				end
@@ -58,7 +67,7 @@ function cluster_NMF_solutions(allProcesses, clusterRepeatMax)
 		centroids = zeros( numberOfPoints, numberOfProcesses );
 		for centroidID = 1 : numberOfProcesses
 			for globalIterID = 1 : globalIter
-				centroids[:, centroidID] = centroids[:, centroidID] + allProcesses[:, findin(idx[:, globalIterID], centroidID), globalIterID];
+				centroids[:, centroidID] = centroids[:, centroidID] + HBigT[:, ( findin(idx[:, globalIterID], centroidID) - 1 ) * nNMF + globalIterID];
 			end
 		end
 		centroids = centroids ./ globalIter;
@@ -71,20 +80,35 @@ function cluster_NMF_solutions(allProcesses, clusterRepeatMax)
 
 	end
 
-	return idx;
+	return idx, centroids;
 end
 
-function final_processes_and_mixtures(allProcesses, allMixtures, idx)
+function final_processes_and_mixtures(allProcesses, allMixtures, nNMF, idx)
 
-	numberOfPoints = size(allProcesses, 1);
-	numberOfProcesses = size(allProcesses, 2);
-	globalIter =  size(allProcesses, 3);
-	numberOfSamples = size(allMixtures, 2);
+	println( size(allProcesses) );
+	println( size(allMixtures) );
+	numberOfPoints = size(allProcesses, 1); # nT
+	println("numberOfPoints (nT) ", numberOfPoints)
+	nW = size(allProcesses, 2); # nW
+	println("nW ", nW)
+	# globalIter =  size(allProcesses, 3);
+	# println("globalIter ", globalIter)
+	globalIter = nNMF;
+	nk = numberOfProcesses = convert(Int, nW / nNMF );
+	println("nk ", nk)
+	nW = size(allMixtures, 1); # nW
+	numberOfSamples = size(allMixtures, 2); # nP
+	println("nW ", nW)
+	println("numberOfSamples (nP) ", numberOfSamples)
 
-	idx_r = vec(reshape(idx, numberOfProcesses * globalIter, 1));
+	idx_r = vec(reshape(idx, nW, 1));
+
 	allProcesses_r = reshape(allProcesses, numberOfPoints, numberOfProcesses * globalIter);
+	println( size(allProcesses_r) );
 	allMixtures_r = reshape(allMixtures, numberOfProcesses * globalIter, numberOfSamples);
+	println( size(allMixtures_r) );
 	allProcessesDist = pairwise(CosineDist(), allProcesses_r);
+	println( size(allProcessesDist) );
 	stabilityProcesses = silhouettes( idx_r, vec(repmat([globalIter], numberOfProcesses, 1)), allProcessesDist);
 
 	avgStabilityProcesses = zeros(numberOfProcesses, 1);
