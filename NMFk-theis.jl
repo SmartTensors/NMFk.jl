@@ -218,11 +218,13 @@ if nNMF > 1
 		idx, M = NMFk.cluster_NMF_solutions(HBig', nNMF);
 		println("idx ", idx )
 		println("centroids ", M )
-		Ha, Wa, avgStabilityProcesses = NMFk.final_processes_and_mixtures(HBig', WBig', nNMF, idx);
-		println("Size of Ha = ", size(Ha) )
-		println("Size of Wa = ", size(Wa) )
+		Ht, Wt, avgStabilityProcesses = NMFk.final_processes_and_mixtures(HBig', WBig', nNMF, idx);
+		println("Size of Ha = ", size(Ht) )
+		println("Size of Wa = ", size(Wt) )
 		println("Silhouettes Avg = ", avgStabilityProcesses )
-		P = Wa' * Ha';
+		Wa = Wt';
+		Ha = Ht';
+		P = Wa * Ha;
 		E = X - P;
 		phi_final = sum( E' * E )
 		println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )

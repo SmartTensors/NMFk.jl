@@ -52,7 +52,8 @@ function cluster_NMF_solutions(HBigT, clusterRepeatMax)
 				for processID = 1 : numberOfProcesses
 					for centroidID = 1 : numberOfProcesses
 						if ( (centroidsTaken[centroidID] == 0) && ( processesTaken[processID] == 0) )
-							distMatrix[processID, centroidID] = cosine_dist(HBigT[:, ( processID - 1 ) * nNMF +  globalIterID], centroids[:,centroidID]);
+							distMatrix[processID, centroidID] = cosine_dist(HBigT[:, processID +  ( globalIterID - 1 ) * nk], centroids[:,centroidID]);
+							# distMatrix[processID, centroidID] = cosine_dist(HBigT[:, ( processID - 1 ) * nNMF +  globalIterID], centroids[:,centroidID]);
 						end
 					end
 				end
@@ -67,7 +68,8 @@ function cluster_NMF_solutions(HBigT, clusterRepeatMax)
 		centroids = zeros( numberOfPoints, numberOfProcesses );
 		for centroidID = 1 : numberOfProcesses
 			for globalIterID = 1 : globalIter
-				centroids[:, centroidID] = centroids[:, centroidID] + HBigT[:, ( findin(idx[:, globalIterID], centroidID) - 1 ) * nNMF + globalIterID];
+				centroids[:, centroidID] = centroids[:, centroidID] + HBigT[:, findin(idx[:, globalIterID], centroidID) + ( globalIterID - 1 ) * nk];
+			# 	centroids[:, centroidID] = centroids[:, centroidID] + HBigT[:, ( findin(idx[:, globalIterID], centroidID) - 1 ) * nNMF  + globalIterID];
 			end
 		end
 		centroids = centroids ./ globalIter;
