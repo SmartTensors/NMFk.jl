@@ -13,7 +13,7 @@ include("nmfk-test-20141013.jl")
 #include("nmfk-test-20141005.jl")
 intermediate_figs = false
 flag_kmeans = false # true = buildin kmeans; false = use clustering in NMFk
-flag_kmeans = true
+flag_kmeans = false
 nNMF=10 # number of NMFk's
 
 # solve the Theis problem for all the wells
@@ -58,7 +58,7 @@ for k in sort(collect(keys(dd)))
 	i += 1
 	println(k)
 	X[i,:] = dd[k] # setup the input matrix
-	pl[i] = plot(x=time, y=dd[k], Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line )
+	pl[i] = plot(x=time, y=dd[k], Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line, Theme(default_color=color("red"),line_width=2pt) )
 end
 numfigrows = 3
 remainder = numrows % numfigrows
@@ -250,7 +250,7 @@ for k in sort(collect(keys(dd)))
 	i += 1
 	pl[i] = plot(
 	layer(x=time, y=P[i,:], Geom.point, Theme(default_color=color("white"), default_point_size=1pt)),
-	layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
+	layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"),line_width=2pt)),
 	Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
 end
 if remainder == 0 
@@ -264,6 +264,10 @@ draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,".png"), 18inc
 # println(Wa)
 println("Number of sources = ", size(WBig)[2])
 
+p = plot(vcat(dfp,dfw), x="x", y="y", label=3, color="category", Geom.point, Geom.label, 
+Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
+draw(SVG(string("nmfk-test-$testproblem.svg"), 8inch, 6inch), p)
+# draw(PNG(string("nmfk-test-$testproblem.png"), 8inch, 6inch), p)
 target = Array(Float64, nP)
 dfr = DataFrame(x = Float64[], y = Float64[], label = String[], info = String[], category =  String[])
 include("radial-functions.jl")
@@ -281,5 +285,6 @@ for i in 1:size(WBig)[2]
 	#end
 end
 p = plot(vcat(dfp,dfw,dfr), x="x", y="y", label=3, color="category", Geom.point, Geom.label, 
-Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.title("Sources"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
+Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
 draw(SVG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.svg"), 8inch, 6inch), p)
+# draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.png"), 8inch, 6inch), p)
