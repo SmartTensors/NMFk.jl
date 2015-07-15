@@ -5,15 +5,23 @@ using NMF
 using Clustering
 using MultivariateStats
 using Optim
+pwd()
+dirname(Base.source_path())
+push!(LOAD_PATH, dirname(Base.source_path()))
 using Wells
 using NMFk
 
+# read the problem setup
 include("nmfk-test-20141013.jl")
 #include("nmfk-test-20141012.jl")
 #include("nmfk-test-20141005.jl")
+if !isdir("nmfk-test-$testproblem")
+	mkdir("nmfk-test-$testproblem")
+end
+# flags
 intermediate_figs = false
 flag_kmeans = false # true = buildin kmeans; false = use clustering in NMFk
-flag_kmeans = false
+source_location_identification = false # identify spatial location of the sources using LM and dummy radial functions
 nNMF=10 # number of NMFk's
 
 # solve the Theis problem for all the wells
@@ -21,57 +29,63 @@ dd = Wells.solve( WellsD, WellsQ, Points, time, T, S )
 println("Observation points: ", sort(collect(keys(dd))))
 
 nP = numrows = size(collect(keys(dd)))[1] # number of observation points (number of observation records)
-nT = numcols = size(dd[collect(keys(dd))[1]])[1] # number of observations for each point 
+nT = numcols = size(dd[collect(keys(dd))[1]])[1] # number of observations for each point
 X = Array(Float64, nP, nT) # input matrix of observations
-W = Array(Float64, nP, nk) # estimated weight matrix 
+W = Array(Float64, nP, nk) # estimated weight matrix
 H = Array(Float64, nk, nT) # estimated source matrix
 P = Array(Float64, nP, nT) # model prediction matrix
 phi = Array(Float64, nNMF) # vector for the computed objective functions
-WBig = Array(Float64, nP, 0) # estimated weight matrix collected over a series of NMFk's
-HBig = Array(Float64, 0, nT) # estimated source matrix collected over a series of NMFk's
+WBig = Array(Float64, nP, 0) # estimated weight matrix collected over a series of NMFk's (initialized emptu)
+HBig = Array(Float64, 0, nT) # estimated source matrix collected over a series of NMFk's (initialized emptu)
 Hcheat = Array(Float64, nk, nT) # initial guess for the source matrix
-df = Array(Any, nP) # DataFrames matrix
+df = Array(Any, nP) # DataFrames matrix needed for ploting
 pl = Array(Plot, nP) # Plot matrix
 
 # solve the Theis problem for R-28 to comute initial H guess (Hcheat)
-dW = Wells.solve( "R-28", WellsD, WellsQ, Points, time, T, S ) 
+dW = Wells.solve( "R-28", WellsD, WellsQ, Points, time, T, S )
 i = 0
 for w in sort(collect(keys(WellsD)))
 	i += 1
 	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
 	Hcheat[i,:] = dW[w]
 end
-nW= i # number of true sources (number of pumping wells)
+nW = i # number of true sources (number of pumping wells)
 p = vstack( pl[1:nW] )
-draw(PNG(string("nmfk-test-$testproblem-r28-dd.png"), 18inch, 12inch), p)
+draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-r28-dd.png"), 18inch, 12inch), p)
+
+# solve the Theis problem for a pumping well (radius set to 0.1 which is the borehole diameter)
 dW = Wells.solve( 0.1, WellsD, WellsQ, time, T, S )
 i = 0
 for w in sort(collect(keys(WellsD)))
 	i += 1
 	pl[i] = plot( x=time, y=dW[w], Guide.XLabel("Time [d]"), Guide.title("Well $w"), Geom.line)
 end
-nW = i
+nW = i # number of true sources (number of pumping wells)
 p = vstack( pl[1:nW] )
-draw(PNG(string("nmfk-test-$testproblem-wdd.png"), 18inch, 12inch), p)
+draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-wdd.png"), 18inch, 12inch), p)
+
+# plot the drawdowns for all the wells
 i = 0
 for k in sort(collect(keys(dd)))
 	i += 1
-	println(k)
-	X[i,:] = dd[k] # setup the input matrix
+	println("Plotting ",k)
+	X[i,:] = dd[k] # setup the input NMFk matrix
+	# generate the plot for each well
 	pl[i] = plot(x=time, y=dd[k], Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line, Theme(default_color=color("red"),line_width=2pt) )
 end
+# form a matrx plot
 numfigrows = 3
 remainder = numrows % numfigrows
-if remainder == 0 
+if remainder == 0
 	cs = reshape([Context[render(pl[i]) for i in 1:numrows]],numfigrows,iround(numrows/numfigrows));
 else
 	cs = reshape([Context[render(pl[i]) for i in 1:numrows],[context() for i in remainder+1:numfigrows]],numfigrows,iceil(numrows/numfigrows));
 end
 p = gridstack(cs)
-draw(PNG(string("nmfk-test-$testproblem-input.png"), 18inch, 12inch), p)
-println("Size of the matrix to solve ",size(X))
-writecsv("nmfk-test-$testproblem-well-names.csv",collect(keys(dd))')
-writecsv("nmfk-test-$testproblem.csv",X')
+draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-input.png"), 18inch, 12inch), p)
+println("Size of the X matrix to solve ",size(X))
+writecsv("nmfk-test-$testproblem/nmfk-test-$testproblem-well-names.csv",collect(keys(dd))')
+writecsv("nmfk-test-$testproblem/nmfk-test-$testproblem.csv",X')
 
 # prepare the data for the DataFrames
 nP = length(collect(keys(Points)))
@@ -85,6 +99,7 @@ px[i] = Points[k][1]
 py[i] = Points[k][2]
 pname[i] = k
 end
+# create a data frame for the observation points
 dfp = DataFrame(x=px, y=py, label=pname, info=pname, category="points")
 
 nW = length(collect(keys(WellsD)))
@@ -98,6 +113,7 @@ wx[i] = WellsD[k][1]
 wy[i] = WellsD[k][2]
 wname[i] = k
 end
+# create a data frame for the pumping wells
 dfw = DataFrame(x=wx, y=wy, label=wname, info=wname, category="wells")
 
 # RANDOM test
@@ -128,7 +144,7 @@ for n = 1:nNMF
 	P = W * H
 	E = X - P
 	phi[n] = sum( E' * E )
-	println("NMF ", n, " Objective function = ", phi[n], " Max error = ", maximum(E), " Min error = ", minimum(E) )
+	println("NMF #", n, " Objective function = ", phi[n], " Max error = ", maximum(E), " Min error = ", minimum(E) )
 	if intermediate_figs
 		i = 0
 		for k in sort(collect(keys(dd)))
@@ -142,19 +158,19 @@ for n = 1:nNMF
 			layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"))),
 			Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
 		end
-		if remainder == 0 
+		if remainder == 0
 			cs = reshape([Context[render(pl[i]) for i in 1:numrows]],numfigrows,iround(numrows/numfigrows));
 		else
 			cs = reshape([Context[render(pl[i]) for i in 1:numrows],[context() for i in remainder+1:numfigrows]],numfigrows,iceil(numrows/numfigrows));
 		end
 		# p = vstack( pl )
 		p = gridstack(cs)
-		draw(PNG(string("nmfk-test-$testproblem-output-",n,".png"), 18inch, 12inch), p)
+		draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-output-",n,".png"), 18inch, 12inch), p)
 		for i in 1:nk
-		pl[i] = plot( x=time, y=H[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
-	end
-	p = vstack( pl[1:nk] )
-	draw(PNG(string("nmfk-test-$testproblem-sources-",n,".png"), 18inch, 12inch), p)
+			pl[i] = plot( x=time, y=H[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
+		end
+		p = vstack( pl[1:nk] )
+		draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-sources-",n,".png"), 18inch, 12inch), p)
 	end
 	# println("Size of W = ", size(W) )
 	# println("Size of WBig = ", size(WBig) )
@@ -165,7 +181,7 @@ for n = 1:nNMF
 	# println(W)
 end
 
-if nNMF > 1 
+if nNMF > 1
 	println("NMFk done.")
 	println("Size of WBig = ", size(WBig) )
 	println("Size of HBig = ", size(HBig) )
@@ -179,12 +195,12 @@ if nNMF > 1
 		@assert nclusters(R) == nk
 
 		# Cluster assignments
-		# a[i] indicates which cluster the i-th sample is assigned to
+		# clusterassignments[i] indicates which cluster the i-th sample is assigned to
 		clusterassignments = assignments(R)
-		# println(a)
+		# println(clusterassignments)
 
 		# Number of samples in each cluster
-		# c[k] is the number of samples assigned to the k-th cluster
+		# clustercounts[k] is the number of samples assigned to the k-th cluster
 		clustercounts = counts(R)
 		println("Number of samples in eash cluster = ", clustercounts)
 
@@ -192,12 +208,12 @@ if nNMF > 1
 		# M is a matrix of size (numcols, nk)
 		# M[:,nk] is the mean vector of the k-th cluster
 		M = R.centers
-		println("Size of matrix containing cluster centers = ", size(M))
+		println("Size of the R matrix containing cluster centers = ", size(M))
 		# println("Cluser centers = ", M)
 		Ha = M'
 		Wt = llsq(Ha',X'; bias=false)
 		Wa = Wt'
-		println("Size of the new weigth matrix = ", size(Wa))
+		println("Size of the new weigth matrix (Wa) = ", size(Wa))
 		P = Wa * Ha
 		E = X - P
 		phi_final = sum( E' * E )
@@ -238,13 +254,13 @@ else
 	Wa = WBig
 end
 
-writecsv(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".csv"),Ha)
+writecsv(string("nmfk-test-$testproblem/nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".csv"),Ha)
 for i in 1:nk
 	pl[i] = plot( x=time, y=Ha[i,:], Guide.XLabel("Time [d]"), Guide.title("Source $i"), Geom.line)
 end
 p = vstack( pl[1:nk] )
-draw(PNG(string("nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
-writecsv(string("nmfk-test-$testproblem-weights-NMFk=",nk,"-",nNMF,".csv"),Wa)
+draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-sources-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
+writecsv(string("nmfk-test-$testproblem/nmfk-test-$testproblem-weights-NMFk=",nk,"-",nNMF,".csv"),Wa)
 i = 0
 for k in sort(collect(keys(dd)))
 	i += 1
@@ -253,38 +269,40 @@ for k in sort(collect(keys(dd)))
 	layer(x=time, y=X[i,:], Geom.line, Theme(default_color=color("red"),line_width=2pt)),
 	Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k) )
 end
-if remainder == 0 
+if remainder == 0
 	cs = reshape([Context[render(pl[i]) for i in 1:numrows]],numfigrows,iround(numrows/numfigrows));
 else
 	cs = reshape([Context[render(pl[i]) for i in 1:numrows],[context() for i in remainder+1:numfigrows]],numfigrows,iceil(numrows/numfigrows));
 end
 p = gridstack(cs)
-draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
+draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
 
 # println(Wa)
 println("Number of sources = ", size(WBig)[2])
 
-p = plot(vcat(dfp,dfw), x="x", y="y", label=3, color="category", Geom.point, Geom.label, 
-Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
-draw(SVG(string("nmfk-test-$testproblem.svg"), 8inch, 6inch), p)
-# draw(PNG(string("nmfk-test-$testproblem.png"), 8inch, 6inch), p)
-target = Array(Float64, nP)
-dfr = DataFrame(x = Float64[], y = Float64[], label = String[], info = String[], category =  String[])
-include("radial-functions.jl")
-for i in 1:size(WBig)[2]
-	target = collect(WBig[:,i])
-	# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
-	# results = Optim.levenberg_marquardt(logr2, logr2g, [1.0,1000000,499100.0,539100.0], maxIter=1000, tolG=1e-19)
-	# results = Optim.levenberg_marquardt(r2, r2g, [10000.0,499100.0,539100.0], maxIter=1000, tolG=1e-19)
-	results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
-	println(results)
-	push!(dfr,(results.minimum[2],results.minimum[3],"","","results"))
-	#pred = rn( results.minimum )
-	#for j in 1:nP
-	#	dfp[:info][j] = @sprintf( "%.2f-%.2f=%.2f", target[j],target[j]-pred[j],pred[j])
-	#end
+if source_location_identification
+	p = plot(vcat(dfp,dfw), x="x", y="y", label=3, color="category", Geom.point, Geom.label,
+	Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
+	draw(SVG(string("nmfk-test-$testproblem/nmfk-test-$testproblem.svg"), 8inch, 6inch), p)
+	# draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem.png"), 8inch, 6inch), p)
+	target = Array(Float64, nP)
+	dfr = DataFrame(x = Float64[], y = Float64[], label = String[], info = String[], category =  String[])
+	include("radial-functions.jl")
+	for i in 1:size(WBig)[2]
+		target = collect(WBig[:,i])
+		# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
+		# results = Optim.levenberg_marquardt(logr2, logr2g, [1.0,1000000,499100.0,539100.0], maxIter=1000, tolG=1e-19)
+		# results = Optim.levenberg_marquardt(r2, r2g, [10000.0,499100.0,539100.0], maxIter=1000, tolG=1e-19)
+		results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
+		# println(results)
+		push!(dfr,(results.minimum[2],results.minimum[3],"","","results"))
+		#pred = rn( results.minimum )
+		#for j in 1:nP
+		#	dfp[:info][j] = @sprintf( "%.2f-%.2f=%.2f", target[j],target[j]-pred[j],pred[j])
+		#end
+	end
+	p = plot(vcat(dfp,dfw,dfr), x="x", y="y", label=3, color="category", Geom.point, Geom.label,
+	Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
+	draw(SVG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.svg"), 8inch, 6inch), p)
+	# draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.png"), 8inch, 6inch), p)
 end
-p = plot(vcat(dfp,dfw,dfr), x="x", y="y", label=3, color="category", Geom.point, Geom.label, 
-Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
-draw(SVG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.svg"), 8inch, 6inch), p)
-# draw(PNG(string("nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.png"), 8inch, 6inch), p)

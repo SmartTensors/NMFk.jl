@@ -1,1 +1,1 @@
-../linv/Linv.jl
+../linv.jl/Linv.jl

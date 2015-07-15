@@ -1,1 +1,1 @@
-../wellsjulia/Wells.jl
+../wells.jl/Wells.jl
