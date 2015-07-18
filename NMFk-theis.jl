@@ -8,6 +8,7 @@ using Optim
 pwd()
 dirname(Base.source_path())
 push!(LOAD_PATH, dirname(Base.source_path()))
+cd(dirname(Base.source_path()))
 using Wells
 using NMFk
 
@@ -21,7 +22,7 @@ end
 # flags
 intermediate_figs = false
 flag_kmeans = false # true = buildin kmeans; false = use clustering in NMFk
-source_location_identification = false # identify spatial location of the sources using LM and dummy radial functions
+source_location_identification = true # identify spatial location of the sources using LM and dummy radial functions
 nNMF=10 # number of NMFk's
 
 # solve the Theis problem for all the wells
@@ -68,7 +69,7 @@ draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-wdd.png"), 18inch
 i = 0
 for k in sort(collect(keys(dd)))
 	i += 1
-	println("Plotting ",k)
+	# println("Plotting ",k)
 	X[i,:] = dd[k] # setup the input NMFk matrix
 	# generate the plot for each well
 	pl[i] = plot(x=time, y=dd[k], Guide.XLabel("Time [d]"), Guide.YLabel("Drawdown [m]"), Guide.title(k), Geom.line, Theme(default_color=color("red"),line_width=2pt) )
@@ -119,11 +120,11 @@ dfw = DataFrame(x=wx, y=wy, label=wname, info=wname, category="wells")
 # RANDOM test
 # X = rand(5, 1000)
 
-Wt = llsq(Hcheat',X'; bias=false)
-W = Wt'
+W = [Hcheat' \ X']'
 # println("Size of W = ", size(W) )
 # println("Size of H = ", size(H) )
 
+info("NMF runs ... ($nNMF)")
 for n = 1:nNMF
 	# initialize W & H matrices randomly
 	# W, H = NMF.randinit(X, nk, normalize=true)
@@ -132,6 +133,8 @@ for n = 1:nNMF
 	# initialize W & H using Non-Negative Double Singular Value Decomposition (NNDSVD) algorithm
 	# Reference: C. Boutsidis, and E. Gallopoulos. SVD based initialization: A head start for nonnegative matrix factorization. Pattern Recognition, 2007.
 	# W, H = NMF.nndsvd(X, nk)
+
+	# use a good guess for H (Hcheat) for testing
 	# H = Hcheat
 
 	# println("Size of W = ", size(W) )
@@ -180,12 +183,13 @@ for n = 1:nNMF
 	# println(WBig)
 	# println(W)
 end
+info("NMF runs done.")
 
 if nNMF > 1
-	println("NMFk done.")
 	println("Size of WBig = ", size(WBig) )
 	println("Size of HBig = ", size(HBig) )
 	if flag_kmeans
+		info("NMFk analysis of the NMF runs using Julia kmeans algorithm")
 		# performs K-means over W, trying to group them into nk clusters
 		# set maximum number of iterations to 200
 		# set display to :iter, so it shows progressive info at each iteration
@@ -211,8 +215,7 @@ if nNMF > 1
 		println("Size of the R matrix containing cluster centers = ", size(M))
 		# println("Cluser centers = ", M)
 		Ha = M'
-		Wt = llsq(Ha',X'; bias=false)
-		Wa = Wt'
+		Wa = [Ha' \ X']'
 		println("Size of the new weigth matrix (Wa) = ", size(Wa))
 		P = Wa * Ha
 		E = X - P
@@ -230,10 +233,11 @@ if nNMF > 1
 		# This chosen subset of points are called medoids.
 		# Q = kmedoids(W, nk; maxiter=200, display=:iter)
 	else
+		info("NMFk analysis of the NMF runs using NMFk kmeans algorithm")
 		# use imrpoved kmeans clustering accounting for the expected number of samples in each cluster
 		idx, M = NMFk.cluster_NMF_solutions(HBig', nNMF);
 		println("idx ", idx )
-		println("centroids ", M )
+		# println("centroids ", M )
 		Ht, Wt, avgStabilityProcesses = NMFk.final_processes_and_mixtures(HBig', WBig', nNMF, idx);
 		println("Size of Ha = ", size(Ht) )
 		println("Size of Wa = ", size(Wt) )
@@ -277,10 +281,9 @@ end
 p = gridstack(cs)
 draw(PNG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,".png"), 18inch, 12inch), p)
 
-# println(Wa)
-println("Number of sources = ", size(WBig)[2])
-
 if source_location_identification
+	info("Identification of the spatial location of the sources ...")
+	# println(Wa)
 	p = plot(vcat(dfp,dfw), x="x", y="y", label=3, color="category", Geom.point, Geom.label,
 	Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
 	draw(SVG(string("nmfk-test-$testproblem/nmfk-test-$testproblem.svg"), 8inch, 6inch), p)
@@ -288,19 +291,29 @@ if source_location_identification
 	target = Array(Float64, nP)
 	dfr = DataFrame(x = Float64[], y = Float64[], label = String[], info = String[], category =  String[])
 	include("radial-functions.jl")
+	println("Number of source locations to be analyzed = ", size(WBig)[2])
+	idxs = reshape(idx,1,size(WBig)[2])
 	for i in 1:size(WBig)[2]
+		println("Location $i ... labeled as Source #$(idxs[i]) ...")
 		target = collect(WBig[:,i])
 		# results = Optim.levenberg_marquardt(r2, r2g, [1.0,499100.0,539100.0], show_trace=true, maxIter=500)
 		# results = Optim.levenberg_marquardt(logr2, logr2g, [1.0,1000000,499100.0,539100.0], maxIter=1000, tolG=1e-19)
 		# results = Optim.levenberg_marquardt(r2, r2g, [10000.0,499100.0,539100.0], maxIter=1000, tolG=1e-19)
 		results = Optim.levenberg_marquardt(rn, rng, [1.0,499100.0,539100.0,0.2], maxIter=1000, tolG=1e-19)
 		# println(results)
-		push!(dfr,(results.minimum[2],results.minimum[3],"","","results"))
+		push!(dfr,(results.minimum[2],results.minimum[3],"$(idxs[i])","","results"))
 		#pred = rn( results.minimum )
 		#for j in 1:nP
 		#	dfp[:info][j] = @sprintf( "%.2f-%.2f=%.2f", target[j],target[j]-pred[j],pred[j])
 		#end
 	end
+	println("Estimated source locations $dfr")
+	for i in 1:nW
+		l = array(dfr[(dfr[:label].=="$i"),1:2])
+		# println("Locations for Source # $i \n $l")
+		println("Source location $i: mean ", mean(l[:,1]), " ", mean(l[:,2]), " variance ", var(l[:,1]), " ", var(l[:,2]) )
+	end
+
 	p = plot(vcat(dfp,dfw,dfr), x="x", y="y", label=3, color="category", Geom.point, Geom.label,
 	Guide.XLabel("x [m]"), Guide.YLabel("y [m]"), Guide.yticks(orientation=:vertical), Scale.x_continuous(labels=x -> @sprintf("%.0f", x)))
 	draw(SVG(string("nmfk-test-$testproblem/nmfk-test-$testproblem-output-NMFk=",nk,"-",nNMF,"-sources.svg"), 8inch, 6inch), p)
