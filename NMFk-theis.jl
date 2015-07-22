@@ -13,7 +13,8 @@ using Wells
 using NMFk
 
 # read the problem setup
-include("nmfk-test-20141013.jl")
+include("nmfk-test-20150721.jl")
+# include("nmfk-test-20141013.jl")
 #include("nmfk-test-20141012.jl")
 #include("nmfk-test-20141005.jl")
 if !isdir("nmfk-test-$testproblem")
@@ -21,7 +22,7 @@ if !isdir("nmfk-test-$testproblem")
 end
 # flags
 intermediate_figs = false
-flag_kmeans = false # true = buildin kmeans; false = use clustering in NMFk
+flag_kmeans = true # true = buildin kmeans; false = use clustering in NMFk
 source_location_identification = true # identify spatial location of the sources using LM and dummy radial functions
 nNMF=10 # number of NMFk's
 
@@ -43,7 +44,7 @@ df = Array(Any, nP) # DataFrames matrix needed for ploting
 pl = Array(Plot, nP) # Plot matrix
 
 # solve the Theis problem for R-28 to comute initial H guess (Hcheat)
-dW = Wells.solve( "R-28", WellsD, WellsQ, Points, time, T, S )
+dW = Wells.solve( "R3", WellsD, WellsQ, Points, time, T, S )
 i = 0
 for w in sort(collect(keys(WellsD)))
 	i += 1
@@ -135,7 +136,7 @@ for n = 1:nNMF
 	# W, H = NMF.nndsvd(X, nk)
 
 	# use a good guess for H (Hcheat) for testing
-	# H = Hcheat
+	H = Hcheat
 
 	# println("Size of W = ", size(W) )
 	# println("Size of H = ", size(H) )
@@ -308,7 +309,7 @@ if source_location_identification
 		#end
 	end
 	println("Estimated source locations $dfr")
-	for i in 1:nW
+	for i in 1:nk
 		l = array(dfr[(dfr[:label].=="$i"),1:2])
 		# println("Locations for Source # $i \n $l")
 		println("Source location $i: mean ", mean(l[:,1]), " ", mean(l[:,2]), " variance ", var(l[:,1]), " ", var(l[:,2]) )

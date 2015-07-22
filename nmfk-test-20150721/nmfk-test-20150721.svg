@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:gadfly="http://www.gadflyjl.org/ns"
+     version="1.2"
+     width="203.2mm" height="152.4mm" viewBox="0 0 203.2 152.4"
+     stroke="none"
+     fill="#000000"
+     stroke-width="0.3"
+     font-size="3.88"
+>
+<g class="plotroot xscalable yscalable" id="fig-81e75cb5983d4c8aa157058c713ae945-element-1">
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="none" id="fig-81e75cb5983d4c8aa157058c713ae945-element-2">
+    <text x="99.62" y="144.4" text-anchor="middle">x [m]</text>
+  </g>
+  <g class="guide xlabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-81e75cb5983d4c8aa157058c713ae945-element-3">
+    <text x="99.62" y="136.79" text-anchor="middle">498900</text>
+  </g>
+  <g class="guide colorkey" id="fig-81e75cb5983d4c8aa157058c713ae945-element-4">
+    <g fill="#4C404B" font-size="2.82" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="fig-81e75cb5983d4c8aa157058c713ae945-element-5">
+      <text x="187.76" y="69.06" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-6" class="color_points">points</text>
+      <text x="187.76" y="72.68" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-7" class="color_wells">wells</text>
+    </g>
+    <g stroke="none" id="fig-81e75cb5983d4c8aa157058c713ae945-element-8">
+      <rect x="184.95" y="68.15" width="1.81" height="1.81" id="fig-81e75cb5983d4c8aa157058c713ae945-element-9" class="color_points" fill="#00BFFF"/>
+      <rect x="184.95" y="71.78" width="1.81" height="1.81" id="fig-81e75cb5983d4c8aa157058c713ae945-element-10" class="color_wells" fill="#D4CA3A"/>
+    </g>
+    <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="none" id="fig-81e75cb5983d4c8aa157058c713ae945-element-11">
+      <text x="184.95" y="65.24" id="fig-81e75cb5983d4c8aa157058c713ae945-element-12">category</text>
+    </g>
+  </g>
+  <g font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="none" id="fig-81e75cb5983d4c8aa157058c713ae945-element-13">
+    <text x="8.81" y="67.06" text-anchor="middle" dy="0.35em" transform="rotate(-90, 8.81, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-14">y [m]</text>
+  </g>
+  <g clip-path="url(#fig-81e75cb5983d4c8aa157058c713ae945-element-16)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-15">
+    <g pointer-events="visible" opacity="1" fill="none" stroke="none" class="guide background" id="fig-81e75cb5983d4c8aa157058c713ae945-element-17">
+      <rect x="15.28" y="5" width="168.66" height="128.12" id="fig-81e75cb5983d4c8aa157058c713ae945-element-18"/>
+    </g>
+    <g class="guide xgridlines yfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-81e75cb5983d4c8aa157058c713ae945-element-19">
+      <path fill="none" d="M99.62,5 L 99.62 133.12" id="fig-81e75cb5983d4c8aa157058c713ae945-element-20"/>
+    </g>
+    <g class="guide ygridlines xfixed" stroke-dasharray="0.5,0.5" stroke-width="0.2" stroke="#D0D0E0" id="fig-81e75cb5983d4c8aa157058c713ae945-element-21">
+      <path fill="none" d="M15.28,131.11 L 183.95 131.11" id="fig-81e75cb5983d4c8aa157058c713ae945-element-22"/>
+      <path fill="none" d="M15.28,110.43 L 183.95 110.43" id="fig-81e75cb5983d4c8aa157058c713ae945-element-23"/>
+      <path fill="none" d="M15.28,89.74 L 183.95 89.74" id="fig-81e75cb5983d4c8aa157058c713ae945-element-24"/>
+      <path fill="none" d="M15.28,69.06 L 183.95 69.06" id="fig-81e75cb5983d4c8aa157058c713ae945-element-25"/>
+      <path fill="none" d="M15.28,48.37 L 183.95 48.37" id="fig-81e75cb5983d4c8aa157058c713ae945-element-26"/>
+      <path fill="none" d="M15.28,27.69 L 183.95 27.69" id="fig-81e75cb5983d4c8aa157058c713ae945-element-27"/>
+      <path fill="none" d="M15.28,7 L 183.95 7" id="fig-81e75cb5983d4c8aa157058c713ae945-element-28"/>
+    </g>
+    <g class="plotpanel" id="fig-81e75cb5983d4c8aa157058c713ae945-element-29">
+      <g class="geometry" stroke="none" fill="#4C404B" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" id="fig-81e75cb5983d4c8aa157058c713ae945-element-30">
+        <text x="102.37" y="133.24" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-31" visibility="hidden">R1</text>
+        <text x="102.37" y="132.42" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-32" visibility="hidden">R2</text>
+        <text x="102.37" y="131.38" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-33" visibility="hidden">R3</text>
+        <text x="101.48" y="124.64" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-34" visibility="visible">R4</text>
+        <text x="97.78" y="118.44" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-35" visibility="visible">R5</text>
+        <text x="96.86" y="110.54" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-36" visibility="visible">R6</text>
+        <text x="101.55" y="71.39" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-37" visibility="visible">R7</text>
+        <text x="101.64" y="9.34" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-38" visibility="hidden">R8</text>
+        <text x="102.28" y="133.45" text-anchor="middle" dy="0.35em" id="fig-81e75cb5983d4c8aa157058c713ae945-element-39" visibility="hidden">E1</text>
+      </g>
+      <g class="geometry" id="fig-81e75cb5983d4c8aa157058c713ae945-element-40">
+        <g stroke-width="0.3" id="fig-81e75cb5983d4c8aa157058c713ae945-element-41">
+          <circle cx="99.62" cy="130.91" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-42" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="130.08" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-43" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="129.05" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-44" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="126.98" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-45" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="120.77" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-46" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="110.43" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-47" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="69.06" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-48" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="7" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-49" class="color_points" fill="#00BFFF" stroke="#FFFFFF"/>
+          <circle cx="99.62" cy="131.11" r="0.9" id="fig-81e75cb5983d4c8aa157058c713ae945-element-50" class="color_wells" fill="#D4CA3A" stroke="#FFFFFF"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-81e75cb5983d4c8aa157058c713ae945-element-51">
+    <text x="14.28" y="275.92" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-52" gadfly:scale="1.0" visibility="hidden">5.32×10⁵</text>
+    <text x="14.28" y="255.23" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-53" gadfly:scale="1.0" visibility="hidden">5.33×10⁵</text>
+    <text x="14.28" y="234.54" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-54" gadfly:scale="1.0" visibility="hidden">5.34×10⁵</text>
+    <text x="14.28" y="213.86" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-55" gadfly:scale="1.0" visibility="hidden">5.35×10⁵</text>
+    <text x="14.28" y="193.17" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-56" gadfly:scale="1.0" visibility="hidden">5.36×10⁵</text>
+    <text x="14.28" y="172.49" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-57" gadfly:scale="1.0" visibility="hidden">5.37×10⁵</text>
+    <text x="14.28" y="151.8" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-58" gadfly:scale="1.0" visibility="hidden">5.38×10⁵</text>
+    <text x="14.28" y="131.11" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-59" gadfly:scale="1.0" visibility="visible">5.39×10⁵</text>
+    <text x="14.28" y="110.43" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-60" gadfly:scale="1.0" visibility="visible">5.40×10⁵</text>
+    <text x="14.28" y="89.74" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-61" gadfly:scale="1.0" visibility="visible">5.41×10⁵</text>
+    <text x="14.28" y="69.06" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-62" gadfly:scale="1.0" visibility="visible">5.42×10⁵</text>
+    <text x="14.28" y="48.37" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-63" gadfly:scale="1.0" visibility="visible">5.43×10⁵</text>
+    <text x="14.28" y="27.69" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-64" gadfly:scale="1.0" visibility="visible">5.44×10⁵</text>
+    <text x="14.28" y="7" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-65" gadfly:scale="1.0" visibility="visible">5.45×10⁵</text>
+    <text x="14.28" y="-13.69" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-66" gadfly:scale="1.0" visibility="hidden">5.46×10⁵</text>
+    <text x="14.28" y="-34.37" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-67" gadfly:scale="1.0" visibility="hidden">5.47×10⁵</text>
+    <text x="14.28" y="-55.06" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-68" gadfly:scale="1.0" visibility="hidden">5.48×10⁵</text>
+    <text x="14.28" y="-75.74" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-69" gadfly:scale="1.0" visibility="hidden">5.49×10⁵</text>
+    <text x="14.28" y="-96.43" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-70" gadfly:scale="1.0" visibility="hidden">5.50×10⁵</text>
+    <text x="14.28" y="-117.12" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-71" gadfly:scale="1.0" visibility="hidden">5.51×10⁵</text>
+    <text x="14.28" y="-137.8" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-72" gadfly:scale="1.0" visibility="hidden">5.52×10⁵</text>
+    <text x="14.28" y="255.23" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-73" gadfly:scale="10.0" visibility="hidden">5.330×10⁵</text>
+    <text x="14.28" y="251.09" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-74" gadfly:scale="10.0" visibility="hidden">5.332×10⁵</text>
+    <text x="14.28" y="246.96" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-75" gadfly:scale="10.0" visibility="hidden">5.334×10⁵</text>
+    <text x="14.28" y="242.82" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-76" gadfly:scale="10.0" visibility="hidden">5.336×10⁵</text>
+    <text x="14.28" y="238.68" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-77" gadfly:scale="10.0" visibility="hidden">5.338×10⁵</text>
+    <text x="14.28" y="234.54" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-78" gadfly:scale="10.0" visibility="hidden">5.340×10⁵</text>
+    <text x="14.28" y="230.41" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-79" gadfly:scale="10.0" visibility="hidden">5.342×10⁵</text>
+    <text x="14.28" y="226.27" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-80" gadfly:scale="10.0" visibility="hidden">5.344×10⁵</text>
+    <text x="14.28" y="222.13" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-81" gadfly:scale="10.0" visibility="hidden">5.346×10⁵</text>
+    <text x="14.28" y="218" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-82" gadfly:scale="10.0" visibility="hidden">5.348×10⁵</text>
+    <text x="14.28" y="213.86" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-83" gadfly:scale="10.0" visibility="hidden">5.350×10⁵</text>
+    <text x="14.28" y="209.72" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-84" gadfly:scale="10.0" visibility="hidden">5.352×10⁵</text>
+    <text x="14.28" y="205.58" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-85" gadfly:scale="10.0" visibility="hidden">5.354×10⁵</text>
+    <text x="14.28" y="201.45" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-86" gadfly:scale="10.0" visibility="hidden">5.356×10⁵</text>
+    <text x="14.28" y="197.31" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-87" gadfly:scale="10.0" visibility="hidden">5.358×10⁵</text>
+    <text x="14.28" y="193.17" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-88" gadfly:scale="10.0" visibility="hidden">5.360×10⁵</text>
+    <text x="14.28" y="189.04" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-89" gadfly:scale="10.0" visibility="hidden">5.362×10⁵</text>
+    <text x="14.28" y="184.9" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-90" gadfly:scale="10.0" visibility="hidden">5.364×10⁵</text>
+    <text x="14.28" y="180.76" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-91" gadfly:scale="10.0" visibility="hidden">5.366×10⁵</text>
+    <text x="14.28" y="176.62" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-92" gadfly:scale="10.0" visibility="hidden">5.368×10⁵</text>
+    <text x="14.28" y="172.49" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-93" gadfly:scale="10.0" visibility="hidden">5.370×10⁵</text>
+    <text x="14.28" y="168.35" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-94" gadfly:scale="10.0" visibility="hidden">5.372×10⁵</text>
+    <text x="14.28" y="164.21" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-95" gadfly:scale="10.0" visibility="hidden">5.374×10⁵</text>
+    <text x="14.28" y="160.08" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-96" gadfly:scale="10.0" visibility="hidden">5.376×10⁵</text>
+    <text x="14.28" y="155.94" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-97" gadfly:scale="10.0" visibility="hidden">5.378×10⁵</text>
+    <text x="14.28" y="151.8" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-98" gadfly:scale="10.0" visibility="hidden">5.380×10⁵</text>
+    <text x="14.28" y="147.66" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-99" gadfly:scale="10.0" visibility="hidden">5.382×10⁵</text>
+    <text x="14.28" y="143.53" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-100" gadfly:scale="10.0" visibility="hidden">5.384×10⁵</text>
+    <text x="14.28" y="139.39" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-101" gadfly:scale="10.0" visibility="hidden">5.386×10⁵</text>
+    <text x="14.28" y="135.25" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-102" gadfly:scale="10.0" visibility="hidden">5.388×10⁵</text>
+    <text x="14.28" y="131.11" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-103" gadfly:scale="10.0" visibility="hidden">5.390×10⁵</text>
+    <text x="14.28" y="126.98" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-104" gadfly:scale="10.0" visibility="hidden">5.392×10⁵</text>
+    <text x="14.28" y="122.84" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-105" gadfly:scale="10.0" visibility="hidden">5.394×10⁵</text>
+    <text x="14.28" y="118.7" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-106" gadfly:scale="10.0" visibility="hidden">5.396×10⁵</text>
+    <text x="14.28" y="114.57" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-107" gadfly:scale="10.0" visibility="hidden">5.398×10⁵</text>
+    <text x="14.28" y="110.43" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-108" gadfly:scale="10.0" visibility="hidden">5.400×10⁵</text>
+    <text x="14.28" y="106.29" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-109" gadfly:scale="10.0" visibility="hidden">5.402×10⁵</text>
+    <text x="14.28" y="102.15" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-110" gadfly:scale="10.0" visibility="hidden">5.404×10⁵</text>
+    <text x="14.28" y="98.02" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-111" gadfly:scale="10.0" visibility="hidden">5.406×10⁵</text>
+    <text x="14.28" y="93.88" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-112" gadfly:scale="10.0" visibility="hidden">5.408×10⁵</text>
+    <text x="14.28" y="89.74" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-113" gadfly:scale="10.0" visibility="hidden">5.410×10⁵</text>
+    <text x="14.28" y="85.61" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-114" gadfly:scale="10.0" visibility="hidden">5.412×10⁵</text>
+    <text x="14.28" y="81.47" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-115" gadfly:scale="10.0" visibility="hidden">5.414×10⁵</text>
+    <text x="14.28" y="77.33" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-116" gadfly:scale="10.0" visibility="hidden">5.416×10⁵</text>
+    <text x="14.28" y="73.19" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-117" gadfly:scale="10.0" visibility="hidden">5.418×10⁵</text>
+    <text x="14.28" y="69.06" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-118" gadfly:scale="10.0" visibility="hidden">5.420×10⁵</text>
+    <text x="14.28" y="64.92" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-119" gadfly:scale="10.0" visibility="hidden">5.422×10⁵</text>
+    <text x="14.28" y="60.78" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-120" gadfly:scale="10.0" visibility="hidden">5.424×10⁵</text>
+    <text x="14.28" y="56.65" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-121" gadfly:scale="10.0" visibility="hidden">5.426×10⁵</text>
+    <text x="14.28" y="52.51" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-122" gadfly:scale="10.0" visibility="hidden">5.428×10⁵</text>
+    <text x="14.28" y="48.37" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-123" gadfly:scale="10.0" visibility="hidden">5.430×10⁵</text>
+    <text x="14.28" y="44.23" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-124" gadfly:scale="10.0" visibility="hidden">5.432×10⁵</text>
+    <text x="14.28" y="40.1" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-125" gadfly:scale="10.0" visibility="hidden">5.434×10⁵</text>
+    <text x="14.28" y="35.96" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-126" gadfly:scale="10.0" visibility="hidden">5.436×10⁵</text>
+    <text x="14.28" y="31.82" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-127" gadfly:scale="10.0" visibility="hidden">5.438×10⁵</text>
+    <text x="14.28" y="27.69" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-128" gadfly:scale="10.0" visibility="hidden">5.440×10⁵</text>
+    <text x="14.28" y="23.55" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-129" gadfly:scale="10.0" visibility="hidden">5.442×10⁵</text>
+    <text x="14.28" y="19.41" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-130" gadfly:scale="10.0" visibility="hidden">5.444×10⁵</text>
+    <text x="14.28" y="15.27" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-131" gadfly:scale="10.0" visibility="hidden">5.446×10⁵</text>
+    <text x="14.28" y="11.14" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-132" gadfly:scale="10.0" visibility="hidden">5.448×10⁵</text>
+    <text x="14.28" y="7" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-133" gadfly:scale="10.0" visibility="hidden">5.450×10⁵</text>
+    <text x="14.28" y="2.86" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-134" gadfly:scale="10.0" visibility="hidden">5.452×10⁵</text>
+    <text x="14.28" y="-1.27" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-135" gadfly:scale="10.0" visibility="hidden">5.454×10⁵</text>
+    <text x="14.28" y="-5.41" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-136" gadfly:scale="10.0" visibility="hidden">5.456×10⁵</text>
+    <text x="14.28" y="-9.55" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-137" gadfly:scale="10.0" visibility="hidden">5.458×10⁵</text>
+    <text x="14.28" y="-13.69" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-138" gadfly:scale="10.0" visibility="hidden">5.460×10⁵</text>
+    <text x="14.28" y="-17.82" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-139" gadfly:scale="10.0" visibility="hidden">5.462×10⁵</text>
+    <text x="14.28" y="-21.96" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-140" gadfly:scale="10.0" visibility="hidden">5.464×10⁵</text>
+    <text x="14.28" y="-26.1" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-141" gadfly:scale="10.0" visibility="hidden">5.466×10⁵</text>
+    <text x="14.28" y="-30.23" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-142" gadfly:scale="10.0" visibility="hidden">5.468×10⁵</text>
+    <text x="14.28" y="-34.37" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-143" gadfly:scale="10.0" visibility="hidden">5.470×10⁵</text>
+    <text x="14.28" y="-38.51" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-144" gadfly:scale="10.0" visibility="hidden">5.472×10⁵</text>
+    <text x="14.28" y="-42.65" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-145" gadfly:scale="10.0" visibility="hidden">5.474×10⁵</text>
+    <text x="14.28" y="-46.78" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-146" gadfly:scale="10.0" visibility="hidden">5.476×10⁵</text>
+    <text x="14.28" y="-50.92" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-147" gadfly:scale="10.0" visibility="hidden">5.478×10⁵</text>
+    <text x="14.28" y="-55.06" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-148" gadfly:scale="10.0" visibility="hidden">5.480×10⁵</text>
+    <text x="14.28" y="-59.19" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-149" gadfly:scale="10.0" visibility="hidden">5.482×10⁵</text>
+    <text x="14.28" y="-63.33" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-150" gadfly:scale="10.0" visibility="hidden">5.484×10⁵</text>
+    <text x="14.28" y="-67.47" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-151" gadfly:scale="10.0" visibility="hidden">5.486×10⁵</text>
+    <text x="14.28" y="-71.61" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-152" gadfly:scale="10.0" visibility="hidden">5.488×10⁵</text>
+    <text x="14.28" y="-75.74" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-153" gadfly:scale="10.0" visibility="hidden">5.490×10⁵</text>
+    <text x="14.28" y="-79.88" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-154" gadfly:scale="10.0" visibility="hidden">5.492×10⁵</text>
+    <text x="14.28" y="-84.02" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-155" gadfly:scale="10.0" visibility="hidden">5.494×10⁵</text>
+    <text x="14.28" y="-88.15" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-156" gadfly:scale="10.0" visibility="hidden">5.496×10⁵</text>
+    <text x="14.28" y="-92.29" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-157" gadfly:scale="10.0" visibility="hidden">5.498×10⁵</text>
+    <text x="14.28" y="-96.43" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-158" gadfly:scale="10.0" visibility="hidden">5.500×10⁵</text>
+    <text x="14.28" y="-100.57" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-159" gadfly:scale="10.0" visibility="hidden">5.502×10⁵</text>
+    <text x="14.28" y="-104.7" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-160" gadfly:scale="10.0" visibility="hidden">5.504×10⁵</text>
+    <text x="14.28" y="-108.84" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-161" gadfly:scale="10.0" visibility="hidden">5.506×10⁵</text>
+    <text x="14.28" y="-112.98" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-162" gadfly:scale="10.0" visibility="hidden">5.508×10⁵</text>
+    <text x="14.28" y="-117.12" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-163" gadfly:scale="10.0" visibility="hidden">5.510×10⁵</text>
+    <text x="14.28" y="317.29" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-164" gadfly:scale="0.5" visibility="hidden">5.3×10⁵</text>
+    <text x="14.28" y="110.43" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-165" gadfly:scale="0.5" visibility="hidden">5.4×10⁵</text>
+    <text x="14.28" y="-96.43" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-166" gadfly:scale="0.5" visibility="hidden">5.5×10⁵</text>
+    <text x="14.28" y="-303.29" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-167" gadfly:scale="0.5" visibility="hidden">5.6×10⁵</text>
+    <text x="14.28" y="255.23" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-168" gadfly:scale="5.0" visibility="hidden">5.330×10⁵</text>
+    <text x="14.28" y="244.89" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-169" gadfly:scale="5.0" visibility="hidden">5.335×10⁵</text>
+    <text x="14.28" y="234.54" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-170" gadfly:scale="5.0" visibility="hidden">5.340×10⁵</text>
+    <text x="14.28" y="224.2" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-171" gadfly:scale="5.0" visibility="hidden">5.345×10⁵</text>
+    <text x="14.28" y="213.86" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-172" gadfly:scale="5.0" visibility="hidden">5.350×10⁵</text>
+    <text x="14.28" y="203.52" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-173" gadfly:scale="5.0" visibility="hidden">5.355×10⁵</text>
+    <text x="14.28" y="193.17" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-174" gadfly:scale="5.0" visibility="hidden">5.360×10⁵</text>
+    <text x="14.28" y="182.83" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-175" gadfly:scale="5.0" visibility="hidden">5.365×10⁵</text>
+    <text x="14.28" y="172.49" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-176" gadfly:scale="5.0" visibility="hidden">5.370×10⁵</text>
+    <text x="14.28" y="162.14" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-177" gadfly:scale="5.0" visibility="hidden">5.375×10⁵</text>
+    <text x="14.28" y="151.8" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-178" gadfly:scale="5.0" visibility="hidden">5.380×10⁵</text>
+    <text x="14.28" y="141.46" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-179" gadfly:scale="5.0" visibility="hidden">5.385×10⁵</text>
+    <text x="14.28" y="131.11" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-180" gadfly:scale="5.0" visibility="hidden">5.390×10⁵</text>
+    <text x="14.28" y="120.77" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-181" gadfly:scale="5.0" visibility="hidden">5.395×10⁵</text>
+    <text x="14.28" y="110.43" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-182" gadfly:scale="5.0" visibility="hidden">5.400×10⁵</text>
+    <text x="14.28" y="100.09" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-183" gadfly:scale="5.0" visibility="hidden">5.405×10⁵</text>
+    <text x="14.28" y="89.74" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-184" gadfly:scale="5.0" visibility="hidden">5.410×10⁵</text>
+    <text x="14.28" y="79.4" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-185" gadfly:scale="5.0" visibility="hidden">5.415×10⁵</text>
+    <text x="14.28" y="69.06" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-186" gadfly:scale="5.0" visibility="hidden">5.420×10⁵</text>
+    <text x="14.28" y="58.71" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-187" gadfly:scale="5.0" visibility="hidden">5.425×10⁵</text>
+    <text x="14.28" y="48.37" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-188" gadfly:scale="5.0" visibility="hidden">5.430×10⁵</text>
+    <text x="14.28" y="38.03" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-189" gadfly:scale="5.0" visibility="hidden">5.435×10⁵</text>
+    <text x="14.28" y="27.69" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-190" gadfly:scale="5.0" visibility="hidden">5.440×10⁵</text>
+    <text x="14.28" y="17.34" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-191" gadfly:scale="5.0" visibility="hidden">5.445×10⁵</text>
+    <text x="14.28" y="7" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-192" gadfly:scale="5.0" visibility="hidden">5.450×10⁵</text>
+    <text x="14.28" y="-3.34" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-193" gadfly:scale="5.0" visibility="hidden">5.455×10⁵</text>
+    <text x="14.28" y="-13.69" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-194" gadfly:scale="5.0" visibility="hidden">5.460×10⁵</text>
+    <text x="14.28" y="-24.03" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-195" gadfly:scale="5.0" visibility="hidden">5.465×10⁵</text>
+    <text x="14.28" y="-34.37" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-196" gadfly:scale="5.0" visibility="hidden">5.470×10⁵</text>
+    <text x="14.28" y="-44.71" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-197" gadfly:scale="5.0" visibility="hidden">5.475×10⁵</text>
+    <text x="14.28" y="-55.06" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-198" gadfly:scale="5.0" visibility="hidden">5.480×10⁵</text>
+    <text x="14.28" y="-65.4" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-199" gadfly:scale="5.0" visibility="hidden">5.485×10⁵</text>
+    <text x="14.28" y="-75.74" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-200" gadfly:scale="5.0" visibility="hidden">5.490×10⁵</text>
+    <text x="14.28" y="-86.09" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-201" gadfly:scale="5.0" visibility="hidden">5.495×10⁵</text>
+    <text x="14.28" y="-96.43" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-202" gadfly:scale="5.0" visibility="hidden">5.500×10⁵</text>
+    <text x="14.28" y="-106.77" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-203" gadfly:scale="5.0" visibility="hidden">5.505×10⁵</text>
+    <text x="14.28" y="-117.12" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-204" gadfly:scale="5.0" visibility="hidden">5.510×10⁵</text>
+  </g>
+  <g class="guide ylabels" font-size="2.82" font-family="'PT Sans Caption','Helvetica Neue','Helvetica',sans-serif" fill="#6C606B" id="fig-81e75cb5983d4c8aa157058c713ae945-element-205">
+    <text x="14.28" y="131.11" text-anchor="middle" transform="rotate(-90, 14.28, 131.11)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-206">5.39×10⁵</text>
+    <text x="14.28" y="110.43" text-anchor="middle" transform="rotate(-90, 14.28, 110.43)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-207">5.40×10⁵</text>
+    <text x="14.28" y="89.74" text-anchor="middle" transform="rotate(-90, 14.28, 89.74)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-208">5.41×10⁵</text>
+    <text x="14.28" y="69.06" text-anchor="middle" transform="rotate(-90, 14.28, 69.06)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-209">5.42×10⁵</text>
+    <text x="14.28" y="48.37" text-anchor="middle" transform="rotate(-90, 14.28, 48.37)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-210">5.43×10⁵</text>
+    <text x="14.28" y="27.69" text-anchor="middle" transform="rotate(-90, 14.28, 27.69)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-211">5.44×10⁵</text>
+    <text x="14.28" y="7" text-anchor="middle" transform="rotate(-90, 14.28, 7)" id="fig-81e75cb5983d4c8aa157058c713ae945-element-212">5.45×10⁵</text>
+  </g>
+</g>
+<defs>
+<clipPath id="fig-81e75cb5983d4c8aa157058c713ae945-element-16">
+  <path d="M15.28,5 L 183.95 5 183.95 133.12 15.28 133.12" />
+</clipPath
+></defs>
+</svg>
