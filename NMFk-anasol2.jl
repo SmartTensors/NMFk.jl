@@ -16,9 +16,11 @@ using NMFk
 
 # read the problem setup
 md = Mads.loadyamlmadsfile("NMFk-anasol-20150721.mads")
-include("NMFk-anasol-20150721.jl")
-wells = OrderedDict()
+include("NMFk-anasol2-20150721.jl")
+i = 1
+conc = OrderedDict()
 for key in sort(collect(keys(Points)))
+	wells = OrderedDict()
 	welldata = Dict()
 	welldata["x"] = Points[key][1]
 	welldata["y"] = Points[key][2]
@@ -33,20 +35,37 @@ for key in sort(collect(keys(Points)))
 		wobs[t] = obs
 		welldata["obs"][t] = wobs
 	end
+	if i % 2 == 1
+		md["Parameters"]["ax"]["init"] = 10
+		xshift = 500
+	else
+		md["Parameters"]["ax"]["init"] = 100
+		xshift = 1000
+	end
+	ox = md["Sources"][1]["box"]["x"]["init"]
+	ot0 = md["Sources"][1]["box"]["t0"]["init"]
+	ot1 = md["Sources"][1]["box"]["t1"]["init"]
+	md["Sources"][1]["box"]["x"]["init"] = welldata["x"] - xshift
+	md["Sources"][1]["box"]["t0"]["init"] = ( welldata["x"] - xshift ) / md["Parameters"]["vx"]["init"]
+	md["Sources"][1]["box"]["t1"]["init"] = ( welldata["x"] - xshift ) / md["Parameters"]["vx"]["init"] + 1
 	wells[key] = welldata
+	md["Wells"] = wells
+	paramkeys = Mads.getparamkeys(md)
+	paramdict = OrderedDict(paramkeys, map(key->md["Parameters"][key]["init"], paramkeys))
+	computeconcentrations = Mads.makecomputeconcentrations(md)
+	forward_preds = computeconcentrations(paramdict)
+	conc[key] = collect(values(forward_preds))
+	md["Sources"][1]["box"]["x"]["init"] = ox
+	md["Sources"][1]["box"]["t0"]["init"] = ot0
+	md["Sources"][1]["box"]["t1"]["init"] = ot1
+	i = i + 1
 end
-md["Wells"] = wells
-paramkeys = Mads.getparamkeys(md)
-paramdict = OrderedDict(paramkeys, map(key->md["Parameters"][key]["init"], paramkeys))
-computeconcentrations = Mads.makecomputeconcentrations(md)
-forward_preds = computeconcentrations(paramdict)
 nP = length(keys(Points)) # number of observation points
-nT = int(length(forward_preds)/nP) # number of observation times at each point
-X = [reshape(float(collect(values(forward_preds))),nT,nP)]' # input matrix of observations
+nT = length(conc["R1"]) # number of observation times at each point
+X = Array(Float64, nP, nT) # input matrix of observations
 i = 1
-conc = OrderedDict()
 for key in sort(collect(keys(Points)))
-	conc[key] = X[i,:]
+	X[i,:] = conc[key]
 	i = i + 1
 end
 
