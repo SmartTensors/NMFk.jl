@@ -66,7 +66,19 @@ function final_processes_and_mixtures(allProcesses, allMixtures, idx)
 
 	idx_r = vec(reshape(idx, numberOfProcesses * globalIter, 1));
 	allProcesses_r = reshape(allProcesses, numberOfPoints, numberOfProcesses * globalIter);
-	allMixtures_r = reshape(allMixtures, numberOfProcesses * globalIter, numberOfSamples);
+
+	#allMixtures_r = reshape(allMixtures, numberOfProcesses * globalIter, numberOfSamples);		# does not stack as expected
+
+	allMixtures_r = Array(Float64, numberOfProcesses * globalIter, numberOfSamples);
+	for i=1:size(allMixtures,3)
+       if i==1
+       allMixtures_r = allMixtures[:,:,1];
+       else
+       allMixtures_r = [allMixtures_r ; allMixtures[:,:,i]];
+       end
+    end
+
+
 	allProcessesDist = pairwise(CosineDist(), allProcesses_r);
 	stabilityProcesses = silhouettes( idx_r, vec(repmat([globalIter], numberOfProcesses, 1)), allProcessesDist);
 
@@ -83,12 +95,15 @@ function final_processes_and_mixtures(allProcesses, allMixtures, idx)
 end
 
 # setting directory and adjusting params
-cd("/home/boian/Desktop/NMF_2014/Julia/");
+#cd("/home/boian/Desktop/NMF_2014/Julia/");
+
 globalIter = 10;
 nmfIter = 100000;
 numberOfProcesses = 2;
 
 # reading input file and initilizing arrays
+#inputMatrix = readcsv("Obs_noDelay.csv");
+#inputMatrix=inputMatrix';
 inputMatrix = readdlm("input/input.txt", '\t');
 numberOfPoints   = size(inputMatrix, 1);
 numberOfSamples = size(inputMatrix, 2);
