@@ -236,7 +236,7 @@ if nNMF > 1
 	else
 		info("NMFk analysis of the NMF runs using NMFk kmeans algorithm")
 		# use imrpoved kmeans clustering accounting for the expected number of samples in each cluster
-		clusterassignments, M = NMFk.cluster_NMF_solutions(HBig', nNMF);
+		clusterassignments, M = NMFk.cluster_NMF_solutions(HBig', nNMF)
 		println("clusterassignments ", clusterassignments )
 		# println("centroids ", M )
 		Ht, Wt, avgStabilityProcesses = NMFk.final_processes_and_mixtures(HBig', WBig', nNMF, clusterassignments);

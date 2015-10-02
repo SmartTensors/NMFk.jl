@@ -16,7 +16,7 @@ function NMF_single_iter(inputMatrix, numberOfProcesses, nmfIter)
 		total = sum( processes[:, j] );
 		processes[:, j] = processes[:, j] ./ total;
 		mixtures[j, :]  = mixtures[j, :] .* total;
-	end	
+	end
 
 	return processes, mixtures;
 end
@@ -24,7 +24,7 @@ end
 function cluster_NMF_solutions(HBigT, clusterRepeatMax)
 
 	nNMF = clusterRepeatMax;
-	println( size(HBigT) );
+	# println( size(HBigT) );
 	nT = size(HBigT, 1);
 	nW = size(HBigT, 2);
 	nk = convert(Int, nW / nNMF );
@@ -47,7 +47,7 @@ function cluster_NMF_solutions(HBigT, clusterRepeatMax)
 			centroidsTaken = zeros(numberOfProcesses , 1);
 
 			for currentProcessID = 1 : numberOfProcesses
-				distMatrix = ones(numberOfProcesses, numberOfProcesses) * 100; 
+				distMatrix = ones(numberOfProcesses, numberOfProcesses) * 100;
 
 				for processID = 1 : numberOfProcesses
 					for centroidID = 1 : numberOfProcesses
@@ -86,31 +86,30 @@ function cluster_NMF_solutions(HBigT, clusterRepeatMax)
 end
 
 function final_processes_and_mixtures(allProcesses, allMixtures, nNMF, idx)
-
-	println( size(allProcesses) );
-	println( size(allMixtures) );
+	# println( size(allProcesses) );
+	# println( size(allMixtures) );
 	numberOfPoints = size(allProcesses, 1); # nT
-	println("numberOfPoints (nT) ", numberOfPoints)
+	# println("Number of points (nT) ", numberOfPoints)
 	nW = size(allProcesses, 2); # nW
-	println("nW ", nW)
+	# println("nW ", nW)
 	# globalIter =  size(allProcesses, 3);
 	# println("globalIter ", globalIter)
 	globalIter = nNMF;
 	nk = numberOfProcesses = convert(Int, nW / nNMF );
-	println("nk ", nk)
+	# println("nk ", nk)
 	nW = size(allMixtures, 1); # nW
 	numberOfSamples = size(allMixtures, 2); # nP
-	println("nW ", nW)
-	println("numberOfSamples (nP) ", numberOfSamples)
+	# println("nW ", nW)
+	# println("Number of samples (nP) ", numberOfSamples)
 
 	idx_r = vec(reshape(idx, nW, 1));
 
 	allProcesses_r = reshape(allProcesses, numberOfPoints, numberOfProcesses * globalIter);
-	println( size(allProcesses_r) );
+	# println( size(allProcesses_r) );
 	allMixtures_r = reshape(allMixtures, numberOfProcesses * globalIter, numberOfSamples);
-	println( size(allMixtures_r) );
+	# println( size(allMixtures_r) );
 	allProcessesDist = pairwise(CosineDist(), allProcesses_r);
-	println( size(allProcessesDist) );
+	# println( size(allProcessesDist) );
 	stabilityProcesses = silhouettes( idx_r, vec(repmat([globalIter], numberOfProcesses, 1)), allProcessesDist);
 
 	avgStabilityProcesses = zeros(numberOfProcesses, 1);
