@@ -7,7 +7,6 @@ using Stats
 
 export NMFrun, clustersolutions, finalize
 
-# Function definitions
 function NMFrun(X, nk; maxiter=maxiter, normalize=false)
 	W, H = NMF.randinit(X, nk, normalize = true)
 	NMF.solve!(NMF.MultUpdate(obj = :mse, maxiter=maxiter), X, W, H)

@@ -22,7 +22,7 @@ if !isdir("nmfk-test-$testproblem")
 end
 # flags
 intermediate_figs = false
-flag_kmeans = true # true = buildin kmeans; false = use clustering in NMFk
+flag_kmeans = false # true = buildin kmeans; false = use clustering in NMFk
 source_location_identification = true # identify spatial location of the sources using LM and dummy radial functions
 nNMF=10 # number of NMFk's
 
@@ -237,10 +237,10 @@ if nNMF > 1
 	else
 		info("NMFk analysis of the NMF runs using NMFk kmeans algorithm")
 		# use imrpoved kmeans clustering accounting for the expected number of samples in each cluster
-		clusterassignments, M = NMFk.cluster_NMF_solutions(HBig', nNMF)
-		println("clusterassignments ", clusterassignments )
+		clusterassignments, M = NMFk.clustersolutions(HBig', nNMF)
+		# println("clusterassignments ", clusterassignments )
 		# println("centroids ", M )
-		Ht, Wt, avgStabilityProcesses = NMFk.final_processes_and_mixtures(HBig', WBig', nNMF, clusterassignments);
+		Ht, Wt, avgStabilityProcesses = NMFk.finalize(HBig', WBig', nNMF, clusterassignments);
 		println("Size of Ha = ", size(Ht) )
 		println("Size of Wa = ", size(Wt) )
 		println("Silhouettes Avg = ", avgStabilityProcesses )
@@ -251,7 +251,7 @@ if nNMF > 1
 		phi_final = sum( E' * E )
 		println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
 		Pcorr = zeros(nT, 1);
-		for i = 1 : nT
+		for i = 1:nT
 				Pcorr[i] = cor( X[:,i], P[:, i] );
 		end
 	end
