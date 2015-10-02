@@ -5,124 +5,77 @@ using Clustering
 using Distances
 using Stats
 
-export NMF_single_iter, cluster_NMF_solutions, final_processes_and_mixtures;
+export NMFrun, clustersolutions, finalize
 
 # Function definitions
-function NMF_single_iter(inputMatrix, numberOfProcesses, nmfIter)
-	processes, mixtures = NMF.randinit( inputMatrix, numberOfProcesses, normalize = true);
-	NMF.solve!(NMF.MultUpdate( obj = :mse, maxiter = nmfIter ), inputMatrix, processes, mixtures);
-
-	for j = 1 : numberOfProcesses
-		total = sum( processes[:, j] );
-		processes[:, j] = processes[:, j] ./ total;
-		mixtures[j, :]  = mixtures[j, :] .* total;
+function NMFrun(X, nk; maxiter=maxiter, normalize=false)
+	W, H = NMF.randinit(X, nk, normalize = true)
+	NMF.solve!(NMF.MultUpdate(obj = :mse, maxiter=maxiter), X, W, H)
+	if normalize
+		total = sum(W, 2)
+		W ./= total
+		H .*= total'
 	end
-
-	return processes, mixtures;
+	return W, H
 end
 
-function cluster_NMF_solutions(HBigT, clusterRepeatMax)
+function clustersolutions(H, nNMF)
+	nP = size(H, 1) # number of observations (components/transients)
+	nT = size(H, 2) # number of total number of sources to cluster
+	nk = convert(Int, nT / nNMF )
 
-	nNMF = clusterRepeatMax;
-	# println( size(HBigT) );
-	nT = size(HBigT, 1);
-	nW = size(HBigT, 2);
-	nk = convert(Int, nW / nNMF );
-	# numberOfPoints = size(allProcesses, 1); # nT
-	# numberOfProcesses = size(allProcesses, 2); # nk
-	# globalIter =  size(allProcesses, 3); # nNMF
-	numberOfPoints = nT;
-	numberOfProcesses = nk;
-	globalIter = nNMF;
+	centroids = zeros(nP, nk);
+	idx = Array(Int, nk, nNMF)
 
-	centroids = HBigT[:, 1:nk];
-	idx = zeros(Int, numberOfProcesses, globalIter);
-	# idx_old = zeros(Int, numberOfProcesses, globalIter);
-
-	for clusterIt = 1 : clusterRepeatMax
-
-		for globalIterID = 1 : globalIter
-
-			processesTaken = zeros(numberOfProcesses , 1);
-			centroidsTaken = zeros(numberOfProcesses , 1);
-
-			for currentProcessID = 1 : numberOfProcesses
-				distMatrix = ones(numberOfProcesses, numberOfProcesses) * 100;
-
-				for processID = 1 : numberOfProcesses
-					for centroidID = 1 : numberOfProcesses
-						if ( (centroidsTaken[centroidID] == 0) && ( processesTaken[processID] == 0) )
-							distMatrix[processID, centroidID] = cosine_dist(HBigT[:, processID +  ( globalIterID - 1 ) * nk], centroids[:,centroidID]);
-							# distMatrix[processID, centroidID] = cosine_dist(HBigT[:, ( processID - 1 ) * nNMF +  globalIterID], centroids[:,centroidID]);
+	for clusterIt = 1:nNMF
+		for globalIterID = 1:nNMF
+			processesTaken = zeros(nk, 1)
+			centroidsTaken = zeros(nk, 1)
+			for currentProcessID = 1:nk
+				distMatrix = ones(nk, nk) + 99
+				for processID = 1:nk
+					for centroidID = 1:nk
+						if centroidsTaken[centroidID] == 0 && processesTaken[processID] == 0
+							distMatrix[processID, centroidID] = Distances.cosine_dist(H[:,processID + (globalIterID - 1) * nk], centroids[:,centroidID])
 						end
 					end
 				end
-				minProcess,minCentroid = ind2sub(size(distMatrix), indmin(distMatrix));
+				minProcess, minCentroid = ind2sub(size(distMatrix), indmin(distMatrix));
 				processesTaken[minProcess] = 1;
 				centroidsTaken[minCentroid] = 1;
 				idx[minProcess, globalIterID] = minCentroid;
 			end
-
 		end
-
-		centroids = zeros( numberOfPoints, numberOfProcesses );
-		for centroidID = 1 : numberOfProcesses
-			for globalIterID = 1 : globalIter
-				centroids[:, centroidID] = centroids[:, centroidID] + HBigT[:, findin(idx[:, globalIterID], centroidID) + ( globalIterID - 1 ) * nk];
-			# 	centroids[:, centroidID] = centroids[:, centroidID] + HBigT[:, ( findin(idx[:, globalIterID], centroidID) - 1 ) * nNMF  + globalIterID];
+		for centroidID = 1:nk
+			for globalIterID = 1:nNMF
+				centroids[:, centroidID] += H[:, findin(idx[:, globalIterID], centroidID) + (globalIterID - 1) * nk];
 			end
 		end
-		centroids = centroids ./ globalIter;
-
-		# if ( sum(abs(idx_old - idx)) == 0 )
-		#    break;
-		# else
-		#    idx_old = idx;
-		# end
-
 	end
-
-	return idx, centroids;
+	centroids ./= nNMF
+	return idx, centroids
 end
 
-function final_processes_and_mixtures(allProcesses, allMixtures, nNMF, idx)
-	# println( size(allProcesses) );
-	# println( size(allMixtures) );
-	numberOfPoints = size(allProcesses, 1); # nT
-	# println("Number of points (nT) ", numberOfPoints)
-	nW = size(allProcesses, 2); # nW
-	# println("nW ", nW)
-	# globalIter =  size(allProcesses, 3);
-	# println("globalIter ", globalIter)
-	globalIter = nNMF;
-	nk = numberOfProcesses = convert(Int, nW / nNMF );
-	# println("nk ", nk)
-	nW = size(allMixtures, 1); # nW
-	numberOfSamples = size(allMixtures, 2); # nP
-	# println("nW ", nW)
-	# println("Number of samples (nP) ", numberOfSamples)
+function finalize(Wa, Ha, nNMF, idx)
+	nC = size(Wa, 1) # number of observations (components/transients)
+	nP = size(Ha, 2) # number of observation points
+	nT = size(Wa, 2) # number of total number of sources to cluster
+	nk = convert(Int, nT / nNMF)
 
-	idx_r = vec(reshape(idx, nW, 1));
-
-	allProcesses_r = reshape(allProcesses, numberOfPoints, numberOfProcesses * globalIter);
-	# println( size(allProcesses_r) );
-	allMixtures_r = reshape(allMixtures, numberOfProcesses * globalIter, numberOfSamples);
-	# println( size(allMixtures_r) );
-	allProcessesDist = pairwise(CosineDist(), allProcesses_r);
-	# println( size(allProcessesDist) );
-	stabilityProcesses = silhouettes( idx_r, vec(repmat([globalIter], numberOfProcesses, 1)), allProcessesDist);
-
-	avgStabilityProcesses = zeros(numberOfProcesses, 1);
-	processes = zeros(numberOfPoints, numberOfProcesses);
-	mixtures = zeros( numberOfProcesses, numberOfSamples);
-
-	for i = 1 : numberOfProcesses
-		avgStabilityProcesses[i] = mean(stabilityProcesses[ findin(idx_r,i) ]);
-		processes[:, i] = mean( allProcesses_r[ :, findin(idx_r,i) ] ,2 );
-		mixtures[i, :] = mean( allMixtures_r[ findin(idx_r,i),: ] ,1);
+	idx_r = vec(reshape(idx, nT, 1))
+	clustercounts = convert(Array{Int}, ones(nk) * 10)
+	WaDist = Distances.pairwise(Distances.CosineDist(), Wa)
+	silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+	clustersilhouettes = Array(Float64, nk, 1)
+	W = Array(Float64, nC, nk)
+	H = Array(Float64, nk, nP)
+	for i = 1:nk
+		indices = findin(idx_r, i)
+		clustersilhouettes[i] = mean(silhouettes[indices])
+		W[:,i] = mean(Wa[:,indices], 2)
+		H[i,:] = mean(Ha[indices,:], 1)
 	end
-
-	return processes, mixtures, avgStabilityProcesses
+	return W, H, clustersilhouettes
 end
 
 end

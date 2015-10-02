@@ -224,7 +224,8 @@ if nNMF > 1
 		println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
 
 		# Silhouettes
-		s = silhouettes(clusterassignments, clustercounts, HBig*HBig')
+		WaDist = Distances.pairwise(Distances.CosineDist(), WBig)
+		s = Clustering.silhouettes(clusterassignments, clustercounts, WaDist)
 		println("Silhouettes vector size = ", size(s))
 		println("Silhouettes Avg = ", sum(s)/size(s)[1], " Max = ", maximum(s), " Min = ", minimum(s) )
 		# println("Silhouettes vector = ", s)
