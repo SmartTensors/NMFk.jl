@@ -224,7 +224,7 @@ if nNMF > 1
 		println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
 
 		# Silhouettes
-		WaDist = Distances.pairwise(Distances.CosineDist(), WBig)
+		WaDist = Distances.pairwise(Distances.CosineDist(), WBig')
 		s = Clustering.silhouettes(clusterassignments, clustercounts, WaDist)
 		println("Silhouettes vector size = ", size(s))
 		println("Silhouettes Avg = ", sum(s)/size(s)[1], " Max = ", maximum(s), " Min = ", minimum(s) )
@@ -240,12 +240,10 @@ if nNMF > 1
 		clusterassignments, M = NMFk.clustersolutions(HBig', nNMF)
 		# println("clusterassignments ", clusterassignments )
 		# println("centroids ", M )
-		Ht, Wt, avgStabilityProcesses = NMFk.finalize(HBig', WBig', nNMF, clusterassignments);
-		println("Size of Ha = ", size(Ht) )
-		println("Size of Wa = ", size(Wt) )
+		Wa, Ha, avgStabilityProcesses = NMFk.finalize(WBig, HBig, nNMF, clusterassignments);
+		println("Size of Ha = ", size(Ha) )
+		println("Size of Wa = ", size(Wa) )
 		println("Silhouettes Avg = ", avgStabilityProcesses )
-		Wa = Wt';
-		Ha = Ht';
 		P = Wa * Ha;
 		E = X - P;
 		phi_final = sum( E' * E )

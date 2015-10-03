@@ -19,9 +19,9 @@
 	allProcessesPerNode = zeros( numberOfPoints, numberOfProcesses, iterPerNode );
 	allMixturesPerNode  = zeros( numberOfProcesses, numberOfSamples, iterPerNode );
 
-	# matrix factorization over multiple iterations	
+	# matrix factorization over multiple iterations
 	for currentIteration = 1 : iterPerNode
-		allProcessesPerNode[:, :, currentIteration], allMixturesPerNode[:, :, currentIteration] = NMFk.NMF_single_iter(inputMatrix, numberOfProcesses, nmfIter);
+		allProcessesPerNode[:, :, currentIteration], allMixturesPerNode[:, :, currentIteration] = NMFk.NMFrun(inputMatrix, numberOfProcesses, nmfIter);
 		println("Iteration $(currentIteration)/$(iterPerNode) has completed!");
 	end
 end
@@ -32,16 +32,16 @@ allMixtures  = zeros( numberOfProcesses, numberOfSamples, globalIter );
 
 for my_id_i = 1 : totalNodes
 	allProcesses[:,:, ((my_id_i-1)*iterPerNode+1):(my_id_i*iterPerNode) ] = remotecall_fetch(my_id_i, ()->allProcessesPerNode);
-	allMixtures[:,:, ((my_id_i-1)*iterPerNode+1):(my_id_i*iterPerNode) ] = remotecall_fetch(my_id_i, ()->allMixturesPerNode);	
+	allMixtures[:,:, ((my_id_i-1)*iterPerNode+1):(my_id_i*iterPerNode) ] = remotecall_fetch(my_id_i, ()->allMixturesPerNode);
 end
 
 # clustering extracted processes
-idx = NMFk.cluster_NMF_solutions(allProcesses, 10000);
+idx = NMFk.clustersolutions(allProcesses, 10000);
 
 # calculating stability and final processes and mixtures
-processes, mixtures, avgStabilityProcesses = NMFk.final_processes_and_mixtures(allProcesses, allMixtures, idx);
+mixtures, processes, avgStabilityProcesses = NMFk.finalize(allMixtures', allProcesses', idx);
 
-dataRecon = processes * mixtures;
+dataRecon = processes' * mixtures';
 
 dataReconCorr = zeros(numberOfSamples, 1);
 
