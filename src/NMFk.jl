@@ -7,7 +7,7 @@ using Stats
 
 export execute, NMFrun, clustersolutions, finalize
 
-function execute(X, nNMF, nk; quiet=true, best=true)
+function execute(X, nNMF, nk; quiet=true, best=true, maxiter=10000, tol=1.0e-6)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X)[1] # number of observation points
 	nC = size(X)[2] # number of obcerved components/transients
@@ -17,7 +17,7 @@ function execute(X, nNMF, nk; quiet=true, best=true)
 	Hbest = Array(Float64, nk, nC)
 	phi_best = Inf
 	for i = 1:nNMF
-		nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=10000, tol=1.0e-6)
+		nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
 		WBig=[WBig nmf_test.W]
 		HBig=[HBig; nmf_test.H]
 		if phi_best > nmf_test.objvalue
