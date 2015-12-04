@@ -4,10 +4,9 @@ using NMF
 using Clustering
 using Distances
 using Stats
+using MixMatch
 
-export execute, NMFrun, clustersolutions, finalize
-
-function execute(X, nNMF, nk; quiet=true, best=true, maxiter=10000, tol=1.0e-6)
+function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, maxiter=10000, tol=1.0e-6, regularizationweight=1.0e-3)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X)[1] # number of observation points
 	nC = size(X)[2] # number of obcerved components/transients
@@ -17,13 +16,20 @@ function execute(X, nNMF, nk; quiet=true, best=true, maxiter=10000, tol=1.0e-6)
 	Hbest = Array(Float64, nk, nC)
 	phi_best = Inf
 	for i = 1:nNMF
-		nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
-		WBig=[WBig nmf_test.W]
-		HBig=[HBig; nmf_test.H]
-		if phi_best > nmf_test.objvalue
-			phi_best = nmf_test.objvalue
-			Wbest = nmf_test.W
-			Hbest = nmf_test.H
+		if mixmatch
+			W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+		else
+			nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
+			W = nmf_test.W
+			H = nmf_test.H
+			objvalue = nmf_test.objvalue
+		end
+		WBig=[WBig W]
+		HBig=[HBig; H]
+		if phi_best > objvalue
+			phi_best = objvalue
+			Wbest = W
+			Hbest = H
 		end
 	end
 	!quiet && println("Best objective function = $phi_best")
