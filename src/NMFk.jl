@@ -35,12 +35,12 @@ function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, maxiter=100
 	!quiet && println("Best objective function = $phi_best")
 	minsilhouette = 1
 	if nk > 1
-		# use imrpoved kmeans clustering accounting for the expected number of samples in each cluster
+		# use improved k-means clustering accounting for the expected number of samples in each cluster
 		# each cluster should have nNMF / nk sources!
 		clusterassignments, M = NMFk.clustersolutions(HBig', nNMF)
 		!quiet && println("Cluster assignments:")
 		!quiet && display(clusterassignments)
-		!quiet && println("Cluster centeroids:")
+		!quiet && println("Cluster centroids:")
 		!quiet && display(M)
 		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, nNMF, clusterassignments)
 		minsilhouette = minimum(clustersilhouettes)
