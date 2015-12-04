@@ -9,7 +9,7 @@ using MixMatch
 function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, maxiter=10000, tol=1.0e-6, regularizationweight=1.0e-3)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X)[1] # number of observation points
-	nC = size(X)[2] # number of obcerved components/transients
+	nC = size(X)[2] # number of observed components/transients
 	WBig = Array(Float64, nP, 0)
 	HBig = Array(Float64, 0, nC)
 	Wbest = Array(Float64, nP, nk)
