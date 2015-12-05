@@ -6,7 +6,7 @@ using Distances
 using Stats
 using MixMatch
 
-function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, maxiter=10000, tol=1.0e-6, regularizationweight=1.0e-3)
+function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, matchdelta=false, maxiter=10000, tol=1.0e-6, regularizationweight=1.0e-3)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X)[1] # number of observation points
 	nC = size(X)[2] # number of observed components/transients
@@ -17,7 +17,11 @@ function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, maxiter=100
 	phi_best = Inf
 	for i = 1:nNMF
 		if mixmatch
-			W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+			if matchdelta
+				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+			else 
+				W, H, objvalue = MixMatch.matchdata(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+			end
 		else
 			nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
 			W = nmf_test.W
@@ -57,6 +61,7 @@ function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, maxiter=100
 		Ha = Hbest
 	end
 	E = X - Wa * Ha
+	E[isnan(E)] = 0
 	phi_final = sum( E.^2 )
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
 	!quiet && display(Ha)
