@@ -22,6 +22,7 @@ function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, matchdelta=
 			else 
 				W, H, objvalue = MixMatch.matchdata(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			end
+			!quiet && println("$i: Objective function = $objvalue")
 		else
 			nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
 			W = nmf_test.W
