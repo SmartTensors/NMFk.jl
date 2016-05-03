@@ -1,10 +1,10 @@
 module NMFk
 
-using NMF
-using Clustering
-using Distances
-using Stats
-using MixMatch
+import NMF
+import Clustering
+import Distances
+import Stats
+import MixMatch
 
 function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, matchdelta=false, maxiter=10000, tol=1.0e-6, regularizationweight=1.0e-3)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
@@ -22,7 +22,7 @@ function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, matchdelta=
 			else 
 				W, H, objvalue = MixMatch.matchdata(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			end
-			!quiet && println("$i: Objective function = $objvalue")
+			println("$i: Objective function = $objvalue")
 		else
 			nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
 			W = nmf_test.W
