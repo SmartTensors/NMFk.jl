@@ -22,13 +22,13 @@ function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, matchdelta=
 			else 
 				W, H, objvalue = MixMatch.matchdata(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			end
-			println("$i: Objective function = $objvalue")
 		else
-			nmf_test = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
-			W = nmf_test.W
-			H = nmf_test.H
-			objvalue = nmf_test.objvalue
+			nmf_result = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
+			W = nmf_result.W
+			H = nmf_result.H
+			objvalue = nmf_result.objvalue
 		end
+		!quiet && println("$i: Objective function = $objvalue")
 		WBig=[WBig W]
 		HBig=[HBig; H]
 		if phi_best > objvalue
