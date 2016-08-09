@@ -6,7 +6,7 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, mixtures=false, matchdelta=false, maxiter=10000, tol=1.0e-6, regularizationweight=1.0e-3)
+function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, mixtures=false, matchdelta=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X)[1] # number of observation points
 	nC = size(X)[2] # number of observed components/transients
