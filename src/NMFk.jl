@@ -6,7 +6,7 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, mixtures=false, matchdelta=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
+function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, mixtures=true, matchdelta=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X)[1] # number of observation points
 	nC = size(X)[2] # number of observed components/transients
@@ -15,6 +15,17 @@ function execute(X, nNMF, nk; quiet=true, best=true, mixmatch=false, mixtures=fa
 	Wbest = Array(Float64, nP, nk)
 	Hbest = Array(Float64, nk, nC)
 	phi_best = Inf
+	if !quiet
+		if mixmatch
+			if matchdelta
+				println("Using MixMatchDeltas ...")
+			else
+				println("Using MixMatch ...")
+			end
+		else
+			println("Using NNMF ...")
+		end
+	end
 	for i = 1:nNMF
 		if mixmatch
 			if matchdelta
