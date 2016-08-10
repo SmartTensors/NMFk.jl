@@ -6,7 +6,7 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X, nNMF, nk; ratios=nothing, quiet=true, best=true, mixmatch=false, mixtures=true, matchdelta=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
+function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothing, quiet=true, best=true, mixmatch=false, mixtures=true, matchwaterdeltas=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X)[1] # number of observation points
 	nC = size(X)[2] # number of observed components/transients
@@ -28,10 +28,16 @@ function execute(X, nNMF, nk; ratios=nothing, quiet=true, best=true, mixmatch=fa
 	end
 	for i = 1:nNMF
 		if mixmatch
-			if matchdelta
+			if matchwaterdeltas
 				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
-			else 
-				W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, maxiter=maxiter, regularizationweight=regularizationweight)
+			else
+				if deltas == nothing
+					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, maxiter=maxiter, regularizationweight=regularizationweight)
+				else
+					W, H, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+					@show W * H
+					@show W * Hdeltas
+				end
 			end
 		else
 			nmf_result = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
