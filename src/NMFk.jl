@@ -6,18 +6,24 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothing, quiet=true, best=true, mixmatch=false, mixtures=true, matchwaterdeltas=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
+function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothing, quiet=true, best=true, mixmatch=false, normalize=true, mixtures=true, matchwaterdeltas=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
-	nP = size(X)[1] # number of observation points
-	nC = size(X)[2] # number of observed components/transients
+	nP = size(X, 1) # number of observation points
+	nC = size(X, 2) # number of observed components/transients
 	WBig = Array(Float64, nP, 0)
-	HBig = Array(Float64, 0, nC)
 	Wbest = Array(Float64, nP, nk)
-	Hbest = Array(Float64, nk, nC)
+	if deltas == nothing
+		HBig = Array(Float64, 0, nC)
+		Hbest = Array(Float64, nk, nC)
+	else
+		numdeltas = size(deltas, 2)
+		HBig = Array(Float64, 0, nC + numdeltas)
+		Hbest = Array(Float64, nk, nC + numdeltas)
+	end
 	phi_best = Inf
 	if !quiet
 		if mixmatch
-			if matchdelta
+			if matchwaterdeltas
 				println("Using MixMatchDeltas ...")
 			else
 				println("Using MixMatch ...")
@@ -32,11 +38,10 @@ function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothi
 				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			else
 				if deltas == nothing
-					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, maxiter=maxiter, regularizationweight=regularizationweight)
+					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, normalize=normalize, maxiter=maxiter, regularizationweight=regularizationweight)
 				else
-					W, H, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
-					@show W * H
-					@show W * Hdeltas
+					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, maxiter=maxiter, regularizationweight=regularizationweight)
+					H = [Hconc Hdeltas]
 				end
 			end
 		else
@@ -78,11 +83,19 @@ function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothi
 		Wa = Wbest
 		Ha = Hbest
 	end
-	E = X - Wa * Ha
-	E[isnan(E)] = 0
-	phi_final = sum( E.^2 )
+	if deltas == nothing
+		E = X - Wa * Ha
+		E[isnan(E)] = 0
+		phi_final = sum(E.^2)
+	else
+		Ha_conc = Ha[:,1:nC]
+		Ha_deltas = Ha[:,nC+1:end]
+		estdeltas = MixMatch.computedeltas(Wa, Ha_conc, Ha_deltas, deltaindices)
+		E = X - Wa * Ha_conc
+		E[isnan(E)] = 0
+		phi_final = sum(E.^2) + sum((deltas .- estdeltas).^2)
+	end
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
-	!quiet && display(Ha)
 	return Wa, Ha, phi_final, minsilhouette
 end
 
