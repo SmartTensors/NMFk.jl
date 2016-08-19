@@ -6,7 +6,7 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothing, quiet=true, best=true, mixmatch=false, normalize=true, mixtures=true, matchwaterdeltas=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
+function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothing, quiet=true, best=true, mixmatch=false, scale=true, mixtures=true, matchwaterdeltas=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X, 1) # number of observation points
 	nC = size(X, 2) # number of observed components/transients
@@ -38,9 +38,9 @@ function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothi
 				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			else
 				if deltas == nothing
-					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, normalize=normalize, maxiter=maxiter, regularizationweight=regularizationweight)
+					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight)
 				else
-					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, maxiter=maxiter, regularizationweight=regularizationweight)
+					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight)
 					H = [Hconc Hdeltas]
 				end
 			end
