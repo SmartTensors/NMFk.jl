@@ -6,13 +6,13 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothing, quiet=true, best=true, mixmatch=false, scale=true, mixtures=true, matchwaterdeltas=false, maxiter=10000, tol=1.0e-12, regularizationweight=0)
+function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Matrix{Float32}=Array(Float32, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-12, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X, 1) # number of observation points
 	nC = size(X, 2) # number of observed components/transients
 	WBig = Array(Float64, nP, 0)
 	Wbest = Array(Float64, nP, nk)
-	if deltas == nothing
+	if sizeof(deltas) == 0
 		HBig = Array(Float64, 0, nC)
 		Hbest = Array(Float64, nk, nC)
 	else
@@ -37,10 +37,10 @@ function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothi
 			if matchwaterdeltas
 				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			else
-				if deltas == nothing
-					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight)
+				if sizeof(deltas) == 0
+					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse)
 				else
-					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight)
+					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse)
 					H = [Hconc Hdeltas]
 				end
 			end
@@ -83,7 +83,7 @@ function execute(X, nNMF, nk; ratios=nothing, deltas=nothing, deltaindices=nothi
 		Wa = Wbest
 		Ha = Hbest
 	end
-	if deltas == nothing
+	if sizeof(deltas) == 0
 		E = X - Wa * Ha
 		E[isnan(E)] = 0
 		phi_final = sum(E.^2)
