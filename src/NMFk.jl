@@ -93,7 +93,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 		estdeltas = MixMatch.computedeltas(Wa, Ha_conc, Ha_deltas, deltaindices)
 		E = X - Wa * Ha_conc
 		E[isnan(E)] = 0
-        id = !isnan(deltas)
+		id = !isnan(deltas)
 		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
 	end
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
