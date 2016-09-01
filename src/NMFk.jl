@@ -38,9 +38,9 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			else
 				if sizeof(deltas) == 0
-					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse)
+					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet)
 				else
-					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse)
+					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet)
 					H = [Hconc Hdeltas]
 				end
 			end
