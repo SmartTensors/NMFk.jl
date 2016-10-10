@@ -6,7 +6,7 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 3}}=nothing, deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-12, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true)
+function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 3}}=nothing, deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	nP = size(X, 1) # number of observation points
 	nC = size(X, 2) # number of observed components/transients
@@ -45,10 +45,17 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				end
 			end
 		else
-			nmf_result = NMF.nnmf(X, nk; alg=:multmse, maxiter=maxiter, tol=tol)
+			nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
 			W = nmf_result.W
 			H = nmf_result.H
+			A = diagm(1 ./ vec(sum(W, 2)))
+			B = (A * W * H) \ (W * H)
+			W = A * W
+			H = H * B
 			objvalue = nmf_result.objvalue
+			# E = X - A * W * H * B
+			# @show sum(E.^2)
+			# @show objvalue
 		end
 		!quiet && println("$i: Objective function = $objvalue")
 		WBig=[WBig W]
