@@ -48,13 +48,16 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 			nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
 			W = nmf_result.W
 			H = nmf_result.H
+			#=
+			# Bad normalization ... it cannot work in general
 			A = diagm(1 ./ vec(sum(W, 2)))
 			B = (A * W * H) \ (W * H)
 			W = A * W
 			H = H * B
+			E = X - W * H
+			@show sum(E.^2)
+			=#
 			objvalue = nmf_result.objvalue
-			# E = X - A * W * H * B
-			# @show sum(E.^2)
 			# @show objvalue
 		end
 		!quiet && println("$i: Objective function = $objvalue")
