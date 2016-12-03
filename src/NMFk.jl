@@ -29,7 +29,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				println("Using MixMatch ...")
 			end
 		else
-			println("Using NNMF ...")
+			println("Using NMF ...")
 		end
 	end
 	for i = 1:nNMF
