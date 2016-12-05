@@ -8,19 +8,6 @@ import MixMatch
 
 function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 3}}=nothing, deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
-	nP = size(X, 1) # number of observation points
-	nC = size(X, 2) # number of observed components/transients
-	WBig = Array(Float64, nP, 0)
-	Wbest = Array(Float64, nP, nk)
-	if sizeof(deltas) == 0
-		HBig = Array(Float64, 0, nC)
-		Hbest = Array(Float64, nk, nC)
-	else
-		numdeltas = size(deltas, 2)
-		HBig = Array(Float64, 0, nC + numdeltas)
-		Hbest = Array(Float64, nk, nC + numdeltas)
-	end
-	phi_best = Inf
 	if !quiet
 		if mixmatch
 			if matchwaterdeltas
@@ -32,7 +19,13 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 			println("Using NMF ...")
 		end
 	end
-	for i = 1:nNMF
+	nP = size(X, 1) # number of observation points
+	nC = size(X, 2) # number of observed components/transients
+	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
+	WBig = SharedArray(Float64, nP, nNMF * nk)
+	HBig = SharedArray(Float64, nNMF * nk, nRC)
+	objvalue = SharedArray(Float64, nNMF)
+	@sync @parallel for i = 1:nNMF
 		if mixmatch
 			if matchwaterdeltas
 				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
@@ -45,9 +38,17 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				end
 			end
 		else
-			nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
-			W = nmf_result.W
-			H = nmf_result.H
+			if scale
+				Xn, Xmax = MixMatch.scalematrix(X)
+				nmf_result = NMF.nnmf(Xn, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				W = nmf_result.W
+				H = nmf_result.H
+				H = MixMatch.descalematrix(H, Xmax)
+			else
+				nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				W = nmf_result.W
+				H = nmf_result.H
+			end			
 			#=
 			# Bad normalization ... it cannot work in general
 			A = diagm(1 ./ vec(sum(W, 2)))
@@ -57,19 +58,17 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 			E = X - W * H
 			@show sum(E.^2)
 			=#
-			objvalue = nmf_result.objvalue
-			# @show objvalue
+			objvalue[i] = nmf_result.objvalue
 		end
-		!quiet && println("$i: Objective function = $objvalue")
-		WBig=[WBig W]
-		HBig=[HBig; H]
-		if phi_best > objvalue
-			phi_best = objvalue
-			Wbest = W
-			Hbest = H
-		end
+		!quiet && println("$i: Objective function = $(objvalue[i])")
+		nmfindex = nk * i
+		WBig[1:nP, nmfindex-(nk-1):nmfindex] = W
+		HBig[nmfindex-(nk-1):nmfindex, 1:nRC] = H
 	end
-	!quiet && println("Best objective function = $phi_best")
+	!quiet && println("Best objective function = $(minimum(objvalue))")
+	nmfindex = nk * indmin(objvalue)
+	Wbest = WBig[1:nP, nmfindex-(nk-1):nmfindex]
+	Hbest = HBig[nmfindex-(nk-1):nmfindex, 1:nRC]
 	minsilhouette = 1
 	if nk > 1
 		# use improved k-means clustering accounting for the expected number of samples in each cluster
