@@ -39,11 +39,13 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 			end
 		else
 			if scale
-				Xn, Xmax = MixMatch.scalematrix(X)
+				Xn, Xmax = MixMatch.scalematrix_col(X)
+				# Xn, Xmax = MixMatch.scalematrix(X)
 				nmf_result = NMF.nnmf(Xn, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
 				W = nmf_result.W
 				H = nmf_result.H
-				H = MixMatch.descalematrix(H, Xmax)
+				W = MixMatch.descalematrix_col(W, Xmax)
+				# H = MixMatch.descalematrix(h, Xmax)
 			else
 				nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
 				W = nmf_result.W
