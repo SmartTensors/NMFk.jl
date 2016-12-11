@@ -6,7 +6,7 @@ import Distances
 import Stats
 import MixMatch
 
-function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 3}}=nothing, deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true)
+function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 3}}=nothing, deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	if !quiet
 		if mixmatch
@@ -39,15 +39,25 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 			end
 		else
 			if scale
-				Xn, Xmax = MixMatch.scalematrix_col(X)
-				# Xn, Xmax = MixMatch.scalematrix(X)
-				nmf_result = NMF.nnmf(Xn, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				Xn, Xmax = MixMatch.scalematrix(X)
+				if transpose
+					nmf_result = NMF.nnmf(Xn', nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				else
+					nmf_result = NMF.nnmf(Xn, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				end			
 				W = nmf_result.W
 				H = nmf_result.H
-				W = MixMatch.descalematrix_col(W, Xmax)
-				# H = MixMatch.descalematrix(h, Xmax)
+				if transpose
+					W = MixMatch.descalematrix_col(W, Xmax)
+				else
+					H = MixMatch.descalematrix(h, Xmax)
+				end
 			else
-				nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				if transpose
+					nmf_result = NMF.nnmf(X', nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				else
+					nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
+				end
 				W = nmf_result.W
 				H = nmf_result.H
 			end			
