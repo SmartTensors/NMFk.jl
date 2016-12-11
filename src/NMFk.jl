@@ -50,7 +50,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				if transpose
 					W = MixMatch.descalematrix_col(W, Xmax)
 				else
-					H = MixMatch.descalematrix(h, Xmax)
+					H = MixMatch.descalematrix(H, Xmax)
 				end
 			else
 				if transpose
