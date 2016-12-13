@@ -19,8 +19,13 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 			println("Using NMF ...")
 		end
 	end
-	nP = size(X, 1) # number of observation points
-	nC = size(X, 2) # number of observed components/transients
+	if transpose
+		nP = size(X, 2) # number of observation points
+		nC = size(X, 1) # number of observed components/transients
+	else
+		nP = size(X, 1) # number of observation points
+		nC = size(X, 2) # number of observed components/transients
+	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	WBig = SharedArray(Float64, nP, nNMF * nk)
 	HBig = SharedArray(Float64, nNMF * nk, nRC)
@@ -109,7 +114,11 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 		Ha = Hbest
 	end
 	if sizeof(deltas) == 0
-		E = X - Wa * Ha
+		if transpose
+			E = X' - Wa * Ha
+		else
+			E = X - Wa * Ha
+		end
 		E[isnan(E)] = 0
 		phi_final = sum(E.^2)
 	else
