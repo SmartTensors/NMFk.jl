@@ -25,9 +25,9 @@
       <text x="124.39" y="49.1" dy="0.35em" id="img-107530bd-8" class="color_Source_3">Source 3</text>
     </g>
     <g stroke="#000000" stroke-opacity="0.000" id="img-107530bd-9">
-      <rect x="121.58" y="40.94" width="1.81" height="1.81" id="img-107530bd-10" fill="#00BFFF" class="color_Source_1"/>
-      <rect x="121.58" y="44.56" width="1.81" height="1.81" id="img-107530bd-11" fill="#D4CA3A" class="color_Source_2"/>
-      <rect x="121.58" y="48.19" width="1.81" height="1.81" id="img-107530bd-12" fill="#FF6DAE" class="color_Source_3"/>
+      <rect x="121.58" y="40.94" width="1.81" height="1.81" id="img-107530bd-10" class="color_Source_1" fill="#00BFFF"/>
+      <rect x="121.58" y="44.56" width="1.81" height="1.81" id="img-107530bd-11" class="color_Source_2" fill="#D4CA3A"/>
+      <rect x="121.58" y="48.19" width="1.81" height="1.81" id="img-107530bd-12" class="color_Source_3" fill="#FF6DAE"/>
     </g>
     <g fill="#362A35" font-size="3.88" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="img-107530bd-13">
       <text x="121.58" y="38.02" id="img-107530bd-14">Original sources</text>

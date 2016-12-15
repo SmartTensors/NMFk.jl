@@ -4,7 +4,7 @@ using Base.Test
 srand(2015)
 a = rand(20)
 b = rand(20)
-X = [a a*10 b b*5 a+b*2]
+X = convert(Array{Float32, 2}, [a a*10 b b*5 a+b*2])
 W, H, p, s = NMFk.execute(X, 20, 2)
 @test_approx_eq_eps p 0 1e-3
 @test_approx_eq_eps s 1 1e-3
@@ -16,7 +16,7 @@ W, H, p, s = NMFk.execute(X, 20, 2)
 srand(2015)
 a = exp(-(0:.5:10))*100
 b = 100 + sin(0:20)*10
-X = [a a*10 b b*5 a+b*2]
+X = convert(Array{Float32, 2}, [a a*10 b b*5 a+b*2])
 W, H, p, s = NMFk.execute(X, 20, 2)
 @test_approx_eq_eps p 0.6 1e-0
 @test_approx_eq_eps s 1 1e-3
