@@ -6,6 +6,7 @@ import Distances
 import Stats
 import MixMatch
 
+"Execute NMFk analysis (in parallel if processors available)"
 function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 3}}=nothing, deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	if !quiet
@@ -145,6 +146,7 @@ function NMFrun(X, nk; maxiter=maxiter, normalize=true)
 	return W, H
 end
 
+"Cluster NMFk solutions"
 function clustersolutions(H, nNMF)
 	nP = size(H, 1) # number of observations (components/transients)
 	nT = size(H, 2) # number of total number of sources to cluster
@@ -185,6 +187,7 @@ function clustersolutions(H, nNMF)
 	return idx, centroids'
 end
 
+"Finalize the NMFk results"
 function finalize(Wa, Ha, nNMF, idx)
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
