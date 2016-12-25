@@ -75,4 +75,3 @@ Mads.plotseries(Wnlopt, "sig_unmixed_sources_nlopt.svg", title="Unmixed sources"
 Mads.display("sig_unmixed_sources_nlopt.svg")
 Mads.plotseries(Wnlopt * Hnlopt, "sig_reproduced_signals_nlopt.svg", title="Reproduced signals", name="Signal", combined=true)
 Mads.display("sig_reproduced_signals_nlopt.svg")
-
