@@ -7,7 +7,7 @@ import Stats
 import MixMatch
 
 "Execute NMFk analysis (in parallel if processors available)"
-function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 3}}=nothing, deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	if !quiet
 		if mixmatch
@@ -37,7 +37,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			else
 				if sizeof(deltas) == 0
-					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 				else
 					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 					H = [Hconc Hdeltas]
@@ -50,7 +50,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 					nmf_result = NMF.nnmf(Xn', nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
 				else
 					nmf_result = NMF.nnmf(Xn, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
-				end			
+				end
 				W = nmf_result.W
 				H = nmf_result.H
 				if transpose
@@ -66,7 +66,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				end
 				W = nmf_result.W
 				H = nmf_result.H
-			end			
+			end
 			#=
 			# Bad normalization ... it cannot work in general
 			A = diagm(1 ./ vec(sum(W, 2)))
@@ -125,7 +125,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 	else
 		Ha_conc = Ha[:,1:nC]
 		Ha_deltas = Ha[:,nC+1:end]
-		estdeltas = MixMatch.computedeltas(Wa, Ha_conc, Ha_deltas, deltaindices)	
+		estdeltas = MixMatch.computedeltas(Wa, Ha_conc, Ha_deltas, deltaindices)
 		if transpose
 			E = X' - Wa * Ha_conc
 		else
@@ -135,23 +135,20 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 		id = !isnan(deltas)
 		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
 	end
-	if typeof(ratios) != Void
+	if !quiet && typeof(ratios) != Void
 		ratiosreconstruction = 0
-		for h=1:nC
-			for j=h+1:nC
-				for i=1:nP	
-					if ratios[i, j, h] != NaN
-						c1 = 0
-						c2 = 0			 
-						for k=1:nk
-							c1 += Wa[i, k] * Ha[k, j]
-							c2 += Wa[i, k] * Ha[k, h]
-						end
-						ratiosreconstruction += ratiosweight * (c1/c2 - ratios[i, j, h])^2
-					end
+		for (j, c1, c2) in zip(1:length(ratioindices[1,:]), ratioindices[1,:], ratioindices[2,:])
+			for i = 1:nP
+				s1 = 0
+				s2 = 0
+				for k = 1:nk
+					s1 += Wa[i, k] * Ha[k, c1]
+					s2 += Wa[i, k] * Ha[k, c2]
 				end
+				ratiosreconstruction += ratiosweight * (s1/s2 - ratios[i, j])^2
 			end
 		end
+		println("Ratio reconstruction = $ratiosreconstruction")
 		phi_final += ratiosreconstruction
 	end
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
