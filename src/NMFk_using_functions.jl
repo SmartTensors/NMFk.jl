@@ -6,13 +6,13 @@ using Stats
 
 # Function definitions
 function NMF_single_iter(inputMatrix, numberOfProcesses, nmfIter)
-	processes, mixtures = NMF.randinit( inputMatrix, numberOfProcesses, normalize = true);
-	NMF.solve!(NMF.MultUpdate( obj = :mse, maxiter = nmfIter ), inputMatrix, processes, mixtures);
+	processes, mixtures = NMF.randinit(inputMatrix, numberOfProcesses, normalize = true);
+	NMF.solve!(NMF.MultUpdate(obj = :mse, maxiter = nmfIter), inputMatrix, processes, mixtures);
 	for j = 1 : numberOfProcesses
 		total = sum( processes[:, j] );
 		processes[:, j] = processes[:, j] ./ total;
 		mixtures[j, :]  = mixtures[j, :] .* total;
-	end	
+	end
 	return processes, mixtures;
 end
 
@@ -30,7 +30,7 @@ function cluster_NMF_solutions(allProcesses, clusterRepeatMax)
 			centroidsTaken = zeros(numberOfProcesses , 1);
 
 			for currentProcessID = 1 : numberOfProcesses
-				distMatrix = ones(numberOfProcesses, numberOfProcesses) * 100; 
+				distMatrix = ones(numberOfProcesses, numberOfProcesses) * 100;
 
 				for processID = 1 : numberOfProcesses
 					for centroidID = 1 : numberOfProcesses
@@ -62,7 +62,7 @@ end
 function final_processes_and_mixtures(allProcesses, allMixtures, idx)
 	numberOfPoints = size(allProcesses, 1);
 	numberOfProcesses = size(allProcesses, 2);
-	globalIter =  size(allProcesses, 3);
+	globalIter = size(allProcesses, 3);
 
 	idx_r = vec(reshape(idx, numberOfProcesses * globalIter, 1));
 	allProcesses_r = reshape(allProcesses, numberOfPoints, numberOfProcesses * globalIter);
