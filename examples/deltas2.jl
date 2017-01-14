@@ -1,4 +1,4 @@
-import MixMatch
+import NMFk
 
 nummixtures = 20
 numbuckets = 2
@@ -17,7 +17,7 @@ info("Bucket deltas")
 display(bucketdeltas)
 deltaindices = Int[1]
 concentrations = mixer * buckets
-deltas = MixMatch.computedeltas(mixer, buckets, bucketdeltas, deltaindices)
+deltas = NMFk.computedeltas(mixer, buckets, bucketdeltas, deltaindices)
 
 #=
 info("Concentrations")
@@ -28,12 +28,12 @@ display(deltas)
 
 #=
 info("Concentrations only")
-fitmixer, fitbuckets, fitquality = MixMatch.matchdata(concentrations, 2, normalize=true, initW=mixer, initH=buckets, random=false)
+fitmixer, fitbuckets, fitquality = NMFk.matchdata(concentrations, 2, normalize=true, initW=mixer, initH=buckets, random=false)
 println("a = ", fitquality)
 display([concentrations fitmixer * fitbuckets])
 
 info("Concentrations and deltas (wrong)")
-fitmixer, fitbuckets, fitquality = MixMatch.matchdata([concentrations deltas], 2, normalize=false, initW=mixer, initH=[buckets bucketdeltas], random=false)
+fitmixer, fitbuckets, fitquality = NMFk.matchdata([concentrations deltas], 2, normalize=false, initW=mixer, initH=[buckets bucketdeltas], random=false)
 println("a = ", fitquality)
 display([concentrations deltas fitmixer * fitbuckets])
 info("Bucket concentrations/deltas")
@@ -41,9 +41,9 @@ display(fitbuckets)
 =#
 
 info("Concentrations and deltas")
-# fitmixer, fitbuckets, fitbucketdeltas, fitquality = MixMatch.matchdata(concentrations, deltas, deltaindices, 2, normalize=true, initW=mixer, initH=buckets, initHd=bucketdeltas, random=true, maxouteriters=100)
-fitmixer, fitbuckets, fitbucketdeltas, fitquality = MixMatch.matchdata(concentrations, deltas, deltaindices, 2, scale=false, random=true, maxouteriters=100)
-fitdeltas = MixMatch.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
+# fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.matchdata(concentrations, deltas, deltaindices, 2, normalize=true, initW=mixer, initH=buckets, initHd=bucketdeltas, random=true, maxouteriters=100)
+fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.matchdata(concentrations, deltas, deltaindices, 2, scale=false, random=true, maxouteriters=100)
+fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 #=
 info("Match concentrations")

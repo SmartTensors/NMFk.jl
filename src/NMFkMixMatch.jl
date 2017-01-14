@@ -1,9 +1,5 @@
-module MixMatch
-
 import JuMP
 import Ipopt
-
-JuMP.EnableNLPResolve()
 
 const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
@@ -11,114 +7,8 @@ const defaultverbosity = 0
 const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
-"Normalize matrix"
-function normalizematrix(a::Matrix)
-	min = minimum(a, 1)
-	max = maximum(a, 1)
-	dx = max - min
-	i0 = dx .== 0 # check for zeros
-	min[i0] = 0
-	dx[i0] = max[i0]
-	i0 = dx .== 0 # check for zeros again
-	dx[i0] = 1
-	a = (a .- min) ./ dx
-	return a, min, max
-end
-
-"Denormalize matrix"
-function denormalizematrix(a::Matrix, b::Matrix, min::Matrix, max::Matrix)
-	a = a .* (max - min) + pinv(b) * repeat(min, outer=[size(b, 1), 1])
-	return a
-end
-
-"Scale matrix (by rows)"
-function scalematrix(a::Matrix)
-	max = maximum(abs(a), 1)
-	a = a ./ max
-	return a, max
-end
-
-"Descale matrix (by rows)"
-function descalematrix(a::Matrix, max::Matrix)
-	a = a .* max
-	return a
-end
-
-"Scale matrix (by columns)"
-function scalematrix_col(a::Matrix)
-	max = maximum(abs(a), 2)
-	a = a ./ max
-	return a, max
-end
-
-"Descale matrix (by columns)"
-function descalematrix_col(a::Matrix, max::Matrix)
-	a = a .* max
-	return a
-end
-
-"Convert stable isotope deltas to concentrations"
-function getisotopeconcentration(delta::Union{Number,Vector,Matrix}, deltastandard::Union{Number,Vector}, concentration_species::Union{Number,Vector,Matrix}, scalefactor::Union{Number,Vector}=ones(length(deltastandard)))
-	lsd = length(size(delta))
-	if lsd == 1 || (lsd == 2 && size(delta)[2] == 1)
-		@assert size(delta)[1] == length(concentration_species)
-		@assert length(deltastandard) == 1
-	elseif lsd == 2
-		@assert size(delta) == size(concentration_species)
-		@assert size(delta)[2] == length(deltastandard)
-	end
-	if lsd > 0
-		Adeltastandard = repeat(collect(deltastandard), outer=[1,size(delta)[1]])'
-		Ascalefactor = repeat(collect(scalefactor), outer=[1,size(delta)[1]])'
-	else
-		Adeltastandard = deltastandard
-		Ascalefactor = scalefactor
-	end
-	ratio = (delta / 1000 + 1) .* Adeltastandard
-	concentration_isotope  = concentration_species .* ratio ./ (ratio + 1) .* Ascalefactor
-end
-
-"Convert stable isotope concentrations to deltas"
-function getisotopedelta(concentration_isotope::Union{Number,Vector,Matrix}, deltastandard::Union{Number,Vector}, concentration_species::Union{Number,Vector,Matrix}, scalefactor::Union{Number,Vector}=ones(length(deltastandard)))
-	lsd = length(size(concentration_isotope))
-	if lsd == 1 || (lsd == 2 && size(concentration_isotope)[2] == 1)
-		@assert size(concentration_isotope)[1] == length(concentration_species)
-		@assert length(deltastandard) == 1
-	elseif lsd == 2
-		@assert size(concentration_isotope) == size(concentration_species)
-		@assert size(concentration_isotope)[2] == length(deltastandard)
-	end
-	if lsd > 0
-		Adeltastandard = repeat(collect(deltastandard), outer=[1,size(concentration_isotope)[1]])'
-		Ascalefactor = repeat(collect(scalefactor), outer=[1,size(concentration_isotope)[1]])'
-	else
-		Adeltastandard = deltastandard
-		Ascalefactor = scalefactor
-	end
-	ratio = (concentration_isotope .* Ascalefactor ) ./ (concentration_species .- concentration_isotope)
-	delta_isotope = (ratio .- Adeltastandard) ./ Adeltastandard * 1000
-end
-
-"Compute deltas of mixtures (`compute_contributions` requires external normalization)"
-function computedeltas(mixer::Matrix, buckets::Matrix, bucketdeltas::Matrix, deltaindices::Vector; compute_contributions::Bool=false)
-	numwells = size(mixer, 1)
-	numdeltas = length(deltaindices)
-	deltas = Array(Float64, numwells, numdeltas)
-	for i = 1:numwells
-		for j = 1:numdeltas
-			v = vec(mixer[i, :]) .* vec(buckets[:, deltaindices[j]])
-			if compute_contributions
-				deltas[i, j] = dot(v, bucketdeltas[:, j])
-			else
-				deltas[i, j] = dot(v, bucketdeltas[:, j]) / sum(v)
-			end
-		end
-	end
-	return deltas
-end
-
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-@generated function matchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array(Float32, 0, 0), initH::Matrix{Float32}=Array(Float32, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+@generated function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array(Float32, 0, 0), initH::Matrix{Float32}=Array(Float32, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
 	if ratios != Void # ratios here is DataType
 		extracodeforratios = quote
 			numberrations = length(ratioindices[1,:])
@@ -249,7 +139,7 @@ end
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function matchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array(Float32, 0, 0), initH::Matrix{Float32}=Array(Float32, 0, 0), initHd::Matrix{Float32}=Array(Float32, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+function mixmatchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array(Float32, 0, 0), initH::Matrix{Float32}=Array(Float32, 0, 0), initHd::Matrix{Float32}=Array(Float32, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)
@@ -395,7 +285,7 @@ function matchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32
 end
 
 "Match data with only deltas"
-function matchwaterdeltas(deltas::Matrix{Float32}, numbuckets::Int; random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, maxdeltaguess::Float32=1000., bucketmeans::Matrix{Float32}=zeros(numbuckets, 2))
+function mixmatchwaterdeltas(deltas::Matrix{Float32}, numbuckets::Int; random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, maxdeltaguess::Float32=1000., bucketmeans::Matrix{Float32}=zeros(numbuckets, 2))
 	deltas = copy(deltas) # we may overwrite some of the fields if there are NaN's, so make a copy
 	nummixtures = size(deltas, 1)
 	numconstituents = 2
@@ -423,6 +313,4 @@ function matchwaterdeltas(deltas::Matrix{Float32}, numbuckets::Int; random::Bool
 	bucketval = JuMP.getvalue(buckets)
 	fitquality = JuMP.getobjectivevalue(m) - regularizationweight * sum((bucketval - bucketmeans).^2) / numbuckets
 	return mixerval, bucketval, fitquality
-end
-
 end

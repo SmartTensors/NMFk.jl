@@ -1,4 +1,4 @@
-import MixMatch
+import NMFk
 
 nummixtures = 20
 numbuckets = 2
@@ -16,7 +16,7 @@ display(bucketdeltas)
 deltaindices = [1, 3, 4]
 concentrations = convert(Array{Float32,2}, mixer * buckets)
 # concentrations[1, 1] = NaN
-deltas = convert(Array{Float32,2}, MixMatch.computedeltas(mixer, buckets, bucketdeltas, deltaindices))
+deltas = convert(Array{Float32,2}, NMFk.computedeltas(mixer, buckets, bucketdeltas, deltaindices))
 
 #=
 info("Concentrations")
@@ -27,8 +27,8 @@ display(deltas)
 
 info("*** No transformation ...")
 
-fitmixer, fitbuckets, fitbucketdeltas, fitquality = MixMatch.matchdata(concentrations, deltas, deltaindices, 2, random=true)
-fitdeltas = MixMatch.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
+fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.mixmatchdata(concentrations, deltas, deltaindices, 2, random=true)
+fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 #=
 info("Match concentrations")
@@ -50,8 +50,8 @@ display(fitbucketdeltas)
 
 info("*** Scaling ...")
 
-fitmixer, fitbuckets, fitbucketdeltas, fitquality = MixMatch.matchdata(concentrations, deltas, deltaindices, 2, random=true, scale=true)
-fitdeltas = MixMatch.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
+fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.mixmatchdata(concentrations, deltas, deltaindices, 2, random=true, scale=true)
+fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 #=
 info("Match concentrations")
@@ -72,8 +72,8 @@ display(fitbucketdeltas)
 
 info("*** Normalization ...")
 
-fitmixer, fitbuckets, fitbucketdeltas, fitquality = MixMatch.matchdata(concentrations, deltas, deltaindices, 2, random=true, normalize=true)
-fitdeltas = MixMatch.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
+fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.mixmatchdata(concentrations, deltas, deltaindices, 2, random=true, normalize=true)
+fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 #=
 info("Match concentrations")

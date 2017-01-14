@@ -1,4 +1,4 @@
-import MixMatch
+import NMFk
 using Escher
 
 function inputstring2data(s::AbstractString)
@@ -18,7 +18,7 @@ function inputstring2data(s::AbstractString)
 end
 
 function processdata(data::Matrix, n::Int, components::Array{Any, 1})
-	mixer, buckets, objectiveeval = MixMatch.matchdata(data, n)
+	mixer, buckets, objectiveeval = NMFk.mixmatchdata(data, n)
 	push!(components, plaintext("Fit quality (lower is better): $objectiveeval"))
 	for i = 1:n
 		push!(components, plaintext("Bucket $i: $(buckets[i, :])"))

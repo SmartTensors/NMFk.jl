@@ -3,5 +3,4 @@ JuMP 0.15
 Ipopt 0.2.6
 NMF 0.2.5
 Clustering 0.7.0
-Distances
-Stats
+Distances 0.3.2

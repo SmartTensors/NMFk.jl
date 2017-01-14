@@ -1,13 +1,18 @@
 module NMFk
 
 import NMF
-import Clustering
 import Distances
-import Stats
-import MixMatch
+import Clustering
+import JuMP
+import Ipopt
+
+include("NMFkCluster.jl")
+include("NMFkGeoChem.jl")
+include("NMFkMixMatch.jl")
+include("NMFkMatrix.jl")
 
 "Execute NMFk analysis (in parallel if processors available)"
-function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=true, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	if !quiet
 		if mixmatch
@@ -34,18 +39,18 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 	@sync @parallel for i = 1:nNMF
 		if mixmatch
 			if matchwaterdeltas
-				W, H, objvalue = MixMatch.matchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+				W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			else
 				if sizeof(deltas) == 0
-					W, H, objvalue = MixMatch.matchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+					W, H, objvalue = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 				else
-					W, Hconc, Hdeltas, objvalue = MixMatch.matchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+					W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 					H = [Hconc Hdeltas]
 				end
 			end
 		else
 			if scale
-				Xn, Xmax = MixMatch.scalematrix(X)
+				Xn, Xmax = NMFk.scalematrix(X)
 				if transpose
 					nmf_result = NMF.nnmf(Xn', nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
 				else
@@ -54,10 +59,13 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				W = nmf_result.W
 				H = nmf_result.H
 				if transpose
-					W = MixMatch.descalematrix_col(W, Xmax)
+					W = NMFk.descalematrix_col(W, Xmax)
+					E = X' - W * H
 				else
-					H = MixMatch.descalematrix(H, Xmax)
+					H = NMFk.descalematrix(H, Xmax)
+					E = X - W * H
 				end
+				objvalue[i] = sum(E.^2)
 			else
 				if transpose
 					nmf_result = NMF.nnmf(X', nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
@@ -66,17 +74,8 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				end
 				W = nmf_result.W
 				H = nmf_result.H
+				objvalue[i] = nmf_result.objvalue
 			end
-			#=
-			# Bad normalization ... it cannot work in general
-			A = diagm(1 ./ vec(sum(W, 2)))
-			B = (A * W * H) \ (W * H)
-			W = A * W
-			H = H * B
-			E = X - W * H
-			@show sum(E.^2)
-			=#
-			objvalue[i] = nmf_result.objvalue
 		end
 		!quiet && println("$i: Objective function = $(objvalue[i])")
 		nmfindex = nk * i
@@ -89,12 +88,10 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 	Hbest = HBig[nmfindex-(nk-1):nmfindex, 1:nRC]
 	minsilhouette = 1
 	if nk > 1
-		# use improved k-means clustering accounting for the expected number of samples in each cluster
-		# each cluster should have nNMF / nk sources!
 		if clusterweights
-			clusterassignments, M = NMFk.clustersolutions(WBig, nNMF) # cluster based on mixers
+			clusterassignments, M = NMFk.clustersolutions(WBig, nNMF) # cluster based on the mixers
 		else
-			clusterassignments, M = NMFk.clustersolutions(HBig', nNMF) # cluster based on bucket concentrations
+			clusterassignments, M = NMFk.clustersolutions(HBig', nNMF) # cluster based on the sources
 		end
 		!quiet && println("Cluster assignments:")
 		!quiet && display(clusterassignments)
@@ -125,7 +122,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 	else
 		Ha_conc = Ha[:,1:nC]
 		Ha_deltas = Ha[:,nC+1:end]
-		estdeltas = MixMatch.computedeltas(Wa, Ha_conc, Ha_deltas, deltaindices)
+		estdeltas = NMFk.computedeltas(Wa, Ha_conc, Ha_deltas, deltaindices)
 		if transpose
 			E = X' - Wa * Ha_conc
 		else
@@ -164,47 +161,6 @@ function NMFrun(X, nk; maxiter=maxiter, normalize=true)
 		H .*= total'
 	end
 	return W, H
-end
-
-"Cluster NMFk solutions"
-function clustersolutions(H, nNMF)
-	nP = size(H, 1) # number of observations (components/transients)
-	nT = size(H, 2) # number of total number of sources to cluster
-	nk = convert(Int, nT / nNMF )
-
-	centroids = H[:, 1:nk]
-	idx = Array(Int, nk, nNMF)
-
-	for clusterIt = 1:nNMF
-		for globalIterID = 1:nNMF
-			processesTaken = falses(nk, 1)
-			centroidsTaken = falses(nk, 1)
-			for currentProcessID = 1:nk
-				distMatrix = ones(nk, nk) + 99
-				for processID = 1:nk
-					if !processesTaken[processID]
-						for centroidID = 1:nk
-							if !centroidsTaken[centroidID]
-								distMatrix[processID, centroidID] = Distances.cosine_dist(H[:,processID + (globalIterID - 1) * nk], centroids[:,centroidID])
-							end
-						end
-					end
-				end
-				minProcess, minCentroid = ind2sub(size(distMatrix), indmin(distMatrix))
-				processesTaken[minProcess] = true
-				centroidsTaken[minCentroid] = true
-				idx[minProcess, globalIterID] = minCentroid
-			end
-		end
-		centroids = zeros(nP, nk)
-		for centroidID = 1:nk
-			for globalIterID = 1:nNMF
-				centroids[:, centroidID] += H[:, findin(idx[:, globalIterID], centroidID) + (globalIterID - 1) * nk]
-			end
-		end
-		centroids ./= nNMF
-	end
-	return idx, centroids'
 end
 
 "Finalize the NMFk results"

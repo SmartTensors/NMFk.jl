@@ -1,4 +1,4 @@
-import MixMatch
+import NMFk
 
 cs = Float64[]
 ds = Float64[]
@@ -15,7 +15,7 @@ for i = 1:100
 	bucketdeltas = [1 0]'
 	deltaindices = Int[1]
 	concentrations = mixer * buckets
-	deltas = MixMatch.computedeltas(mixer, buckets, bucketdeltas, deltaindices)
+	deltas = NMFk.computedeltas(mixer, buckets, bucketdeltas, deltaindices)
 
 	#=
 	info("Concentrations")
@@ -24,8 +24,8 @@ for i = 1:100
 	display(deltas)
 	=#
 
-	fitmixer, fitbuckets, fitbucketdeltas, fitquality = MixMatch.matchdata(concentrations, deltas, deltaindices, 2; deltaweightsfactor=1, verbosity=1)
-	fitdeltas = MixMatch.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
+	fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.matchdata(concentrations, deltas, deltaindices, 2; deltaweightsfactor=1, verbosity=1)
+	fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 	#=
 	info("Match concentrations")
