@@ -5,15 +5,24 @@ import Distances
 import Clustering
 import JuMP
 import Ipopt
+import JLD
 
 include("NMFkCluster.jl")
 include("NMFkGeoChem.jl")
 include("NMFkMixMatch.jl")
+include("NMFkIpopt.jl")
 include("NMFkMatrix.jl")
 
-"Execute NMFk analysis (in parallel if processors available)"
-function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+"Execute NMFk analysis (in parallel if processors are available)"
+function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
+	indexnan = isnan(X)
+	if any(indexnan) && (!ipopt || !mixmatch)
+		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used; Ipopt minimization will be performed")
+		ipopt = true
+	end
+	numobservations = length(vec(X[!indexnan]))
 	if !quiet
 		if mixmatch
 			if matchwaterdeltas
@@ -21,6 +30,8 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 			else
 				println("Using MixMatch ...")
 			end
+		elseif ipopt
+			println("Using Ipopt ...")
 		else
 			println("Using NMF ...")
 		end
@@ -39,15 +50,17 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 	@sync @parallel for i = 1:nNMF
 		if mixmatch
 			if matchwaterdeltas
-				W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+				W, H, objvalue[i] = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 			else
 				if sizeof(deltas) == 0
-					W, H, objvalue = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+					W, H, objvalue[i] = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 				else
-					W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+					W, Hconc, Hdeltas, objvalue[i] = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 					H = [Hconc Hdeltas]
 				end
 			end
+		elseif ipopt
+			W, H, objvalue[i] = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet)
 		else
 			if scale
 				Xn, Xmax = NMFk.scalematrix(X)
@@ -77,7 +90,7 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 				objvalue[i] = nmf_result.objvalue
 			end
 		end
-		!quiet && println("$i: Objective function = $(objvalue[i])")
+		!quiet && println("$(i): Objective function = $(objvalue[i])")
 		nmfindex = nk * i
 		WBig[1:nP, nmfindex-(nk-1):nmfindex] = W
 		HBig[nmfindex-(nk-1):nmfindex, 1:nRC] = H
@@ -89,17 +102,17 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
-			clusterassignments, M = NMFk.clustersolutions(WBig, nNMF) # cluster based on the mixers
+			clusterassignments, M = NMFk.clustersolutions(WBig, nNMF) # cluster based on the W
 		else
 			clusterassignments, M = NMFk.clustersolutions(HBig', nNMF) # cluster based on the sources
 		end
-		!quiet && println("Cluster assignments:")
+		!quiet && info("Cluster assignments:")
 		!quiet && display(clusterassignments)
-		!quiet && println("Cluster centroids:")
+		!quiet && info("Cluster centroids:")
 		!quiet && display(M)
 		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, nNMF, clusterassignments)
 		minsilhouette = minimum(clustersilhouettes)
-		!quiet && println("Silhouettes for each of the $nk sources:" )
+		!quiet && info("Silhouettes for each of the $nk sources:" )
 		!quiet && display(clustersilhouettes')
 		!quiet && println("Mean silhouette = ", mean(clustersilhouettes) )
 		!quiet && println("Min  silhouette = ", minimum(clustersilhouettes) )
@@ -148,19 +161,37 @@ function execute(X::Matrix, nNMF::Int, nk::Int; ratios::Union{Void,Array{Float32
 		println("Ratio reconstruction = $ratiosreconstruction")
 		phi_final += ratiosreconstruction
 	end
+	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
+	if mixmatch && mixtures
+		numparameters -= size(Wa)[1]
+	end
+	# numparameters = numbuckets # this is wrong
+	# dof = numobservations - numparameters # this is correct, but we cannot use because we may get negative DoF
+	# dof = maximum(range) - numparameters + 1 # this is a hack to make the dof positive.
+	# dof = dof < 0 ? 0 : dof
+	# sml = dof + numobservations * (log(fitquality[numbuckets]/dof) / 2 + 1.837877)
+	# aic[numbuckets] = sml + 2 * numparameters
+	aic = 2 * numparameters + numobservations * log(phi_final/numobservations)
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
-	return Wa, Ha, phi_final, minsilhouette
+	return Wa, Ha, phi_final, minsilhouette, aic
 end
 
-function NMFrun(X, nk; maxiter=maxiter, normalize=true)
-	W, H = NMF.randinit(X, nk, normalize = true)
-	NMF.solve!(NMF.MultUpdate(obj = :mse, maxiter=maxiter), X, W, H)
-	if normalize
-		total = sum(W, 2)
-		W ./= total
-		H .*= total'
+function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2; retries::Integer=10, ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, casefilename::String="")
+	maxsources = maximum(collect(range))
+	W = Array(Array{Float64, 2}, maxsources)
+	H = Array(Array{Float64, 2}, maxsources)
+	fitquality = Array(Float64, maxsources)
+	robustness = Array(Float64, maxsources)
+	aic = Array(Float64, maxsources)
+	for numsources in range
+		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, retries;  mixmatch=mixmatch, normalize=normalize, scale=scale, mixtures=mixtures, quiet=quiet, regularizationweight=regularizationweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+		println("Sources: $(@sprintf("%2d", numsources)) Fit: $(@sprintf("%12.7g", fitquality[numsources])) Silhouette: $(@sprintf("%12.7g", robustness[numsources])) AIC: $(@sprintf("%12.7g", aic[numsources]))")
+		if casefilename != ""
+			filename = "casefilename-$numsources-$retries.jld"
+			JLD.save("W", W[numsources], "H", H[numsources], "fit", fitquality[numsources], "robustness", robustness[numsources], "aic", aic[numsources], "regularizationweight", regularizationweight)
+		end
 	end
-	return W, H
+	return W, H, fitquality, robustness, aic
 end
 
 "Finalize the NMFk results"
@@ -184,6 +215,17 @@ function finalize(Wa, Ha, nNMF, idx)
 		H[i,:] = mean(Ha[indices,:], 1)
 	end
 	return W, H, clustersilhouettes
+end
+
+function NMFrun(X, nk; maxiter=maxiter, normalize=true)
+	W, H = NMF.randinit(X, nk, normalize = true)
+	NMF.solve!(NMF.MultUpdate(obj = :mse, maxiter=maxiter), X, W, H)
+	if normalize
+		total = sum(W, 2)
+		W ./= total
+		H .*= total'
+	end
+	return W, H
 end
 
 end
