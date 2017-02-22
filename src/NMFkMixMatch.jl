@@ -56,7 +56,7 @@ const defaultdeltasweight = convert(Float32, 1)
 				if scale || normalize
 					initH = rand(Float32, numbuckets, numconstituents)
 				else
-					max = maximum(concentrations, 1) / 10
+					max = maximum(concentrations, 1)
 					initH = rand(Float32, numbuckets, numconstituents)
 					for i=1:numbuckets
 						initH[i:i,:] .*= max

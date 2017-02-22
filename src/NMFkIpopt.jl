@@ -37,7 +37,7 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 			if scale || normalize
 				initH = rand(Float32, nk, numconstituents)
 			else
-				max = maximum(X, 1) / 10
+				max = maximum(X, 1)
 				initH = rand(Float32, nk, numconstituents)
 				for i=1:nk
 					initH[i:i,:] .*= max
