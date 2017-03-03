@@ -21,60 +21,16 @@ function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union
 		end
 	end
 	if transpose
-		nP = size(X, 2) # number of observation points
-		nC = size(X, 1) # number of observed components/transients
+		nC, nP = size(X) # number of observed components/transients, number of observation points
 	else
-		nP = size(X, 1) # number of observation points
-		nC = size(X, 2) # number of observed components/transients
+		nP, nC = size(X) # number of observation points,  number of observed components/transients
 	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
-	WBig = SharedArray(Float64, nP, nNMF * nk)
-	HBig = SharedArray(Float64, nNMF * nk, nRC)
-	objvalue = SharedArray(Float64, nNMF)
-	@sync @parallel for i = 1:nNMF
-		if mixmatch
-			if matchwaterdeltas
-				W, H, objvalue[i] = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
-			else
-				if sizeof(deltas) == 0
-					W, H, objvalue[i] = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
-				else
-					W, Hconc, Hdeltas, objvalue[i] = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
-					H = [Hconc Hdeltas]
-				end
-			end
-		elseif ipopt
-			W, H, objvalue[i] = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet)
-		else
-			if scale
-				Xn, Xmax = NMFk.scalematrix(X)
-				if transpose
-					nmf_result = NMF.nnmf(Xn', nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
-				else
-					nmf_result = NMF.nnmf(Xn, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
-				end
-				W = nmf_result.W
-				H = nmf_result.H
-				if transpose
-					W = NMFk.descalematrix_col(W, Xmax)
-					E = X' - W * H
-				else
-					H = NMFk.descalematrix(H, Xmax)
-					E = X - W * H
-				end
-				objvalue[i] = sum(E.^2)
-			else
-				if transpose
-					nmf_result = NMF.nnmf(X', nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
-				else
-					nmf_result = NMF.nnmf(X, nk; alg=:alspgrad, init=:random, maxiter=maxiter, tol=tol)
-				end
-				W = nmf_result.W
-				H = nmf_result.H
-				objvalue[i] = nmf_result.objvalue
-			end
-		end
-		!quiet && println("$(i): Objective function = $(objvalue[i])")
+	WBig = Array(Float64, nP, nNMF * nk)
+	HBig = Array(Float64, nNMF * nk, nRC)
+	objvalue = Array(Float64, nNMF)
+	for i = 1:nNMF
+		W, H, objvalue[i] = execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)
 		nmfindex = nk * i
 		WBig[1:nP, nmfindex-(nk-1):nmfindex] = W
 		HBig[nmfindex-(nk-1):nmfindex, 1:nRC] = H
@@ -189,7 +145,10 @@ function execute_new(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::U
 		nP, nC = size(X) # number of observation points,  number of observed components/transients
 	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
-	WBig, HBig, objvalue = pmap(i->(execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverseweightinverse)), 1:NMF)
+	r = pmap(i->(execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)), 1:nNMF)
+	WBig = map(i->convert(Array{Float64,2}, r[i][1]), 1:nNMF)
+	HBig = map(i->convert(Array{Float64,2}, r[i][2]), 1:nNMF)
+	objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
 	bestindex = indmin(objvalue)
 	!quiet && println("Best objective function = $(objvalue[bestindex])")
 	Wbest = WBig[bestindex]
@@ -205,7 +164,7 @@ function execute_new(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::U
 		!quiet && display(clusterassignments)
 		!quiet && info("Cluster centroids:")
 		!quiet && display(M)
-		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, nNMF, clusterassignments)
+		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, clusterassignments)
 		minsilhouette = minimum(clustersilhouettes)
 		!quiet && info("Silhouettes for each of the $nk sources:" )
 		!quiet && display(clustersilhouettes')
@@ -271,7 +230,7 @@ function execute_new(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::U
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
 
-function execute_singlerun(X::Matrix, nk::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false)
+function execute_singlerun(X::Matrix, nk::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false)
 	if mixmatch
 		if matchwaterdeltas
 			W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
@@ -279,7 +238,7 @@ function execute_singlerun(X::Matrix, nk::Int; ipopt::Bool=false, ratios::Union{
 			if sizeof(deltas) == 0
 				W, H, objvalue = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 			else
-				W, Hconc, Hdeltas, objvalue[i] = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 				H = [Hconc Hdeltas]
 			end
 		end
@@ -314,7 +273,7 @@ function execute_singlerun(X::Matrix, nk::Int; ipopt::Bool=false, ratios::Union{
 			objvalue = nmf_result.objvalue
 		end
 	end
-	!quiet && println("$(i): Objective function = $(objvalue)")
+	!quiet && println("Objective function = $(objvalue)")
 	return W, H, objvalue
 end
 
@@ -337,24 +296,25 @@ function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2; retries::Integer
 end
 
 "Finalize the NMFk results"
-function finalize(Wa::Vector, Ha::Vector, nNMF::Integer, idx::Matrix)
+function finalize(Wa::Vector, Ha::Vector, idx::Matrix)
+	nNMF = length(Wa)
 	nP = size(Wa[1], 1) # number of observation points (samples)
 	nC = size(Ha[1], 2) # number of observations for each point (components/transients)
-	nT = size(Ha[1], 1) # total number of sources to cluster
-	nk = convert(Int, nT / nNMF)
+	nk = size(Ha[1], 1) # total number of sources to cluster
+	nT = nk * nNMF
 
 	idx_r = vec(reshape(idx, nT, 1))
 	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-	WaDist = Distances.pairwise(Distances.CosineDist(), Wa)
+	WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...))
 	silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
 	clustersilhouettes = Array(Float64, nk, 1)
 	W = Array(Float64, nP, nk)
 	H = Array(Float64, nk, nC)
-	for i = 1:nk
-		indices = findin(idx_r, i)
-		clustersilhouettes[i] = mean(silhouettes[indices])
-		W[:,i] = mean(Wa[:, indices], 2)
-		H[i,:] = mean(Ha[indices, :], 1)
+	for k = 1:nk
+		indices = findin(idx_r, k)
+		clustersilhouettes[k] = mean(silhouettes[indices])
+		W[:, k] = mean(hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idx[k, :])...), 2)
+		H[k, :] = mean(hcat(map((i, j)->Ha[i][j, :], 1:nNMF, idx[k, :])...), 2)
 	end
 	return W, H, clustersilhouettes
 end
@@ -371,11 +331,11 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix)
 	clustersilhouettes = Array(Float64, nk, 1)
 	W = Array(Float64, nP, nk)
 	H = Array(Float64, nk, nC)
-	for i = 1:nk
-		indices = findin(idx_r, i)
-		clustersilhouettes[i] = mean(silhouettes[indices])
-		W[:,i] = mean(Wa[:,indices], 2)
-		H[i,:] = mean(Ha[indices,:], 1)
+	for k = 1:nk
+		indices = findin(idx_r, k)
+		clustersilhouettes[k] = mean(silhouettes[indices])
+		W[:, k] = mean(Wa[:, indices], 2)
+		H[k, :] = mean(Ha[indices, :], 1)
 	end
 	return W, H, clustersilhouettes
 end
