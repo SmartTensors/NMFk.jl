@@ -1,18 +1,3 @@
-module NMFk
-
-import NMF
-import Distances
-import Clustering
-import JuMP
-import Ipopt
-import JLD
-
-include("NMFkCluster.jl")
-include("NMFkGeoChem.jl")
-include("NMFkMixMatch.jl")
-include("NMFkIpopt.jl")
-include("NMFkMatrix.jl")
-
 function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
@@ -355,7 +340,7 @@ end
 function finalize(Wa::Vector, Ha::Vector, nNMF::Integer, idx::Matrix)
 	nP = size(Wa[1], 1) # number of observation points (samples)
 	nC = size(Ha[1], 2) # number of observations for each point (components/transients)
-	nT = size(Ha[1], 1) # number of total number of sources to cluster
+	nT = size(Ha[1], 1) # total number of sources to cluster
 	nk = convert(Int, nT / nNMF)
 
 	idx_r = vec(reshape(idx, nT, 1))
@@ -376,7 +361,7 @@ end
 function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix)
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
-	nT = size(Ha, 1) # number of total number of sources to cluster
+	nT = size(Ha, 1) # total number of sources to cluster
 	nk = convert(Int, nT / nNMF)
 
 	idx_r = vec(reshape(idx, nT, 1))
@@ -404,6 +389,4 @@ function NMFrun(X::Matrix, nk::Integer; maxiter::Integer=maxiter, normalize::Boo
 		H .*= total'
 	end
 	return W, H
-end
-
 end

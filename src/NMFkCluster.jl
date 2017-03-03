@@ -48,7 +48,7 @@ function clustersolutions(H::Vector, clusterweights::Bool)
 	end
 	return idx, centroids'
 end
-function clustersolutions(H::Matrix, nNMF::Interger)
+function clustersolutions(H::Matrix, nNMF::Integer)
 	nP, nT = size(H) # number of observations (components/transients), number of total number of sources to cluster
 	nk = convert(Int, nT / nNMF )
 
