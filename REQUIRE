@@ -1,4 +1,4 @@
-julia 0.4
+julia 0.5
 JuMP 0.15
 Ipopt 0.2.6
 NMF 0.2.5
