@@ -277,7 +277,7 @@ function execute_singlerun(X::Matrix, nk::Int; ipopt::Bool=false, ratios::Union{
 	return W, H, objvalue
 end
 
-function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2; retries::Integer=10, ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, casefilename::String="")
+function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10; ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, casefilename::String="")
 	maxsources = maximum(collect(range))
 	W = Array(Array{Float64, 2}, maxsources)
 	H = Array(Array{Float64, 2}, maxsources)
@@ -285,10 +285,10 @@ function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2; retries::Integer
 	robustness = Array(Float64, maxsources)
 	aic = Array(Float64, maxsources)
 	for numsources in range
-		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, retries;  mixmatch=mixmatch, normalize=normalize, scale=scale, mixtures=mixtures, quiet=quiet, regularizationweight=regularizationweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF;  mixmatch=mixmatch, normalize=normalize, scale=scale, mixtures=mixtures, quiet=quiet, regularizationweight=regularizationweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
 		println("Sources: $(@sprintf("%2d", numsources)) Fit: $(@sprintf("%12.7g", fitquality[numsources])) Silhouette: $(@sprintf("%12.7g", robustness[numsources])) AIC: $(@sprintf("%12.7g", aic[numsources]))")
 		if casefilename != ""
-			filename = "casefilename-$numsources-$retries.jld"
+			filename = "casefilename-$numsources-$nNMF.jld"
 			JLD.save("W", W[numsources], "H", H[numsources], "fit", fitquality[numsources], "robustness", robustness[numsources], "aic", aic[numsources], "regularizationweight", regularizationweight)
 		end
 	end
