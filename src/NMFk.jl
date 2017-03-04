@@ -13,5 +13,6 @@ include("NMFkMixMatch.jl")
 include("NMFkIpopt.jl")
 include("NMFkMatrix.jl")
 include("NMFkExecute.jl")
+include("NMFkFinalize.jl")
 
 end
