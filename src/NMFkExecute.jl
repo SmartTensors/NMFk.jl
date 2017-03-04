@@ -1,4 +1,5 @@
-function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+"Execute NMFk analysis"
+function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan(X)
@@ -50,7 +51,7 @@ function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union
 		!quiet && display(clusterassignments)
 		!quiet && info("Cluster centroids:")
 		!quiet && display(M)
-		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, nNMF, clusterassignments)
+		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, nNMF, clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
 		!quiet && info("Silhouettes for each of the $nk sources:" )
 		!quiet && display(clustersilhouettes')
@@ -117,7 +118,7 @@ function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union
 end
 
 "Execute NMFk analysis (in parallel if processors are available)"
-function execute_new(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan(X)
@@ -164,7 +165,7 @@ function execute_new(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::U
 		!quiet && display(clusterassignments)
 		!quiet && info("Cluster centroids:")
 		!quiet && display(M)
-		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, clusterassignments)
+		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
 		!quiet && info("Silhouettes for each of the $nk sources:" )
 		!quiet && display(clustersilhouettes')
@@ -296,17 +297,22 @@ function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2; retries::Integer
 end
 
 "Finalize the NMFk results"
-function finalize(Wa::Vector, Ha::Vector, idx::Matrix)
+function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool)
 	nNMF = length(Wa)
 	nP = size(Wa[1], 1) # number of observation points (samples)
-	nC = size(Ha[1], 2) # number of observations for each point (components/transients)
-	nk = size(Ha[1], 1) # total number of sources to cluster
-	nT = nk * nNMF
+	nk, nC = size(Ha[1]) # number of sources / number of observations for each point (components/transients),
+	nT = nk * nNMF # total number of sources to cluster
 
 	idx_r = vec(reshape(idx, nT, 1))
-	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-	WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...))
-	silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+	if clusterweights
+		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
+		WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...))
+		silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+	else
+		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
+		HaDist = Distances.pairwise(Distances.CosineDist(), vcat(Ha...)')
+		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
+	end
 	clustersilhouettes = Array(Float64, nk, 1)
 	W = Array(Float64, nP, nk)
 	H = Array(Float64, nk, nC)
@@ -318,7 +324,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix)
 	end
 	return W, H, clustersilhouettes
 end
-function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix)
+function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterweights::Bool)
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
 	nT = size(Ha, 1) # total number of sources to cluster
@@ -326,8 +332,13 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix)
 
 	idx_r = vec(reshape(idx, nT, 1))
 	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-	WaDist = Distances.pairwise(Distances.CosineDist(), Wa)
-	silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+	if clusterweights
+		WaDist = Distances.pairwise(Distances.CosineDist(), Wa)
+		silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+	else
+		HaDist = Distances.pairwise(Distances.CosineDist(), Ha')
+		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
+	end
 	clustersilhouettes = Array(Float64, nk, 1)
 	W = Array(Float64, nP, nk)
 	H = Array(Float64, nk, nC)

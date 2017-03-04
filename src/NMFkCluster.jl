@@ -1,12 +1,12 @@
 import Distances
 
 "Cluster NMFk solutions"
-function clustersolutions(H::Vector, clusterweights::Bool)
-	nNMF = length(H)
-	nc, nr = size(H[1])
+function clustersolutions(W::Vector, clusterweights::Bool)
+	nNMF = length(W)
+	nc, nr = size(W[1])
 	nk = clusterweights ? nr : nc
 
-	centroids = H[1]
+	centroids = W[1]
 	idx = Array(Int, nk, nNMF)
 
 	for clusterIt = 1:nNMF
@@ -20,9 +20,9 @@ function clustersolutions(H::Vector, clusterweights::Bool)
 						for centroidID = 1:nk
 							if !centroidsTaken[centroidID]
 								if clusterweights
-									distMatrix[processID, centroidID] = Distances.cosine_dist(H[globalIterID][:, processID], centroids[:, centroidID])
+									distMatrix[processID, centroidID] = Distances.cosine_dist(W[globalIterID][:, processID], centroids[:, centroidID])
 								else
-									distMatrix[processID, centroidID] = Distances.cosine_dist(H[globalIterID][processID, :], centroids[centroidID, :])
+									distMatrix[processID, centroidID] = Distances.cosine_dist(W[globalIterID][processID, :], centroids[centroidID, :])
 								end
 							end
 						end
@@ -34,13 +34,13 @@ function clustersolutions(H::Vector, clusterweights::Bool)
 				idx[minProcess, globalIterID] = minCentroid
 			end
 		end
-		centroids = zeros(size(H[1]))
+		centroids = zeros(size(W[1]))
 		for centroidID = 1:nk
 			for globalIterID = 1:nNMF
 				if clusterweights
-					centroids[:, centroidID] += H[globalIterID][:, findin(idx[:, globalIterID], centroidID)]
+					centroids[:, centroidID] += W[globalIterID][:, findin(idx[:, globalIterID], centroidID)]
 				else
-					centroids[:, centroidID] += H[globalIterID][findin(idx[:, globalIterID], centroidID), :]
+					centroids[centroidID:centroidID, :] += W[globalIterID][findin(idx[:, globalIterID], centroidID), :]
 				end
 			end
 		end
@@ -48,11 +48,11 @@ function clustersolutions(H::Vector, clusterweights::Bool)
 	end
 	return idx, centroids'
 end
-function clustersolutions(H::Matrix, nNMF::Integer)
-	nP, nT = size(H) # number of observations (components/transients), number of total number of sources to cluster
+function clustersolutions(W::Matrix, nNMF::Integer)
+	nP, nT = size(W) # number of observations (components/transients), number of total number of sources to cluster
 	nk = convert(Int, nT / nNMF )
 
-	centroids = H[:, 1:nk]
+	centroids = W[:, 1:nk]
 	idx = Array(Int, nk, nNMF)
 
 	for clusterIt = 1:nNMF
@@ -65,7 +65,7 @@ function clustersolutions(H::Matrix, nNMF::Integer)
 					if !processesTaken[processID]
 						for centroidID = 1:nk
 							if !centroidsTaken[centroidID]
-								distMatrix[processID, centroidID] = Distances.cosine_dist(H[:,processID + (globalIterID - 1) * nk], centroids[:,centroidID])
+								distMatrix[processID, centroidID] = Distances.cosine_dist(W[:,processID + (globalIterID - 1) * nk], centroids[:,centroidID])
 							end
 						end
 					end
@@ -79,7 +79,7 @@ function clustersolutions(H::Matrix, nNMF::Integer)
 		centroids = zeros(nP, nk)
 		for centroidID = 1:nk
 			for globalIterID = 1:nNMF
-				centroids[:, centroidID] += H[:, findin(idx[:, globalIterID], centroidID) + (globalIterID - 1) * nk]
+				centroids[:, centroidID] += W[:, findin(idx[:, globalIterID], centroidID) + (globalIterID - 1) * nk]
 			end
 		end
 		centroids ./= nNMF
