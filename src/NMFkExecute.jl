@@ -58,8 +58,7 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 		!quiet && println("Mean silhouette = ", mean(clustersilhouettes) )
 		!quiet && println("Min  silhouette = ", minimum(clustersilhouettes) )
 	else
-		Wa = mean(WBig, 2)
-		Ha = mean(HBig, 1)
+		Wa, Ha = NMFk.finalize(WBig, HBig)
 	end
 	if best
 		Wa = Wbest
