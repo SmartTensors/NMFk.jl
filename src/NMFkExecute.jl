@@ -288,8 +288,8 @@ function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10
 		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF;  mixmatch=mixmatch, normalize=normalize, scale=scale, mixtures=mixtures, quiet=quiet, regularizationweight=regularizationweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
 		println("Sources: $(@sprintf("%2d", numsources)) Fit: $(@sprintf("%12.7g", fitquality[numsources])) Silhouette: $(@sprintf("%12.7g", robustness[numsources])) AIC: $(@sprintf("%12.7g", aic[numsources]))")
 		if casefilename != ""
-			filename = "casefilename-$numsources-$nNMF.jld"
-			JLD.save("W", W[numsources], "H", H[numsources], "fit", fitquality[numsources], "robustness", robustness[numsources], "aic", aic[numsources], "regularizationweight", regularizationweight)
+			filename = "$casefilename-$numsources-$nNMF.jld"
+			JLD.save(filename, "W", W[numsources], "H", H[numsources], "fit", fitquality[numsources], "robustness", robustness[numsources], "aic", aic[numsources], "regularizationweight", regularizationweight)
 		end
 	end
 	return W, H, fitquality, robustness, aic

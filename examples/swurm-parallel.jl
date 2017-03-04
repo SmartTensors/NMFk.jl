@@ -15,4 +15,5 @@ Htrue = [[1, 10, 0, 0, 1] [0, 0, 1, 5, 2]]'
 X = Wtrue * Htrue
 # X = [a a*10 b b*5 a+b*2]
 W, H, p, s = NMFk.execute(X, 1:2, nNMF)
+# W, H, p, s = NMFk.execute(X, 1:2, nNMF, casefilename="slurm-parallel")
 W[2] * H[2]
