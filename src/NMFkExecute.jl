@@ -1,5 +1,5 @@
 "Execute NMFk analysis for a range of number of sources (and optionally save the resutlts)"
-function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10; ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, casefilename::String="")
+function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10; casefilename::String="", kw...)
 	maxsources = maximum(collect(range))
 	W = Array(Array{Float64, 2}, maxsources)
 	H = Array(Array{Float64, 2}, maxsources)
@@ -7,7 +7,7 @@ function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10
 	robustness = Array(Float64, maxsources)
 	aic = Array(Float64, maxsources)
 	for numsources in range
-		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF;  mixmatch=mixmatch, normalize=normalize, scale=scale, mixtures=mixtures, quiet=quiet, regularizationweight=regularizationweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF; kw...)
 		println("Sources: $(@sprintf("%2d", numsources)) Fit: $(@sprintf("%12.7g", fitquality[numsources])) Silhouette: $(@sprintf("%12.7g", robustness[numsources])) AIC: $(@sprintf("%12.7g", aic[numsources]))")
 		if casefilename != ""
 			filename = "$casefilename-$numsources-$nNMF.jld"
@@ -18,11 +18,11 @@ function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10
 end
 
 "Execute NMFk analysis for a given number of sources"
-function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+function execute(X::Matrix, nk::Int, nNMF::Int; kw...)
 	if nprocs() > 1
-		W, H, fitquality, robustness, aic = NMFk.execute_parallel(X, nk, nNMF; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+		W, H, fitquality, robustness, aic = NMFk.execute_parallel(X, nk, nNMF; kw...)
 	else
-		W, H, fitquality, robustness, aic = NMFk.execute_serial(X, nk, nNMF; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+		W, H, fitquality, robustness, aic = NMFk.execute_serial(X, nk, nNMF; kw...)
 	end
 	return W, H, fitquality, robustness, aic
 end
