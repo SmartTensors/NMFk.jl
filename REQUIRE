@@ -1,4 +1,5 @@
 julia 0.5
+ReusableFunctions
 JuMP 0.15
 Ipopt 0.2.6
 NMF 0.2.5

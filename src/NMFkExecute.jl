@@ -1,4 +1,33 @@
-"Execute NMFk analysis"
+"Execute NMFk analysis for a range of number of sources (and optionally save the resutlts)"
+function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10; ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, casefilename::String="")
+	maxsources = maximum(collect(range))
+	W = Array(Array{Float64, 2}, maxsources)
+	H = Array(Array{Float64, 2}, maxsources)
+	fitquality = Array(Float64, maxsources)
+	robustness = Array(Float64, maxsources)
+	aic = Array(Float64, maxsources)
+	for numsources in range
+		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF;  mixmatch=mixmatch, normalize=normalize, scale=scale, mixtures=mixtures, quiet=quiet, regularizationweight=regularizationweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+		println("Sources: $(@sprintf("%2d", numsources)) Fit: $(@sprintf("%12.7g", fitquality[numsources])) Silhouette: $(@sprintf("%12.7g", robustness[numsources])) AIC: $(@sprintf("%12.7g", aic[numsources]))")
+		if casefilename != ""
+			filename = "$casefilename-$numsources-$nNMF.jld"
+			JLD.save(filename, "W", W[numsources], "H", H[numsources], "fit", fitquality[numsources], "robustness", robustness[numsources], "aic", aic[numsources], "regularizationweight", regularizationweight)
+		end
+	end
+	return W, H, fitquality, robustness, aic
+end
+
+"Execute NMFk analysis for a given number of sources"
+function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+	if nprocs() > 1
+		W, H, fitquality, robustness, aic = NMFk.execute_parallel(X, nk, nNMF; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+	else
+		W, H, fitquality, robustness, aic = NMFk.execute_serial(X, nk, nNMF; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
+	end
+	return W, H, fitquality, robustness, aic
+end
+
+"Execute NMFk analysis for a given number of sources in serial"
 function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
@@ -31,7 +60,7 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 	HBig = Array(Float64, nNMF * nk, nRC)
 	objvalue = Array(Float64, nNMF)
 	for i = 1:nNMF
-		W, H, objvalue[i] = execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)
+		W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)
 		nmfindex = nk * i
 		WBig[1:nP, nmfindex-(nk-1):nmfindex] = W
 		HBig[nmfindex-(nk-1):nmfindex, 1:nRC] = H
@@ -116,8 +145,8 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
 
-"Execute NMFk analysis (in parallel if processors are available)"
-function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+"Execute NMFk analysis for a given number of sources in parallel"
+function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan(X)
@@ -145,7 +174,7 @@ function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union
 		nP, nC = size(X) # number of observation points,  number of observed components/transients
 	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
-	r = pmap(i->(execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)), 1:nNMF)
+	r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)), 1:nNMF)
 	WBig = map(i->convert(Array{Float64,2}, r[i][1]), 1:nNMF)
 	HBig = map(i->convert(Array{Float64,2}, r[i][2]), 1:nNMF)
 	objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
@@ -229,7 +258,7 @@ function execute(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
 
-function execute_singlerun(X::Matrix, nk::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false)
+function execute_singlerun(X::Matrix, nk::Int; quiet::Bool=true, ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false)
 	if mixmatch
 		if matchwaterdeltas
 			W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
@@ -274,24 +303,6 @@ function execute_singlerun(X::Matrix, nk::Int; ipopt::Bool=false, ratios::Union{
 	end
 	!quiet && println("Objective function = $(objvalue)")
 	return W, H, objvalue
-end
-
-function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10; ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, casefilename::String="")
-	maxsources = maximum(collect(range))
-	W = Array(Array{Float64, 2}, maxsources)
-	H = Array(Array{Float64, 2}, maxsources)
-	fitquality = Array(Float64, maxsources)
-	robustness = Array(Float64, maxsources)
-	aic = Array(Float64, maxsources)
-	for numsources in range
-		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF;  mixmatch=mixmatch, normalize=normalize, scale=scale, mixtures=mixtures, quiet=quiet, regularizationweight=regularizationweight, weightinverse=weightinverse, clusterweights=clusterweights, transpose=transpose)
-		println("Sources: $(@sprintf("%2d", numsources)) Fit: $(@sprintf("%12.7g", fitquality[numsources])) Silhouette: $(@sprintf("%12.7g", robustness[numsources])) AIC: $(@sprintf("%12.7g", aic[numsources]))")
-		if casefilename != ""
-			filename = "$casefilename-$numsources-$nNMF.jld"
-			JLD.save(filename, "W", W[numsources], "H", H[numsources], "fit", fitquality[numsources], "robustness", robustness[numsources], "aic", aic[numsources], "regularizationweight", regularizationweight)
-		end
-	end
-	return W, H, fitquality, robustness, aic
 end
 
 function NMFrun(X::Matrix, nk::Integer; maxiter::Integer=maxiter, normalize::Bool=true)

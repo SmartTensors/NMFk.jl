@@ -6,7 +6,7 @@ setprocs()
 import NMFk
 
 srand(2015)
-nP = 100
+nP = 1000
 nNMF = 100
 a = rand(nP)
 b = rand(nP)
