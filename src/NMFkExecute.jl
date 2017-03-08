@@ -258,7 +258,17 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
 
-function execute_singlerun(X::Matrix, nk::Int; quiet::Bool=true, ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false)
+"Execute single NMF run"
+function execute_singlerun(x...; kw...)
+	if restart
+		return execute_singlerun_r3(x...; kw...)
+	else
+		return execute_singlerun_compute(x...; kw...)
+	end
+end
+
+"Execute single NMF run without restart"
+function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), deltas::Matrix{Float32}=Array(Float32, 0, 0), deltaindices::Vector{Int}=Array(Int, 0), best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false)
 	if mixmatch
 		if matchwaterdeltas
 			W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
