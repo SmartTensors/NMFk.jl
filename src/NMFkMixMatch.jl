@@ -8,7 +8,7 @@ const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-@generated function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array(Int, 0, 0), random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array(Float32, 0, 0), initH::Matrix{Float32}=Array(Float32, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+@generated function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
 	if ratios != Void # ratios here is DataType
 		extracodeforratios = quote
 			numberrations = length(ratioindices[1,:])
@@ -67,7 +67,7 @@ const defaultdeltasweight = convert(Float32, 1)
 					initH = ones(Float32, numbuckets, numconstituents) / 2
 				else
 					max = maximum(concentrations, 1)
-					initH = Array(Float32, numbuckets, numconstituents)
+					initH = Array{Float32}(numbuckets, numconstituents)
 					for i=1:numbuckets
 						initH[i:i,:] = max
 					end
@@ -139,7 +139,7 @@ const defaultdeltasweight = convert(Float32, 1)
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function mixmatchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array(Float32, 0, 0), initH::Matrix{Float32}=Array(Float32, 0, 0), initHd::Matrix{Float32}=Array(Float32, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+function mixmatchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), initHd::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)
@@ -189,7 +189,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Floa
 				initH = ones(Float32, numbuckets, numconstituents) / 2
 			else
 				max = maximum(concentrations, 1)
-				initH = Array(Float32, numbuckets, numconstituents)
+				initH = Array{Float32}(numbuckets, numconstituents)
 				for i=1:numbuckets
 					initH[i,:] = max
 				end
@@ -212,7 +212,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Floa
 				initHd = ones(Float32, numbuckets, numdeltas) / 2
 			else
 				max = maximum(deltas, 1)
-				initHd = Array(Float32, numbuckets, numdeltas)
+				initHd = Array{Float32}(numbuckets, numdeltas)
 				for i=1:numbuckets
 					initHd[i,:] = max
 				end

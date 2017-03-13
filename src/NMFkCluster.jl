@@ -7,7 +7,7 @@ function clustersolutions(W::Vector, clusterweights::Bool)
 	nk = clusterweights ? nr : nc
 
 	centroids = W[1]
-	idx = Array(Int, nk, nNMF)
+	idx = Array{Int}(nk, nNMF)
 
 	for clusterIt = 1:nNMF
 		for globalIterID = 1:nNMF
@@ -53,7 +53,7 @@ function clustersolutions(W::Matrix, nNMF::Integer)
 	nk = convert(Int, nT / nNMF )
 
 	centroids = W[:, 1:nk]
-	idx = Array(Int, nk, nNMF)
+	idx = Array{Int}(nk, nNMF)
 
 	for clusterIt = 1:nNMF
 		for globalIterID = 1:nNMF

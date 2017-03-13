@@ -15,9 +15,9 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool)
 		HaDist = Distances.pairwise(Distances.CosineDist(), vcat(Ha...)')
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
 	end
-	clustersilhouettes = Array(Float64, nk, 1)
-	W = Array(Float64, nP, nk)
-	H = Array(Float64, nk, nC)
+	clustersilhouettes = Array{Float64}(nk, 1)
+	W = Array{Float64}(nP, nk)
+	H = Array{Float64}(nk, nC)
 	for k = 1:nk
 		indices = findin(idx_r, k)
 		clustersilhouettes[k] = mean(silhouettes[indices])
@@ -41,9 +41,9 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterwei
 		HaDist = Distances.pairwise(Distances.CosineDist(), Ha')
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
 	end
-	clustersilhouettes = Array(Float64, nk, 1)
-	W = Array(Float64, nP, nk)
-	H = Array(Float64, nk, nC)
+	clustersilhouettes = Array{Float64}(nk, 1)
+	W = Array{Float64}(nP, nk)
+	H = Array{Float64}(nk, nC)
 	for k = 1:nk
 		indices = findin(idx_r, k)
 		clustersilhouettes[k] = mean(silhouettes[indices])

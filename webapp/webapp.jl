@@ -4,7 +4,7 @@ using Escher
 function inputstring2data(s::AbstractString)
 	rows = split(s, ";")
 	numcols = length(split(rows[1], " "; keep=false))
-	data = Array(Float64, length(rows), numcols)
+	data = Array{Float64}(length(rows), numcols)
 	for i = 1:length(rows)
 		row = split(rows[i], " "; keep=false)
 		if length(row) > numcols
