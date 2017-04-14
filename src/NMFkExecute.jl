@@ -1,4 +1,4 @@
-"Execute NMFk analysis for a range of number of sources (and optionally save the resutlts)"
+"Execute NMFk analysis for a range of number of sources (and optionally save the results)"
 function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10; casefilename::String="", kw...)
 	maxsources = maximum(collect(range))
 	W = Array{Array{Float64, 2}}(maxsources)
