@@ -1,5 +1,5 @@
-"Execute NMFk analysis for a range of number of sources (and optionally save the results)"
-function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10; casefilename::String="", kw...)
+"Execute NMFk analysis for a range of number of sources"
+function execute(X::Matrix, range::UnitRange{Integer}, nNMF::Integer=10; kw...)
 	maxsources = maximum(collect(range))
 	W = Array{Array{Float64, 2}}(maxsources)
 	H = Array{Array{Float64, 2}}(maxsources)
@@ -8,21 +8,32 @@ function execute(X::Matrix, range::Union{UnitRange{Int},Int}=2, nNMF::Integer=10
 	aic = Array{Float64}(maxsources)
 	for numsources in range
 		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF; kw...)
-		println("Sources: $(@sprintf("%2d", numsources)) Fit: $(@sprintf("%12.7g", fitquality[numsources])) Silhouette: $(@sprintf("%12.7g", robustness[numsources])) AIC: $(@sprintf("%12.7g", aic[numsources]))")
-		if casefilename != ""
-			filename = "$casefilename-$numsources-$nNMF.jld"
-			JLD.save(filename, "W", W[numsources], "H", H[numsources], "fit", fitquality[numsources], "robustness", robustness[numsources], "aic", aic[numsources], "regularizationweight", regularizationweight)
-		end
 	end
 	return W, H, fitquality, robustness, aic
 end
 
 "Execute NMFk analysis for a given number of sources"
-function execute(X::Matrix, nk::Int, nNMF::Int; kw...)
-	if nprocs() > 1
-		W, H, fitquality, robustness, aic = NMFk.execute_parallel(X, nk, nNMF; kw...)
-	else
-		W, H, fitquality, robustness, aic = NMFk.execute_serial(X, nk, nNMF; kw...)
+function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String="", save::Bool=true, load::Bool=false, kw...)
+	runflag = true
+	if load && casefilename != ""
+		filename = "$casefilename-$nk-$nNMF.jld"
+		if isfile(filename)
+			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
+			save = false
+			runflag = false
+		end
+	end
+	if runflag
+		if nprocs() > 1
+			W, H, fitquality, robustness, aic = NMFk.execute_parallel(X, nk, nNMF; kw...)
+		else
+			W, H, fitquality, robustness, aic = NMFk.execute_serial(X, nk, nNMF; kw...)
+		end
+	end
+	println("Sources: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
+	if save && casefilename != ""
+		filename = "$casefilename-$numsources-$nNMF.jld"
+		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	end
 	return W, H, fitquality, robustness, aic
 end
