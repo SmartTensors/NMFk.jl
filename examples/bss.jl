@@ -1,5 +1,4 @@
 import NMFk
-import Mads
 
 info("Reconstruction of sin/rand disturbance signal ...")
 srand(2015)
