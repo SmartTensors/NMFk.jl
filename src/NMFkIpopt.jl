@@ -6,6 +6,9 @@ const defaultmaxiter = 1000
 const defaultverbosity = 0
 
 "Factorize matrix X (X = W * H)"
+function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
+	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
+end
 function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
 	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
