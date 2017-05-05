@@ -13,7 +13,7 @@ function execute(X::Matrix, range::UnitRange{Int}, nNMF::Integer=10; kw...)
 end
 
 "Execute NMFk analysis for a given number of sources"
-function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String="", save::Bool=true, load::Bool=false, kw...)
+function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String="", serial::Bool=false, save::Bool=true, load::Bool=false, kw...)
 	runflag = true
 	if load && casefilename != ""
 		filename = "$casefilename-$nk-$nNMF.jld"
@@ -24,7 +24,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 		end
 	end
 	if runflag
-		if nprocs() > 1
+		if nprocs() > 1 && !serial
 			W, H, fitquality, robustness, aic = NMFk.execute_parallel(X, nk, nNMF; kw...)
 		else
 			W, H, fitquality, robustness, aic = NMFk.execute_serial(X, nk, nNMF; kw...)

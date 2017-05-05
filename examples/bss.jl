@@ -6,7 +6,7 @@ noise = [0, 0.1, 0.2, 0.5, 1]
 suc = Array(Int, length(noise))
 for n in 1:length(noise)
 	suc[n] = 0
-	for i = 1:100
+	for i = 1:1000
 		s1 = (sin(0.3:0.3:30)+1)/2
 		s2 = rand(100) * 0.5
 		s3 = rand(100)
@@ -15,9 +15,9 @@ for n in 1:length(noise)
 		S = [s1 s2 s3]
 		M = [[1,1,1] [0,2,1] [0,2,1] [1,0,2] [2,0,1] [1,2,0] [2,1,0]]
 		X = S * M + rand(100, 7) * noise[n]
-		W, H, fitquality, robustness, aic = NMFk.execute(X, 2:4)
+		W, H, fitquality, robustness, aic = NMFk.execute(X, 2:4, 100; ipopt=true)
 		if robustness[2] > 0.9 && robustness[3] > 0.9 && robustness[4] < 0.9
-			suc += 1
+			suc[n] += 1
 			info("Success!")
 		end
 	end
