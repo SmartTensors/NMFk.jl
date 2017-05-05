@@ -32,7 +32,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 	end
 	println("Sources: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
 	if save && casefilename != ""
-		filename = "$casefilename-$numsources-$nNMF.jld"
+		filename = "$casefilename-$nk-$nNMF.jld"
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	end
 	return W, H, fitquality, robustness, aic
