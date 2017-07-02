@@ -19,5 +19,6 @@ include("NMFkExecute.jl")
 include("NMFkRestart.jl")
 include("NMFkFinalize.jl")
 include("NMFkLoad.jl")
+include("NMFSparse.jl")
 
 end
