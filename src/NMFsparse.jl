@@ -1,4 +1,4 @@
-function NMFsparse(x::Matrix, k::Int; cf::Symbol=:kl, sparsity::Number=5, maxiter::Int=100000, tol::Number=1e-12, seed::Number=-1, div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), quiet::Bool=true)
+function NMFsparse(x::Matrix, k::Int; cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-12, seed::Number=-1, div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), quiet::Bool=true)
 	if seed != -1
 		srand(seed)
 	end
