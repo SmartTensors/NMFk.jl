@@ -42,12 +42,12 @@ end
 function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, sparse::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
-	indexnan = isnan(X)
+	indexnan = isnan.(X)
 	if any(indexnan) && (!ipopt || !mixmatch)
 		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used; Ipopt minimization will be performed")
 		ipopt = true
 	end
-	numobservations = length(vec(X[!indexnan]))
+	numobservations = length(vec(X[.!indexnan]))
 	if !quiet
 		if mixmatch
 			if matchwaterdeltas
@@ -67,31 +67,38 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 		nP, nC = size(X) # number of observation points,  number of observed components/transients
 	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
-	WBig = Array{Float64}(nP, nNMF * nk)
-	HBig = Array{Float64}(nNMF * nk, nRC)
+	#WBig = Array{Float64}(nP, nNMF * nk)
+	#HBig = Array{Float64}(nNMF * nk, nRC)
+  WBig::Vector{Matrix} = []
+  HBig::Vector{Matrix} = []
 	objvalue = Array{Float64}(nNMF)
 	for i = 1:nNMF
 		W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose, sparse=sparse, sparsity=sparsity, sparse_cf=sparse_cf, sparse_div_beta=sparse_div_beta)
-		nmfindex = nk * i
-		WBig[1:nP, nmfindex-(nk-1):nmfindex] = W
-		HBig[nmfindex-(nk-1):nmfindex, 1:nRC] = H
+		#nmfindex = nk * i
+		#WBig[1:nP, nmfindex-(nk-1):nmfindex] = W
+		#HBig[nmfindex-(nk-1):nmfindex, 1:nRC] = H
+    push!(WBig, W)
+    push!(HBig, H)
 	end
 	!quiet && println("Best objective function = $(minimum(objvalue))")
-	nmfindex = nk * indmin(objvalue)
-	Wbest = WBig[1:nP, nmfindex-(nk-1):nmfindex]
-	Hbest = HBig[nmfindex-(nk-1):nmfindex, 1:nRC]
+  bestIdx = indmin(objvalue)
+	#nmfindex = nk * indmin(objvalue)
+	#Wbest = WBig[1:nP, nmfindex-(nk-1):nmfindex]
+	#Hbest = HBig[nmfindex-(nk-1):nmfindex, 1:nRC]
+  Wbest = WBig[bestIdx]
+  Hbest = HBig[bestIdx]
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
-			clusterassignments, M = NMFk.clustersolutions(WBig, nNMF) # cluster based on the W
+			clusterassignments, M = NMFk.clusterSolutions(WBig, clusterweights) # cluster based on the W
 		else
-			clusterassignments, M = NMFk.clustersolutions(HBig', nNMF) # cluster based on the sources
+			clusterassignments, M = NMFk.clusterSolutions(HBig, clusterweights) # cluster based on the sources
 		end
 		!quiet && info("Cluster assignments:")
 		!quiet && display(clusterassignments)
 		!quiet && info("Cluster centroids:")
 		!quiet && display(M)
-		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, nNMF, clusterassignments, clusterweights)
+		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig, HBig, clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
 		!quiet && info("Silhouettes for each of the $nk sources:" )
 		!quiet && display(clustersilhouettes')
@@ -110,7 +117,7 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 		else
 			E = X - Wa * Ha
 		end
-		E[isnan(E)] = 0
+		E[isnan.(E)] = 0
 		phi_final = sum(E.^2)
 	else
 		Ha_conc = Ha[:,1:nC]
@@ -121,8 +128,8 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 		else
 			E = X - Wa * Ha_conc
 		end
-		E[isnan(E)] = 0
-		id = !isnan(deltas)
+		E[isnan.(E)] = 0
+		id = !isnan.(deltas)
 		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
 	end
 	if !quiet && typeof(ratios) != Void
@@ -160,7 +167,7 @@ end
 function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
-	indexnan = isnan(X)
+	indexnan = isnan.(X)
 	if any(indexnan) && (!ipopt || !mixmatch)
 		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used; Ipopt minimization will be performed")
 		ipopt = true
@@ -186,8 +193,10 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)), 1:nNMF)
-	WBig = map(i->convert(Array{Float64,2}, r[i][1]), 1:nNMF)
-	HBig = map(i->convert(Array{Float64,2}, r[i][2]), 1:nNMF)
+  WBig::Vector{Matrix} = [r[i][1] for i in 1:NMFk]
+  HBig::Vector{Matrix} = [r[i][2] for i in 1:NMFk]
+	#WBig = map(i->convert(Array{Float64,2}, r[i][1]), 1:nNMF)
+	#HBig = map(i->convert(Array{Float64,2}, r[i][2]), 1:nNMF)
 	objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
 	bestindex = indmin(objvalue)
 	!quiet && println("Best objective function = $(objvalue[bestindex])")
@@ -196,9 +205,9 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
-			clusterassignments, M = NMFk.clustersolutions(WBig, clusterweights) # cluster based on the W
+			clusterassignments, M = NMFk.clusterSolutions(WBig, clusterweights) # cluster based on the W
 		else
-			clusterassignments, M = NMFk.clustersolutions(HBig, clusterweights) # cluster based on the sources
+			clusterassignments, M = NMFk.clusterSolutions(HBig, clusterweights) # cluster based on the sources
 		end
 		!quiet && info("Cluster assignments:")
 		!quiet && display(clusterassignments)
@@ -223,7 +232,7 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 		else
 			E = X - Wa * Ha
 		end
-		E[isnan(E)] = 0
+		E[isnan.(E)] = 0
 		phi_final = sum(E.^2)
 	else
 		Ha_conc = Ha[:,1:nC]
@@ -234,8 +243,8 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 		else
 			E = X - Wa * Ha_conc
 		end
-		E[isnan(E)] = 0
-		id = !isnan(deltas)
+		E[isnan.(E)] = 0
+		id = !isnan.(deltas)
 		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
 	end
 	if !quiet && typeof(ratios) != Void
