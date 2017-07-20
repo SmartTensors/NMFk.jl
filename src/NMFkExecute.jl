@@ -164,7 +164,7 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 end
 
 "Execute NMFk analysis for a given number of sources in parallel"
-function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false)
+function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, sparse::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
@@ -192,7 +192,7 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 		nP, nC = size(X) # number of observation points,  number of observed components/transients
 	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
-	r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose)), 1:nNMF)
+	r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose, sparse=sparse, sparsity=sparsity, sparse_cf=sparse_cf, sparse_div_beta=sparse_div_beta)), 1:nNMF)
   WBig::Vector{Matrix} = [r[i][1] for i in 1:NMFk]
   HBig::Vector{Matrix} = [r[i][2] for i in 1:NMFk]
 	#WBig = map(i->convert(Array{Float64,2}, r[i][1]), 1:nNMF)
