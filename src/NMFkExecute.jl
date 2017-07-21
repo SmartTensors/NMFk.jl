@@ -69,16 +69,16 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	#WBig = Array{Float64}(nP, nNMF * nk)
 	#HBig = Array{Float64}(nNMF * nk, nRC)
-	WBig::Vector{Matrix} = []
-	HBig::Vector{Matrix} = []
+	WBig = Vector{Matrix}(0)
+	HBig = Vector{Matrix}(0)
 	objvalue = Array{Float64}(nNMF)
 	for i = 1:nNMF
 		W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose, sparse=sparse, sparsity=sparsity, sparse_cf=sparse_cf, sparse_div_beta=sparse_div_beta)
 		#nmfindex = nk * i
 		#WBig[1:nP, nmfindex-(nk-1):nmfindex] = W
 		#HBig[nmfindex-(nk-1):nmfindex, 1:nRC] = H
-	push!(WBig, W)
-	push!(HBig, H)
+		push!(WBig, W)
+		push!(HBig, H)
 	end
 	!quiet && println("Best objective function = $(minimum(objvalue))")
 	bestIdx = indmin(objvalue)
@@ -193,8 +193,10 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 	end
 	nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose, sparse=sparse, sparsity=sparsity, sparse_cf=sparse_cf, sparse_div_beta=sparse_div_beta)), 1:nNMF)
-	WBig::Vector{Matrix} = [r[i][1] for i in 1:NMFk]
-	HBig::Vector{Matrix} = [r[i][2] for i in 1:NMFk]
+	WBig = Vector{Matrix}(0)
+	HBig = Vector{Matrix}(0)
+	WBig = [r[i][1] for i in 1:NMFk]
+	HBig = [r[i][2] for i in 1:NMFk]
 	#WBig = map(i->convert(Array{Float64,2}, r[i][1]), 1:nNMF)
 	#HBig = map(i->convert(Array{Float64,2}, r[i][2]), 1:nNMF)
 	objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
