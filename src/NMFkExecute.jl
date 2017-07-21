@@ -47,7 +47,7 @@ function execute_serial(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, ratios
 		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used; Ipopt minimization will be performed")
 		ipopt = true
 	end
-	numobservations = length(vec(X[.!indexnan]))
+	numobservations = length(vec(X[map(!, indexnan])))
 	if !quiet
 		if mixmatch
 			if matchwaterdeltas
@@ -172,7 +172,7 @@ function execute_parallel(X::Matrix, nk::Int, nNMF::Int; ipopt::Bool=false, rati
 		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used; Ipopt minimization will be performed")
 		ipopt = true
 	end
-	numobservations = length(vec(X[!indexnan]))
+	numobservations = length(vec(X[map(!, indexnan])))
 	if !quiet
 		if mixmatch
 			if matchwaterdeltas
