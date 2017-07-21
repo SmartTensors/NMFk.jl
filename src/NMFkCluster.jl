@@ -2,88 +2,88 @@ import Distances
 
 global clusterSolutions
 function clusterSolutions(factors::Vector{Matrix}, clusterWeights::Bool)
-  if !clusterWeights
-    factors = [f' for f in factors]
-  end
-  # invariant: we can now assume that our matrices are n x k
+	if !clusterWeights
+		factors = [f' for f in factors]
+	end
+	# invariant: we can now assume that our matrices are n x k
 
 
-  numTrials = length(factors)
-  r, k = size(factors[1])
-  for w in factors
-    @assert size(w) == (r, k)
-  end
+	numTrials = length(factors)
+	r, k = size(factors[1])
+	for w in factors
+		@assert size(w) == (r, k)
+	end
 
-  # fix zero case
-  needZeroFix = false
-  for i in 1:length(factors)
-    factor = factors[i]
-    if minimum(sum(factor, 1)) == 0  # if we have a zero column
-      needZeroFix = true
-      break
-    end
-  end
+	# fix zero case
+	needZeroFix = false
+	for i in 1:length(factors)
+		factor = factors[i]
+		if minimum(sum(factor, 1)) == 0  # if we have a zero column
+			needZeroFix = true
+			break
+		end
+	end
 
-  if needZeroFix
-    biasRow = [1 for i in 1:k]'
-    for i in 1:numTrials
-      factors[i] = vcat(factors[i], biasRow)
-    end
-  end
-  # invariant: at this point, no factor has a column with all zeros
+	if needZeroFix
+		biasRow = [1 for i in 1:k]'
+		for i in 1:numTrials
+			factors[i] = vcat(factors[i], biasRow)
+		end
+	end
+	# invariant: at this point, no factor has a column with all zeros
 
-  centSeeds = factors[1]
-  # when we label a factor column, we are going to keep a sum
-  newClusterCenters = factors[1]
-  # clusterLbls[a, b] = c --> factors[b][:, a] belongs to cluster c
-  clusterLbls = zeros(Int, k, numTrials)
-  # note: all clusterLbls should be in [1, k] upon return
+	centSeeds = factors[1]
+	# when we label a factor column, we are going to keep a sum
+	newClusterCenters = factors[1]
+	# clusterLbls[a, b] = c --> factors[b][:, a] belongs to cluster c
+	clusterLbls = zeros(Int, k, numTrials)
+	# note: all clusterLbls should be in [1, k] upon return
 
-  # by definition, the columns of the first solution belong to their own cluster.
-  clusterLbls[:, 1] = [i for i in 1:k]
+	# by definition, the columns of the first solution belong to their own cluster.
+	clusterLbls[:, 1] = [i for i in 1:k]
 
-  for trial in 2:numTrials
-    W = factors[trial]
-    # clusterDistances[a, b] = c --> dist(W[:,a], centSeeds[:,b]) = c
-    clusterDistances = zeros(k, k) + Inf
-    for centroidIdx in 1:k
-      centroid = centSeeds[:, centroidIdx]
-      for factorColIdx in 1:k
-        column = W[:, factorColIdx]
-        clusterDistances[factorColIdx, centroidIdx] = Distances.cosine_dist(column, centroid)
-      end
-    end
+	for trial in 2:numTrials
+		W = factors[trial]
+		# clusterDistances[a, b] = c --> dist(W[:,a], centSeeds[:,b]) = c
+		clusterDistances = zeros(k, k) + Inf
+		for centroidIdx in 1:k
+			centroid = centSeeds[:, centroidIdx]
+			for factorColIdx in 1:k
+				column = W[:, factorColIdx]
+				clusterDistances[factorColIdx, centroidIdx] = Distances.cosine_dist(column, centroid)
+			end
+		end
 
-    while minimum(clusterDistances) < Inf
-      # get the row and column of the smallest distance
-      selectFactorCol, selectCentIdx = ind2sub(clusterDistances, indmin(clusterDistances))
-      # save that col in trial belongs to centroid's cluster
-      # println("Assigned: Trial: $trial, Factor: $selectFactorCol, Centroid: $selectCentIdx")
-      clusterLbls[selectFactorCol, trial] = selectCentIdx
-      # this factor cannot belong to other centSeeds
-      clusterDistances[selectFactorCol, :] += Inf
-      # this cluster cannot collect more factor columns
-      clusterDistances[:, selectCentIdx] += Inf
-      newClusterCenters[:, selectCentIdx] += W[:, selectFactorCol]
-    end
-  end
+		while minimum(clusterDistances) < Inf
+			# get the row and column of the smallest distance
+			selectFactorCol, selectCentIdx = ind2sub(clusterDistances, indmin(clusterDistances))
+			# save that col in trial belongs to centroid's cluster
+			# println("Assigned: Trial: $trial, Factor: $selectFactorCol, Centroid: $selectCentIdx")
+			clusterLbls[selectFactorCol, trial] = selectCentIdx
+			# this factor cannot belong to other centSeeds
+			clusterDistances[selectFactorCol, :] += Inf
+			# this cluster cannot collect more factor columns
+			clusterDistances[:, selectCentIdx] += Inf
+			newClusterCenters[:, selectCentIdx] += W[:, selectFactorCol]
+		end
+	end
 
-  # check our work
+	# check our work
 #  while minimum(clusterLbls) == 0
 #       idx, trial = ind2sub(clusterLbls, indmin(clusterLbls))
 #       println("Col $idx in trial $trial was not assigned a cluster")
 #       clusterLbls[idx, trial] = k+1
 #  end
-  @assert minimum(clusterLbls) >= 1
-  @assert maximum(clusterLbls) <= k
+	@assert minimum(clusterLbls) >= 1
+	@assert maximum(clusterLbls) <= k
 #  for i in 1:k, j in 1:numTrials
 #    # check that cluster i appears only once in col j
 #    @assert length(findin(clusterLbls[:, j], i)) == 1
 #  end
 
-  newClusterCenters ./= numTrials
+	newClusterCenters ./= numTrials
 
-  return clusterLbls, newClusterCenters'
+	return clusterLbls, newClusterCenters'
 end
 
 #  "Cluster NMFk solutions"
