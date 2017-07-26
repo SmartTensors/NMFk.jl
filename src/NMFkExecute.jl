@@ -216,11 +216,10 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ipopt::
 			end
 		end
 		W, H = NMF.randinit(Xn, nk)
-		Xn = convert(Array{Float64}, Xn)
 		if nmfalgorithm == :multmse
-			nmf_result = NMF.solve!(NMF.MultUpdate{Float64}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
+			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
 		elseif nmfalgorithm == :alspgrad
-			nmf_result = NMF.solve!(NMF.ALSPGrad{Float64}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
+			nmf_result = NMF.solve!(NMF.ALSPGrad{typeof(X[1,1])}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
 		end
 		!quiet && println("NMF Converged: " * string(nmf_result.converged))
 		W = nmf_result.W
