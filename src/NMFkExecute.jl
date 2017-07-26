@@ -35,7 +35,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; acceptratio::Number=1, ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, clusterweights::Bool=true, transpose::Bool=false, sparse::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, serial::Bool=false)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
@@ -64,7 +64,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; acceptratio::Number=1, ipopt
 	end
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	if nprocs() > 1 && !serial
-		r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose, sparse=sparse, sparsity=sparsity, sparse_cf=sparse_cf, sparse_div_beta=sparse_div_beta)), 1:nNMF)
+		r = pmap(i->(NMFk.execute_singlerun(X, nk; ipopt=ipopt, quiet=true, best=best, mixmatch=mixmatch, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, kw...)), 1:nNMF)
 		WBig = Vector{Matrix}(nNMF)
 		HBig = Vector{Matrix}(nNMF)
 		for i in 1:nNMF
@@ -77,7 +77,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; acceptratio::Number=1, ipopt
 		HBig = Vector{Matrix}(0)
 		objvalue = Array{Float64}(nNMF)
 		for i = 1:nNMF
-			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, ipopt=ipopt, mixmatch=mixmatch, ratios=ratios, ratioindices=ratioindices, deltas=deltas, deltaindices=deltaindices, best=best, normalize=normalize, scale=scale, mixtures=mixtures, matchwaterdeltas=matchwaterdeltas, maxiter=maxiter, tol=tol, regularizationweight=regularizationweight, ratiosweight=ratiosweight, weightinverse=weightinverse, transpose=transpose, sparse=sparse, sparsity=sparsity, sparse_cf=sparse_cf, sparse_div_beta=sparse_div_beta)
+			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; ipopt=ipopt, quiet=true, best=best, mixmatch=mixmatch, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, kw...)
 			push!(WBig, W)
 			push!(HBig, H)
 		end
@@ -184,7 +184,7 @@ function execute_singlerun(x...; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparse::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1)
+function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparse::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, nmfalgorithm::Symbol=:multmse)
 	if sparse
 		W, H, (_, objvalue, _) = NMFk.NMFsparse(X, nk; maxiter=maxiter, tol=tol, sparsity=sparsity, cf=sparse_cf, div_beta=sparse_div_beta, quiet=quiet)
 	elseif mixmatch
@@ -216,8 +216,12 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ipopt::
 			end
 		end
 		W, H = NMF.randinit(Xn, nk)
-		# nmf_result = NMF.solve!(NMF.ALSPGrad{Float32}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
-		nmf_result = NMF.solve!(NMF.MultUpdate{Float32}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
+		Xn = convert(Array{Float64}, Xn)
+		if nmfalgorithm == :multmse
+			nmf_result = NMF.solve!(NMF.MultUpdate{Float64}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
+		elseif nmfalgorithm == :alspgrad
+			nmf_result = NMF.solve!(NMF.ALSPGrad{Float64}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
+		end
 		!quiet && println("NMF Converged: " * string(nmf_result.converged))
 		W = nmf_result.W
 		H = nmf_result.H
