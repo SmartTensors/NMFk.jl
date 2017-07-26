@@ -37,9 +37,3 @@ function scalematrix_col(a::Matrix)
 	a = a ./ max
 	return a, max
 end
-
-"Descale matrix (by columns)"
-function descalematrix_col(a::Matrix, max::Matrix)
-	a = a .* max
-	return a
-end
