@@ -1,6 +1,5 @@
 import Distances
 
-global clusterSolutions
 function clusterSolutions(factors::Vector{Matrix}, clusterWeights::Bool)
 	if !clusterWeights
 		factors = [f' for f in factors]
