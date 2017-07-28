@@ -90,16 +90,16 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 	println()
 	if acceptratio < 1
 		ratind = sortperm(objvalue) .<= (nNMF * acceptratio)
-		println("NMF solutions removed based on acceptance ratio: $(sum(ratind)) out of $(nNMF) solutions")
-		!quiet && (println("Good solutions based on acceptance ratio: $(objvalue[ratind])"))
+		println("NMF solutions removed based on an acceptance ratio: $(sum(ratind)) out of $(nNMF) solutions")
+		!quiet && (println("Good solutions based on an acceptance ratio: $(objvalue[ratind])"))
 	else
 		ratind = trues(nNMF)
 	end
 	if acceptfactor < Inf
 		cutoff = objvalue[bestIdx] * acceptfactor
 		cutind = objvalue.<cutoff
-		println("NMF solutions removed based on acceptance factor: $(sum(cutind)) out of $(nNMF) solutions")
-		!quiet && (println("Good solutions based on acceptance factor: $(objvalue[cutind])"))
+		println("NMF solutions removed based on an acceptance factor: $(sum(cutind)) out of $(nNMF) solutions")
+		!quiet && (println("Good solutions based on an acceptance factor: $(objvalue[cutind])"))
 	else
 		cutind = trues(nNMF)
 	end
