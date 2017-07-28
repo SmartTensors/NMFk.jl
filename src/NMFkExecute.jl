@@ -103,11 +103,17 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 		cutind = trues(nNMF)
 	end
 	solind = ratind & cutind
-	if solind != ratind || solind != cutind
+	if solind != ratind && solind != cutind
 		println("NNF solutions removed based on acceptance criteria: $(sum(solind)) out of $(nNMF) solutions")
 		!quiet && (println("Good solutions based on acceptance criteria: $(objvalue[solind])"))
 	end
+	if solind != ratind || solind != cutind
+		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue))")
+	end
 	println("OF: min $(minimum(objvalue[solind])) max $(maximum(objvalue[solind])) mean $(mean(objvalue[solind])) std $(std(objvalue[solind]))")
+	Xe = Wbest * Hbest
+	println("Worst correlation by columns: $(minimum(map(i->cor(X[i,:], Xe[i,:]), 1:size(X,1))))")
+	println("Worst correlation by rows: $(minimum(map(i->cor(X[:,i], Xe[:,i]), 1:size(X,2))))")
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
