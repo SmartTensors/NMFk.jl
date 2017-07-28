@@ -35,7 +35,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, acceptfactor::Number=Inf,ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
@@ -88,12 +88,26 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 	Wbest = WBig[bestIdx]
 	Hbest = HBig[bestIdx]
 	if acceptratio < 1
-		solind = sortperm(objvalue) .<= (nNMF * acceptratio)
-		println("NNF solutions removed! Using $(sum(solind)) out of $(nNMF) solutions")
-		!quiet && (println("Accepted solutions: $(objvalue[solind])"))
+		ratind = sortperm(objvalue) .<= (nNMF * acceptratio)
+		println("NNF solutions removed based on acceptance ratio: $(sum(ratind)) out of $(nNMF) solutions")
+		!quiet && (println("Good solutions based on acceptance ratio: $(objvalue[ratind])"))
 	else
-		solind = trues(nNMF)
+		ratind = trues(nNMF)
 	end
+	if acceptfactor < Inf
+		cutoff = objvalue[bestIdx] * acceptfactor
+		cutind = objvalue.<cutoff
+		println("NNF solutions removed based on acceptance factor: $(sum(cutind)) out of $(nNMF) solutions")
+		!quiet && (println("Good solutions based on acceptance factor: $(objvalue[cutind])"))
+	else
+		cutind = trues(nNMF)
+	end
+	solind = ratind & cutind
+	if solind != ratind || solind != cutind
+		println("NNF solutions removed based on acceptance criteria: $(sum(solind)) out of $(nNMF) solutions")
+		!quiet && (println("Good solutions based on acceptance criteria: $(objvalue[solind])"))
+	end
+	println("OF: min $(minimum(objvalue[solind])) max $(maximum(objvalue[solind])) mean $(mean(objvalue[solind])) std $(std(objvalue[solind]))")
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
