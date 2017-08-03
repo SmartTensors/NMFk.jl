@@ -21,5 +21,6 @@ include("NMFkFinalize.jl")
 include("NMFkLoad.jl")
 include("NMFkBootstrap.jl")
 include("NMFSparse.jl")
+include("NMFkMultiplicative.jl")
 
 end

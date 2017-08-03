@@ -51,5 +51,7 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, stopconv::Int=100
 			consold = cons
 		end
 	end
-	return W, H
+	E = X - W * H
+	objvalue = sum(E.^2)
+	return W, H, objvalue
 end

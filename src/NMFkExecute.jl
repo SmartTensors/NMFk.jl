@@ -35,7 +35,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, acceptfactor::Number=Inf,ipopt::Bool=false, quiet::Bool=true, best::Bool=true, mixmatch::Bool=false, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
@@ -45,16 +45,16 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 	end
 	numobservations = length(vec(X[map(!, indexnan)]))
 	if !quiet
-		if mixmatch
-			if matchwaterdeltas
-				println("Using MixMatchDeltas ...")
-			else
-				println("Using MixMatch ...")
-			end
-		elseif ipopt
+		if method == :mixmatch
+			println("Using MixMatch ...")
+		elseif method == :matchwaterdeltas
+			println("Using MixMatchDeltas ...")
+		elseif method == :ipopt
 			println("Using Ipopt ...")
-		else
+		elseif method == :nmf
 			println("Using NMF ...")
+		elseif method == :simple
+			println("Using Simple NMF multiplicative ...")
 		end
 	end
 	if transpose
@@ -64,7 +64,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 	end
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	if nprocs() > 1 && !serial
-		r = pmap(i->(NMFk.execute_singlerun(X, nk; ipopt=ipopt, quiet=true, best=best, mixmatch=mixmatch, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, kw...)), 1:nNMF)
+		r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, kw...)), 1:nNMF)
 		WBig = Vector{Matrix}(nNMF)
 		HBig = Vector{Matrix}(nNMF)
 		for i in 1:nNMF
@@ -77,7 +77,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 		HBig = Vector{Matrix}(0)
 		objvalue = Array{Float64}(nNMF)
 		for i = 1:nNMF
-			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; ipopt=ipopt, quiet=true, best=best, mixmatch=mixmatch, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, kw...)
+			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, kw...)
 			push!(WBig, W)
 			push!(HBig, H)
 		end
@@ -181,7 +181,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 		phi_final += ratiosreconstruction
 	end
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
-	if mixmatch && mixtures
+	if method == :mixmatch && mixtures
 		numparameters -= size(Wa)[1]
 	end
 	# numparameters = numbuckets # this is wrong
@@ -205,23 +205,23 @@ function execute_singlerun(x...; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ipopt::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, mixmatch::Bool=false, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, matchwaterdeltas::Bool=false, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparse::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, nmfalgorithm::Symbol=:multmse)
-	if sparse
+function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, nmfalgorithm::Symbol=:multmse, method::Symbol=:nmf)
+	if method == :sparse
 		W, H, (_, objvalue, _) = NMFk.NMFsparse(X, nk; maxiter=maxiter, tol=tol, sparsity=sparsity, cf=sparse_cf, div_beta=sparse_div_beta, quiet=quiet)
-	elseif mixmatch
-		if matchwaterdeltas
-			W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+	elseif method == :mixmatch
+		if sizeof(deltas) == 0
+			W, H, objvalue = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 		else
-			if sizeof(deltas) == 0
-				W, H, objvalue = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
-			else
-				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
-				H = [Hconc Hdeltas]
-			end
+			W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+			H = [Hconc Hdeltas]
 		end
-	elseif ipopt
+	elseif method == :matchwaterdeltas
+		W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+	elseif method == :ipopt
 		W, H, objvalue = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet)
-	else
+	elseif method == :simple
+		W, H, objvalue = NMFk.NMFmultiplicative(X, nk; quiet=quiet, maxiter=maxiter, stopconv=Int(maxiter/10))
+	else method == :nmf
 		if scale
 			if transpose
 				Xn, Xmax = NMFk.scalematrix(X)
