@@ -53,6 +53,8 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 			println("Using Ipopt ...")
 		elseif method == :nmf
 			println("Using NMF ...")
+		elseif method == :sparse
+			println("Using Sparse NMF ...")
 		elseif method == :simple
 			println("Using Simple NMF multiplicative ...")
 		end
@@ -206,36 +208,41 @@ end
 
 "Execute single NMF run without restart"
 function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, nmfalgorithm::Symbol=:multmse, method::Symbol=:nmf)
+	if scale
+		if transpose
+			Xn, Xmax = NMFk.scalematrix(X)
+			Xn = Xn'
+		else
+			Xn, Xmax = NMFk.scalematrix(X)
+		end
+	else
+		if transpose
+			Xn = X'
+		else
+			Xn = X
+		end
+	end
 	if method == :sparse
-		W, H, (_, objvalue, _) = NMFk.NMFsparse(X, nk; maxiter=maxiter, tol=tol, sparsity=sparsity, cf=sparse_cf, div_beta=sparse_div_beta, quiet=quiet)
+		W, H, (_, objvalue, _) = NMFk.NMFsparse(Xn, nk; maxiter=maxiter, tol=tol, sparsity=sparsity, cf=sparse_cf, div_beta=sparse_div_beta, quiet=quiet)
 	elseif method == :mixmatch
 		if sizeof(deltas) == 0
-			W, H, objvalue = NMFk.mixmatchdata(X, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+			W, H, objvalue = NMFk.mixmatchdata(Xn, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 		else
-			W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(X, deltas, deltaindices, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
+			W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(Xn, deltas, deltaindices, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet)
 			H = [Hconc Hdeltas]
 		end
 	elseif method == :matchwaterdeltas
-		W, H, objvalue = NMFk.mixmatchwaterdeltas(X, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
+		W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight)
 	elseif method == :ipopt
-		W, H, objvalue = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=scale, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet)
+		W, H, objvalue = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet)
 	elseif method == :simple
-		W, H, objvalue = NMFk.NMFmultiplicative(X, nk; quiet=quiet, maxiter=maxiter, stopconv=Int(maxiter/10))
+		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, maxiter=maxiter, stopconv=Int(maxiter/10))
+		total = sum(W, 1)
+		W ./= total
+		H .*= total'
+		E = X - W * H
+		objvalue = sum(E.^2)
 	else method == :nmf
-		if scale
-			if transpose
-				Xn, Xmax = NMFk.scalematrix(X)
-				Xn = Xn'
-			else
-				Xn, Xmax = NMFk.scalematrix(X)
-			end
-		else
-			if transpose
-				Xn = X'
-			else
-				Xn = X
-			end
-		end
 		W, H = NMF.randinit(Xn, nk)
 		if nmfalgorithm == :multmse
 			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
@@ -245,18 +252,17 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		!quiet && println("NMF Converged: " * string(nmf_result.converged))
 		W = nmf_result.W
 		H = nmf_result.H
-		if scale
-			if transpose
-				W = NMFk.descalematrix(W, Xmax')
-				E = X' - W * H
-			else
-				H = NMFk.descalematrix(H, Xmax)
-				E = X - W * H
-			end
-			objvalue = sum(E.^2)
+		objvalue = nmf_result.objvalue
+	end
+	if scale
+		if transpose
+			W = NMFk.descalematrix(W, Xmax')
+			E = X' - W * H
 		else
-			objvalue = nmf_result.objvalue
+			H = NMFk.descalematrix(H, Xmax)
+			E = X - W * H
 		end
+		objvalue = sum(E.^2)
 	end
 	!quiet && println("Objective function = $(objvalue)")
 	return W, H, objvalue
