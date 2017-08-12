@@ -35,7 +35,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
@@ -295,7 +295,7 @@ function NMFrun(X::Matrix, nk::Integer; maxiter::Integer=maxiter, normalize::Boo
 	W, H = NMF.randinit(X, nk, normalize = true)
 	NMF.solve!(NMF.MultUpdate(obj = :mse, maxiter=maxiter), X, W, H)
 	if normalize
-		total = sum(W, 2)
+		total = sum(W, 1)
 		W ./= total
 		H .*= total'
 	end
