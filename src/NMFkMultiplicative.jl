@@ -1,4 +1,4 @@
-function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, stopconv::Int=10000, maxiter::Int=1000000, initW::Matrix{Float64}=Array{Float64}(0, 0), initH::Matrix{Float64}=Array{Float64}(0, 0), seed::Int=-1)
+function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, maxiter::Int=1000000, stopconv::Int=Int(ceil(10^floor(log10(maxiter)/2))), initW::Matrix{Float64}=Array{Float64}(0, 0), initH::Matrix{Float64}=Array{Float64}(0, 0), seed::Int=-1)
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end

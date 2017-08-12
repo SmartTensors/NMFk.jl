@@ -252,7 +252,7 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 	elseif method == :ipopt
 		W, H, objvalue = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple
-		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, maxiter=maxiter, stopconv=Int(maxiter/10), kw...)
+		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, maxiter=maxiter, stopconv=Int(ceil(10^floor(log10(maxiter)/2))), kw...)
 		E = X - W * H
 		objvalue = sum(E.^2)
 		# objvalue = vecnorm(X - W * H)
