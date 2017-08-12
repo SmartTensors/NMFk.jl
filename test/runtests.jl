@@ -159,3 +159,11 @@ b = NMFk.getisotopeconcentration(a0, 0.001, 100)
 a = NMFk.getisotopedelta(b, 0.001, 100)
 @test a0 ≈ a
 
+srand(2015)
+a = rand(15)
+b = rand(15)
+c = rand(15)
+X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
+W, H, p, s = NMFk.execute(X, 2:4, 100; method=:ipopt);
+W, H, p, s = NMFk.execute(X, 2:4, 100; method=:simple);
+

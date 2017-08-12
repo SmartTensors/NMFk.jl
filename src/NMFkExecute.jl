@@ -35,7 +35,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
@@ -44,19 +44,35 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 		ipopt = true
 	end
 	numobservations = length(vec(X[map(!, indexnan)]))
+	if method == :multdiv
+		method = :nmf
+		nmfalgorithm = :multdiv
+	elseif method == :multmse
+		method = :nmf
+		nmfalgorithm = :multmse
+	elseif method == :alspgrad
+		method = :nmf
+		nmfalgorithm = :alspgrad
+	end
 	if !quiet
 		if method == :mixmatch
-			println("Using MixMatch ...")
+			println("MixMatch ...")
 		elseif method == :matchwaterdeltas
-			println("Using MixMatchDeltas ...")
+			println("MixMatchDeltas ...")
 		elseif method == :ipopt
-			println("Using Ipopt ...")
+			println("Ipopt ...")
 		elseif method == :nmf
-			println("Using NMF ...")
+			if nmfalgorithm == :multdiv
+				println("NMF Multiplicative update using divergence ...")
+			elseif nmfalgorithm == :multmse
+				println("NMF Multiplicative update using mean-squared-error ...")
+			elseif nmfalgorithm == :alspgrad
+				println("NMF Alternate Least Square using Projected Gradient Descent ...")
+			end
 		elseif method == :sparse
-			println("Using Sparse NMF ...")
+			println("Sparse NMF ...")
 		elseif method == :simple
-			println("Using Simple NMF multiplicative ...")
+			println("Simple NMF multiplicative ...")
 		end
 	end
 	if transpose
@@ -66,7 +82,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 	end
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	if nprocs() > 1 && !serial
-		r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, kw...)), 1:nNMF)
+		r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)), 1:nNMF)
 		WBig = Vector{Matrix}(nNMF)
 		HBig = Vector{Matrix}(nNMF)
 		for i in 1:nNMF
@@ -79,7 +95,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=true, a
 		HBig = Vector{Matrix}(0)
 		objvalue = Array{Float64}(nNMF)
 		for i = 1:nNMF
-			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, kw...)
+			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)
 			push!(WBig, W)
 			push!(HBig, H)
 		end
@@ -207,7 +223,7 @@ function execute_singlerun(x...; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, nmfalgorithm::Symbol=:multmse, method::Symbol=:nmf, kw...)
+function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1.0e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, nmfalgorithm::Symbol=:multdiv, method::Symbol=:nmf, kw...)
 	if scale
 		if transpose
 			Xn, Xmax = NMFk.scalematrix(X)
@@ -237,16 +253,15 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		W, H, objvalue = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple
 		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, maxiter=maxiter, stopconv=Int(maxiter/10), kw...)
-		total = sum(W, 1)
-		W ./= total
-		H .*= total'
-		# E = X - W * H
-		# objvalue = sum(E.^2)
-		objvalue = vecnorm(X - W * H)
-	else method == :nmf
+		E = X - W * H
+		objvalue = sum(E.^2)
+		# objvalue = vecnorm(X - W * H)
+	elseif method == :nmf
 		W, H = NMF.randinit(Xn, nk)
-		if nmfalgorithm == :multmse
+		if nmfalgorithm == :multdiv
 			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
+		elseif nmfalgorithm == :multmse
+			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:div, maxiter=maxiter, tol=tol), Xn, W, H)
 		elseif nmfalgorithm == :alspgrad
 			nmf_result = NMF.solve!(NMF.ALSPGrad{typeof(X[1,1])}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
 		end
@@ -254,6 +269,8 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		W = nmf_result.W
 		H = nmf_result.H
 		objvalue = nmf_result.objvalue
+	else
+		error("Unknown method: $method")
 	end
 	if scale
 		if transpose
@@ -266,6 +283,11 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		objvalue = sum(E.^2)
 	end
 	!quiet && println("Objective function = $(objvalue)")
+	if method != :mixmatch || method != :matchwaterdeltas
+		total = sum(W, 1)
+		W ./= total
+		H .*= total'
+	end
 	return W, H, objvalue
 end
 
