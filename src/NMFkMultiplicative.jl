@@ -1,4 +1,4 @@
-function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1.0e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(0, 0), initH::Matrix{Float64}=Array{Float64}(0, 0), seed::Int=-1)
+function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(0, 0), initH::Matrix{Float64}=Array{Float64}(0, 0), seed::Int=-1)
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
@@ -63,7 +63,6 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1.0e
 			consold = cons
 		end
 	end
-	E = X - W * H
-	objvalue = sum(E.^2)
+	objvalue = sum((X - W * H).^2)
 	return W, H, objvalue
 end
