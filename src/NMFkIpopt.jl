@@ -74,7 +74,7 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 	!quiet && @show of
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
-	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol) # keep doing the optimization until we really reach an optimum
+	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol)
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
