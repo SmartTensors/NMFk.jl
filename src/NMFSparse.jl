@@ -1,24 +1,24 @@
-function NMFsparse(x::Matrix, k::Int; cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), quiet::Bool=true)
+function NMFsparse(x::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), quiet::Bool=true)
 	if seed != -1
 		srand(seed)
 	end
 
-	if div_beta == -1
-		if cf == :kl #
-			div_beta = 1
-			!quiet && info("Sparse NMF with Kullback-Leibler divergence (beta = $(div_beta))")
-		elseif cf == :ed # Euclidean distance
-			div_beta = 2
-			!quiet && info("Sparse NMF with Euclidean divergence (beta = $(div_beta))")
-		elseif cf == :is # Itakura-Saito divergence
-			div_beta = 0
-			!quiet && info("Sparse NMF with Itakura-Saito divergence (beta = $(div_beta))")
+	if sparse_div_beta == -1
+		if sparse_cf == :kl #
+			sparse_div_beta = 1
+			!quiet && info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
+		elseif sparse_cf == :ed # Euclidean distance
+			sparse_div_beta = 2
+			!quiet && info("Sparse NMF with Euclidean divergence (beta = $(sparse_div_beta))")
+		elseif sparse_cf == :is # Itakura-Saito divergence
+			sparse_div_beta = 0
+			!quiet && info("Sparse NMF with Itakura-Saito divergence (beta = $(sparse_div_beta))")
 		else
-			div_beta = 1
-			!quiet && info("Sparse NMF with Kullback-Leibler divergence (beta = $(div_beta))")
+			sparse_div_beta = 1
+			!quiet && info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
 		end
 	else
-		!quiet && info("Sparse NMF with fractional beta divergence (beta = $(div_beta))")
+		!quiet && info("Sparse NMF with fractional beta divergence (beta = $(sparse_div_beta))")
 	end
 
 	(m, n) = size(x)
@@ -49,52 +49,52 @@ function NMFsparse(x::Matrix, k::Int; cf::Symbol=:kl, sparsity::Number=1, maxite
 
 	for it = 1:maxiter
 		if update_h > 0
-			if div_beta == 1
+			if sparse_div_beta == 1
 				dph = bsxfun(+, sum(w[:,h_ind], 1)', sparsity)
 				dph = max(dph, lambda)
 				dmh = w[:,h_ind]' * (x ./ lambda_new)
 				h[h_ind,:] = bsxfun(\, h[h_ind,:] .* dmh, dph)
-			elseif div_beta == 2
+			elseif sparse_div_beta == 2
 				dph = w[:,h_ind]' * lambda_new .+ sparsity
 				dph = max(dph, lambda)
 				dmh = w[:,h_ind]' * x
 				h[h_ind,:] = h[h_ind,:] .* dmh ./ dph
 			else
-				dph = w[:,h_ind]' * lambda_new.^(div_beta - 1) .+ sparsity
+				dph = w[:,h_ind]' * lambda_new.^(sparse_div_beta - 1) .+ sparsity
 				dph = max(dph, lambda)
-				dmh = w[:,h_ind]' * (x .* lambda_new.^(div_beta - 2))
+				dmh = w[:,h_ind]' * (x .* lambda_new.^(sparse_div_beta - 2))
 				h[h_ind,:] = h[h_ind,:] .* dmh ./ dph;
 			end
 			lambda_new = max(w * h, lambda)
 		end
 		if update_w > 0
-			if div_beta == 1
+			if sparse_div_beta == 1
 				dpw = bsxfun(+, sum(h[w_ind,:], 2)', bsxfun(*, sum((x ./ lambda_new) * h[w_ind,:]' .* w[:,w_ind], 1), w[:,w_ind]))
 				dpw = max(dpw, lambda)
 				dmw = x ./ lambda_new * h[w_ind,:]' + bsxfun(*, sum(bsxfun(*, sum(h[w_ind,:], 2)', w[:,w_ind]), 1), w[:,w_ind])
 				w[:,w_ind] = w[:,w_ind] .* dmw ./ dpw
-			elseif div_beta == 2
+			elseif sparse_div_beta == 2
 				dpw = lambda_new * h[w_ind,:]' + bsxfun(*, sum(x * h[w_ind,:]' .* w[:,w_ind], 1), w[:,w_ind])
 				dpw = max(dpw, lambda)
 				dmw = x * h[w_ind,:]' + bsxfun(*, sum(lambda_new * h[w_ind,:]' .* w[:,w_ind], 1), w[:,w_ind])
 				w[:,w_ind] = w[:,w_ind] .* dmw ./ dpw
 			else
-				dpw = lambda_new.^(div_beta - 1) * h[w_ind, :]' + bsxfun(*, sum((x .* lambda_new.^(div_beta - 2)) * h[w_ind, :]' .* w[:, w_ind], 1), w[:, w_ind])
+				dpw = lambda_new.^(sparse_div_beta - 1) * h[w_ind, :]' + bsxfun(*, sum((x .* lambda_new.^(sparse_div_beta - 2)) * h[w_ind, :]' .* w[:, w_ind], 1), w[:, w_ind])
 				dpw = max(dpw, lambda)
-				dmw = (x .* lambda_new.^(div_beta - 2)) * h[w_ind, :]' + bsxfun(*, sum(lambda_new.^(div_beta - 1) * h[w_ind, :]' .* w[:, w_ind], 1), w[:, w_ind])
+				dmw = (x .* lambda_new.^(sparse_div_beta - 2)) * h[w_ind, :]' + bsxfun(*, sum(lambda_new.^(sparse_div_beta - 1) * h[w_ind, :]' .* w[:, w_ind], 1), w[:, w_ind])
 				w[:,w_ind] = w[:,w_ind] .* dmw ./ dpw
 			end
 			w = bsxfun(\, w, sqrt(sum(w.^2, 1)))
 			lambda_new = max(w * h, lambda)
 		end
-		if div_beta == 1
+		if sparse_div_beta == 1
 			divergence = sum(x .* log(x ./ lambda_new) - x + lambda_new)
-		elseif div_beta == 2
+		elseif sparse_div_beta == 2
 			divergence = sum((x - lambda_new) .^ 2)
-		elseif div_beta == 0
+		elseif sparse_div_beta == 0
 			divergence = sum(x ./ lambda_new - log(x ./ lambda_new) - 1)
 		else
-			divergence = sum(x.^div_beta + (div_beta - 1) * lambda_new.^div_beta  - div_beta * x .* lambda_new.^(div_beta - 1))/(div_beta * (div_beta - 1))
+			divergence = sum(x.^sparse_div_beta + (sparse_div_beta - 1) * lambda_new.^sparse_div_beta  - sparse_div_beta * x .* lambda_new.^(sparse_div_beta - 1))/(sparse_div_beta * (sparse_div_beta - 1))
 		end
 		of = divergence + sum(h .* sparsity)
 

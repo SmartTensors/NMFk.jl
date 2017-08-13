@@ -1,3 +1,8 @@
+"Test NMFk functions"
+function test()
+	include(joinpath(nmfkdir, "test", "runtests.jl"))
+end
+
 "Execute NMFk analysis for a range of number of sources"
 function execute(X::Matrix, range::UnitRange{Int}, nNMF::Integer=10; kw...)
 	maxsources = maximum(collect(range))
@@ -35,15 +40,18 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, mixtures::Bool=true, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
-	if any(indexnan) && (!ipopt || !mixmatch)
+	if any(indexnan) && (method != :ipopt || method != :mixmatch)
 		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used; Ipopt minimization will be performed")
 		ipopt = true
 	end
 	numobservations = length(vec(X[map(!, indexnan)]))
+	if method == :mixmatch || method == :matchwaterdeltas
+		clusterweights = true
+	end
 	if method == :multdiv
 		method = :nmf
 		nmfalgorithm = :multdiv
@@ -82,7 +90,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	if nprocs() > 1 && !serial
-		r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)), 1:nNMF)
+		r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)), 1:nNMF)
 		WBig = Vector{Matrix}(nNMF)
 		HBig = Vector{Matrix}(nNMF)
 		for i in 1:nNMF
@@ -95,7 +103,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		HBig = Vector{Matrix}(0)
 		objvalue = Array{Float64}(nNMF)
 		for i = 1:nNMF
-			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, mixtures=mixtures, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)
+			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)
 			push!(WBig, W)
 			push!(HBig, H)
 		end
@@ -199,7 +207,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		phi_final += ratiosreconstruction
 	end
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
-	if method == :mixmatch && mixtures
+	if method == :mixmatch || method == :mixmatchwaterdeltas
 		numparameters -= size(Wa)[1]
 	end
 	# numparameters = numbuckets # this is wrong
@@ -223,7 +231,7 @@ function execute_singlerun(x...; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, maxiter::Int=10000, tol::Float64=1e-19, regularizationweight::Float32=convert(Float32, 0), ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, sparsity::Number=5, sparse_cf::Symbol=:kl, sparse_div_beta::Number=-1, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, kw...)
+function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, clusterweights::Bool=false, kw...)
 	if scale
 		if transpose
 			Xn, Xmax = NMFk.scalematrix(X)
@@ -239,18 +247,18 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		end
 	end
 	if method == :sparse
-		W, H, (_, objvalue, _) = NMFk.NMFsparse(Xn, nk; maxiter=maxiter, ƒ=tol, sparsity=sparsity, cf=sparse_cf, div_beta=sparse_div_beta, quiet=quiet, kw...)
+		W, H, (_, objvalue, _) = NMFk.NMFsparse(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
 	elseif method == :mixmatch
 		if sizeof(deltas) == 0
-			W, H, objvalue = NMFk.mixmatchdata(Xn, nk; ratios=ratios, ratioindices=ratioindices, random=true, mixtures=mixtures, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, kw...)
+			W, H, objvalue = NMFk.mixmatchdata(Xn, nk; ratios=ratios, ratioindices=ratioindices, random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, kw...)
 		else
-			W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdata(Xn, deltas, deltaindices, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, kw...)
+			W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, kw...)
 			H = [Hconc Hdeltas]
 		end
 	elseif method == :matchwaterdeltas
-		W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; random=true, maxiter=maxiter, regularizationweight=regularizationweight, kw...)
+		W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; random=true, maxiter=maxiter, kw...)
 	elseif method == :ipopt
-		W, H, objvalue = NMFk.ipopt(X, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, regularizationweight=regularizationweight, weightinverse=weightinverse, quiet=quiet, kw...)
+		W, H, objvalue = NMFk.ipopt(Xn, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple
 		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, tol=tol, maxiter=maxiter, kw...)
 		objvalue = sum((X - W * H).^2)
@@ -282,10 +290,16 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		objvalue = sum(E.^2)
 	end
 	!quiet && println("Objective function = $(objvalue)")
-	if method != :mixmatch || method != :matchwaterdeltas
-		total = sum(W, 1)
-		W ./= total
-		H .*= total'
+	if method != :mixmatch && method != :matchwaterdeltas
+		if clusterweights
+			total = sum(W, 1)
+			W ./= total
+			H .*= total'
+		else
+			total = sum(H, 2)
+			W .*= total'
+			H ./= total
+		end
 	end
 	return W, H, objvalue
 end

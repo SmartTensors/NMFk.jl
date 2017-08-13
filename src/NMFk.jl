@@ -8,6 +8,8 @@ import Ipopt
 import JLD
 import ReusableFunctions
 
+const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
+
 restart = false
 
 include("NMFkCluster.jl")

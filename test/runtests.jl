@@ -1,29 +1,29 @@
 import NMFk
-using Base.Test
+import Base.Test
 
 srand(2015)
 a = rand(20)
 b = rand(20)
 X = [a a*10 b b*5 a+b*2]
-W, H, p, s = NMFk.execute(X, 2, 20)
-@test isapprox(p, 0, atol=1e-3)
-@test isapprox(s, 1, rtol=1e-1)
-@test isapprox(H[1,2] / H[1,1], 10, rtol=1e-3)
-@test isapprox(H[2,2] / H[2,1], 10, rtol=1e-3)
-@test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
-@test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
+W, H, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
+@Base.Test.test isapprox(p, 0, atol=1e-3)
+@Base.Test.test isapprox(s, 1, rtol=1e-1)
+@Base.Test.test isapprox(H[1,2] / H[1,1], 10, rtol=1e-3)
+@Base.Test.test isapprox(H[2,2] / H[2,1], 10, rtol=1e-3)
+@Base.Test.test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
+@Base.Test.test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
 
 srand(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 + sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
-W, H, p, s = NMFk.execute(X, 2, 20)
-@test isapprox(p, 0, atol=1e-3)
-@test isapprox(s, 1, rtol=1e-1)
-@test isapprox(H[1,2] / H[1,1], 10, rtol=1e-3)
-@test isapprox(H[2,3] / H[1,3], 2.28109, rtol=1e-3)
-@test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
-@test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
+W, H, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-6)
+@Base.Test.test isapprox(p, 0, atol=1e-3)
+@Base.Test.test isapprox(s, 1, rtol=1e-1)
+@Base.Test.test isapprox(H[1,2] / H[1,1], 10, rtol=1e-3)
+@Base.Test.test isapprox(H[2,3] / H[1,3], 0.315, rtol=1e-1)
+@Base.Test.test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
+@Base.Test.test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
 
 function runtest(concs::Matrix, buckets::Matrix, ratios=nothing; concmatches=collect(1:size(concs, 2)), ratiomatches=Int[])
 	numbuckets = size(buckets, 1)
@@ -33,9 +33,9 @@ function runtest(concs::Matrix, buckets::Matrix, ratios=nothing; concmatches=col
 	predictedconcs = mixerestimate * bucketestimate
 	predictedconcs[idxnan] = 0
 	if length(concmatches) > 0
-		@test norm(predictedconcs[:, concmatches] - concs[:, concmatches], 2) / norm(concs[:, concmatches], 2) < 1e-2 # fit the data within 1%
+		@Base.Test.test norm(predictedconcs[:, concmatches] - concs[:, concmatches], 2) / norm(concs[:, concmatches], 2) < 1e-2 # fit the data within 1%
 		for j = 1:size(buckets, 1)
-			@test minimum(map(i->vecnorm(buckets[i, concmatches] - bucketestimate[j, concmatches]) / vecnorm(buckets[i, concmatches], 2), 1:size(buckets, 1))) < 3e-1 # reproduce the buckets within 30%
+			@Base.Test.test minimum(map(i->vecnorm(buckets[i, concmatches] - bucketestimate[j, concmatches]) / vecnorm(buckets[i, concmatches], 2), 1:size(buckets, 1))) < 3e-1 # reproduce the buckets within 30%
 		end
 	end
 	checkratios(mixerestimate, bucketestimate, ratios, ratiomatches)
@@ -50,8 +50,8 @@ function checkratios(mixerestimate::Matrix, bucketestimate::Matrix, ratios, rati
 	for i = 1:size(mixerestimate, 1)
 		for j = 1:size(ratiomatches, 2)
 			ratioratio = concs[i, ratiomatches[1, j]] / concs[i, ratiomatches[2, j]] / ratios[i, ratiomatches[1, j], ratiomatches[2, j]]
-			@test ratioratio > .5 # get the ratio within a factor of 2
-			@test ratioratio < 2.
+			@Base.Test.test ratioratio > .5 # get the ratio within a factor of 2
+			@Base.Test.test ratioratio < 2.
 		end
 	end
 end
@@ -147,17 +147,17 @@ nmfktest()
 a0 = Float64[[20,10,1] [5,1,1]]
 b = NMFk.getisotopeconcentration(a0, [0.001,0.002], [[100,10,1] [500,50,5]])
 a = NMFk.getisotopedelta(b, [0.001,0.002], [[100,10,1] [500,50,5]])
-@test a0 ≈ a
+@Base.Test.test a0 ≈ a
 
 a0 = Float64[20,10,1]
 b = NMFk.getisotopeconcentration(a0, 0.001, [100,10,1])
 a = NMFk.getisotopedelta(b, 0.001, [100,10,1])
-@test a0 ≈ a
+@Base.Test.test a0 ≈ a
 
-a0 = 20
+a0 = 20.0
 b = NMFk.getisotopeconcentration(a0, 0.001, 100)
-a = NMFk.getisotopedelta(b, 0.001, 100)
-@test a0 ≈ a
+a = NMFk.getisotopedelta(b, 0.001, 100)[1]
+@Base.Test.test a0 ≈ a
 
 srand(2015)
 a = rand(15)
@@ -166,4 +166,4 @@ c = rand(15)
 X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 W, H, p, s = NMFk.execute(X, 2:4, 100; method=:ipopt);
 W, H, p, s = NMFk.execute(X, 2:4, 100; method=:simple);
-
+W, H, p, s = NMFk.execute(X, 2:4, 100; method=:nmf);

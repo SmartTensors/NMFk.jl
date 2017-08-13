@@ -8,7 +8,7 @@ const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-@generated function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, mixtures::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+@generated function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
 	if ratios != Void # ratios here is DataType
 		extracodeforratios = quote
 			numberrations = length(ratioindices[1,:])
@@ -75,21 +75,19 @@ const defaultdeltasweight = convert(Float32, 1)
 			end
 		end
 		m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity))
-		@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, initH[i, j]))
 		@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(Float32, initW[i, j]))
+		@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, initH[i, j]))
 		if !normalize
 			@JuMP.constraint(m, buckets .>= 0)
 		end
 		@JuMP.constraint(m, mixer .>= 0)
-		if mixtures
-			for i = 1:nummixtures
-				@JuMP.constraint(m, sum(mixer[i, k] for k=1:numbuckets) == 1.)
-			end
+		for i = 1:nummixtures
+			@JuMP.constraint(m, sum(mixer[i, k] for k=1:numbuckets) == 1.)
 		end
 		$extracodeforratios
 		@JuMP.NLobjective(m, Min,
 			regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
-			sum(sum(concweights[i, j] * (concentrations[i, j] - sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets))^2 for i=1:nummixtures) for j=1:numconstituents) +
+			sum(sum(concweights[i, j] * (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j])^2 for i=1:nummixtures) for j=1:numconstituents) +
 			$ratiosterm)
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
@@ -139,7 +137,7 @@ const defaultdeltasweight = convert(Float32, 1)
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function mixmatchdata(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), initHd::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), initHd::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)

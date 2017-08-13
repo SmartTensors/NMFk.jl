@@ -9,7 +9,7 @@ const defaultverbosity = 0
 function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
 	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
 end
-function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true)
 	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
 		X, cmin, cmax = normalizematrix(X)
@@ -37,7 +37,7 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 	end
 	if sizeof(initH) == 0
 		if random
-			if scale || normalize
+			if !scale || !normalize
 				initH = rand(Float32, nk, numconstituents)
 			else
 				max = maximum(X, 1)
@@ -47,7 +47,7 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 				end
 			end
 		else
-			if scale || normalize
+			if !scale || !normalize
 				initH = ones(Float32, nk, numconstituents) / 2
 			else
 				max = maximum(X, 1)
@@ -59,13 +59,13 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 		end
 	end
 	m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity))
-	@JuMP.variable(m, H[i=1:nk, j=1:numconstituents], start = convert(Float32, initH[i, j]))
-	@JuMP.variable(m, W[i=1:nummixtures, j=1:nk], start = convert(Float32, initW[i, j]))
-	@JuMP.constraint(m, H .>= 0)
-	@JuMP.constraint(m, W .>= 0)
+	#IMPORTANT the order at which parameters are defined is very important
+	@JuMP.variable(m, W[i=1:nummixtures, j=1:nk] >= 0., start = convert(Float32, initW[i, j]))
+	@JuMP.variable(m, H[i=1:nk, j=1:numconstituents] >= 0., start = convert(Float32, initH[i, j]))
+	@JuMP.constraint(m, W .<= 1) # this is very important constraint to make optimization faster
 	@JuMP.NLobjective(m, Min,
 		regularizationweight * sum(sum(log(1. + H[i, j])^2 for i=1:nk) for j=1:numconstituents) / nk +
-		sum(sum(obsweights[i, j] * (X[i, j] - sum(W[i, k] * H[k, j] for k=1:nk))^2 for i=1:nummixtures) for j=1:numconstituents))
+		sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 	oldcolval = copy(m.colVal)
 	JuMP.solve(m)
 	Wbest = JuMP.getvalue(W)
@@ -73,25 +73,25 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 	of = JuMP.getobjectivevalue(m)
 	!quiet && @show of
 	ofbest = of
-	iters = 0
-	while !(norm(oldcolval - m.colVal) < tol) && iters < 1 # keep doing the optimization until we really reach an optimum
+	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
+	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol) # keep doing the optimization until we really reach an optimum
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
-		!quiet && @show of
 		if of < ofbest
 			Wbest = JuMP.getvalue(W)
 			Hbest = JuMP.getvalue(H)
 			ofbest = of
 		end
-		iters += 1
+		objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
+		!quiet && @show of, norm(oldcolval - m.colVal), objvalue
 	end
 	!quiet && @show ofbest
-	fitquality = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
+	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
 	if normalize
 		Hbest = denormalizematrix(Hbest, Wbest, cmin, cmax)
 	elseif scale
 		Hbest = descalematrix(Hbest, cmax)
 	end
-	return Wbest, Hbest, fitquality
+	return Wbest, Hbest, objvalue
 end
