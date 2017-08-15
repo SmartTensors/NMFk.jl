@@ -147,9 +147,9 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
-			clusterassignments, M = NMFk.clusterSolutions(WBig[solind], clusterweights) # cluster based on the W
+			clusterassignments, M = NMFk.clustersolutions(WBig[solind], clusterweights) # cluster based on the W
 		else
-			clusterassignments, M = NMFk.clusterSolutions(HBig[solind], clusterweights) # cluster based on the sources
+			clusterassignments, M = NMFk.clustersolutions(HBig[solind], clusterweights) # cluster based on the sources
 		end
 		if !quiet
 			info("Cluster assignments:")
