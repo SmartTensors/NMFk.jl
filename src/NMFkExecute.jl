@@ -139,8 +139,11 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	println("OF: min $(minimum(objvalue[solind])) max $(maximum(objvalue[solind])) mean $(mean(objvalue[solind])) std $(std(objvalue[solind]))")
 	Xe = Wbest * Hbest
-	println("Worst correlation by columns: $(minimum(map(i->cor(X[i,:], Xe[i,:]), 1:size(X,1))))")
-	println("Worst correlation by rows: $(minimum(map(i->cor(X[:,i], Xe[:,i]), 1:size(X,2))))")
+	fn = vecnorm(X)
+	println("Worst correlation by columns: $(minimum(map(i->cor(X[i, :], Xe[i, :]), 1:size(X, 1))))")
+	println("Worst correlation by rows: $(minimum(map(i->cor(X[:, i], Xe[:, i]), 1:size(X, 2))))")
+	println("Worst norm by columns: $(maximum(map(i->(vecnorm(X[i, :] - Xe[i, :])/fn), 1:size(X, 1))))")
+	println("Worst norm by rows: $(maximum(map(i->(vecnorm(X[:, i] - Xe[:, i])/fn), 1:size(X, 2))))")
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
