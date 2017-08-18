@@ -5,11 +5,29 @@ const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
 const defaultverbosity = 0
 
+function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=true, kw...)
+	fit = 0
+	W, H, oldfit = NMFk.ipopt(X, nk; initW=W, initH=H, fixH=true, quiet=true, kw...)
+	!quiet && println("of: $(oldfit)")
+	for i = 1:iter
+		W, H, fit = NMFk.ipopt(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixW=true, quiet=true, kw...)
+		!quiet && println("of: $(fit)")
+		W, H, fit = NMFk.ipopt(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixH=true, quiet=true, kw...)
+		!quiet && println("of: $(fit)")
+		if oldfit - fit > tolerance
+			oldfit = fit
+		else
+			break
+		end
+	end
+	return W, H, fit
+end
+
 "Factorize matrix X (X = W * H)"
 function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
 	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
 end
-function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false)
+function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, constrainW::Bool=true)
 	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
 		X, cmin, cmax = normalizematrix(X)
@@ -29,6 +47,7 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 	nummixtures = size(X, 1)
 	numconstituents = size(X, 2)
 	if sizeof(initW) == 0
+		fixW = false
 		if random
 			initW = rand(Float32, nummixtures, nk)
 		else
@@ -36,6 +55,7 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 		end
 	end
 	if sizeof(initH) == 0
+		fixH = false
 		if random
 			if !scale || !normalize
 				initH = rand(Float32, nk, numconstituents)
@@ -60,9 +80,17 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 	end
 	m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity))
 	#IMPORTANT the order at which parameters are defined is very important
-	@JuMP.variable(m, W[i=1:nummixtures, j=1:nk] >= 0., start = convert(Float32, initW[i, j]))
-	@JuMP.variable(m, H[i=1:nk, j=1:numconstituents] >= 0., start = convert(Float32, initH[i, j]))
-	@JuMP.constraint(m, W .<= 1) # this is very important constraint to make optimization faster
+	if fixW
+		W = initW
+	else
+		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk] >= 0., start = convert(Float32, initW[i, j]))
+		!constrainW && @JuMP.constraint(m, W .<= 1) # this is very important constraint to make optimization faster
+	end
+	if fixH
+		H = initH
+	else
+		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents] >= 0., start = convert(Float32, initH[i, j]))
+	end
 	if kullbackleibler
 		smallnumber = eps(Float64)
 		@JuMP.NLobjective(m, Min, sum(X[i, j] * (log(smallnumber + X[i, j]) - log(smallnumber + sum(W[i, k] * H[k, j] for k = 1:nk))) - X[i, j] + sum(W[i, k] * H[k, j] for k = 1:nk) for i=1:nummixtures, j=1:numconstituents))
@@ -72,10 +100,17 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 			sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 	end
 	oldcolval = copy(m.colVal)
-	println("solving")
 	JuMP.solve(m)
-	Wbest = JuMP.getvalue(W)
-	Hbest = JuMP.getvalue(H)
+	if fixW
+		Wbest = W
+	else
+		Wbest = JuMP.getvalue(W)
+	end
+	if fixH
+		Hbest = H
+	else
+		Hbest = JuMP.getvalue(H)
+	end
 	of = JuMP.getobjectivevalue(m)
 	!quiet && @show of
 	ofbest = of
@@ -85,8 +120,8 @@ function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Boo
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
 		if of < ofbest
-			Wbest = JuMP.getvalue(W)
-			Hbest = JuMP.getvalue(H)
+			!fixW && (Wbest = JuMP.getvalue(W))
+			!fixH && (Hbest = JuMP.getvalue(H))
 			ofbest = of
 		end
 		objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
