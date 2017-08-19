@@ -5,6 +5,7 @@ const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
 const defaultverbosity = 0
 
+"Iterative factorization of matrix X (X = W * H) using Ipopt fixing W and H matrices"
 function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=true, kw...)
 	fit = 0
 	W, H, oldfit = NMFk.ipopt(X, nk; initW=W, initH=H, fixH=true, quiet=true, kw...)
@@ -23,6 +24,7 @@ function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Fl
 	return W, H, fit
 end
 
+"Factorize matrix X (X = W * H) using Ipopt for each row of X/H"
 function ipoptHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; quiet::Bool=true, kw...)
 	fit = 0
 	for i = 1:size(X, 2)
@@ -34,7 +36,7 @@ function ipoptHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{F
 	return W, H, fit
 end
 
-"Factorize matrix X (X = W * H)"
+"Factorize matrix X (X = W * H) using Ipopt"
 function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
 	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
 end
