@@ -23,11 +23,22 @@ function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Fl
 	return W, H, fit
 end
 
+function ipoptHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; quiet::Bool=true, kw...)
+	fit = 0
+	for i = 1:size(X, 2)
+		fitrowold = sum((X[:,i] .- W * H[:,i]).^2)
+		W, H[:,i], fitrow = NMFk.ipopt(X[:,i], nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 1}, H[:,i]), fixW=true, quiet=true, kw...)
+		!quiet && println("of: $(fitrowold) -> $(fitrow)")
+		fit += fitrow
+	end
+	return W, H, fit
+end
+
 "Factorize matrix X (X = W * H)"
 function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
 	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
 end
-function ipopt(X_in::Matrix{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, constrainW::Bool=true)
+function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, constrainW::Bool=true)
 	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
 		X, cmin, cmax = normalizematrix(X)
