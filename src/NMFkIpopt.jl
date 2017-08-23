@@ -6,7 +6,17 @@ const defaultmaxiter = 1000
 const defaultverbosity = 0
 
 "Iterative factorization of matrix X (X = W * H) using Ipopt fixing W and H matrices"
+function ipoptiter(X::Matrix, nk::Int; kw...)
+	m, n = size(X)
+	ipoptiter(convert(Array{Float32, 2}, X), nk, convert(Array{Float32, 2}, rand(m, nk)), convert(Array{Float32, 2}, rand(nk, n)); kw...)
+end
 function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=true, kw...)
+	m, n = size(X)
+	mw, k = size(W)
+	k, nh = size(H)
+	@assert m == mw
+	@assert n == nh
+	@assert k == nk
 	fit = 0
 	W, H, oldfit = NMFk.ipopt(X, nk; initW=W, initH=H, fixH=true, quiet=true, kw...)
 	!quiet && println("of: $(oldfit)")
