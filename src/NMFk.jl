@@ -22,7 +22,8 @@ include("NMFkRestart.jl")
 include("NMFkFinalize.jl")
 include("NMFkLoad.jl")
 include("NMFkBootstrap.jl")
-include("NMFSparse.jl")
+include("NMFkSparse.jl")
 include("NMFkMultiplicative.jl")
+include("NMFkDisplay.jl")
 
 end

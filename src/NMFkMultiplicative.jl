@@ -1,4 +1,4 @@
-function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(0, 0), initH::Matrix{Float64}=Array{Float64}(0, 0), seed::Int=-1)
+function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(0, 0), initH::Matrix{Float64}=Array{Float64}(0, 0), seed::Int=-1, movie::Bool=true, moviename::String="")
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
@@ -26,6 +26,12 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-1
 		H = initH
 	end
 
+	if movie
+		Xe = W * H
+		frame = 1
+		NMFk.plotnmf(Xe, W[:,sortperm(vec(sum(W, 1)))], H[sortperm(vec(sum(W, 1))),:]; movie=movie, filename=moviename, frame=frame)
+	end
+
 	# maxinc = 0
 	index = Array(Int, m)
 	for i=1:maxiter
@@ -33,6 +39,11 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-1
 		H = H .* (W' * (X ./ (W * H))) ./ sum(W, 1)'
 		# X2 = repmat(sum(H, 2)', n, 1)
 		W = W .* ((X ./ (W * H)) * H') ./ sum(H, 2)'
+		if movie
+			frame += 1
+			Xe = W * H
+			NMFk.plotnmf(Xe, W[:,sortperm(vec(sum(W, 1)))], H[sortperm(vec(sum(W, 1))),:]; movie=movie, filename=moviename, frame=frame)
+		end
 		if mod(i, 10) == 0
 			objvalue = sum((X - W * H).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 			if objvalue < tol

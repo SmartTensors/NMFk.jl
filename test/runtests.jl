@@ -4,14 +4,17 @@ import Base.Test
 srand(2015)
 a = rand(20)
 b = rand(20)
+W = [a b]
+H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
+X = W * H
 X = [a a*10 b b*5 a+b*2]
-W, H, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
+We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
 @Base.Test.test isapprox(p, 0, atol=1e-3)
 @Base.Test.test isapprox(s, 1, rtol=1e-1)
-@Base.Test.test isapprox(H[1,2] / H[1,1], 10, rtol=1e-3)
-@Base.Test.test isapprox(H[2,2] / H[2,1], 10, rtol=1e-3)
-@Base.Test.test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
-@Base.Test.test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
+@Base.Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+@Base.Test.test isapprox(He[2,2] / He[2,1], 10, rtol=1e-3)
+@Base.Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+@Base.Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 srand(2015)
 a = exp.(-(0:.5:10))*100

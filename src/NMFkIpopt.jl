@@ -50,7 +50,10 @@ end
 function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
 	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
 end
-function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, constrainW::Bool=true)
+function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=true, moviename::String="")
+	if seed >= 0
+		srand(seed)
+ 	end
 	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
 		X, cmin, cmax = normalizematrix(X)
@@ -123,6 +126,10 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 			sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 	end
 	oldcolval = copy(m.colVal)
+	if movie
+		Xe = initW * initH
+		NMFk.plotnmf(Xe, initW[:,sortperm(vec(sum(initW, 1)))], initH[sortperm(vec(sum(initW, 1))),:]; movie=movie, filename=moviename, frame=1)
+	end
 	JuMP.solve(m)
 	if fixW
 		Wbest = W
@@ -138,8 +145,16 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 	!quiet && @show of
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
+	frame = 2
 	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol)
 		oldcolval = copy(m.colVal)
+		if movie
+			We = JuMP.getvalue(W)
+			He = JuMP.getvalue(H)
+			Xe = We * He
+			NMFk.plotnmf(Xe, We[:,sortperm(vec(sum(We, 1)))], He[sortperm(vec(sum(We, 1))),:]; movie=movie,filename=moviename, frame=frame)
+			frame += 1
+		end
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
 		if of < ofbest
@@ -156,6 +171,10 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 		Hbest = denormalizematrix(Hbest, Wbest, cmin, cmax)
 	elseif scale
 		Hbest = descalematrix(Hbest, cmax)
+	end
+	if movie
+		Xe = Wbest * Hbest
+		NMFk.plotnmf(Xe, Wbest[:,sortperm(vec(sum(Wbest, 1)))], Hbest[sortperm(vec(sum(Wbest, 1))),:]; movie=movie, filename=moviename, frame=frame)
 	end
 	return Wbest, Hbest, objvalue
 end
