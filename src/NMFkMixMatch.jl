@@ -8,7 +8,7 @@ const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-@generated function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true)
+@generated function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; normalize::Bool=false, scale::Bool=false, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::String="", movieorder=1:numbuckets)
 	if ratios != Void # ratios here is DataType
 		extracodeforratios = quote
 			numberrations = length(ratioindices[1,:])
@@ -26,6 +26,9 @@ const defaultdeltasweight = convert(Float32, 1)
 		ratiosterm = :(0)
 	end
 	q = quote
+		if seed >= 0
+			srand(seed)
+		end
 		concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 		if normalize
 			concentrations, cmin, cmax = normalizematrix(concentrations)
@@ -90,6 +93,10 @@ const defaultdeltasweight = convert(Float32, 1)
 			sum(sum(concweights[i, j] * (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j])^2 for i=1:nummixtures) for j=1:numconstituents) +
 			$ratiosterm)
 		oldcolval = copy(m.colVal)
+		if movie
+			Xe = initW * initH
+			NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
+		end
 		JuMP.solve(m)
 		mixerval = JuMP.getvalue(mixer)
 		bucketval = JuMP.getvalue(buckets)
@@ -97,9 +104,17 @@ const defaultdeltasweight = convert(Float32, 1)
 		!quiet && @show of
 		of_best = of
 		iters = 0
-		while !(norm(oldcolval - m.colVal) < tol) && iters < 1 # keep doing the optimization until we really reach an optimum
+		frame = 2
+		while !(norm(oldcolval - m.colVal) < tolX) && !(of_best < tol)
 			oldcolval = copy(m.colVal)
 			JuMP.solve(m)
+			if movie
+				We = JuMP.getvalue(mixer)
+				He = JuMP.getvalue(buckets)
+				Xe = We * He
+				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
+				frame += 1
+			end
 			of = JuMP.getobjectivevalue(m)
 			!quiet && @show of
 			if of < of_best
@@ -130,6 +145,10 @@ const defaultdeltasweight = convert(Float32, 1)
 			bucketval = denormalizematrix(bucketval, mixerval, cmin, cmax)
 		elseif scale
 			bucketval = descalematrix(bucketval, cmax)
+		end
+		if movie
+			Xe = mixerval * bucketval
+			NMFk.plotnmf(Xe, mixerval[:,movieorder], bucketval[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 		end
 		return mixerval, bucketval, fitquality
 	end

@@ -253,13 +253,13 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		W, H, (_, objvalue, _) = NMFk.NMFsparse(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
 	elseif method == :mixmatch
 		if sizeof(deltas) == 0
-			W, H, objvalue = NMFk.mixmatchdata(Xn, nk; ratios=ratios, ratioindices=ratioindices, random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, kw...)
+			W, H, objvalue = NMFk.mixmatchdata(Xn, nk; ratios=ratios, ratioindices=ratioindices, random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
 		else
-			W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, kw...)
+			W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
 			H = [Hconc Hdeltas]
 		end
 	elseif method == :matchwaterdeltas
-		W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; random=true, maxiter=maxiter, kw...)
+		W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; random=true, tol=tol, maxiter=maxiter, kw...)
 	elseif method == :ipopt
 		W, H, objvalue = NMFk.ipopt(Xn, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple

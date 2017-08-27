@@ -71,6 +71,9 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::String="", movie::Bo
 	nk, nc = size(H)
 	fig, throwawayax = PyPlot.subplots(figsize=(16,9))
 	fig[:delaxes](throwawayax)
+	s = maximum(W, 1)
+	W = W ./ s
+	H = H .* s'
 	#spatialax = fig[:add_axes]([0, 0, 1, 1], frameon=false)
 	#spatialax[:imshow](rand(100, 100), extent=[0, 100, 0, 100], cmap=PyPlot.ColorMap("RYG"), alpha=0.7, interpolation="nearest")
 
@@ -83,12 +86,17 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::String="", movie::Bo
 	end
 
 	Base.display(fig); println()
-	movie && (filename = setnewfilename(filename, frame))
+	if movie
+		filename = setnewfilename(filename, frame)
+		if frame > 0
+			fig[:text](0.9, 0.1, "$(sprintf("%03d", frame))", fontsize=24, va="center", ha="center")
+		end
+	end
 	if filename != ""
 		fig[:savefig](filename)
-		PyPlot.close(fig)
 		Base.display(Images.load(filename))
 	end
+	PyPlot.close(fig)
 end
 
 function setnewfilename(filename::String, frame::Integer=0)

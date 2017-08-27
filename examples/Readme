@@ -1,0 +1,1 @@
+ffmpeg -framerate 1 -i m2052-frame%04d.png -vf scale="trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -profile:v high -pix_fmt yuv420p -g 20 -r 30 m2052.mp4

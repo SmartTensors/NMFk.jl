@@ -50,10 +50,10 @@ end
 function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
 	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
 end
-function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=true, moviename::String="")
+function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::String="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
- 	end
+	end
 	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
 		X, cmin, cmax = normalizematrix(X)
@@ -128,7 +128,7 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 	oldcolval = copy(m.colVal)
 	if movie
 		Xe = initW * initH
-		NMFk.plotnmf(Xe, initW[:,sortperm(vec(sum(initW, 1)))], initH[sortperm(vec(sum(initW, 1))),:]; movie=movie, filename=moviename, frame=1)
+		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
 	JuMP.solve(m)
 	if fixW
@@ -146,13 +146,26 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
 	frame = 2
+	mcheat = 0
 	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol)
 		oldcolval = copy(m.colVal)
 		if movie
+			while mcheat <= moviecheat
+				We = JuMP.getvalue(W)
+				c = (moviecheat - mcheat) / moviecheat
+				c = 0.5
+				We += rand(similar(We)) .* c
+				He = JuMP.getvalue(H)
+				He += rand(similar(He)) .* c / 10
+				Xe = We * He
+				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
+				frame += 1
+				mcheat += 1
+			end
 			We = JuMP.getvalue(W)
 			He = JuMP.getvalue(H)
 			Xe = We * He
-			NMFk.plotnmf(Xe, We[:,sortperm(vec(sum(We, 1)))], He[sortperm(vec(sum(We, 1))),:]; movie=movie,filename=moviename, frame=frame)
+			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
 			frame += 1
 		end
 		JuMP.solve(m)
@@ -174,7 +187,7 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 	end
 	if movie
 		Xe = Wbest * Hbest
-		NMFk.plotnmf(Xe, Wbest[:,sortperm(vec(sum(Wbest, 1)))], Hbest[sortperm(vec(sum(Wbest, 1))),:]; movie=movie, filename=moviename, frame=frame)
+		NMFk.plotnmf(Xe, Wbest[:,movieorder], Hbest[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
 	return Wbest, Hbest, objvalue
 end
