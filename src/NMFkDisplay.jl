@@ -89,7 +89,7 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::String="", movie::Bo
 	if movie
 		filename = setnewfilename(filename, frame)
 		if frame > 0
-			fig[:text](0.9, 0.1, "$(sprintf("%03d", frame))", fontsize=24, va="center", ha="center")
+			fig[:text](0.9, 0.1, "$(sprintf("%04d", frame))", fontsize=24, va="center", ha="center")
 		end
 	end
 	if filename != ""

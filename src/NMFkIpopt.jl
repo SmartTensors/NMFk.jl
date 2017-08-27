@@ -146,14 +146,13 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
 	frame = 2
-	mcheat = 0
 	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol)
 		oldcolval = copy(m.colVal)
 		if movie
+			mcheat = 1
 			while mcheat <= moviecheat
 				We = JuMP.getvalue(W)
-				c = (moviecheat - mcheat) / moviecheat
-				c = 0.5
+				c = (moviecheat - mcheat) / moviecheat + 0.1
 				We += rand(similar(We)) .* c
 				He = JuMP.getvalue(H)
 				He += rand(similar(He)) .* c / 10

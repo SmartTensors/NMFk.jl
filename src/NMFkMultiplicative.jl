@@ -37,6 +37,11 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-1
 	for i=1:maxiter
 		# X1 = repmat(sum(W, 1)', 1, m)
 		H = H .* (W' * (X ./ (W * H))) ./ sum(W, 1)'
+		if movie
+			frame += 1
+			Xe = W * H
+			NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+		end
 		# X2 = repmat(sum(H, 2)', n, 1)
 		W = W .* ((X ./ (W * H)) * H') ./ sum(H, 2)'
 		if movie
