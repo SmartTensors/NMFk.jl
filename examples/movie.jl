@@ -23,6 +23,11 @@ We, He, p, s = NMFk.execute(X, 2, 1; method=:ipopt, tolX=1e-4, tol=1e-14, seed=1
 We, He, p, s = NMFk.execute(X, 2, 1; method=:ipopt, tolX=1e-14, tol=1e-14, seed=16)
 Xe = We * He
 NMFk.plotnmf(Xe, We[:,[2,1]], He[[2,1],:]; filename="movie/m2052-estimate.png")
+Wn = copy(W)
+Hn = copy(H)
+Xn = copy(X)
+NMFk.plotnmf(X, (Wn .= NaN), (Hn .= NaN); filename="movie/m2052-trueX.png")
+NMFk.plotnmf((Xn .= NaN), W, H; filename="movie/m2052-trueWH.png")
 
 srand(2015)
 a = rand(20)
