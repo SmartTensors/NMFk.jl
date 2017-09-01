@@ -67,7 +67,7 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 	else
 		obsweights = ones(Float32, size(X))
 	end
-	nans = isnan(X)
+	nans = isnan.(X)
 	X[nans] = 0
 	obsweights[nans] = 0
 	nummixtures = size(X, 1)
@@ -144,7 +144,7 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 	of = JuMP.getobjectivevalue(m)
 	!quiet && @show of
 	ofbest = of
-	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
+	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	frame = 2
 	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol)
 		oldcolval = copy(m.colVal)
@@ -178,7 +178,7 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 		!quiet && @show of, norm(oldcolval - m.colVal), objvalue
 	end
 	!quiet && @show ofbest
-	objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
+	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	if normalize
 		Hbest = denormalizematrix(Hbest, Wbest, cmin, cmax)
 	elseif scale

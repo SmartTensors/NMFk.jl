@@ -129,7 +129,11 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	else
 		cutind = trues(nNMF)
 	end
-	solind = ratind & cutind
+	if VERSION < v"0.6"
+		solind = ratind & cutind
+	else
+		solind = ratind .& cutind
+	end
 	if solind != ratind && solind != cutind
 		println("NMF solutions removed based on acceptance criteria: $(sum(solind)) out of $(nNMF) solutions")
 		!quiet && (println("Good solutions based on acceptance criteria: $(objvalue[solind])"))
