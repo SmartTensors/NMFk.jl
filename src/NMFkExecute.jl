@@ -18,7 +18,7 @@ function execute(X::Matrix, range::UnitRange{Int}, nNMF::Integer=10; kw...)
 end
 
 "Execute NMFk analysis for a given number of sources"
-function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String="", serial::Bool=false, save::Bool=true, load::Bool=false, kw...)
+function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String="", save::Bool=true, load::Bool=false, kw...)
 	runflag = true
 	if load && casefilename != ""
 		filename = "$casefilename-$nk-$nNMF.jld"
@@ -29,7 +29,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 		end
 	end
 	if runflag
-		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; kw...)
+		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; casefilename=casefilename, kw...)
 	end
 	println("Sources: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
 	if save && casefilename != ""
@@ -40,7 +40,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, casefilename::String="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
@@ -89,24 +89,37 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		nP, nC = size(X) # number of observation points,  number of observed components/transients
 	end
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
-	if nprocs() > 1 && !serial
-		r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)), 1:nNMF)
-		WBig = Vector{Matrix}(nNMF)
-		HBig = Vector{Matrix}(nNMF)
-		for i in 1:nNMF
-			WBig[i] = r[i][1]
-			HBig[i] = r[i][2]
+	runflag = true
+	if loadall && casefilename != ""
+		filename = "$casefilename-$nk-$nNMF-all.jld"
+		if isfile(filename)
+			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
+			saveall = false
+			runflag = false
 		end
-		objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
-	else
-		WBig = Vector{Matrix}(0)
-		HBig = Vector{Matrix}(0)
-		objvalue = Array{Float64}(nNMF)
-		for i = 1:nNMF
-			W, H, objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)
-			push!(WBig, W)
-			push!(HBig, H)
+	end
+	if runflag
+		if nprocs() > 1 && !serial
+			r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)), 1:nNMF)
+			WBig = Vector{Matrix}(nNMF)
+			HBig = Vector{Matrix}(nNMF)
+			for i in 1:nNMF
+				WBig[i] = r[i][1]
+				HBig[i] = r[i][2]
+			end
+			objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
+		else
+			WBig = Vector{Matrix}(nNMF)
+			HBig = Vector{Matrix}(nNMF)
+			objvalue = Array{Float64}(nNMF)
+			for i = 1:nNMF
+				WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)
+			end
 		end
+	end
+	if saveall && casefilename != ""
+		filename = "$casefilename-$nk-$nNMF-all.jld"
+		JLD.save(filename, "W", WBig, "H", HBig, "fit", objvalue)
 	end
 	!quiet && println("Best  objective function = $(minimum(objvalue))")
 	!quiet && println("Worst objective function = $(maximum(objvalue))")

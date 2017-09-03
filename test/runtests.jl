@@ -1,6 +1,7 @@
 import NMFk
 import Base.Test
 
+info("NMFk: 2 sources, 5 sensors, 20 transients")
 srand(2015)
 a = rand(20)
 b = rand(20)
@@ -16,6 +17,7 @@ We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
 @Base.Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
 @Base.Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
+info("NMFk: 2 sources, 5 sensors, 100 transients")
 srand(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 + sin.(0:20)*10
@@ -24,9 +26,38 @@ W, H, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-6)
 @Base.Test.test isapprox(p, 0, atol=1e-3)
 @Base.Test.test isapprox(s, 1, rtol=1e-1)
 @Base.Test.test isapprox(H[1,2] / H[1,1], 10, rtol=1e-3)
-@Base.Test.test isapprox(H[2,3] / H[1,3], 0.315, rtol=1e-1)
+@Base.Test.test isapprox(H[2,3] / H[1,3], 2.57, rtol=1e-1)
 @Base.Test.test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
 @Base.Test.test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
+
+info("NMFk: 3 sources, 5 sensors, 15 transients")
+srand(2015)
+a = rand(15)
+b = rand(15)
+c = rand(15)
+X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
+info("NMFk: ipopt ...")
+W, H, p, s = NMFk.execute(X, 2:4, 100; method=:ipopt);
+info("NMFk: simple ...")
+W, H, p, s = NMFk.execute(X, 2:4, 100; method=:simple);
+info("NMFk: nmf ...")
+W, H, p, s = NMFk.execute(X, 2:4, 100; method=:nmf);
+
+info("NMFk: concentrantions/delta tests ...")
+a0 = Float64[[20,10,1] [5,1,1]]
+b = NMFk.getisotopeconcentration(a0, [0.001,0.002], [[100,10,1] [500,50,5]])
+a = NMFk.getisotopedelta(b, [0.001,0.002], [[100,10,1] [500,50,5]])
+@Base.Test.test a0 ≈ a
+
+a0 = Float64[20,10,1]
+b = NMFk.getisotopeconcentration(a0, 0.001, [100,10,1])
+a = NMFk.getisotopedelta(b, 0.001, [100,10,1])
+@Base.Test.test a0 ≈ a
+
+a0 = 20.0
+b = NMFk.getisotopeconcentration(a0, 0.001, 100)
+a = NMFk.getisotopedelta(b, 0.001, 100)[1]
+@Base.Test.test a0 ≈ a
 
 function runtest(concs::Matrix, buckets::Matrix, ratios=nothing; concmatches=collect(1:size(concs, 2)), ratiomatches=Int[])
 	numbuckets = size(buckets, 1)
@@ -59,7 +90,7 @@ function checkratios(mixerestimate::Matrix, bucketestimate::Matrix, ratios, rati
 	end
 end
 
-function firsttest()
+function buckettest()
 	nummixtures = 20
 	numbuckets = 2
 	numconstituents = 3
@@ -142,31 +173,7 @@ function pureratiotest()
 end
 
 srand(2015)
-# ratiotest()
-firsttest() ## WARNING this needs fix for julia v0.6
+buckettest()
 nmfktest()
-# pureratiotest()
-
-a0 = Float64[[20,10,1] [5,1,1]]
-b = NMFk.getisotopeconcentration(a0, [0.001,0.002], [[100,10,1] [500,50,5]])
-a = NMFk.getisotopedelta(b, [0.001,0.002], [[100,10,1] [500,50,5]])
-@Base.Test.test a0 ≈ a
-
-a0 = Float64[20,10,1]
-b = NMFk.getisotopeconcentration(a0, 0.001, [100,10,1])
-a = NMFk.getisotopedelta(b, 0.001, [100,10,1])
-@Base.Test.test a0 ≈ a
-
-a0 = 20.0
-b = NMFk.getisotopeconcentration(a0, 0.001, 100)
-a = NMFk.getisotopedelta(b, 0.001, 100)[1]
-@Base.Test.test a0 ≈ a
-
-srand(2015)
-a = rand(15)
-b = rand(15)
-c = rand(15)
-X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
-W, H, p, s = NMFk.execute(X, 2:4, 100; method=:ipopt);
-W, H, p, s = NMFk.execute(X, 2:4, 100; method=:simple);
-W, H, p, s = NMFk.execute(X, 2:4, 100; method=:nmf);
+pureratiotest()
+ratiotest()
