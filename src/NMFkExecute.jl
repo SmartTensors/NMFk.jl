@@ -40,12 +40,12 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Union{Void,Array{Float32, 2}}=nothing, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, casefilename::String="", loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, casefilename::String="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
-	if any(indexnan) && (method != :ipopt || method != :mixmatch)
-		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used; Ipopt minimization will be performed")
+	if any(indexnan) && (method != :ipopt && method != :mixmatch && method != :matchwaterdeltas)
+		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used (method=$(method)); Ipopt minimization will be performed!")
 		ipopt = true
 	end
 	numobservations = length(vec(X[map(!, indexnan)]))
@@ -210,7 +210,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		id = !isnan.(deltas)
 		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
 	end
-	if !quiet && typeof(ratios) != Void
+	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
 		for (j, c1, c2) in zip(1:length(ratioindices[1,:]), ratioindices[1,:], ratioindices[2,:])
 			for i = 1:nP
@@ -251,7 +251,7 @@ function execute_singlerun(x...; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Union{Void,Array{Float32, 2}}=nothing, ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, clusterweights::Bool=false, kw...)
+function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, clusterweights::Bool=false, kw...)
 	if scale
 		if transpose
 			Xn, Xmax = NMFk.scalematrix(X)

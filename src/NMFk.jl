@@ -25,5 +25,6 @@ include("NMFkBootstrap.jl")
 include("NMFkSparse.jl")
 include("NMFkMultiplicative.jl")
 include("NMFkDisplay.jl")
+include("NMFkCapture.jl")
 
 end

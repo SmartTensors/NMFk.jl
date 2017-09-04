@@ -1,4 +1,4 @@
-function NMFsparse(x::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), quiet::Bool=true)
+function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), quiet::Bool=true)
 	if seed != -1
 		srand(seed)
 	end
@@ -21,25 +21,25 @@ function NMFsparse(x::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 		!quiet && info("Sparse NMF with fractional beta divergence (beta = $(sparse_div_beta))")
 	end
 
-	(m, n) = size(x)
+	(m, n) = size(X)
 	if sizeof(initW) == 0
-		w = rand(m, k)
+		W = rand(m, k)
 	else
 		@assert (m, k) == size(initW)
-		w = initW
+		W = initW
 	end
 	if sizeof(initH) == 0
-		h = rand(k, n)
+		H = rand(k, n)
 	else
 		@assert (k, n) == size(initH)
-		w = initH
+		H = initH
 	end
 
-	wn = sqrt(sum(w.^2, 1))
-	w  = bsxfun(\, w, wn)
-	h  = bsxfun(*, h, wn')
+	Wn = sqrt(sum(W.^2, 1))
+	W  = bsxfun(\, W, Wn)
+	H  = bsxfun(*, H, Wn')
 
-	lambda_new = max(w * h, lambda)
+	lambda_new = max(W * H, lambda)
 	last_cost = Inf
 
 	update_h = sum(h_ind)
@@ -50,53 +50,53 @@ function NMFsparse(x::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 	for it = 1:maxiter
 		if update_h > 0
 			if sparse_div_beta == 1
-				dph = bsxfun(+, sum(w[:,h_ind], 1)', sparsity)
+				dph = bsxfun(+, sum(W[:,h_ind], 1)', sparsity)
 				dph = max(dph, lambda)
-				dmh = w[:,h_ind]' * (x ./ lambda_new)
-				h[h_ind,:] = bsxfun(\, h[h_ind,:] .* dmh, dph)
+				dmh = W[:,h_ind]' * (X ./ lambda_new)
+				H[h_ind,:] = bsxfun(\, H[h_ind,:] .* dmh, dph)
 			elseif sparse_div_beta == 2
-				dph = w[:,h_ind]' * lambda_new .+ sparsity
+				dph = W[:,h_ind]' * lambda_new .+ sparsity
 				dph = max(dph, lambda)
-				dmh = w[:,h_ind]' * x
-				h[h_ind,:] = h[h_ind,:] .* dmh ./ dph
+				dmh = W[:,h_ind]' * X
+				H[h_ind,:] = H[h_ind,:] .* dmh ./ dph
 			else
-				dph = w[:,h_ind]' * lambda_new.^(sparse_div_beta - 1) .+ sparsity
+				dph = W[:,h_ind]' * lambda_new.^(sparse_div_beta - 1) .+ sparsity
 				dph = max(dph, lambda)
-				dmh = w[:,h_ind]' * (x .* lambda_new.^(sparse_div_beta - 2))
-				h[h_ind,:] = h[h_ind,:] .* dmh ./ dph;
+				dmh = W[:,h_ind]' * (X .* lambda_new.^(sparse_div_beta - 2))
+				H[h_ind,:] = H[h_ind,:] .* dmh ./ dph;
 			end
-			lambda_new = max(w * h, lambda)
+			lambda_new = max(W * H, lambda)
 		end
 		if update_w > 0
 			if sparse_div_beta == 1
-				dpw = bsxfun(+, sum(h[w_ind,:], 2)', bsxfun(*, sum((x ./ lambda_new) * h[w_ind,:]' .* w[:,w_ind], 1), w[:,w_ind]))
+				dpw = bsxfun(+, sum(H[w_ind,:], 2)', bsxfun(*, sum((X ./ lambda_new) * H[w_ind,:]' .* W[:,w_ind], 1), W[:,w_ind]))
 				dpw = max(dpw, lambda)
-				dmw = x ./ lambda_new * h[w_ind,:]' + bsxfun(*, sum(bsxfun(*, sum(h[w_ind,:], 2)', w[:,w_ind]), 1), w[:,w_ind])
-				w[:,w_ind] = w[:,w_ind] .* dmw ./ dpw
+				dmw = X ./ lambda_new * H[w_ind,:]' + bsxfun(*, sum(bsxfun(*, sum(H[w_ind,:], 2)', W[:,w_ind]), 1), W[:,w_ind])
+				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			elseif sparse_div_beta == 2
-				dpw = lambda_new * h[w_ind,:]' + bsxfun(*, sum(x * h[w_ind,:]' .* w[:,w_ind], 1), w[:,w_ind])
+				dpw = lambda_new * H[w_ind,:]' + bsxfun(*, sum(x * H[w_ind,:]' .* W[:,w_ind], 1), W[:,w_ind])
 				dpw = max(dpw, lambda)
-				dmw = x * h[w_ind,:]' + bsxfun(*, sum(lambda_new * h[w_ind,:]' .* w[:,w_ind], 1), w[:,w_ind])
-				w[:,w_ind] = w[:,w_ind] .* dmw ./ dpw
+				dmw = X * H[w_ind,:]' + bsxfun(*, sum(lambda_new * H[w_ind,:]' .* W[:,w_ind], 1), W[:,w_ind])
+				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			else
-				dpw = lambda_new.^(sparse_div_beta - 1) * h[w_ind, :]' + bsxfun(*, sum((x .* lambda_new.^(sparse_div_beta - 2)) * h[w_ind, :]' .* w[:, w_ind], 1), w[:, w_ind])
+				dpw = lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' + bsxfun(*, sum((X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' .* W[:, w_ind], 1), W[:, w_ind])
 				dpw = max(dpw, lambda)
-				dmw = (x .* lambda_new.^(sparse_div_beta - 2)) * h[w_ind, :]' + bsxfun(*, sum(lambda_new.^(sparse_div_beta - 1) * h[w_ind, :]' .* w[:, w_ind], 1), w[:, w_ind])
-				w[:,w_ind] = w[:,w_ind] .* dmw ./ dpw
+				dmw = (X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' + bsxfun(*, sum(lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' .* W[:, w_ind], 1), W[:, w_ind])
+				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			end
-			w = bsxfun(\, w, sqrt(sum(w.^2, 1)))
-			lambda_new = max(w * h, lambda)
+			W = bsxfun(\, W, sqrt(sum(W.^2, 1)))
+			lambda_new = max(W * H, lambda)
 		end
 		if sparse_div_beta == 1
-			divergence = sum(x .* log(x ./ lambda_new) - x + lambda_new)
+			divergence = sum(X .* log(X ./ lambda_new) - X + lambda_new)
 		elseif sparse_div_beta == 2
-			divergence = sum((x - lambda_new) .^ 2)
+			divergence = sum((X - lambda_new) .^ 2)
 		elseif sparse_div_beta == 0
-			divergence = sum(x ./ lambda_new - log(x ./ lambda_new) - 1)
+			divergence = sum(X ./ lambda_new - log(X ./ lambda_new) - 1)
 		else
-			divergence = sum(x.^sparse_div_beta + (sparse_div_beta - 1) * lambda_new.^sparse_div_beta  - sparse_div_beta * x .* lambda_new.^(sparse_div_beta - 1))/(sparse_div_beta * (sparse_div_beta - 1))
+			divergence = sum(X.^sparse_div_beta + (sparse_div_beta - 1) * lambda_new.^sparse_div_beta  - sparse_div_beta * X .* lambda_new.^(sparse_div_beta - 1))/(sparse_div_beta * (sparse_div_beta - 1))
 		end
-		of = divergence + sum(h .* sparsity)
+		of = divergence + sum(H .* sparsity)
 
 		!quiet && info("Iteration $(it): divergence = $(divergence) objective function = $(of)")
 
@@ -109,9 +109,9 @@ function NMFsparse(x::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 		last_of = of
 	end
 	objvalue = sum((X - W * H).^2)
-	return w, h, (of, objvalue, it)
+	return W, H, (of, objvalue, it)
 end
 
-function bsxfun(o::Function, x, f)
-	broadcast(o, f, x)
+function bsxfun(o::Function, X, f)
+	broadcast(o, f, X)
 end
