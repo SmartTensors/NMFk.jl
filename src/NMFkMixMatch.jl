@@ -33,7 +33,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; norma
 	else
 		sr = size(ratioindices)
 		if length(sr) == 1
-			numberofpairs = 2
+			numberofpairs = sr[1]
 			numberofratios = 1
 		else
 			numberofpairs, numberofratios = sr
