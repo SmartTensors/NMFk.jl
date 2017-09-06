@@ -1,16 +1,17 @@
 import JuMP
 import Ipopt
+import NLopt
 
 const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
 const defaultverbosity = 0
 
 "Iterative factorization of matrix X (X = W * H) using Ipopt fixing W and H matrices"
-function ipoptiter(X::Matrix, nk::Int; kw...)
+function jumpiter(X::Matrix, nk::Int; kw...)
 	m, n = size(X)
-	ipoptiter(convert(Array{Float32, 2}, X), nk, convert(Array{Float32, 2}, rand(m, nk)), convert(Array{Float32, 2}, rand(nk, n)); kw...)
+	jumpiter(convert(Array{Float32, 2}, X), nk, convert(Array{Float32, 2}, rand(m, nk)), convert(Array{Float32, 2}, rand(nk, n)); kw...)
 end
-function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=true, kw...)
+function jumpiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=true, kw...)
 	m, n = size(X)
 	mw, k = size(W)
 	k, nh = size(H)
@@ -18,12 +19,12 @@ function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Fl
 	@assert n == nh
 	@assert k == nk
 	fit = 0
-	W, H, oldfit = NMFk.ipopt(X, nk; initW=W, initH=H, fixH=true, quiet=true, kw...)
+	W, H, oldfit = NMFk.jump(X, nk; initW=W, initH=H, fixH=true, quiet=true, kw...)
 	!quiet && println("of: $(oldfit)")
 	for i = 1:iter
-		W, H, fit = NMFk.ipopt(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixW=true, quiet=true, kw...)
+		W, H, fit = NMFk.jump(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixW=true, quiet=true, kw...)
 		!quiet && println("of: $(fit)")
-		W, H, fit = NMFk.ipopt(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixH=true, quiet=true, kw...)
+		W, H, fit = NMFk.jump(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixH=true, quiet=true, kw...)
 		!quiet && println("of: $(fit)")
 		if oldfit - fit > tolerance
 			oldfit = fit
@@ -35,11 +36,11 @@ function ipoptiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Fl
 end
 
 "Factorize matrix X (X = W * H) using Ipopt for each row of X/H"
-function ipoptHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; quiet::Bool=true, kw...)
+function jumpHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; quiet::Bool=true, kw...)
 	fit = 0
 	for i = 1:size(X, 2)
 		fitrowold = sum((X[:,i] .- W * H[:,i]).^2)
-		W, H[:,i], fitrow = NMFk.ipopt(X[:,i], nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 1}, H[:,i]), fixW=true, quiet=true, kw...)
+		W, H[:,i], fitrow = NMFk.jump(X[:,i], nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 1}, H[:,i]), fixW=true, quiet=true, kw...)
 		!quiet && println("of: $(fitrowold) -> $(fitrow)")
 		fit += fitrow
 	end
@@ -47,10 +48,10 @@ function ipoptHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{F
 end
 
 "Factorize matrix X (X = W * H) using Ipopt"
-function ipopt(X_in::Matrix{Float64}, nk::Int; kw...)
-	ipopt(convert(Array{Float32, 2}, X_in), nk; kw...)
+function jump(X_in::Matrix{Float64}, nk::Int; kw...)
+	jump(convert(Array{Float32, 2}, X_in), nk; kw...)
 end
-function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::String="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-19, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::String="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
 	end
@@ -104,7 +105,11 @@ function ipopt(X_in::Array{Float32}, nk::Int; normalize::Bool=false, scale::Bool
 			end
 		end
 	end
-	m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity))
+	if method == :ipopt
+		m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity, tol=tol))
+	elseif method == :nlopt
+		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
+	end
 	#IMPORTANT the order at which parameters are defined is very important
 	if fixW
 		W = initW

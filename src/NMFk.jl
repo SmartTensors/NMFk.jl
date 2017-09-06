@@ -15,7 +15,7 @@ restart = false
 include("NMFkCluster.jl")
 include("NMFkGeoChem.jl")
 include("NMFkMixMatch.jl")
-include("NMFkIpopt.jl")
+include("NMFkJuMP.jl")
 include("NMFkMatrix.jl")
 include("NMFkExecute.jl")
 include("NMFkRestart.jl")

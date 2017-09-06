@@ -40,13 +40,16 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, casefilename::String="", loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::String="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
-	if any(indexnan) && (method != :ipopt && method != :mixmatch && method != :matchwaterdeltas)
+	if any(indexnan) && (method != :ipopt && method != :nlopt && method != :mixmatch && method != :matchwaterdeltas)
 		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used (method=$(method)); Ipopt minimization will be performed!")
-		ipopt = true
+		method = :nlopt
+	end
+	if method == :nlopt && algorithm == :multdiv
+		algorithm = :LD_LBFGS
 	end
 	numobservations = length(vec(X[map(!, indexnan)]))
 	if method == :mixmatch || method == :matchwaterdeltas
@@ -54,13 +57,13 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	if method == :multdiv
 		method = :nmf
-		nmfalgorithm = :multdiv
+		algorithm = :multdiv
 	elseif method == :multmse
 		method = :nmf
-		nmfalgorithm = :multmse
+		algorithm = :multmse
 	elseif method == :alspgrad
 		method = :nmf
-		nmfalgorithm = :alspgrad
+		algorithm = :alspgrad
 	end
 	if !quiet
 		if method == :mixmatch
@@ -69,12 +72,15 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			println("MixMatchDeltas ...")
 		elseif method == :ipopt
 			println("Ipopt ...")
+		elseif method == :nlopt
+			println("NLopt ...")
+
 		elseif method == :nmf
-			if nmfalgorithm == :multdiv
+			if algorithm == :multdiv
 				println("NMF Multiplicative update using divergence ...")
-			elseif nmfalgorithm == :multmse
+			elseif algorithm == :multmse
 				println("NMF Multiplicative update using mean-squared-error ...")
-			elseif nmfalgorithm == :alspgrad
+			elseif algorithm == :alspgrad
 				println("NMF Alternate Least Square using Projected Gradient Descent ...")
 			end
 		elseif method == :sparse
@@ -100,7 +106,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	if runflag
 		if nprocs() > 1 && !serial
-			r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)), 1:nNMF)
+			r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, algorithm=algorithm, kw...)), 1:nNMF)
 			WBig = Vector{Matrix}(nNMF)
 			HBig = Vector{Matrix}(nNMF)
 			for i in 1:nNMF
@@ -113,7 +119,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			HBig = Vector{Matrix}(nNMF)
 			objvalue = Array{Float64}(nNMF)
 			for i = 1:nNMF
-				WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, nmfalgorithm=nmfalgorithm, kw...)
+				WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, method=method, algorithm=algorithm, kw...)
 			end
 		end
 	end
@@ -251,7 +257,7 @@ function execute_singlerun(x...; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, method::Symbol=:nmf, nmfalgorithm::Symbol=:multdiv, clusterweights::Bool=false, kw...)
+function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int,1},Array{Int,2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, clusterweights::Bool=false, kw...)
 	if scale
 		if transpose
 			Xn, Xmax = NMFk.scalematrix(X)
@@ -277,19 +283,19 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 		end
 	elseif method == :matchwaterdeltas
 		W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; random=true, tol=tol, maxiter=maxiter, kw...)
-	elseif method == :ipopt
-		W, H, objvalue = NMFk.ipopt(Xn, nk; random=true, normalize=normalize, scale=false, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
+	elseif method == :ipopt || method == :nlopt
+		W, H, objvalue = NMFk.jump(Xn, nk; method=method, algorithm=algorithm, random=true, normalize=normalize, scale=false, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple
 		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, tol=tol, maxiter=maxiter, kw...)
 		objvalue = sum((X - W * H).^2)
 		# objvalue = vecnorm(X - W * H) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 	elseif method == :nmf
 		W, H = NMF.randinit(Xn, nk)
-		if nmfalgorithm == :multdiv
+		if algorithm == :multdiv
 			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
-		elseif nmfalgorithm == :multmse
+		elseif algorithm == :multmse
 			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:div, maxiter=maxiter, tol=tol), Xn, W, H)
-		elseif nmfalgorithm == :alspgrad
+		elseif algorithm == :alspgrad
 			nmf_result = NMF.solve!(NMF.ALSPGrad{typeof(X[1,1])}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
 		end
 		!quiet && println("NMF Converged: " * string(nmf_result.converged))

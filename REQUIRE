@@ -3,6 +3,7 @@ DocumentFunction
 ReusableFunctions
 JuMP 0.15
 Ipopt 0.2.6
+NLopt
 NMF 0.2.5
 Clustering 0.7.0
 Distances 0.3.2
