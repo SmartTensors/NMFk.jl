@@ -10,6 +10,7 @@ import ReusableFunctions
 
 const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
 
+quiet = true
 restart = false
 
 include("NMFkCluster.jl")
