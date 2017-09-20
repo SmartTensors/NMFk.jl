@@ -1,14 +1,15 @@
 "Convert stable isotope deltas to concentrations"
 function getisotopeconcentration(delta::Union{Number,Vector,Matrix}, deltastandard::Union{Number,Vector}, concentration_species::Union{Number,Vector,Matrix}, scalefactor::Union{Number,Vector}=ones(length(deltastandard)))
 	lsd = length(size(delta))
+	lds = length(deltastandard)
 	if lsd == 1 || (lsd == 2 && size(delta)[2] == 1)
 		@assert size(delta)[1] == length(concentration_species)
-		@assert length(deltastandard) == 1
+		@assert lds == 1
 	elseif lsd == 2
 		@assert size(delta) == size(concentration_species)
-		@assert size(delta)[2] == length(deltastandard)
+		@assert size(delta)[2] == lds
 	end
-	if lsd > 0
+	if lds > 1
 		Adeltastandard = repeat(collect(deltastandard), outer=[1,size(delta)[1]])'
 		Ascalefactor = repeat(collect(scalefactor), outer=[1,size(delta)[1]])'
 	else
@@ -22,14 +23,15 @@ end
 "Convert stable isotope concentrations to deltas"
 function getisotopedelta(concentration_isotope::Union{Number,Vector,Matrix}, deltastandard::Union{Number,Vector}, concentration_species::Union{Number,Vector,Matrix}, scalefactor::Union{Number,Vector}=ones(length(deltastandard)))
 	lsd = length(size(concentration_isotope))
+	lds = length(deltastandard)
 	if lsd == 1 || (lsd == 2 && size(concentration_isotope)[2] == 1)
 		@assert size(concentration_isotope)[1] == length(concentration_species)
-		@assert length(deltastandard) == 1
+		@assert lds == 1
 	elseif lsd == 2
 		@assert size(concentration_isotope) == size(concentration_species)
-		@assert size(concentration_isotope)[2] == length(deltastandard)
+		@assert size(concentration_isotope)[2] == lds
 	end
-	if lsd > 0
+	if lds > 1
 		Adeltastandard = repeat(collect(deltastandard), outer=[1,size(concentration_isotope)[1]])'
 		Ascalefactor = repeat(collect(scalefactor), outer=[1,size(concentration_isotope)[1]])'
 	else

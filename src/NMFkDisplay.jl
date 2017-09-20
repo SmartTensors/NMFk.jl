@@ -24,7 +24,7 @@ function plotmatrix(A::Matrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixel
 	return ax, w, h
 end
 
-function plotequation(X::Matrix, W::Matrix, H::Matrix, fig::PyPlot.Figure; x0::Number=-0.05, y0::Number=0.05, pixelsize::Number=0.12, alpha::Number=1)
+function plotequation(X::Matrix, W::Matrix, H::Matrix, fig::PyPlot.Figure; x0::Number=-0.05, y0::Number=0.05, pixelsize::Number=0.10, alpha::Number=1)
 	owh, oww = size(W)
 	ohh, ohw = size(H)
 	#fig[:text](x0, y0, "×", fontsize=75, va="center")

@@ -1,6 +1,6 @@
 import JuMP
 import Ipopt
-# import NLopt
+import NLopt
 
 const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
