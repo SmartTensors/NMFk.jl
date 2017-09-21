@@ -15,7 +15,8 @@ module NMFk
 
 	include("NMFkCluster.jl")
 	include("NMFkGeoChem.jl")
-	include("NMFkMixMatch.jl")
+	include("NMFkMixMatrix.jl")
+	include("NMFkMixTensor.jl")
 	include("NMFkJuMP.jl")
 	include("NMFkMatrix.jl")
 	include("NMFkExecute.jl")
