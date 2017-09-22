@@ -25,7 +25,7 @@ end
 	numberofratios = size(ratiocomponents, 2)
 	for i = 1:size(mixerestimate, 1)
 		for j = 1:numberofratios
-			ratioratio = predictedconcs[i, ratiocomponents[1, j]] / predictedconcs[i, ratiocomponents[2, j]] / ratios[i, j]
+			ratioratio = predictedconcs[i, ratiocomponents[j, 1]] / predictedconcs[i, ratiocomponents[j, 2]] / ratios[i, j]
 			@Base.Test.test ratioratio > .4 # get the ratio within a factor of 2
 			@Base.Test.test ratioratio < 4.
 		end
@@ -74,12 +74,12 @@ end
 		buckets = convert(Array{Float32, 2}, [0.001 1. .03 1.; .01 1. .0001 1.])
 		truedata = mixer * buckets
 		data = fill(NaN, size(truedata))
-		ratiocomponents = Int[1 3; 2 4]
-		numberofratios = size(ratiocomponents, 2)
+		ratiocomponents = Int[1 3; 2 4]'
+		numberofratios = size(ratiocomponents, 1)
 		ratiomatrix = Array{Float32, 2}(nummixtures, numberofratios)
 		for i = 1:nummixtures
 			for j = 1:numberofratios
-				ratiomatrix[i, j] = truedata[i, ratiocomponents[1, j]] / truedata[i, ratiocomponents[2, j]]
+				ratiomatrix[i, j] = truedata[i, ratiocomponents[j, 1]] / truedata[i, ratiocomponents[j, 2]]
 			end
 		end
 		runtest(convert(Array{Float32, 2}, data), buckets, ratiomatrix; conccomponents=Int[], ratiocomponents=ratiocomponents)
@@ -100,12 +100,12 @@ end
 		data = fill(NaN, size(truedata))
 		data[:, 1] = truedata[:, 1] # we only observe concentrations for the first constituent
 		data[:, end] = truedata[:, end] # we only observe concentrations for the last constituent
-		ratiocomponents = Int[1 3; 2 6]
-		numberofratios = size(ratiocomponents, 2)
+		ratiocomponents = Int[1 3; 2 6]'
+		numberofratios = size(ratiocomponents, 1)
 		ratiomatrix = Array{Float32, 2}(nummixtures, numberofratios)
 		for i = 1:nummixtures
 			for j = 1:numberofratios
-				ratiomatrix[i, j] = truedata[i, ratiocomponents[1, j]] / truedata[i, ratiocomponents[2, j]]
+				ratiomatrix[i, j] = truedata[i, ratiocomponents[j, 1]] / truedata[i, ratiocomponents[j, 2]]
 			end
 		end
 		runtest(convert(Array{Float32, 2}, data), buckets, ratiomatrix; conccomponents=Int[1, 6], ratiocomponents=ratiocomponents)

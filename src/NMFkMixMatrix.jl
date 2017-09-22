@@ -33,23 +33,31 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	else
 		sr = size(ratioindices)
 		if length(sr) == 1
-			numberofpairs = sr[1]
-			numberofratios = 1
+			numberofpairs = 1
+			numberofratios = sr[1]
 		else
-			numberofpairs, numberofratios = sr
+			numberofratios, numberofpairs = sr
 		end
 		@assert numberofpairs == 2
+		isn = isnan
+		ratiosweightmatrix = similar(ratios)
+		ratiosweightmatrix .= ratiosweight
 		for i=1:nummixtures
 			for j=1:numberofratios
-				r1 = ratioindices[1, j]
-				r2 = ratioindices[2, j]
-				if isnan(concentrations[i, r1]) && isnan(concentrations[i, r2])
-					concentrations[i, r1] = ratios[i,j]
+				r1 = ratioindices[j, 1]
+				r2 = ratioindices[j, 2]
+				if isnan(ratios[i, j]) || ratios[i, j] == 0
+					ratiosweightmatrix[i, j] = 0
+					ratios[i, j] = 0
+					concentrations[i, r1] = 1
+					concentrations[i, r2] = 1
+				elseif isnan(concentrations[i, r1]) && isnan(concentrations[i, r2])
+					concentrations[i, r1] = ratios[i, j]
 					concentrations[i, r2] = 1
 				elseif isnan(concentrations[i, r2])
-					concentrations[i, r2] = concentrations[i, r1] / ratios[i,j]
+					concentrations[i, r2] = concentrations[i, r1] / ratios[i, j]
 				elseif isnan(concentrations[i, r1])
-					concentrations[i, r1] = concentrations[i, r2] * ratios[i,j]
+					concentrations[i, r1] = concentrations[i, r2] * ratios[i, j]
 				end
 			end
 		end
@@ -108,10 +116,10 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		@JuMP.NLobjective(m, Min,
 			regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 			sum(sum(concweights[i, j] * (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j])^2 for i=1:nummixtures) for j=1:numconstituents) +
-			sum(sum(ratiosweight *
+			sum(sum(ratiosweightmatrix[i, j] *
 					(sum(mixer[i, k] * buckets[k, c1] for k=1:numbuckets) / sum(mixer[i, k] * buckets[k, c2]
 					for k=1:numbuckets) - ratios[i, j])^2 for i=1:nummixtures)
-					for (j, c1, c2) in zip(1:numberofratios, ratioindices[1,:], ratioindices[2,:])))
+					for (j, c1, c2) in zip(1:numberofratios, ratioindices[:,1], ratioindices[:,2])))
 	end
 	oldcolval = copy(m.colVal)
 	if movie
@@ -147,9 +155,9 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	end
 	!quiet && @show of_best
 	fitquality = of_best - regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
-	if !quiet && sizeod(ratios) > 0
+	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
-		for (j, c1, c2) in zip(1:numberofratios, ratioindices[1,:], ratioindices[2,:])
+		for (j, c1, c2) in zip(1:numberofratios, ratioindices[:, 1], ratioindices[:, 2])
 			for i = 1:nummixtures
 				s1 = 0
 				s2 = 0
@@ -157,10 +165,13 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 					s1 += mixerval[i, k] * bucketval[k, c1]
 					s2 += mixerval[i, k] * bucketval[k, c2]
 				end
-				ratiosreconstruction2 += ratiosweight * (s1/s2 - ratios[i, j])^2
+				ratiosreconstruction += ratiosweight * (s1/s2 - ratios[i, j])^2
 			end
 		end
 		@show ratiosreconstruction
+	end
+	if sizeof(ratios) > 0
+		ratios[ratios.==0] = NaN32
 	end
 	if normalize
 		bucketval = denormalizematrix(bucketval, mixerval, cmin, cmax)
