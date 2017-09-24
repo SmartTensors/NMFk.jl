@@ -179,7 +179,7 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 			!fixH && (Hbest = JuMP.getvalue(H))
 			ofbest = of
 		end
-		objvalue = ofbest - regularizationweight * sum(log(1. + Hbest).^2) / nk
+		objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 		!quiet && @show of, norm(oldcolval - m.colVal), objvalue
 	end
 	!quiet && @show ofbest

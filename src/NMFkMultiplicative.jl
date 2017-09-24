@@ -33,7 +33,7 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-1
 	end
 
 	# maxinc = 0
-	index = Array(Int, m)
+	index = Array{Int}(m)
 	for i=1:maxiter
 		# X1 = repmat(sum(W, 1)', 1, m)
 		H = H .* (W' * (X ./ (W * H))) ./ sum(W, 1)'
@@ -55,8 +55,8 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=true, tol::Float64=1e-1
 				!quiet && println("Converged by tolerance: number of iterations $(i) $(objvalue)")
 				break
 			end
-			H = max(H, eps())
-			W = max(W, eps())
+			H = max.(H, eps())
+			W = max.(W, eps())
 			for q = 1:m
 				index[q] = indmax(H[:, q])
 			end

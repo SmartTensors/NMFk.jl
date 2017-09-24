@@ -8,7 +8,7 @@ function bootstrap(X::Array, scale::Number=0.1, epsilon::Number=sqrt(eps()))
 		n = sum(r)
 		p = r ./ n
 		v = Distributions.Multinomial(n, p)
-		N[:, i] = float(max(rand(v) .* scale, epsilon))
+		N[:, i] = float(max.(rand(v) .* scale, epsilon))
 	end
 	return N
 end
