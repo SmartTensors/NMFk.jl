@@ -108,7 +108,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	if runflag
 		if nprocs() > 1 && !serial
-			kw_dict = Dict(kw)
+			kw_dict = Dict(key=>value for (key, value) in kw)
 			if haskey(kw_dict, :seed)
 				delete!(kw_dict, :seed)
 				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios,  mixture=mixture, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)), 1:nNMF)
@@ -126,7 +126,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			WBig = Vector{Matrix}(nNMF)
 			HBig = Vector{Matrix}(nNMF)
 			objvalue = Array{Float64}(nNMF)
-			kw_dict = Dict(kw)
+			kw_dict = Dict(key=>value for (key, value) in kw)
 			if haskey(kw_dict, :seed)
 				delete!(kw_dict, :seed)
 				for i = 1:nNMF
