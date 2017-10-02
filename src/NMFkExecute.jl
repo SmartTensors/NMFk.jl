@@ -108,7 +108,13 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	if runflag
 		if nprocs() > 1 && !serial
-			r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios,  mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
+			kw_dict = Dict(kw)
+			if haskey(kw_dict, :seed)
+				delete!(kw_dict, :seed)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios,  mixture=mixture, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)), 1:nNMF)
+			else
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios,  mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
+			end
 			WBig = Vector{Matrix}(nNMF)
 			HBig = Vector{Matrix}(nNMF)
 			for i in 1:nNMF
@@ -120,8 +126,16 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			WBig = Vector{Matrix}(nNMF)
 			HBig = Vector{Matrix}(nNMF)
 			objvalue = Array{Float64}(nNMF)
-			for i = 1:nNMF
-				WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, kw...)
+			kw_dict = Dict(kw)
+			if haskey(kw_dict, :seed)
+				delete!(kw_dict, :seed)
+				for i = 1:nNMF
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)
+				end
+			else
+				for i = 1:nNMF
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, kw...)
+				end
 			end
 		end
 	end
