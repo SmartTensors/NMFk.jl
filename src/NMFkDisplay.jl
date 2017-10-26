@@ -99,22 +99,39 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::String="", movie::Bo
 	PyPlot.close(fig)
 end
 
-function setnewfilename(filename::String, frame::Integer=0)
+function setnewfilename(filename::String, frame::Integer=0; keyword::String="frame")
 	dir = dirname(filename)
 	fn = splitdir(filename)[end]
-	ext = split(fn, ".")[end]
-	if ismatch(r"-frame[0-9]*\..*$", fn)
-		rm = match(r"-frame([0-9]*)\..*$", fn)
+	fs = split(fn, ".")
+	if length(fs) == 1
+		root = fs[1]
+		ext = ""
+	else
+		root = join(fs[1:end-1], ".")
+		ext = fs[end]
+	end
+	if ext == ""
+		ext = "png"
+		fn = fn * "." * ext
+	end
+	if !contains(fn, keyword)
+		fn = root * "-$(keyword)0000." * ext
+	end
+	if ismatch(Regex(string("-", keyword, "[0-9]*\..*\$")), fn)
+		rm = match(Regex(string("-", keyword, "([0-9]*)\.(.*)\$")), fn)
 		if frame == 0
 			v = parse(Int, rm.captures[1]) + 1
 		else
 			v = frame
 		end
+		@show rm.captures[1]
+		@show length(rm.captures[1])
 		l = length(rm.captures[1])
 		f = "%0" * string(l) * "d"
-		filename = "$(fn[1:rm.offset-1])-frame$(sprintf(f, v)).$ext"
+		filename = "$(fn[1:rm.offset-1])-$(keyword)$(sprintf(f, v)).$(rm.captures[2])"
 		return joinpath(dir, filename)
 	else
+		warn("setnewfilename failed!")
 		return ""
 	end
 end
