@@ -124,8 +124,6 @@ function setnewfilename(filename::String, frame::Integer=0; keyword::String="fra
 		else
 			v = frame
 		end
-		@show rm.captures[1]
-		@show length(rm.captures[1])
 		l = length(rm.captures[1])
 		f = "%0" * string(l) * "d"
 		filename = "$(fn[1:rm.offset-1])-$(keyword)$(sprintf(f, v)).$(rm.captures[2])"
