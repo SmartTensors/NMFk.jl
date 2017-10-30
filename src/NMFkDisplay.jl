@@ -66,7 +66,7 @@ function plotequation643(X::Matrix, W::Matrix, H::Matrix, fig::PyPlot.Figure; x0
 	ax[:text](x0 + w + ww + wh + pixelsize * 1.5, h + 1.5 * pixelsize, "H", fontsize=50, va="center", ha="center")
 end
 
-function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::String="", movie::Bool=false, frame::Integer=0)
+function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::AbstractString="", movie::Bool=false, frame::Integer=0)
 	nr, nk = size(W)
 	nk, nc = size(H)
 	fig, throwawayax = PyPlot.subplots(figsize=(16,9))
@@ -99,7 +99,7 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::String="", movie::Bo
 	PyPlot.close(fig)
 end
 
-function setnewfilename(filename::String, frame::Integer=0; keyword::String="frame")
+function setnewfilename(filename::AbstractString, frame::Integer=0; keyword::AbstractString="frame")
 	dir = dirname(filename)
 	fn = splitdir(filename)[end]
 	fs = split(fn, ".")

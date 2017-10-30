@@ -13,7 +13,7 @@ function load(range::UnitRange{Int}, nNMF::Integer=10; kw...)
 end
 
 "Execute NMFk analysis for a given number of sources"
-function load(nk::Integer, nNMF::Integer=10; casefilename::String="", kw...)
+function load(nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", kw...)
 	if casefilename != ""
 		filename = "$casefilename-$nk-$nNMF.jld"
 		if isfile(filename)

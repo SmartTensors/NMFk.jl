@@ -29,7 +29,7 @@ function processdata(data::Matrix, n::Int, components::Array{Any, 1})
 	return vbox(components)
 end
 
-function processdata(s::String, n::Int, components::Array{Any, 1})
+function processdata(s::AbstractString, n::Int, components::Array{Any, 1})
 	push!(components, plaintext(s))
 	return vbox(components)
 end
