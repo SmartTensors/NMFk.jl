@@ -18,10 +18,10 @@ function execute(X::Matrix, range::UnitRange{Int}, nNMF::Integer=10; kw...)
 end
 
 "Execute NMFk analysis for a given number of sources"
-function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
+function execute(X::Matrix, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
 	runflag = true
 	if load && casefilename != ""
-		filename = "$casefilename-$nk-$nNMF.jld"
+		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if isfile(filename)
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			save = false
@@ -33,7 +33,10 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::Abstrac
 	end
 	println("Sources: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
 	if save && casefilename != ""
-		filename = "$casefilename-$nk-$nNMF.jld"
+		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
+		if !isdir(resultdir)
+			mkdir(resultdir)
+		end
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	end
 	return W, H, fitquality, robustness, aic
