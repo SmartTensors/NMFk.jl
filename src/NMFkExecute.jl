@@ -18,7 +18,7 @@ function execute(X::Matrix, range::UnitRange{Int}, nNMF::Integer=10; kw...)
 end
 
 "Execute NMFk analysis for a given number of sources"
-function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String="", save::Bool=true, load::Bool=false, kw...)
+function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
 	runflag = true
 	if load && casefilename != ""
 		filename = "$casefilename-$nk-$nNMF.jld"
@@ -40,7 +40,7 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; casefilename::String=
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::String="", loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
 	indexnan = isnan.(X)
