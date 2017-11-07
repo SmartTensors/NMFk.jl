@@ -132,9 +132,10 @@ function clustersolutions_old(W::Vector, clusterweights::Bool)
 	end
 	return idx, centroids'
 end
+
 function clustersolutions_old(W::Matrix, nNMF::Integer)
 	nP, nT = size(W) # number of observations (components/transients), number of total number of sources to cluster
-	nk = convert(Int, nT / nNMF )
+	nk = convert(Int, nT / nNMF)
 
 	centroids = W[:, 1:nk]
 	idx = Array{Int}(nk, nNMF)
@@ -163,7 +164,7 @@ function clustersolutions_old(W::Matrix, nNMF::Integer)
 		centroids = zeros(nP, nk)
 		for centroidID = 1:nk
 			for globalIterID = 1:nNMF
-     centroids[:, centroidID] += W[:, findin(idx[:, globalIterID], centroidID) + (globalIterID - 1) * nk]
+				centroids[:, centroidID] += W[:, findin(idx[:, globalIterID], centroidID) + (globalIterID - 1) * nk]
 			end
 		end
 		centroids ./= nNMF
