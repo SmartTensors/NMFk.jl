@@ -12,7 +12,7 @@ end
 function bootstrapping!(X::Array, epsilon::Number=sqrt(eps()))
 	for i in 1:size(X, 2)
 		n = sum(X[:, i])
-		p = (X[:, i] ./ n)
+		p = X[:, i] ./ n
 		v = Distributions.Multinomial(convert(Int64, round(n)), p)
 		X[:, i] = float(max.(rand(v), epsilon))
 	end
