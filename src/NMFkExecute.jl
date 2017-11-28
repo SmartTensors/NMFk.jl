@@ -148,10 +148,6 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			end
 		end
 	end
-	if saveall && casefilename != ""
-		filename = "$casefilename-$nk-$nNMF-all.jld"
-		JLD.save(filename, "W", WBig, "H", HBig, "fit", objvalue)
-	end
 	!quiet && println("Best  objective function = $(minimum(objvalue))")
 	!quiet && println("Worst objective function = $(maximum(objvalue))")
 	bestIdx = indmin(objvalue)
@@ -205,7 +201,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			info("Cluster centroids:")
 			display(M)
 		end
-		Wa, Ha, clustersilhouettes = NMFk.finalize(WBig[solind], HBig[solind], clusterassignments, clusterweights)
+		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[solind], HBig[solind], clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
 		if !quiet
 			info("Silhouettes for each of the $nk sources:" )
@@ -214,7 +210,13 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			println("Min  silhouette = ", minimum(clustersilhouettes))
 		end
 	else
+		Wv = NaN
+		Hv = NaN
 		Wa, Ha = NMFk.finalize(WBig[solind], HBig[solind])
+	end
+	if saveall && casefilename != ""
+		filename = "$casefilename-$nk-$nNMF-all.jld"
+		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
 	end
 	if best
 		Wa = Wbest

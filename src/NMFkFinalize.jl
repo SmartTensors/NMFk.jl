@@ -18,13 +18,20 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool)
 	clustersilhouettes = Array{Float64}(nk, 1)
 	W = Array{Float64}(nP, nk)
 	H = Array{Float64}(nk, nC)
+	Wvar = Array{Float64}(nP, nk)
+	Hvar = Array{Float64}(nk, nC)
 	for k = 1:nk
-		indices = findin(idx_r, k)
-		clustersilhouettes[k] = mean(silhouettes[indices])
-		W[:, k] = mean(hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idx[k, :])...), 2)
-		H[k, :] = mean(hcat(map((i, j)->Ha[i][j, :], 1:nNMF, idx[k, :])...), 2)
+		idxk = findin(idx, k)
+		clustersilhouettes[k] = mean(silhouettes[idxk])
+		idxkk = vcat(map(i->findin(idx[:,i], k), 1:nNMF)...)
+		ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
+		hs = hcat(map((i, j)->Ha[i][j, :], 1:nNMF, idxkk)...)
+		H[k, :] = mean(hs, 2)
+		W[:, k] = mean(ws, 2)
+		Wvar[:, k] = var(ws, 2)
+		Hvar[k, :] = var(hs, 2)
 	end
-	return W, H, clustersilhouettes
+	return W, H, clustersilhouettes, Wvar, Hvar
 end
 function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterweights::Bool)
 	nP = size(Wa, 1) # number of observation points (samples)
@@ -44,13 +51,17 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterwei
 	clustersilhouettes = Array{Float64}(nk, 1)
 	W = Array{Float64}(nP, nk)
 	H = Array{Float64}(nk, nC)
+	Wvar = Array{Float64}(nP, nk)
+	Hvar = Array{Float64}(nk, nC)
 	for k = 1:nk
-		indices = findin(idx_r, k)
-		clustersilhouettes[k] = mean(silhouettes[indices])
-		W[:, k] = mean(Wa[:, indices], 2)
-		H[k, :] = mean(Ha[indices, :], 1)
+		idxk = findin(idx, k)
+		clustersilhouettes[k] = mean(silhouettes[idxk])
+		W[:, k] = mean(Wa[:, idxk], 2)
+		H[k, :] = mean(Ha[idxk, :], 1)
+		Wvar[:, k] = var(Wa[:, idxk], 2)
+		Hvar[k, :] = var(Ha[idxk, :], 1)
 	end
-	return W, H, clustersilhouettes
+	return W, H, clustersilhouettes, Wvar, Hvar
 end
 function finalize(Wa::Matrix, Ha::Matrix)
 	W = mean(Wa, 2)
