@@ -134,7 +134,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	of_best = of
 	iters = 0
 	frame = 2
-	while !(norm(oldcolval - m.colVal) < tolX) && !(of_best < tol)
+	while !(norm(oldcolval - m.colVal) < tolX) && !(of_best < tol) && iters < maxouteriters
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
 		if movie
@@ -147,6 +147,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		of = JuMP.getobjectivevalue(m)
 		!quiet && @show of
 		if of < of_best
+			iters = 0
 			mixerval = JuMP.getvalue(mixer)
 			bucketval = JuMP.getvalue(buckets)
 			of_best = of
@@ -168,7 +169,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 				ratiosreconstruction += ratiosweight * (s1/s2 - ratios[i, j])^2
 			end
 		end
-		@show ratiosreconstruction
+		!quiet && @show ratiosreconstruction
 	end
 	if sizeof(ratios) > 0
 		ratios[ratios.==0] = NaN32
@@ -316,6 +317,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 		of = JuMP.getobjectivevalue(m)
 		!quiet && @show of
 		if of < of_best
+			iters = 0
 			mixerval = JuMP.getvalue(mixer)
 			bucketval = JuMP.getvalue(buckets)
 			bucketdeltasval = JuMP.getvalue(bucketdeltas)
