@@ -151,8 +151,8 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	!quiet && println("Best  objective function = $(minimum(objvalue))")
 	!quiet && println("Worst objective function = $(maximum(objvalue))")
 	bestIdx = indmin(objvalue)
-	Wbest = WBig[bestIdx]
-	Hbest = HBig[bestIdx]
+	Wbest = copy(WBig[bestIdx])
+	Hbest = copy(HBig[bestIdx])
 	println()
 	if acceptratio < 1
 		ratind = sortperm(objvalue) .<= (nNMF * acceptratio)
@@ -197,6 +197,11 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			display(clusterassignments)
 			info("Cluster centroids:")
 			display(M)
+		end
+		ci = clusterassignments[:, bestIdx]
+		for (i, c) in enumerate(ci)
+			Wbest[:, i] = WBig[bestIdx][:, c]
+			Hbest[i, :] = HBig[bestIdx][c, :]
 		end
 		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[solind], HBig[solind], clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)

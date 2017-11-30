@@ -2,7 +2,7 @@ import JuMP
 import Ipopt
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), initA::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
 		srand(seed)
 	end
@@ -19,37 +19,10 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 	else
 		concweights = ones(Float32, size(concentrations))
 	end
-	nummixtures, numconstituents = size(concentrations)
+	numtimes, nummixtures, numconstituents = size(concentrations)
 	nans = isnan.(concentrations)
 	concweights[nans] = 0
-	if sizeof(ratios) == 0
-		concentrations[nans] = 0
-	else
-		sr = size(ratioindices)
-		if length(sr) == 1
-			numberofpairs = sr[1]
-			numberofratios = 1
-		else
-			numberofpairs, numberofratios = sr
-		end
-		@assert numberofpairs == 2
-		for i=1:nummixtures
-			for j=1:numberofratios
-				r1 = ratioindices[1, j]
-				r2 = ratioindices[2, j]
-				if isnan(concentrations[i, r1]) && isnan(concentrations[i, r2])
-					concentrations[i, r1] = ratios[i,j]
-					concentrations[i, r2] = 1
-				elseif isnan(concentrations[i, r2])
-					concentrations[i, r2] = concentrations[i, r1] / ratios[i,j]
-				elseif isnan(concentrations[i, r1])
-					concentrations[i, r1] = concentrations[i, r2] * ratios[i,j]
-				end
-			end
-		end
-		nans = isnan.(concentrations)
-		concentrations[nans] = 0
-	end
+	concentrations[nans] = 0
 	if sizeof(initW) == 0
 		if random
 			initW = rand(Float32, nummixtures, numbuckets)
@@ -57,25 +30,32 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 			initW = ones(Float32, nummixtures, numbuckets) / numbuckets
 		end
 	end
+	if sizeof(initA) == 0
+		if random
+			initA = rand(Float32, numtimes, numbuckets)
+		else
+			initA = ones(Float32, numtimes, numbuckets) / numbuckets
+		end
+	end
 	if sizeof(initH) == 0
 		if random
 			if scale || normalize
-				initH = rand(Float32, numbuckets, numconstituents)
+				initH = rand(Float32, numconstituents, numbuckets)
 			else
 				max = maximum(concentrations, 1)
-				initH = rand(Float32, numbuckets, numconstituents)
+				initH = rand(Float32, numconstituents, numbuckets)
 				for i=1:numbuckets
-					initH[i:i,:] .*= max
+					initH[:,i:i] .*= max
 				end
 			end
 		else
 			if scale || normalize
-				initH = ones(Float32, numbuckets, numconstituents) / 2
+				initH = ones(Float32, numconstituents, numbuckets) / 2
 			else
 				max = maximum(concentrations, 1)
-				initH = Array{Float32}(numbuckets, numconstituents)
+				initH = Array{Float32}(numconstituents, numbuckets)
 				for i=1:numbuckets
-					initH[i:i,:] = max
+					initH[:,i:i] = max
 				end
 			end
 		end
