@@ -198,6 +198,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			info("Cluster centroids:")
 			display(M)
 		end
+		bestIdx = indmin(objvalue[solind])
 		ci = clusterassignments[:, bestIdx]
 		for (i, c) in enumerate(ci)
 			Wbest[:, i] = WBig[bestIdx][:, c]
