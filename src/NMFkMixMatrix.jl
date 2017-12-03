@@ -106,7 +106,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	end
 	@JuMP.constraint(m, mixer .>= 0)
 	for i = 1:nummixtures
-		@JuMP.constraint(m, sum(mixer[i, k] for k=1:numbuckets) == 1.)
+		@JuMP.constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
 	end
 	if sizeof(ratios) == 0
 		@JuMP.NLobjective(m, Min,
