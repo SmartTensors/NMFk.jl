@@ -4,9 +4,9 @@ function test()
 end
 
 "Execute NMFk analysis for a range of number of sources"
-function execute(X::Matrix, range::UnitRange{Int}, nNMF::Integer=10; kw...)
+function execute(X::T, range::UnitRange{Int}, nNMF::Integer=10; kw...) where {T <: Array}
 	maxsources = maximum(collect(range))
-	W = Array{Array{Float64, 2}}(maxsources)
+	W = Array{T}(maxsources)
 	H = Array{Array{Float64, 2}}(maxsources)
 	fitquality = Array{Float64}(maxsources)
 	robustness = Array{Float64}(maxsources)
@@ -18,7 +18,7 @@ function execute(X::Matrix, range::UnitRange{Int}, nNMF::Integer=10; kw...)
 end
 
 "Execute NMFk analysis for a given number of sources"
-function execute(X::Matrix, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
+function execute(X::Union{Matrix,Array}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
 	runflag = true
 	if load && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
@@ -43,9 +43,140 @@ function execute(X::Matrix, nk::Integer, nNMF::Integer=10; resultdir::AbstractSt
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
+function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
+	# ipopt=true is equivalent to mixmatch = true && mixtures = false
+	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources (signals) ...")
+	indexnan = isnan.(X)
+	runflag = true
+	if loadall && casefilename != ""
+		filename = "$casefilename-$nk-$nNMF-all.jld"
+		if isfile(filename)
+			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
+			saveall = false
+			runflag = false
+		end
+	end
+	if runflag
+		if nprocs() > 1 && !serial
+			kw_dict = Dict()
+			for (key, value) in kw
+				kw_dict[key] = value
+			end
+			if haskey(kw_dict, :seed)
+				delete!(kw_dict, :seed)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)), 1:nNMF)
+			else
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, method=method, algorithm=algorithm, kw...)), 1:nNMF)
+			end
+			WBig = Vector{Array}(nNMF)
+			HBig = Vector{Matrix}(nNMF)
+			for i in 1:nNMF
+				WBig[i] = r[i][1]
+				HBig[i] = r[i][2]
+			end
+			objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
+		else
+			WBig = Vector{Array}(nNMF)
+			HBig = Vector{Matrix}(nNMF)
+			objvalue = Array{Float64}(nNMF)
+			kw_dict = Dict()
+			for (key, value) in kw
+				kw_dict[key] = value
+			end
+			if haskey(kw_dict, :seed)
+				delete!(kw_dict, :seed)
+				for i = 1:nNMF
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, seed=seed+i, kw_dict...)
+				end
+			else
+				for i = 1:nNMF
+					WBig[i], HBig[i], objvalue[i] = NMFk.mixmatchdata(X, nk; quiet=true, kw...)
+				end
+			end
+		end
+	end
+	!quiet && println("Best  objective function = $(minimum(objvalue))")
+	!quiet && println("Worst objective function = $(maximum(objvalue))")
+	bestIdx = indmin(objvalue)
+	Wbest = copy(WBig[bestIdx])
+	Hbest = copy(HBig[bestIdx])
+	println()
+	if acceptratio < 1
+		ratind = sortperm(objvalue) .<= (nNMF * acceptratio)
+		println("NMF solutions removed based on an acceptance ratio: $(sum(ratind)) out of $(nNMF) solutions")
+	else
+		ratind = trues(nNMF)
+	end
+	if acceptfactor < Inf
+		cutoff = objvalue[bestIdx] * acceptfactor
+		cutind = objvalue.<cutoff
+		println("NMF solutions removed based on an acceptance factor: $(sum(cutind)) out of $(nNMF) solutions")
+	else
+		cutind = trues(nNMF)
+	end
+	if VERSION < v"0.6"
+		solind = ratind & cutind
+	else
+		solind = ratind .& cutind
+	end
+	if solind != ratind && solind != cutind
+		println("NMF solutions removed based on acceptance criteria: $(sum(solind)) out of $(nNMF) solutions")
+	end
+	if solind != ratind || solind != cutind
+		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue))")
+	end
+	println("OF: min $(minimum(objvalue[solind])) max $(maximum(objvalue[solind])) mean $(mean(objvalue[solind])) std $(std(objvalue[solind]))")
+	Xe = NMFk.mixmatchcompute(X, Wbest, Hbest)
+	minsilhouette = 1
+	if nk > 1
+		clusterweights = false
+		clusterassignments, M = NMFk.clustersolutions(HBig[solind], clusterweights) # cluster based on the sources
+		if !quiet
+			info("Cluster assignments:")
+			display(clusterassignments)
+			info("Cluster centroids:")
+			display(M)
+		end
+		bestIdx = indmin(objvalue[solind])
+		ci = clusterassignments[:, bestIdx]
+		for (i, c) in enumerate(ci)
+			Wbest[:, i] = WBig[bestIdx][:, c]
+			Hbest[i, :] = HBig[bestIdx][c, :]
+		end
+		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[solind], HBig[solind], clusterassignments, clusterweights)
+		minsilhouette = minimum(clustersilhouettes)
+		if !quiet
+			info("Silhouettes for each of the $nk sources:" )
+			display(clustersilhouettes')
+			println("Mean silhouette = ", mean(clustersilhouettes))
+			println("Min  silhouette = ", minimum(clustersilhouettes))
+		end
+	else
+		Wv = NaN
+		Hv = NaN
+		Wa, Ha = NMFk.finalize(WBig[solind], HBig[solind])
+	end
+	if saveall && casefilename != ""
+		filename = "$casefilename-$nk-$nNMF-all.jld"
+		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
+	end
+	if best
+		Wa = Wbest
+		Ha = Hbest
+	end
+	E = abs.(X .- Xe)
+	E[isnan.(E)] = 0
+	phi_final = sum(E.^2)
+	numobservations = length(vec(X[map(!, indexnan)]))
+	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
+	numparameters -= (size(Wa)[1] + size(Wa)[3])
+	aic = 2 * numparameters + numobservations * log(phi_final/numobservations)
+	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
+	return Wa, Ha, phi_final, minsilhouette, aic
+end
 function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
-	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources ...")
+	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources (signals) ...")
 	indexnan = isnan.(X)
 	if any(indexnan) && (method != :ipopt && method != :nlopt && mixture == :null)
 		warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used (method=$(method)); Ipopt minimization will be performed!")
@@ -117,9 +248,9 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			end
 			if haskey(kw_dict, :seed)
 				delete!(kw_dict, :seed)
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios,  mixture=mixture, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)), 1:nNMF)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)), 1:nNMF)
 			else
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios,  mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
 			end
 			WBig = Vector{Matrix}(nNMF)
 			HBig = Vector{Matrix}(nNMF)
@@ -288,6 +419,9 @@ function execute_singlerun(x...; kw...)
 end
 
 "Execute single NMF run without restart"
+function execute_singlerun_compute(X::Array, nk::Int; kw...)
+	NMFk.mixmatchdata(X, nk; kw...)
+end
 function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, clusterweights::Bool=false, bootstrap::Bool=false, kw...)
 	if scale
 		if transpose
