@@ -90,7 +90,7 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 				end
 			else
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.mixmatchdata(X, nk; quiet=true, kw...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, kw...)
 				end
 			end
 		end
