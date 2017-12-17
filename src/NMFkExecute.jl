@@ -64,9 +64,9 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 			end
 			if haskey(kw_dict, :seed)
 				delete!(kw_dict, :seed)
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)), 1:nNMF)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=seed+i, kw_dict...)), 1:nNMF)
 			else
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, method=method, algorithm=algorithm, kw...)), 1:nNMF)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, kw...)), 1:nNMF)
 			end
 			WBig = Vector{Array}(nNMF)
 			HBig = Vector{Matrix}(nNMF)
