@@ -2,11 +2,10 @@ import JuMP
 import Ipopt
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
 		srand(seed)
 	end
-	concentrations = copy(concentrations_in)
 	if weightinverse
 		concweights = convert(Array{Float32,2}, 1. ./ concentrations)
 		zis = concentrations .== 0
@@ -107,6 +106,8 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 	end
 	!quiet && @show of_best
 	fitquality = of_best - regularizationweight * sum(log.(1. + H).^2) / numbuckets
+	concentrations[nans] = NaN32
+	setbadmixerelements!(concentrations, W)
 	if normalize
 		H = denormalizematrix(H, W, cmin, cmax)
 	elseif scale
@@ -116,6 +117,17 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 		NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
 	return abs.(convert(Array{Float32, 3}, W)), abs.(convert(Array{Float32, 2}, H)), fitquality
+end
+
+function setbadmixerelements!(X::Array, W::Array)
+	nw, nc, nt = size(X)
+	for t = 1:nt
+		for w = 1:nw
+			if !any(.!isnan.(X[w, :, t]))
+				W[w, :, t] = NaN32
+			end
+		end
+	end
 end
 
 function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Float32, 2})
