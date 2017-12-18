@@ -112,11 +112,10 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 	elseif scale
 		H = descalearray(H, cmax)
 	end
-	W[initW .== W] = NaN32
 	if movie
 		NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
-	return convert(Array{Float32, 3}, W), convert(Array{Float32, 2}, H), fitquality
+	return abs.(convert(Array{Float32, 3}, W)), abs.(convert(Array{Float32, 2}, H)), fitquality
 end
 
 function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Float32, 2})
