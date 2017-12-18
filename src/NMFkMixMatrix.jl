@@ -13,11 +13,6 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		srand(seed)
 	end
 	concentrations = copy(concentrations_in)
-	if normalize
-		concentrations, cmin, cmax = normalizematrix(concentrations)
-	elseif scale
-		concentrations, cmax = scalematrix(concentrations)
-	end
 	if weightinverse
 		concweights = convert(Array{Float32,2}, 1. ./ concentrations)
 		zis = concentrations .== 0
@@ -28,6 +23,11 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	nummixtures, numconstituents = size(concentrations)
 	nans = isnan.(concentrations)
 	concweights[nans] = 0
+	if normalize
+		concentrations, cmin, cmax = normalizematrix(concentrations)
+	elseif scale
+		concentrations, cmax = scalematrix(concentrations)
+	end
 	if sizeof(ratios) == 0
 		concentrations[nans] = 0
 	else
@@ -76,20 +76,20 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			if scale || normalize
 				initH = rand(Float32, numbuckets, numconstituents)
 			else
-				max = maximum(concentrations, 1)
+				maxc = maximum(concentrations, 1)
 				initH = rand(Float32, numbuckets, numconstituents)
 				for i=1:numbuckets
-					initH[i:i,:] .*= max
+					initH[i:i,:] .*= maxc
 				end
 			end
 		else
 			if scale || normalize
 				initH = ones(Float32, numbuckets, numconstituents) / 2
 			else
-				max = maximum(concentrations, 1)
+				maxc = maximum(concentrations, 1)
 				initH = Array{Float32}(numbuckets, numconstituents)
 				for i=1:numbuckets
-					initH[i:i,:] = max
+					initH[i:i,:] = maxc
 				end
 			end
 		end

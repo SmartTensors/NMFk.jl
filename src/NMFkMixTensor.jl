@@ -7,11 +7,6 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 		srand(seed)
 	end
 	concentrations = copy(concentrations_in)
-	if normalize
-		concentrations, cmin, cmax = normalizematrix(concentrations)
-	elseif scale
-		concentrations, cmax = scalematrix(concentrations)
-	end
 	if weightinverse
 		concweights = convert(Array{Float32,2}, 1. ./ concentrations)
 		zis = concentrations .== 0
@@ -23,6 +18,11 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 	nans = isnan.(concentrations)
 	concweights[nans] = 0
 	concentrations[nans] = 0
+	if normalize
+		concentrations, cmin, cmax = normalizearrar(concentrations)
+	elseif scale
+		concentrations, cmax = scalearray(concentrations)
+	end
 	if sizeof(initW) == 0
 		if random
 			initW = rand(Float32, nummixtures, numbuckets, ntimes)
@@ -35,10 +35,10 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 			if scale || normalize
 				initH = rand(Float32, numbuckets, numconstituents)
 			else
-				max = maximum(concentrations, 1)
+				maxconc = vec(maximum(concentrations, (1,3)))
 				initH = rand(Float32, numbuckets, numconstituents)
 				for i=1:numbuckets
-					initH[i:i, :] .*= max
+					initH[i:i, :] .*= maxconc
 				end
 			end
 		else
@@ -78,8 +78,8 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
 	status = JuMP.solve(m)
-	mixerval = JuMP.getvalue(mixer)
-	bucketval = JuMP.getvalue(buckets)
+	W = JuMP.getvalue(mixer)
+	H = JuMP.getvalue(buckets)
 	of = JuMP.getobjectivevalue(m)
 	!quiet && @show of
 	of_best = of
@@ -99,24 +99,24 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 		!quiet && @show of
 		if of < of_best
 			iters = 0
-			mixerval = JuMP.getvalue(mixer)
-			bucketval = JuMP.getvalue(buckets)
+			W = JuMP.getvalue(mixer)
+			H = JuMP.getvalue(buckets)
 			of_best = of
 		end
 		iters += 1
 	end
 	!quiet && @show of_best
-	fitquality = of_best - regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
+	fitquality = of_best - regularizationweight * sum(log.(1. + H).^2) / numbuckets
 	if normalize
-		bucketval = denormalizematrix(bucketval, mixerval, cmin, cmax)
+		H = denormalizematrix(H, W, cmin, cmax)
 	elseif scale
-		bucketval = descalematrix(bucketval, cmax)
+		H = descalearray(H, cmax)
 	end
-	mixerval[initW .== mixerval] = NaN32
+	W[initW .== W] = NaN32
 	if movie
-		NMFk.plotnmf(Xe, mixerval[:,movieorder], bucketval[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+		NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
-	return convert(Array{Float32, 3}, mixerval), convert(Array{Float32, 2}, bucketval), fitquality
+	return convert(Array{Float32, 3}, W), convert(Array{Float32, 2}, H), fitquality
 end
 
 function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Float32, 2})

@@ -20,14 +20,29 @@ end
 
 "Scale matrix (by rows)"
 function scalematrix(a::Matrix)
-	amax = maximum(abs(a), 1)
-	a = a ./ amax
+	amax = maximum(abs.(a), 1)
+	a ./= amax
+	return a, amax
+end
+
+"Scale array"
+function scalearray(a::Array)
+	amax = vec(maximum(abs.(a), (1,3)))
+	for i = 1:length(amax)
+		a[:, i, :] ./= amax[i]
+	end
 	return a, amax
 end
 
 "Descale matrix (by rows)"
 function descalematrix(a::Matrix, amax::Matrix)
-	a = a .* amax
+	a .*= amax
+	return a
+end
+
+"Descale matrix (by rows)"
+function descalearray(a::Matrix, amax::Vector)
+	a .*= amax'
 	return a
 end
 
