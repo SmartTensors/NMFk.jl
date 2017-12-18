@@ -38,17 +38,17 @@ function mixmatchdata(concentrations_in::Array{Float32, 3}, numbuckets::Int; met
 				max = maximum(concentrations, 1)
 				initH = rand(Float32, numbuckets, numconstituents)
 				for i=1:numbuckets
-					initH[i:i,:] .*= max
+					initH[i:i, :] .*= max
 				end
 			end
 		else
 			if scale || normalize
 				initH = ones(Float32, numbuckets, numconstituents) / 2
 			else
-				max = vec(maximum(concentrations, (1,3)))
+				maxconc = vec(maximum(concentrations, (1,3)))
 				initH = Array{Float32}(numbuckets, numconstituents)
 				for i=1:numbuckets
-					initH[i:i,:] = max
+					initH[i:i, :] = maxconc
 				end
 			end
 		end
