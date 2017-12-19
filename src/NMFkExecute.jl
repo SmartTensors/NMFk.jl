@@ -26,6 +26,8 @@ function execute(X::Union{Matrix,Array}, nk::Integer, nNMF::Integer=10; resultdi
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			save = false
 			runflag = false
+		else
+			info("File $filename is missing; runs will be executed!")
 		end
 	end
 	if runflag
