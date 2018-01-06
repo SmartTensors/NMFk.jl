@@ -1,5 +1,28 @@
 "Finalize the NMFk results"
-function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool)
+function finalize(Wa::Vector, idx::Matrix)
+	nNMF = length(Wa)
+	nk, nP = size(Wa[1]) # number of observation points (samples)
+	nT = nk * nNMF # total number of sources to cluster
+
+	idx_r = vec(reshape(idx, nT, 1))
+	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
+	WaDist = Distances.pairwise(Distances.CosineDist(), vcat(Wa...)')
+	silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+
+	clustersilhouettes = Array{Float64}(nk, 1)
+	W = Array{Float64}(nk, nP)
+	Wvar = Array{Float64}(nk, nP)
+	for k = 1:nk
+		idxk = findin(idx, k)
+		clustersilhouettes[k] = mean(silhouettes[idxk])
+		idxkk = vcat(map(i->findin(idx[:,i], k), 1:nNMF)...)
+		ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
+		W[:, k] = mean(ws, 2)
+		Wvar[:, k] = var(ws, 2)
+	end
+	return W, clustersilhouettes, Wvar
+end
+function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=false)
 	nNMF = length(Wa)
 	nP = size(Wa[1], 1) # number of observation points (samples)
 	nk, nC = size(Ha[1]) # number of sources / number of observations for each point (components/transients),
@@ -33,7 +56,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool)
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
-function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterweights::Bool)
+function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterweights::Bool=false)
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
 	nT = size(Ha, 1) # total number of sources to cluster

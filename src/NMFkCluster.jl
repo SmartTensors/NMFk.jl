@@ -1,6 +1,6 @@
 import Distances
 
-function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool)
+function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	if !clusterWeights
 		factors = [f' for f in factors]
 	end
@@ -85,7 +85,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool)
 end
 
 "Cluster NMFk solutions"
-function clustersolutions_old(W::Vector, clusterweights::Bool)
+function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 	nNMF = length(W)
 	nc, nr = size(W[1])
 	nk = clusterweights ? nr : nc
