@@ -148,7 +148,7 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[solind], HBig[solind], clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
 		if !quiet
-			info("Silhouettes for each of the $nk sources:" )
+			info("Silhouettes for each of the $nk clusters:" )
 			display(clustersilhouettes')
 			println("Mean silhouette = ", mean(clustersilhouettes))
 			println("Min  silhouette = ", minimum(clustersilhouettes))
@@ -340,7 +340,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[solind], HBig[solind], clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
 		if !quiet
-			info("Silhouettes for each of the $nk sources:" )
+			info("Silhouettes for each of the $nk clusters:" )
 			display(clustersilhouettes')
 			println("Mean silhouette = ", mean(clustersilhouettes))
 			println("Min  silhouette = ", minimum(clustersilhouettes))
