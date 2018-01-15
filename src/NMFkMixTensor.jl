@@ -2,7 +2,7 @@ import JuMP
 import Ipopt
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=false, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
 		srand(seed)
 	end
@@ -34,7 +34,7 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 			if scale || normalize
 				initH = rand(Float32, numbuckets, numconstituents)
 			else
-				maxconc = vec(maximum(concentrations, (1,3)))
+				maxconc = vec(maximum(concentrations, (1,3)))'
 				initH = rand(Float32, numbuckets, numconstituents)
 				for i=1:numbuckets
 					initH[i:i, :] .*= maxconc
@@ -44,7 +44,7 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 			if scale || normalize
 				initH = ones(Float32, numbuckets, numconstituents) / 2
 			else
-				maxconc = vec(maximum(concentrations, (1,3)))
+				maxconc = vec(maximum(concentrations, (1,3)))'
 				initH = Array{Float32}(numbuckets, numconstituents)
 				for i=1:numbuckets
 					initH[i:i, :] = maxconc
@@ -130,7 +130,7 @@ function setbadmixerelements!(X::Array, W::Array)
 	end
 end
 
-function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Float32, 2})
+function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Float32, 2}, isn=isnan.(X))
 	nummixtures, numconstituents, ntimes = size(X)
 	nummixtures2, numbuckets, ntimes2 = size(W)
 	numbuckets2, numconstituents2 = size(H)
@@ -148,6 +148,34 @@ function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Fl
 			end
 		end
 	end
-	Xe[isnan.(X)] = NaN
+	Xe[isn] = NaN
 	return Xe
+end
+
+function mixmatchcompute(W::Array{Float32, 3}, H::Array{Float32, 2})
+	nummixtures, numbuckets, ntimes = size(W)
+	numbuckets2, numconstituents = size(H)
+	@assert numbuckets == numbuckets2
+	Xe = zeros(nummixtures, numconstituents, ntimes)
+	for t=1:ntimes
+		for j=1:numconstituents
+			for i=1:nummixtures
+				for k=1:numbuckets
+					Xe[i, j, t] +=  W[i, k, t] * H[k, j]
+				end
+			end
+		end
+	end
+	return Xe
+end
+
+function fixmixers!(X::Array{Float32, 3}, W::Array{Float32, 3})
+	nw, nc, nt = size(X)
+	for t = 1:nt
+		for w = 1:nw
+			if !any(.!isnan.(X[w,:,t]))
+				W[w,:,t] = NaN
+			end
+		end
+	end
 end

@@ -420,10 +420,12 @@ function execute_singlerun(x...; kw...)
 	end
 end
 
-"Execute single NMF run without restart"
+"Execute single NTF run without restart"
 function execute_singlerun_compute(X::Array, nk::Int; kw...)
-	NMFk.mixmatchdata(X, nk; kw...)
+	NMFk.mixmatchdata(X, nk; random=true, kw...)
 end
+
+"Execute single NMF run without restart"
 function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, clusterweights::Bool=false, bootstrap::Bool=false, kw...)
 	if scale
 		if transpose
