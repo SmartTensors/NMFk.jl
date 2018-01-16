@@ -18,9 +18,9 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 	concweights[nans] = 0
 	concentrations[nans] = 0
 	if normalize
-		concentrations, cmin, cmax = normalizearrar(concentrations)
+		concentrations, cmin, cmax = normalizearrar!(concentrations)
 	elseif scale
-		concentrations, cmax = scalearray(concentrations)
+		concentrations, cmax = scalearray!(concentrations)
 	end
 	if sizeof(initW) == 0
 		if random
@@ -109,9 +109,9 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 	concentrations[nans] = NaN32
 	setbadmixerelements!(concentrations, W)
 	if normalize
-		H = denormalizematrix(H, W, cmin, cmax)
+		H = denormalizematrix!(H, W, cmin, cmax)
 	elseif scale
-		H = descalearray(H, cmax)
+		H = descalearray!(H, cmax)
 	end
 	if movie
 		NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)

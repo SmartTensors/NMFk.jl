@@ -429,10 +429,10 @@ end
 function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), deltas::Matrix{Float32}=Array{Float32}(0, 0), deltaindices::Vector{Int}=Array{Int}(0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, clusterweights::Bool=false, bootstrap::Bool=false, kw...)
 	if scale
 		if transpose
-			Xn, Xmax = NMFk.scalematrix(X)
+			Xn, Xmax = NMFk.scalematrix!(X)
 			Xn = Xn'
 		else
-			Xn, Xmax = NMFk.scalematrix(X)
+			Xn, Xmax = NMFk.scalematrix!(X)
 		end
 	else
 		if transpose
@@ -481,10 +481,10 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 	end
 	if scale
 		if transpose
-			W = NMFk.descalematrix(W, Xmax')
+			W = NMFk.descalematrix!(W, Xmax')
 			E = X' - W * H
 		else
-			H = NMFk.descalematrix(H, Xmax)
+			H = NMFk.descalematrix!(H, Xmax)
 			E = X - W * H
 		end
 		objvalue = sum(E.^2)

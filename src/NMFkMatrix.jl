@@ -1,5 +1,5 @@
 "Normalize matrix"
-function normalizematrix(a::Matrix)
+function normalizematrix!(a::Matrix)
 	amin = minimum(a, 1)
 	amax = maximum(a, 1)
 	dx = amax - amin
@@ -13,20 +13,20 @@ function normalizematrix(a::Matrix)
 end
 
 "Denormalize matrix"
-function denormalizematrix(a::Matrix, b::Matrix, amin::Matrix, amax::Matrix)
+function denormalizematrix!(a::Matrix, b::Matrix, amin::Matrix, amax::Matrix)
 	a = a .* (amax - amin) + pinv(b) * repeat(amin, outer=[size(b, 1), 1])
 	return a
 end
 
 "Scale matrix (by rows)"
-function scalematrix(a::Matrix)
+function scalematrix!(a::Matrix)
 	amax = maximum(abs.(a), 1)
 	a ./= amax
 	return a, amax
 end
 
 "Scale array"
-function scalearray(a::Array)
+function scalearray!(a::Array)
 	amax = vec(maximum(abs.(a), (1,3)))
 	for i = 1:length(amax)
 		a[:, i, :] ./= amax[i]
@@ -35,19 +35,19 @@ function scalearray(a::Array)
 end
 
 "Descale matrix (by rows)"
-function descalematrix(a::Matrix, amax::Matrix)
+function descalematrix!(a::Matrix, amax::Matrix)
 	a .*= amax
 	return a
 end
 
 "Descale matrix (by rows)"
-function descalearray(a::Matrix, amax::Vector)
+function descalearray!(a::Matrix, amax::Vector)
 	a .*= amax'
 	return a
 end
 
 "Scale matrix (by columns)"
-function scalematrix_col(a::Matrix)
+function scalematrix_col!(a::Matrix)
 	amax = maximum(abs(a), 2)
 	a = a ./ amax
 	return a, amax

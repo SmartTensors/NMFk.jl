@@ -24,9 +24,9 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	nans = isnan.(concentrations)
 	concweights[nans] = 0
 	if normalize
-		concentrations, cmin, cmax = normalizematrix(concentrations)
+		concentrations, cmin, cmax = normalizematrix!(concentrations)
 	elseif scale
-		concentrations, cmax = scalematrix(concentrations)
+		concentrations, cmax = scalematrix!(concentrations)
 	end
 	if sizeof(ratios) == 0
 		concentrations[nans] = 0
@@ -175,9 +175,9 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		ratios[ratios.==0] = NaN32
 	end
 	if normalize
-		bucketval = denormalizematrix(bucketval, mixerval, cmin, cmax)
+		bucketval = denormalizematrix!(bucketval, mixerval, cmin, cmax)
 	elseif scale
-		bucketval = descalematrix(bucketval, cmax)
+		bucketval = descalematrix!(bucketval, cmax)
 	end
 	if movie
 		Xe = mixerval * bucketval
@@ -208,11 +208,11 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	deltas[nans] = 0
 	deltasweights[nans] = 0
 	if normalize
-		concentrations, cmax = scalematrix(concentrations)
-		deltas, dmin, dmax = normalizematrix(deltas)
+		concentrations, cmax = scalematrix!(concentrations)
+		deltas, dmin, dmax = normalizematrix!(deltas)
 	elseif scale
-		concentrations, cmax = scalematrix(concentrations)
-		deltas, dmax = scalematrix(deltas)
+		concentrations, cmax = scalematrix!(concentrations)
+		deltas, dmax = scalematrix!(deltas)
 	end
 	if sizeof(initW) == 0
 		if random
@@ -328,11 +328,11 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	!quiet && @show of_best
 	fitquality = of_best - regularizationweight * sum(log(1. + bucketval).^2) / numbuckets - regularizationweight * sum(log(1. + abs(bucketdeltasval)).^2) / numbuckets
 	if normalize
-		bucketval = descalematrix(bucketval, cmax)
-		bucketdeltasval = denormalizematrix(bucketdeltasval, mixerval, dmin, dmax)
+		bucketval = descalematrix!(bucketval, cmax)
+		bucketdeltasval = denormalizematrix!(bucketdeltasval, mixerval, dmin, dmax)
 	elseif scale
-		bucketval = descalematrix(bucketval, cmax)
-		bucketdeltasval = descalematrix(bucketdeltasval, dmax)
+		bucketval = descalematrix!(bucketval, cmax)
+		bucketdeltasval = descalematrix!(bucketdeltasval, dmax)
 	end
 	return mixerval, bucketval, bucketdeltasval, fitquality
 end

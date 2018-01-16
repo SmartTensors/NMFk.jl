@@ -57,9 +57,9 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 	end
 	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
-		X, cmin, cmax = normalizematrix(X)
+		X, cmin, cmax = normalizematrix!(X)
 	elseif scale
-		X, cmax = scalematrix(X)
+		X, cmax = scalematrix!(X)
 	end
 	if weightinverse
 		obsweights = convert(Array{Float32,2}, 1. ./ X)
@@ -84,7 +84,7 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 	if sizeof(initH) == 0
 		fixH = false
 		if random
-			if !scale || !normalize
+			if scale || normalize
 				initH = rand(Float32, nk, numconstituents)
 			else
 				max = maximum(X, 1)
@@ -94,7 +94,7 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 				end
 			end
 		else
-			if !scale || !normalize
+			if scale || normalize
 				initH = ones(Float32, nk, numconstituents) / 2
 			else
 				max = maximum(X, 1)
@@ -185,9 +185,9 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 	!quiet && @show ofbest
 	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	if normalize
-		Hbest = denormalizematrix(Hbest, Wbest, cmin, cmax)
+		Hbest = denormalizematrix!(Hbest, Wbest, cmin, cmax)
 	elseif scale
-		Hbest = descalematrix(Hbest, cmax)
+		Hbest = descalematrix!(Hbest, cmax)
 	end
 	if movie
 		Xe = Wbest * Hbest
