@@ -422,7 +422,7 @@ end
 
 "Execute single NTF run without restart"
 function execute_singlerun_compute(X::Array, nk::Int; kw...)
-	NMFk.mixmatchdata(X, nk; random=true, kw...)
+	NMFk.mixmatchdata(X, nk; kw...)
 end
 
 "Execute single NMF run without restart"
@@ -447,18 +447,18 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=true, ratios:
 	if mixture != :null
 		if mixture == :mixmatch
 			if sizeof(deltas) == 0
-				W, H, objvalue = NMFk.mixmatchdata(Xn, nk; method=method, algorithm=algorithm, ratios=ratios, ratioindices=ratioindices, random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
+				W, H, objvalue = NMFk.mixmatchdata(Xn, nk; method=method, algorithm=algorithm, ratios=ratios, ratioindices=ratioindices, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
 			else
-				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; method=method, algorithm=algorithm, random=true, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
+				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; method=method, algorithm=algorithm, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
 				H = [Hconc Hdeltas]
 			end
 		elseif mixture == :matchwaterdeltas
-			W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; method=method, algorithm=algorithm, random=true, tol=tol, maxiter=maxiter, kw...)
+			W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; method=method, algorithm=algorithm, tol=tol, maxiter=maxiter, kw...)
 		end
 	elseif method == :sparse
 		W, H, (_, objvalue, _) = NMFk.NMFsparse(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
 	elseif method == :ipopt || method == :nlopt
-		W, H, objvalue = NMFk.jump(Xn, nk; method=method, algorithm=algorithm, random=true, normalize=normalize, scale=false, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
+		W, H, objvalue = NMFk.jump(Xn, nk; method=method, algorithm=algorithm, normalize=normalize, scale=false, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple
 		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, tol=tol, maxiter=maxiter, kw...)
 		objvalue = sum((X - W * H).^2)

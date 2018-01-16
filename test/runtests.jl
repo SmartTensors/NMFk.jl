@@ -4,7 +4,7 @@ import Base.Test
 @NMFk.stderrcapture function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
-	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-3), maxiter=100, verbosity=0, tol=10., method=:ipopt)
+	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-3), maxiter=100, verbosity=0, tol=10., method=:ipopt)
 	concs[idxnan] = 0
 	predictedconcs = mixerestimate * bucketestimate
 	predictedconcs[idxnan] = 0
