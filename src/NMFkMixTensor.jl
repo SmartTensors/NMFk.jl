@@ -149,7 +149,7 @@ function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Fl
 		end
 	end
 	Xe[isn] = NaN
-	return Xe
+	return convert(Array{Float32, 3}, Xe)
 end
 
 function mixmatchcompute(W::Array{Float32, 3}, H::Array{Float32, 2})
@@ -166,7 +166,7 @@ function mixmatchcompute(W::Array{Float32, 3}, H::Array{Float32, 2})
 			end
 		end
 	end
-	return Xe
+	return convert(Array{Float32, 3}, Xe)
 end
 
 function fixmixers!(X::Array{Float32, 3}, W::Array{Float32, 3})
