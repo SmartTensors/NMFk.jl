@@ -2,7 +2,7 @@ import JuMP
 import Ipopt
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
 		srand(seed)
 	end
@@ -31,24 +31,14 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 	end
 	if sizeof(initH) == 0
 		if random
-			if scale || normalize
-				initH = rand(Float32, numbuckets, numconstituents)
-			else
-				maxconc = vec(maximum(concentrations, (1,3)))'
-				initH = rand(Float32, numbuckets, numconstituents)
-				for i=1:numbuckets
-					initH[i:i, :] .*= maxconc
-				end
-			end
+			initH = rand(Float32, numbuckets, numconstituents)
 		else
-			if scale || normalize
-				initH = ones(Float32, numbuckets, numconstituents) / 2
-			else
-				maxconc = vec(maximum(concentrations, (1,3)))'
-				initH = Array{Float32}(numbuckets, numconstituents)
-				for i=1:numbuckets
-					initH[i:i, :] = maxconc
-				end
+			initH = ones(Float32, numbuckets, numconstituents) / 2
+		end
+		if maxH
+			maxconc = vec(maximum(concentrations, (1,3)))'
+			for i=1:numbuckets
+				initH[i:i, :] .*= maxconc
 			end
 		end
 	end
