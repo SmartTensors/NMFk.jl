@@ -155,8 +155,26 @@ $(DocumentFunction.documentfunction(stdouterrcaptureoff))
 
 Returns:
 
-- standered output amd standered error
+- standered output and standered error
 """
 function stdouterrcaptureoff()
 	return stdoutcaptureoff(), stderrcaptureoff()
+end
+
+"""
+Make NMFk quiet
+
+$(DocumentFunction.documentfunction(quieton))
+"""
+function quieton()
+	global quiet = true;
+end
+
+"""
+Make NMFk not quiet
+
+$(DocumentFunction.documentfunction(quietoff))
+"""
+function quietoff()
+	global quiet = false;
 end
