@@ -1,17 +1,26 @@
 import Distances
 
+function robustkmeans(X::Array, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
+	c = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
+	for i = 1:repeats
+		c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
+		if c_new.totalcost < c.totalcost
+			c = deepcopy(c_new)
+		end
+	end
+	return c
+end
+
 function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	if !clusterWeights
 		factors = [f' for f in factors]
 	end
 	# invariant: we can now assume that our matrices are n x k
-
 	numTrials = length(factors)
 	r, k = size(factors[1])
 	for w in factors
 		@assert size(w) == (r, k)
 	end
-
 	# fix zero case
 	needZeroFix = false
 	for i in 1:length(factors)
@@ -21,7 +30,6 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 			break
 		end
 	end
-
 	if needZeroFix
 		biasRow = [1 for i in 1:k]'
 		for i in 1:numTrials
@@ -51,8 +59,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 				clusterDistances[factorColIdx, centroidIdx] = Distances.cosine_dist(column, centroid)
 			end
 		end
-
-		while minimum(clusterDistances) < Inf
+		while (minimum(clusterDistances) < Inf)
 			# get the row and column of the smallest distance
 			selectFactorCol, selectCentIdx = ind2sub(clusterDistances, indmin(clusterDistances))
 			# save that col in trial belongs to centroid's cluster
@@ -65,13 +72,11 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 			newClusterCenters[:, selectCentIdx] += W[:, selectFactorCol]
 		end
 	end
-
-	# check our work
-#  while minimum(clusterLbls) == 0
-#       idx, trial = ind2sub(clusterLbls, indmin(clusterLbls))
-#       println("Col $idx in trial $trial was not assigned a cluster")
-#       clusterLbls[idx, trial] = k+1
-#  end
+	while minimum(clusterLbls) == 0
+		idx, trial = ind2sub(clusterLbls, indmin(clusterLbls))
+		warn("Col $idx in trial $trial was not assigned a cluster")
+		clusterLbls[idx, trial] = trial
+	end
 	@assert minimum(clusterLbls) >= 1
 	@assert maximum(clusterLbls) <= k
 #  for i in 1:k, j in 1:numTrials
