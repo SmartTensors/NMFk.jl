@@ -169,7 +169,7 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 	E = abs.(X .- Xe)
 	E[isnan.(E)] = 0
 	phi_final = sum(E.^2)
-	numobservations = length(vec(X[map(!, indexnan)]))
+	numobservations = length(vec(X[.!indexnan]))
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	numparameters -= (size(Wa)[1] + size(Wa)[3])
 	aic = 2 * numparameters + numobservations * log(phi_final/numobservations)
@@ -395,7 +395,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		println("Ratio reconstruction = $ratiosreconstruction")
 		phi_final += ratiosreconstruction
 	end
-	numobservations = length(vec(X[map(!, indexnan)]))
+	numobservations = length(vec(X[.!indexnan]))
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	if mixture != :null
 		numparameters -= size(Wa)[1]
