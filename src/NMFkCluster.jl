@@ -1,5 +1,21 @@
 import Distances
 
+function robustkmeans(X::Array, range::UnitRange, repeats::Int=1000; kw...)
+	ctotalcost = Inf
+	kbest = range[1]
+	local cbest
+	for k in range
+		c_new = Clustering.kmeans(X, k; kw...)
+		info("$k: $(c_new.totalcost)")
+		if c_new.totalcost < ctotalcost
+			ctotalcost = c_new.totalcost
+			cbest = deepcopy(c_new)
+			kbest = k
+		end
+	end
+	return cbest
+end
+
 function robustkmeans(X::Array, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
 	c = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 	for i = 1:repeats
