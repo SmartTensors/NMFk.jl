@@ -4,7 +4,7 @@ function test()
 end
 
 "Execute NMFk analysis for a range of number of sources"
-function execute(X::T, range::UnitRange{Int}, nNMF::Integer=10; kw...) where {T <: Array}
+function execute(X::T, range::Range{Int}, nNMF::Integer=10; kw...) where {T <: Array}
 	maxsources = maximum(collect(range))
 	W = Array{T}(maxsources)
 	H = Array{Array{Float64, 2}}(maxsources)

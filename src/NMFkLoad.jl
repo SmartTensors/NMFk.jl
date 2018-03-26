@@ -1,5 +1,5 @@
 "Execute NMFk analysis for a range of number of sources"
-function load(range::UnitRange{Int}, nNMF::Integer=10; kw...)
+function load(range::Range{Int}, nNMF::Integer=10; kw...)
 	maxsources = maximum(collect(range))
 	W = Array{Array{Float64, 2}}(maxsources)
 	H = Array{Array{Float64, 2}}(maxsources)
