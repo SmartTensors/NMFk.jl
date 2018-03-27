@@ -5,8 +5,8 @@ function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 	kbest = range[1]
 	local cbest
 	for k in range
-		c_new = Clustering.kmeans(X, k; kw...)
-		info("$k: $(c_new.totalcost) $(var(c_new.costs)) $(maximum(c_new.costs))")
+		c_new, s, sc = robustkmeans(X, k, repeats; kw...)
+		info("$k: $(c_new.totalcost) $(var(c_new.costs)) $(maximum(c_new.costs)) $(s)")
 		if c_new.totalcost < ctotalcost
 			ctotalcost = c_new.totalcost
 			cbest = deepcopy(c_new)
@@ -17,14 +17,27 @@ function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 end
 
 function robustkmeans(X::Array, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
-	c = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
+	ctotalcost = Inf
+	local c
+	best_mean_cluster_silhouettes = Vector{Float64}(k)
+	mean_cluster_silhouettes = Vector{Float64}(k)
+	local best_mean_silhouettes
 	for i = 1:repeats
 		c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
-		if c_new.totalcost < c.totalcost
+		Xd = Distances.pairwise(Distances.CosineDist(), X)
+		silhouettes = Clustering.silhouettes(c_new, Xd)
+		mean_silhouettes = mean(silhouettes)
+		for i in unique(c_new.assignments)
+			mean_cluster_silhouettes[i] = mean(silhouettes[c_new.assignments.==i])
+		end
+		if c_new.totalcost < ctotalcost
+			best_mean_cluster_silhouettes = copy(mean_cluster_silhouettes)
+			best_mean_silhouettes = mean_silhouettes
+			ctotalcost = c_new.totalcost
 			c = deepcopy(c_new)
 		end
 	end
-	return c
+	return c, best_mean_silhouettes, best_mean_cluster_silhouettes
 end
 
 function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
