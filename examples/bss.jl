@@ -3,11 +3,11 @@ import NMFk
 info("Reconstruction of sin/rand disturbance signal ...")
 srand(2015)
 noise = [0, 0.1, 0.2, 0.5, 1]
-suc = Array(Int, length(noise))
+suc = Array{Int}(length(noise))
 for n in 1:length(noise)
 	suc[n] = 0
 	for i = 1:1000
-		s1 = (sin(0.3:0.3:30)+1)/2
+		s1 = (sin.(0.3:0.3:30)+1)/2
 		s2 = rand(100) * 0.5
 		s3 = rand(100)
 		s3[1:50] = 0
