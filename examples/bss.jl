@@ -15,7 +15,7 @@ for n in 1:length(noise)
 		S = [s1 s2 s3]
 		M = [[1,1,1] [0,2,1] [0,2,1] [1,0,2] [2,0,1] [1,2,0] [2,1,0]]
 		X = S * M + rand(100, 7) * noise[n]
-		W, H, fitquality, robustness, aic = NMFk.execute(X, 2:4, 100; ipopt=true)
+		W, H, fitquality, robustness, aic = NMFk.execute(X, 2:4, 100)
 		if robustness[2] > 0.9 && robustness[3] > 0.9 && robustness[4] < 0.9
 			suc[n] += 1
 			info("Success!")
