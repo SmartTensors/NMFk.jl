@@ -1,4 +1,4 @@
-NMFk
+NMFk: Nonnegative Matrix Factorization + custom k-means clustering
 ===============
 Documentation
 =============
@@ -39,7 +39,7 @@ export https_proxy=http://proxyout.<your_site>:8080
 export no_proxy=.<your_site>
 ```
 
-For example, if you are doing this at LANL, you will need to execute the 
+For example, if you are doing this at LANL, you will need to execute the
 following lines in your bash command-line environment:
 
 ```
