@@ -65,8 +65,9 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 				kw_dict[key] = value
 			end
 			if haskey(kw_dict, :seed)
+				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=seed+i, kw_dict...)), 1:nNMF)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw_dict...)), 1:nNMF)
 			else
 				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, kw...)), 1:nNMF)
 			end
@@ -86,9 +87,10 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 				kw_dict[key] = value
 			end
 			if haskey(kw_dict, :seed)
+				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, seed=seed+i, kw_dict...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw_dict...)
 				end
 			else
 				for i = 1:nNMF
@@ -249,8 +251,9 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 				kw_dict[key] = value
 			end
 			if haskey(kw_dict, :seed)
+				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)), 1:nNMF)
+				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=kwseed+i, kw_dict...)), 1:nNMF)
 			else
 				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
 			end
@@ -270,9 +273,10 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 				kw_dict[key] = value
 			end
 			if haskey(kw_dict, :seed)
+				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=seed+i, kw_dict...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=kwseed+i, kw_dict...)
 				end
 			else
 				for i = 1:nNMF
