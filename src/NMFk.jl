@@ -1,5 +1,7 @@
-module NMFk
+__precompile__()
 
+"Non-negative Matrix Factorization + k-means Clustering"
+module NMFk
 	import NMF
 	import Distances
 	import Clustering
@@ -28,7 +30,6 @@ module NMFk
 	include("NMFkBootstrap.jl")
 	include("NMFkSparse.jl")
 	include("NMFkMultiplicative.jl")
-	include("NMFkDisplay.jl")
+	include("NMFkPlot.jl")
 	include("NMFkCapture.jl")
-
 end
