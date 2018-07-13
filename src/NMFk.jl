@@ -9,8 +9,6 @@ module NMFk
 	import Ipopt
 	import JLD
 	import ReusableFunctions
-	import PyPlot
-	import Gadfly
 
 	const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
 
