@@ -1,5 +1,32 @@
 import Distances
 
+"""
+Given a vector of classifiers, return a vector where
+the highest count is now classifier #1, and the lowest count is
+classifer #N
+
+params:
+	assignments (Clustering.assignments): a vector containing assignments
+
+returns:
+	remapped_assignments: a vector containing "sorted" assignments
+"""
+function remap2count(assignments)
+	# Count how many of each classifier are in the vector
+	assignment_count = [(i, count(x->x==i, assignments)) for i in unique(assignments)]
+
+	# Sort the vector by highest -> lowest count
+	sort!(assignment_count; by=x->x[2], rev=true)
+
+	# Now, the highest count classifier will be first entry in assignment_count.
+	# Create a dictionary that maps "1" => "N", where N is the most populated classifier
+	remapper = Dict([(assignment_count[i][1],i) for i in 1:length(unique(assignments))])
+
+	# Finally, map the assignments to the new ordering and return
+	mfunc(i) = remapper[i]
+	return map(mfunc, assignments)
+end
+
 function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 	best_totalcost = Inf
 	best_silhouette = 0
