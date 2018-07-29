@@ -1,4 +1,5 @@
 import Distances
+import Suppressor
 
 """
 Given a vector of classifiers, return a vector where
@@ -34,7 +35,12 @@ function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 	local cbest
 	local best_sc
 	for k in range
-		c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
+		local c_new
+		local mean_silhouettes
+		local sc
+		@Suppressor.suppress begin
+			c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
+		end
 		info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Cluster Silhouettes: $(sc)")
 		if best_silhouette < mean_silhouettes
 			best_silhouette = mean_silhouettes
