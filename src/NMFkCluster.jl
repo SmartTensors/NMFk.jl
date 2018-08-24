@@ -36,7 +36,7 @@ function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 	local best_sc
 	for k in range
 		if k >= size(X, 2)
-			info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2))")
+			info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
 		local c_new
