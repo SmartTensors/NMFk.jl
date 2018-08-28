@@ -48,14 +48,13 @@ function jumpHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Fl
 end
 
 "Factorize matrix X (X = W * H) using Ipopt"
-function jump(X_in::Matrix{Float64}, nk::Int; kw...)
-	jump(convert(Array{Float32, 2}, X_in), nk; kw...)
+function jump(X::Matrix{Float64}, nk::Int; kw...)
+	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
 	end
-	X = copy(X_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	if normalize
 		X, cmin, cmax = normalizematrix!(X)
 	elseif scale
@@ -143,11 +142,14 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 		Hbest = JuMP.getvalue(H)
 	end
 	of = JuMP.getobjectivevalue(m)
-	!quiet && @show of
+	!quiet && info("Initial objective function $of")
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	frame = 2
-	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol)
+	iters = 0
+	outiters = 0
+	resets = 0
+	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol) && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		if movie
 			mcheat = 1
@@ -170,15 +172,31 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 		end
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
+		outiters += 1
+		iters += 1
 		if of < ofbest
+			if (ofbest - of) > tolOF
+				resets += 1
+				if resets > maxresets
+					warn("Maximum number of resets has been reached; quit!")
+				else
+					warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+					outiters = 0
+				end
+			end
 			!fixW && (Wbest = JuMP.getvalue(W))
 			!fixH && (Hbest = JuMP.getvalue(H))
 			ofbest = of
 		end
 		objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
-		!quiet && @show of, norm(oldcolval - m.colVal), objvalue
+		if !quiet
+			info("Iteration $iters")
+			info("Objective function $of")
+			(regularizationweight > 0.) && info("Objective function + regularization penalty $objvalue")
+			info("Parameter norm: $(norm(oldcolval - m.colVal))")
+		end
 	end
-	!quiet && @show ofbest
+	!quiet && info("Final objective function $ofbest")
 	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	if normalize
 		Hbest = denormalizematrix!(Hbest, Wbest, cmin, cmax)
@@ -189,5 +207,6 @@ function jump(X_in::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::S
 		Xe = Wbest * Hbest
 		NMFk.plotnmf(Xe, Wbest[:,movieorder], Hbest[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
+	X[nans] = NaN
 	return Wbest, Hbest, objvalue
 end

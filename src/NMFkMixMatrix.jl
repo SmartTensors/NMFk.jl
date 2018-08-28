@@ -8,7 +8,7 @@ const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
 		srand(seed)
 	end
@@ -120,11 +120,13 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	mixerval = JuMP.getvalue(mixer)
 	bucketval = JuMP.getvalue(buckets)
 	of = JuMP.getobjectivevalue(m)
-	!quiet && @show of
+	!quiet && info("Initial objective function $of")
 	of_best = of
 	iters = 0
+	outiters = 0
+	resets = 0
 	frame = 2
-	while !(norm(oldcolval - m.colVal) < tolX) && !(of_best < tol) && iters < maxouteriters
+	while !(norm(oldcolval - m.colVal) < tolX) && !(of_best < tol) && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
 		if movie
@@ -135,16 +137,24 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			frame += 1
 		end
 		of = JuMP.getobjectivevalue(m)
-		!quiet && @show of
+		!quiet && info("Objective function $of")
 		if of < of_best
-			iters = 0
+			if (of_best - of) > tolOF
+				resets += 1
+				if resets > maxresets
+					warn("Maximum number of resets has been reached; quit!")
+				else
+					warn("Objective function improved substantially (more than $tolOF; $of < $of_best); iteration counter reset ...")
+					outiters = 0
+				end
+			end
 			mixerval = JuMP.getvalue(mixer)
 			bucketval = JuMP.getvalue(buckets)
 			of_best = of
 		end
 		iters += 1
 	end
-	!quiet && @show of_best
+	!quiet && info("Final objective function $of_best")
 	fitquality = of_best - regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
