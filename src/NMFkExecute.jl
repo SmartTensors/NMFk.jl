@@ -33,7 +33,7 @@ function execute(X::Union{Matrix,Array}, nk::Integer, nNMF::Integer=10; resultdi
 	if runflag
 		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; casefilename=casefilename, kw...)
 	end
-	println("Sources: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
+	println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
 	if save && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if !isdir(resultdir)
