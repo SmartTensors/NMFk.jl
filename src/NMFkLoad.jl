@@ -13,15 +13,16 @@ function load(range::Range{Int}, nNMF::Integer=10; kw...)
 end
 
 "Execute NMFk analysis for a given number of sources"
-function load(nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", kw...)
-	if casefilename != ""
+function load(nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", filename::AbstractString="")
+	if casefilename != "" && filename == ""
 		filename = "$casefilename-$nk-$nNMF.jld"
-		if isfile(filename)
-			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
-			println("Sources: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
-			return W, H, fitquality, robustness, aic
-		else
-			return Array{Float64,2}(), Array{Float64,2}(), NaN, NaN, NaN
-		end
+	end
+	if isfile(filename)
+		W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
+		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
+		return W, H, fitquality, robustness, aic
+	else
+		warn("File named $filename is missing!")
+		return Array{Float64,2}(0, 0), Array{Float64,2}(0, 0), NaN, NaN, NaN
 	end
 end
