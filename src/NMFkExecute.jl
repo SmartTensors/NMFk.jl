@@ -4,13 +4,13 @@ function test()
 end
 
 "Execute NMFk analysis for a range of number of sources"
-function execute(X::T, range::Range{Int}, nNMF::Integer=10; kw...) where {T <: Array}
+function execute(X::Array{T,N}, range::Range{Int}, nNMF::Integer=10; kw...) where {T, N}
 	maxsources = maximum(collect(range))
-	W = Array{T}(maxsources)
-	H = Array{Array{Float64, 2}}(maxsources)
-	fitquality = Array{Float64}(maxsources)
-	robustness = Array{Float64}(maxsources)
-	aic = Array{Float64}(maxsources)
+	W = Array{Array{T, N}}(maxsources)
+	H = Array{Array{T, 2}}(maxsources)
+	fitquality = Array{T}(maxsources)
+	robustness = Array{T}(maxsources)
+	aic = Array{T}(maxsources)
 	for numsources in range
 		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF; kw...)
 	end
@@ -118,11 +118,7 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 	else
 		cutind = trues(nNMF)
 	end
-	if VERSION < v"0.6"
-		solind = ratind & cutind
-	else
-		solind = ratind .& cutind
-	end
+	solind = ratind .& cutind
 	if solind != ratind && solind != cutind
 		println("NMF solutions removed based on acceptance criteria: $(sum(solind)) out of $(nNMF) solutions")
 	end
@@ -304,11 +300,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	else
 		cutind = trues(nNMF)
 	end
-	if VERSION < v"0.6"
-		solind = ratind & cutind
-	else
-		solind = ratind .& cutind
-	end
+	solind = ratind .& cutind
 	if solind != ratind && solind != cutind
 		println("NMF solutions removed based on acceptance criteria: $(sum(solind)) out of $(nNMF) solutions")
 	end
