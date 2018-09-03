@@ -1,5 +1,6 @@
 import JuMP
 import Ipopt
+import Suppressor
 
 const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
@@ -116,19 +117,32 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		Xe = initW * initH
 		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
-	status = JuMP.solve(m)
+	if quiet
+		@Suppressor.suppress JuMP.solve(m)
+	else
+		JuMP.solve(m)
+	end
 	mixerval = JuMP.getvalue(mixer)
 	bucketval = JuMP.getvalue(buckets)
 	of = JuMP.getobjectivevalue(m)
-	!quiet && info("Initial objective function $of")
-	of_best = of
-	iters = 0
+	if movie
+		Xe = mixerval * bucketval
+		NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=2)
+		frame += 1
+	end
+	ofbest = of
+	iters = 1
 	outiters = 0
 	resets = 0
-	frame = 2
-	while !(norm(oldcolval - m.colVal) < tolX) && !(of_best < tol) && outiters < maxouteriters && resets <= maxresets
+	frame = 3
+	!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
+	while !(norm(oldcolval - m.colVal) < tolX) && !(ofbest < tol) && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
-		JuMP.solve(m)
+		if quiet
+			@Suppressor.suppress JuMP.solve(m)
+		else
+			JuMP.solve(m)
+		end
 		if movie
 			We = JuMP.getvalue(mixer)
 			He = JuMP.getvalue(buckets)
@@ -137,25 +151,25 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			frame += 1
 		end
 		of = JuMP.getobjectivevalue(m)
-		!quiet && info("Objective function $of")
-		if of < of_best
-			if (of_best - of) > tolOF
+		if of < ofbest
+			if (ofbest - of) > tolOF
 				resets += 1
 				if resets > maxresets
 					warn("Maximum number of resets has been reached; quit!")
 				else
-					warn("Objective function improved substantially (more than $tolOF; $of < $of_best); iteration counter reset ...")
+					warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
 					outiters = 0
 				end
 			end
 			mixerval = JuMP.getvalue(mixer)
 			bucketval = JuMP.getvalue(buckets)
-			of_best = of
+			ofbest = of
 		end
 		iters += 1
+		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	end
-	!quiet && info("Final objective function $of_best")
-	fitquality = of_best - regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
+	!quiet && info("Final objective function $ofbest")
+	fitquality = ofbest - regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
 		for (j, c1, c2) in zip(1:numberofratios, ratioindices[:, 1], ratioindices[:, 2])
@@ -299,24 +313,24 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	bucketdeltasval = JuMP.getvalue(bucketdeltas)
 	of = JuMP.getobjectivevalue(m)
 	!quiet && @show of
-	of_best = of
+	ofbest = of
 	iters = 0
 	while !(norm(oldcolval - m.colVal) < tol) && iters < maxouteriters # keep doing the optimization until we really reach an optimum
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
 		!quiet && @show of
-		if of < of_best
+		if of < ofbest
 			iters = 0
 			mixerval = JuMP.getvalue(mixer)
 			bucketval = JuMP.getvalue(buckets)
 			bucketdeltasval = JuMP.getvalue(bucketdeltas)
-			of_best = of
+			ofbest = of
 		end
 		iters += 1
 	end
-	!quiet && @show of_best
-	fitquality = of_best - regularizationweight * sum(log(1. + bucketval).^2) / numbuckets - regularizationweight * sum(log(1. + abs(bucketdeltasval)).^2) / numbuckets
+	!quiet && @show ofbest
+	fitquality = ofbest - regularizationweight * sum(log(1. + bucketval).^2) / numbuckets - regularizationweight * sum(log(1. + abs(bucketdeltasval)).^2) / numbuckets
 	if normalize
 		bucketval = descalematrix!(bucketval, cmax)
 		bucketdeltasval = denormalizematrix!(bucketdeltasval, mixerval, dmin, dmax)

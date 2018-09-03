@@ -1,17 +1,18 @@
 import JuMP
 import Ipopt
+import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{T, 2}=Array{T}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(0, 0), initH::Matrix{T}=Array{T}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
 	if seed >= 0
 		srand(seed)
 	end
 	if weightinverse
-		concweights = convert(Array{Float32,2}, 1. ./ concentrations)
+		concweights = convert(Array{T,2}, 1. ./ concentrations)
 		zis = concentrations .== 0
 		concweights[zis] = maximum(concentrations[!zis]) * 10
 	else
-		concweights = ones(Float32, size(concentrations))
+		concweights = ones(T, size(concentrations))
 	end
 	nummixtures, numconstituents, ntimes = size(concentrations)
 	nans = isnan.(concentrations)
@@ -24,16 +25,16 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 	end
 	if sizeof(initW) == 0
 		if random
-			initW = rand(Float32, nummixtures, numbuckets, ntimes)
+			initW = rand(T, nummixtures, numbuckets, ntimes)
 		else
-			initW = ones(Float32, nummixtures, numbuckets, ntimes) / numbuckets
+			initW = ones(T, nummixtures, numbuckets, ntimes) / numbuckets
 		end
 	end
 	if sizeof(initH) == 0
 		if random
-			initH = rand(Float32, numbuckets, numconstituents)
+			initH = rand(T, numbuckets, numconstituents)
 		else
-			initH = ones(Float32, numbuckets, numconstituents) / 2
+			initH = ones(T, numbuckets, numconstituents) / 2
 		end
 		if maxH
 			maxconc = vec(maximum(concentrations, (1,3)))'
@@ -47,8 +48,8 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 	elseif method == :nlopt
 		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start = convert(Float32, initW[i, j, k]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, initH[i, j]))
+	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start = convert(T, initW[i, j, k]))
+	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, initH[i, j]))
 	if !normalize
 		@JuMP.constraint(m, buckets .>= 0)
 	end
@@ -62,51 +63,55 @@ function mixmatchdata(concentrations::Array{Float32, 3}, numbuckets::Int; method
 		regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 		sum(sum(sum(concweights[i, j, t] * (sum(mixer[i, k, t] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j, t])^2 for i=1:nummixtures) for j=1:numconstituents) for t=1:ntimes))
 	oldcolval = copy(m.colVal)
-	if movie
-		Xe = initW * initH
-		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
-	end
-	status = JuMP.solve(m)
-	W = JuMP.getvalue(mixer)
-	H = JuMP.getvalue(buckets)
-	of = JuMP.getobjectivevalue(m)
-	!quiet && @show of
-	of_best = of
-	iters = 0
-	frame = 2
-	while !(norm(oldcolval - m.colVal) < tolX) && !(of_best < tol) && iters < maxouteriters
-		oldcolval = copy(m.colVal)
+	if quiet
+		@Suppressor.suppress JuMP.solve(m)
+	else
 		JuMP.solve(m)
-		if movie
-			We = JuMP.getvalue(mixer)
-			He = JuMP.getvalue(buckets)
-			Xe = We * He
-			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
-			frame += 1
+	end
+	W = convert(Array{T, 3}, JuMP.getvalue(mixer))
+	H = convert(Array{T, 2}, JuMP.getvalue(buckets))
+	of = JuMP.getobjectivevalue(m)
+	ofbest = of
+	iters = 1
+	outiters = 0
+	resets = 0
+	frame = 2
+	!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
+	while !(norm(oldcolval - m.colVal) < tolX) && !(ofbest < tol) && outiters < maxouteriters && resets <= maxresets
+		oldcolval = copy(m.colVal)
+		if quiet
+			@Suppressor.suppress JuMP.solve(m)
+		else
+			JuMP.solve(m)
 		end
 		of = JuMP.getobjectivevalue(m)
-		!quiet && @show of
-		if of < of_best
-			iters = 0
-			W = JuMP.getvalue(mixer)
-			H = JuMP.getvalue(buckets)
-			of_best = of
+		iters += 1
+		if of < ofbest
+			if (ofbest - of) > tolOF
+				resets += 1
+				if resets > maxresets
+					warn("Maximum number of resets has been reached; quit!")
+				else
+					warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+					outiters = 0
+				end
+			end
+			W = convert(Array{T, 3}, JuMP.getvalue(mixer))
+			H = convert(Array{T, 2}, JuMP.getvalue(buckets))
+			ofbest = of
 		end
 		iters += 1
+		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	end
-	!quiet && @show of_best
-	fitquality = of_best - regularizationweight * sum(log.(1. + H).^2) / numbuckets
-	concentrations[nans] = NaN32
+	fitquality = ofbest - regularizationweight * sum(log.(1. + H).^2) / numbuckets
+	concentrations[nans] = NaN
 	setbadmixerelements!(concentrations, W)
 	if normalize
 		H = denormalizematrix!(H, W, cmin, cmax)
 	elseif scale
 		H = descalearray!(H, cmax)
 	end
-	if movie
-		NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
-	end
-	return abs.(convert(Array{Float32, 3}, W)), abs.(convert(Array{Float32, 2}, H)), fitquality
+	return abs.(W), abs.(H), fitquality
 end
 
 function setbadmixerelements!(X::Array, W::Array)
@@ -114,13 +119,13 @@ function setbadmixerelements!(X::Array, W::Array)
 	for t = 1:nt
 		for w = 1:nw
 			if !any(.!isnan.(X[w, :, t]))
-				W[w, :, t] = NaN32
+				W[w, :, t] = NaN
 			end
 		end
 	end
 end
 
-function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Float32, 2}, isn=isnan.(X))
+function mixmatchcompute(X::Array{T, 3}, W::Array{T, 3}, H::Array{T, 2}, isn=isnan.(X)) where {T}
 	nummixtures, numconstituents, ntimes = size(X)
 	nummixtures2, numbuckets, ntimes2 = size(W)
 	numbuckets2, numconstituents2 = size(H)
@@ -139,10 +144,10 @@ function mixmatchcompute(X::Array{Float32, 3}, W::Array{Float32, 3}, H::Array{Fl
 		end
 	end
 	Xe[isn] = NaN
-	return convert(Array{Float32, 3}, Xe)
+	return convert(Array{T, 3}, Xe)
 end
 
-function mixmatchcompute(W::Array{Float32, 3}, H::Array{Float32, 2})
+function mixmatchcompute(W::Array{T, 3}, H::Array{T, 2}) where {T}
 	nummixtures, numbuckets, ntimes = size(W)
 	numbuckets2, numconstituents = size(H)
 	@assert numbuckets == numbuckets2
@@ -156,10 +161,10 @@ function mixmatchcompute(W::Array{Float32, 3}, H::Array{Float32, 2})
 			end
 		end
 	end
-	return convert(Array{Float32, 3}, Xe)
+	return convert(Array{T, 3}, Xe)
 end
 
-function fixmixers!(X::Array{Float32, 3}, W::Array{Float32, 3})
+function fixmixers!(X::Array{T, 3}, W::Array{T, 3}) where {T}
 	nw, nc, nt = size(X)
 	for t = 1:nt
 		for w = 1:nw

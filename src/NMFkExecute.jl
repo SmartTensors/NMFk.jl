@@ -5,14 +5,17 @@ end
 
 "Execute NMFk analysis for a range of number of sources"
 function execute(X::Array{T,N}, range::Range{Int}, nNMF::Integer=10; kw...) where {T, N}
-	maxsources = maximum(collect(range))
-	W = Array{Array{T, N}}(maxsources)
-	H = Array{Array{T, 2}}(maxsources)
-	fitquality = Array{T}(maxsources)
-	robustness = Array{T}(maxsources)
-	aic = Array{T}(maxsources)
-	for numsources in range
-		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.execute(X, numsources, nNMF; kw...)
+	maxk = maximum(collect(range))
+	W = Array{Array{T, N}}(maxk)
+	H = Array{Array{T, 2}}(maxk)
+	fitquality = Array{T}(maxk)
+	robustness = Array{T}(maxk)
+	aic = Array{T}(maxk)
+	for nk in range
+		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; kw...)
+	end
+	for nk in range
+		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality[nk])) Silhouette: $(@sprintf("%12.7g", robustness[nk])) AIC: $(@sprintf("%12.7g", aic[nk]))")
 	end
 	return W, H, fitquality, robustness, aic
 end
@@ -90,11 +93,11 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw_dict...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, seed=kwseed+i, kw_dict...)
 				end
 			else
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=true, kw...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, kw...)
 				end
 			end
 		end
