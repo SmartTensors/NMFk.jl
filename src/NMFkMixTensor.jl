@@ -86,6 +86,7 @@ function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symb
 		end
 		of = JuMP.getobjectivevalue(m)
 		iters += 1
+		outiters += 1
 		if of < ofbest
 			if (ofbest - of) > tolOF
 				resets += 1
@@ -100,7 +101,6 @@ function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symb
 			H = convert(Array{T, 2}, JuMP.getvalue(buckets))
 			ofbest = of
 		end
-		iters += 1
 		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	end
 	fitquality = ofbest - regularizationweight * sum(log.(1. + H).^2) / numbuckets
