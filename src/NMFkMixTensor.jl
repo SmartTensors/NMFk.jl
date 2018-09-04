@@ -77,7 +77,7 @@ function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symb
 	resets = 0
 	frame = 2
 	!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
-	while !(norm(oldcolval - m.colVal) < tolX) && !(ofbest < tol) && outiters < maxouteriters && resets <= maxresets
+	while norm(oldcolval - m.colVal) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		if quiet
 			@Suppressor.suppress JuMP.solve(m)
@@ -100,6 +100,8 @@ function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symb
 			W = convert(Array{T, 3}, JuMP.getvalue(mixer))
 			H = convert(Array{T, 2}, JuMP.getvalue(buckets))
 			ofbest = of
+		else
+			outiters = maxouteriters + 1
 		end
 		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	end

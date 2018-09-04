@@ -136,7 +136,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	resets = 0
 	frame = 3
 	!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
-	while !(norm(oldcolval - m.colVal) < tolX) && !(ofbest < tol) && outiters < maxouteriters && resets <= maxresets
+	while norm(oldcolval - m.colVal) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		if quiet
 			@Suppressor.suppress JuMP.solve(m)
@@ -164,6 +164,8 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			mixerval = JuMP.getvalue(mixer)
 			bucketval = JuMP.getvalue(buckets)
 			ofbest = of
+		else
+			outiters = maxouteriters + 1
 		end
 		iters += 1
 		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")

@@ -14,6 +14,7 @@ function execute(X::Array{T,N}, range::Range{Int}, nNMF::Integer=10; kw...) wher
 	for nk in range
 		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; kw...)
 	end
+	info("Results")
 	for nk in range
 		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality[nk])) Silhouette: $(@sprintf("%12.7g", robustness[nk])) AIC: $(@sprintf("%12.7g", aic[nk]))")
 	end
@@ -50,7 +51,7 @@ end
 "Execute NMFk analysis for a given number of sources in serial or parallel"
 function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=true, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
-	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources (signals) ...")
+	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
 	runflag = true
 	if loadall && casefilename != ""
@@ -93,10 +94,12 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
 				for i = 1:nNMF
+					!quiet && info("NMF run #$(i)")
 					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, seed=kwseed+i, kw_dict...)
 				end
 			else
 				for i = 1:nNMF
+					!quiet && info("NMF run #$(i)")
 					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, kw...)
 				end
 			end
