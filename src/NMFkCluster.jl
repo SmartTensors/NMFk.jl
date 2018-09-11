@@ -145,15 +145,23 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	end
 	while minimum(clusterLbls) == 0
 		idx, trial = ind2sub(clusterLbls, indmin(clusterLbls))
-		warn("Col $idx in trial $trial was not assigned a cluster")
+		warn("Solution $idx in trial $trial was not assigned a cluster")
 		clusterLbls[idx, trial] = trial
 	end
-	@assert minimum(clusterLbls) >= 1
-	@assert maximum(clusterLbls) <= k
-#  for i in 1:k, j in 1:numTrials
-#    # check that cluster i appears only once in col j
-#    @assert length(findin(clusterLbls[:, j], i)) == 1
-#  end
+	if !(minimum(clusterLbls) >=1)
+		warn("Minimum assignments should be greater than 1: $(minimum(clusterLbls))")
+	end
+	if !(maximum(clusterLbls) <= k)
+		warn("Maximum assignments should be less than $k: $(maximum(clusterLbls))")
+	end
+	for i in 1:k
+		for j in 1:numTrials
+			l = length(findin(clusterLbls[:, j], i))
+			if l != 1
+				warn("Cluster $i does not appear only once in column $j; it appears $l times!")
+			end
+		end
+	end
 
 	newClusterCenters ./= numTrials
 
