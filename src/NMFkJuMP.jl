@@ -11,7 +11,7 @@ function jumpiter(X::Matrix, nk::Int; kw...)
 	m, n = size(X)
 	jumpiter(convert(Array{Float32, 2}, X), nk, convert(Array{Float32, 2}, rand(m, nk)), convert(Array{Float32, 2}, rand(nk, n)); kw...)
 end
-function jumpiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=true, kw...)
+function jumpiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=NMFk.quiet, kw...)
 	m, n = size(X)
 	mw, k = size(W)
 	k, nh = size(H)
@@ -36,7 +36,7 @@ function jumpiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Flo
 end
 
 "Factorize matrix X (X = W * H) using Ipopt for each row of X/H"
-function jumpHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; quiet::Bool=true, kw...)
+function jumpHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; quiet::Bool=NMFk.quiet, kw...)
 	fit = 0
 	for i = 1:size(X, 2)
 		fitrowold = sum((X[:,i] .- W * H[:,i]).^2)
@@ -51,7 +51,7 @@ end
 function jump(X::Matrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=true, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
 	end

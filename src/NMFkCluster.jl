@@ -128,8 +128,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 		for centroidIdx in 1:k
 			centroid = centSeeds[:, centroidIdx]
 			for factorColIdx in 1:k
-				column = W[:, factorColIdx]
-				clusterDistances[factorColIdx, centroidIdx] = Distances.cosine_dist(column, centroid)
+				clusterDistances[factorColIdx, centroidIdx] = Distances.cosine_dist(W[:, factorColIdx], centroid)
 			end
 		end
 		while (minimum(clusterDistances) < Inf)
@@ -147,10 +146,13 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	end
 	while minimum(clusterLbls) == 0
 		idx, trial = ind2sub(clusterLbls, indmin(clusterLbls))
-		warn("Parameter $idx in solution $trial was not assigned a cluster")
-		@show clusterLbls[:, trial]
-		clusterLbls[idx, trial] = idx
-		@show factors[trial]
+		if sum(clusterLbls[:, trial]) == 0
+			warn("Solution $trial was not assigned to any of the cluster!")
+			clusterLbls[:, trial] = [i for i in 1:k]
+		else
+			warn("Parameter $idx in solution $trial was not assigned a cluster!")
+			clusterLbls[idx, trial] = idx
+		end
 	end
 	if minimum(clusterLbls) <= 0
 		warn("Minimum assignments should be greater than 1: $(minimum(clusterLbls))")

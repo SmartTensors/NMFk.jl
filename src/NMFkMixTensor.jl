@@ -3,7 +3,7 @@ import Ipopt
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{T, 2}=Array{T}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(0, 0), initH::Matrix{T}=Array{T}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
+function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{T, 2}=Array{T}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(0, 0), initH::Matrix{T}=Array{T}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
 	if seed >= 0
 		srand(seed)
 	end
