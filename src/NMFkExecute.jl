@@ -49,7 +49,7 @@ function execute(X::Union{Matrix,Array}, nk::Integer, nNMF::Integer=10; resultdi
 end
 
 "Execute NMFk analysis for a given number of sources in serial or parallel"
-function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, zeronans::Bool=true, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
@@ -187,7 +187,7 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::Matrix{Float32}=Array{Float32}(0, 0), ratios::Array{Float32, 2}=Array{Float32}(0, 0), mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", zeronans::Bool=true, loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && info("NMFk analysis of $nNMF NMF runs assuming $nk sources (signals) ...")
 	indexnan = isnan.(X)
@@ -317,17 +317,23 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	idxnan = trues(nNMF)
 	for i in 1:nNMF
-		if sum(isnan.(WBig[i])) > 0
-			idxnan[idxsort[i]] = false
-		elseif sum(isnan.(HBig[i])) > 0
-			idxnan[idxsort[i]] = false
+		if zeronans
+			WBig[i][isnan.(WBig[i])] .= 0
+			HBig[i][isnan.(HBig[i])] .= 0
+		else
+			if sum(isnan.(WBig[i])) > 0
+				idxnan[idxsort[i]] = false
+			elseif sum(isnan.(HBig[i])) > 0
+				idxnan[idxsort[i]] = false
+			end
 		end
 	end
 	idxsol = idxrat .& idxcut .& idxnan
 	if sum(idxsol) > 0
-		println("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions")
+		println("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions remain")
 		println("ALL OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue))")
 	end
+	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(mean(objvalue[idxsol])) std $(std(objvalue[idxsol]))")
 	Xe = Wbest * Hbest
 	fn = vecnorm(X)
 	println("Worst correlation by columns: $(minimum(map(i->cor(X[i, :], Xe[i, :]), 1:size(X, 1))))")

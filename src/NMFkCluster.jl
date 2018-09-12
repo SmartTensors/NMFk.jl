@@ -103,7 +103,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 		end
 	end
 	if needZeroFix
-		biasRow = [1 for i in 1:k]'
+		biasRow = ones(k)'
 		for i in 1:numFactors
 			factors[i] = vcat(factors[i], biasRow)
 		end
@@ -131,7 +131,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 				clusterDistances[factorColIdx, centroidIdx] = Distances.cosine_dist(W[:, factorColIdx], centroid)
 			end
 		end
-		while (minimum(clusterDistances) < Inf)
+		while minimum(clusterDistances) < Inf
 			# get the row and column of the smallest distance
 			selectFactorCol, selectCentIdx = ind2sub(clusterDistances, indmin(clusterDistances))
 			# save that col in trial belongs to centroid's cluster
