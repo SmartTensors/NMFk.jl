@@ -87,14 +87,15 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 		factors = [f' for f in factors]
 	end
 	# invariant: we can now assume that our matrices are n x k
-	numTrials = length(factors)
+	numFactors = length(factors)
+	numTrials = numFactors
 	r, k = size(factors[1])
 	for w in factors
 		@assert size(w) == (r, k)
 	end
 	# fix zero case
 	needZeroFix = false
-	for i in 1:length(factors)
+	for i in 1:numFactors
 		factor = factors[i]
 		if minimum(sum(factor, 1)) == 0  # if we have a zero column
 			needZeroFix = true
@@ -103,7 +104,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	end
 	if needZeroFix
 		biasRow = [1 for i in 1:k]'
-		for i in 1:numTrials
+		for i in 1:numFactors
 			factors[i] = vcat(factors[i], biasRow)
 		end
 	end
@@ -119,10 +120,11 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	# by definition, the columns of the first solution belong to their own cluster.
 	clusterLbls[:, 1] = [i for i in 1:k]
 
+	clusterDistances = Matrix{Float64}(k, k)
 	for trial in 2:numTrials
 		W = factors[trial]
 		# clusterDistances[a, b] = c --> dist(W[:,a], centSeeds[:,b]) = c
-		clusterDistances = zeros(k, k) + Inf
+		clusterDistances .= Inf
 		for centroidIdx in 1:k
 			centroid = centSeeds[:, centroidIdx]
 			for factorColIdx in 1:k
@@ -145,13 +147,15 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	end
 	while minimum(clusterLbls) == 0
 		idx, trial = ind2sub(clusterLbls, indmin(clusterLbls))
-		warn("Solution $idx in trial $trial was not assigned a cluster")
-		clusterLbls[idx, trial] = trial
+		warn("Parameter $idx in solution $trial was not assigned a cluster")
+		@show clusterLbls[:, trial]
+		clusterLbls[idx, trial] = idx
+		@show factors[trial]
 	end
-	if !(minimum(clusterLbls) >=1)
+	if minimum(clusterLbls) <= 0
 		warn("Minimum assignments should be greater than 1: $(minimum(clusterLbls))")
 	end
-	if !(maximum(clusterLbls) <= k)
+	if maximum(clusterLbls) > k
 		warn("Maximum assignments should be less than $k: $(maximum(clusterLbls))")
 	end
 	for i in 1:k
