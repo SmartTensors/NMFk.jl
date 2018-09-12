@@ -128,9 +128,9 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 	end
 	idxnan = trues(nNMF)
 	for i in 1:nNMF
-		if sum(isnan.WBig[i]) > 0
+		if sum(isnan.(WBig[i])) > 0
 			idxnan[idxsort[i]] = false
-		elseif sum(isnan.HBig[i]) > 0
+		elseif sum(isnan.(HBig[i])) > 0
 			idxnan[idxsort[i]] = false
 		end
 	end
@@ -348,7 +348,6 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			display(M)
 		end
 		ci = clusterassignments[:, 1]
-		@show ci
 		for (i, c) in enumerate(ci)
 			Wbest[:, i] = WBig[bestIdx][:, c]
 			Hbest[i, :] = HBig[bestIdx][c, :]
