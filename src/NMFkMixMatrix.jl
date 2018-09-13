@@ -155,9 +155,9 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			if (ofbest - of) > tolOF
 				resets += 1
 				if resets > maxresets
-					warn("Maximum number of resets has been reached; quit!")
+					!quiet && warn("Maximum number of resets has been reached; quit!")
 				else
-					warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+					!quiet && warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
 					outiters = 0
 				end
 			end

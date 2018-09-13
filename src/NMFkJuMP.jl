@@ -186,10 +186,10 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		if of < ofbest
 			if (ofbest - of) > tolOF
 				resets += 1
-				if resets > maxresets
-					warn("Maximum number of resets has been reached; quit!")
+				if resets >= maxresets
+					!quiet && warn("Maximum number of resets has been reached; quit!")
 				else
-					warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+					!quiet && warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
 					outiters = 0
 				end
 			end
