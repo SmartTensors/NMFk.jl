@@ -135,9 +135,9 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 		end
 	end
 	idxsol = idxrat .& idxcut .& idxnan
-	if sum(idxsol) > 0
-		println("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions")
-		println("ALL OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue))")
+	if sum(idxsol) < nNMF
+		println("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions remain")
+		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue)) (ALL)")
 	end
 	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(mean(objvalue[idxsol])) std $(std(objvalue[idxsol]))")
 	Xe = NMFk.mixmatchcompute(X, Wbest, Hbest)
@@ -329,17 +329,17 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		end
 	end
 	idxsol = idxrat .& idxcut .& idxnan
-	if sum(idxsol) > 0
+	if sum(idxsol) < nNMF
 		println("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions remain")
-		println("ALL OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue))")
+		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue)) (ALL)")
 	end
 	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(mean(objvalue[idxsol])) std $(std(objvalue[idxsol]))")
 	Xe = Wbest * Hbest
-	fn = vecnorm(X)
-	println("Worst correlation by columns: $(minimum(map(i->cor(X[i, :], Xe[i, :]), 1:size(X, 1))))")
-	println("Worst correlation by rows: $(minimum(map(i->cor(X[:, i], Xe[:, i]), 1:size(X, 2))))")
-	println("Worst norm by columns: $(maximum(map(i->(vecnorm(X[i, :] - Xe[i, :])/fn), 1:size(X, 1))))")
-	println("Worst norm by rows: $(maximum(map(i->(vecnorm(X[:, i] - Xe[:, i])/fn), 1:size(X, 2))))")
+	fn = vecnormnan(X)
+	println("Worst correlation by columns: $(minimum(map(i->cornan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
+	println("Worst correlation by rows: $(minimum(map(i->cornan(X[:, i], Xe[:, i]), 1:size(X, 2))))")
+	println("Worst norm by columns: $(maximum(map(i->(vecnormnan(X[i, :] - Xe[i, :])/fn), 1:size(X, 1))))")
+	println("Worst norm by rows: $(maximum(map(i->(vecnormnan(X[:, i] - Xe[:, i])/fn), 1:size(X, 2))))")
 	minsilhouette = 1
 	if nk > 1
 		if clusterweights
@@ -534,4 +534,13 @@ function NMFrun(X::Matrix, nk::Integer; maxiter::Integer=maxiter, normalize::Boo
 		H .*= total'
 	end
 	return W, H
+end
+
+function vecnormnan(X)
+	vecnorm(X[.!isnan.(X)])
+end
+
+function cornan(x, y)
+	isn = isnan.(x) .| isnan.(y)
+	cov(x[.!isn], y[.!isn])
 end

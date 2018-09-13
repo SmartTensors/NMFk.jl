@@ -170,8 +170,26 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		iters += 1
 		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	end
-	!quiet && info("Final objective function $ofbest")
-	fitquality = ofbest - regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
+	isnm = isnan.(mixerval)
+	isnb = isnan.(bucketval)
+	if sum(isnm) > 0
+		warn("There are NaN's in the W matrix!")
+		mixerval[isnm] .= 0
+	end
+	if sum(isnb) > 0
+		warn("There are NaN's in the H matrix!")
+		bucketval[isnb] .= 0
+	end
+	if sum(isnm) > 0 || sum(isnb) > 0
+		warn("Vecnorm: $(sqrt(vecnorm(concentrations - mixerval * bucketval))) OF: $(ofbest)")
+	end
+	penalty = regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
+	fitquality = ofbest - penalty
+	if !quiet
+		info("Final objective function: $ofbest")
+		info("Final penalty: $penalty")
+		info("Final fit: $fitquality")
+	end
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
 		for (j, c1, c2) in zip(1:numberofratios, ratioindices[:, 1], ratioindices[:, 2])
@@ -314,14 +332,14 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	bucketval = JuMP.getvalue(buckets)
 	bucketdeltasval = JuMP.getvalue(bucketdeltas)
 	of = JuMP.getobjectivevalue(m)
-	!quiet && @show of
 	ofbest = of
-	iters = 0
+	iters = 1
+	!quiet && info("Iteration: $iters Objective function: $of Best: $ofbest")
 	while !(norm(oldcolval - m.colVal) < tol) && iters < maxouteriters # keep doing the optimization until we really reach an optimum
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
-		!quiet && @show of
+		!quiet && info("Iteration: $iters Objective function: $of Best: $ofbest")
 		if of < ofbest
 			iters = 0
 			mixerval = JuMP.getvalue(mixer)
@@ -331,7 +349,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 		end
 		iters += 1
 	end
-	!quiet && @show ofbest
+	!quiet && info("Iteration: $iters Objective function: $of Best: $ofbest")
 	fitquality = ofbest - regularizationweight * sum(log(1. + bucketval).^2) / numbuckets - regularizationweight * sum(log(1. + abs(bucketdeltasval)).^2) / numbuckets
 	if normalize
 		bucketval = descalematrix!(bucketval, cmax)
