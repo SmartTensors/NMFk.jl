@@ -124,7 +124,6 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	for trial in 2:numTrials
 		W = factors[trial]
 		# clusterDistances[a, b] = c --> dist(W[:,a], centSeeds[:,b]) = c
-		clusterDistances .= Inf
 		for centroidIdx in 1:k
 			centroid = centSeeds[:, centroidIdx]
 			for factorColIdx in 1:k
