@@ -1,6 +1,7 @@
 import JuMP
 import Ipopt
 import NLopt
+import Suppressor
 
 const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
@@ -130,7 +131,11 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		Xe = initW * initH
 		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
-	JuMP.solve(m)
+	if quiet
+		@Suppressor.suppress JuMP.solve(m)
+	else
+		JuMP.solve(m)
+	end
 	if fixW
 		Wbest = W
 	else
@@ -146,7 +151,7 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	frame = 2
-	iters = 0
+	iters = 1
 	outiters = 0
 	resets = 0
 	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol) && outiters < maxouteriters && resets <= maxresets
@@ -170,7 +175,11 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
 			frame += 1
 		end
-		JuMP.solve(m)
+		if quiet
+			@Suppressor.suppress JuMP.solve(m)
+		else
+			JuMP.solve(m)
+		end
 		of = JuMP.getobjectivevalue(m)
 		outiters += 1
 		iters += 1
@@ -196,8 +205,26 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 			info("Parameter norm: $(norm(oldcolval - m.colVal))")
 		end
 	end
-	!quiet && info("Final objective function $ofbest")
-	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
+	isnm = isnan.(Wbest)
+	isnb = isnan.(Hbest)
+	if sum(isnm) > 0
+		warn("There are NaN's in the W matrix!")
+		Wbest[isnm] .= 0
+	end
+	if sum(isnb) > 0
+		warn("There are NaN's in the H matrix!")
+		Hbest[isnb] .= 0
+	end
+	if sum(isnm) > 0 || sum(isnb) > 0
+		warn("Vecnorm: $(sqrt(vecnorm(X - Wbest * Hbest))) OF: $(ofbest)")
+	end
+	penalty = regularizationweight * sum(log.(1. + Hbest).^2) / nk
+	fitquality = ofbest - penalty
+	if !quiet
+		info("Final objective function: $ofbest")
+		(regularizationweight > 0.) && iinfo("Final penalty: $penalty")
+		info("Final fit: $fitquality")
+	end
 	if normalize
 		Hbest = denormalizematrix!(Hbest, Wbest, cmin, cmax)
 	elseif scale

@@ -304,14 +304,14 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
 		idxrat = vec([trues(ccc); falses(nNMF-ccc)])
-		println("NMF solutions removed based on an acceptance ratio: $(sum(idxrat)) out of $(nNMF) solutions")
+		println("NMF solutions removed based on an acceptance ratio: $(sum(idxrat)) out of $(nNMF) solutions remain")
 	else
 		idxrat = trues(nNMF)
 	end
 	if acceptfactor < Inf
 		cutoff = objvalue[bestIdx] * acceptfactor
 		idxcut = objvalue[idxsort] .< cutoff
-		println("NMF solutions removed based on an acceptance factor: $(sum(idxcut)) out of $(nNMF) solutions")
+		println("NMF solutions removed based on an acceptance factor: $(sum(idxcut)) out of $(nNMF) solutions remain")
 	else
 		idxcut = trues(nNMF)
 	end
@@ -327,6 +327,9 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 				idxnan[idxsort[i]] = false
 			end
 		end
+	end
+	if sum(idxnan) < nNMF
+		println("NMF solutions removed because they contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions remain")
 	end
 	idxsol = idxrat .& idxcut .& idxnan
 	if sum(idxsol) < nNMF
