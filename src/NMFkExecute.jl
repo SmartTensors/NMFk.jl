@@ -348,7 +348,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(mean(objvalue[idxsol])) std $(std(objvalue[idxsol]))")
 	for i in 1:nNMF
 		Xe = WBig[i] * HBig[i]
-		println("OF $i:$(ssqrnan(X-Xe)) vs $(objvalue[i])")
+		println("OF $i: $(ssqrnan(X-Xe)) vs $(objvalue[i])")
 	end
 	Xe = Wbest * Hbest
 	fn = vecnormnan(X)
