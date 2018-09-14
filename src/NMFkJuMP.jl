@@ -216,9 +216,9 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		Hbest[isnb] .= 0
 	end
 	if sum(isnm) > 0 || sum(isnb) > 0
-		warn("Vecnorm: $(sqrt(vecnorm(X - Wbest * Hbest))) OF: $(ofbest)")
+		warn("Vecnorm: $(sqrt(vecnormnan(X - Wbest * Hbest))) OF: $(ofbest)")
 	else
-		info("There no NaN's in the jump solutions.")
+		info("There are no NaN's in the jump solutions.")
 	end
 	penalty = regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	fitquality = ofbest - penalty

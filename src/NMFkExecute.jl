@@ -180,9 +180,7 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 		Wa = Wbest
 		Ha = Hbest
 	end
-	E = abs.(X .- Xe)
-	E[isnan.(E)] = 0
-	phi_final = sum(E.^2)
+	phi_final = sqrt(vecnorm(X .- Xe))
 	numobservations = length(vec(X[.!indexnan]))
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	numparameters -= (size(Wa)[1] + size(Wa)[3])
@@ -307,14 +305,14 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
 		idxrat = vec([trues(ccc); falses(nNMF-ccc)])
-		println("NMF solutions removed based on an acceptance ratio: $(sum(idxrat)) out of $(nNMF) solutions remain")
+		warn("NMF solutions removed based on an acceptance ratio: $(sum(idxrat)) out of $(nNMF) solutions remain")
 	else
 		idxrat = trues(nNMF)
 	end
 	if acceptfactor < Inf
 		cutoff = objvalue[bestIdx] * acceptfactor
 		idxcut = objvalue[idxsort] .< cutoff
-		println("NMF solutions removed based on an acceptance factor: $(sum(idxcut)) out of $(nNMF) solutions remain")
+		warn("NMF solutions removed based on an acceptance factor: $(sum(idxcut)) out of $(nNMF) solutions remain")
 	else
 		idxcut = trues(nNMF)
 	end
@@ -334,12 +332,13 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			idxnan[idxsort[i]] = false
 		end
 	end
-	if zeronans
-		warn("NMF solutions contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions! Nan's have been removed!")
-		idxnan = trues(nNMF)
-	end
 	if sum(idxnan) < nNMF
-		println("NMF solutions removed because they contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions remain")
+		if zeronans
+			warn("NMF solutions contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions! Nan's have been removed!")
+			idxnan = trues(nNMF)
+		end
+			warn("NMF solutions removed because they contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions remain")
+		end
 	end
 	idxsol = idxrat .& idxcut .& idxnan
 	if sum(idxsol) < nNMF
@@ -347,6 +346,10 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(mean(objvalue)) std $(std(objvalue)) (ALL)")
 	end
 	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(mean(objvalue[idxsol])) std $(std(objvalue[idxsol]))")
+	for i in 1:nNMF
+		Xe = WBig[i] * HBig[i]
+		println("OF $i:$(vecnormnan(X-Xe)) vs $(objvalue[i])")
+	end
 	Xe = Wbest * Hbest
 	fn = vecnormnan(X)
 	println("Worst correlation by columns: $(minimum(map(i->cornan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
@@ -399,7 +402,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			E = X - Wa * Ha
 		end
 		E[isnan.(E)] = 0
-		phi_final = sum(E.^2)
+		phi_final = sqrt(sum(E.^2))
 	else
 		Ha_conc = Ha[:,1:nC]
 		Ha_deltas = Ha[:,nC+1:end]
@@ -411,7 +414,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		end
 		E[isnan.(E)] = 0
 		id = !isnan.(deltas)
-		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
+		phi_final = sqrt(sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2))
 	end
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
