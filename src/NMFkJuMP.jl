@@ -216,7 +216,7 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		Hbest[isnb] .= 0
 	end
 	if sum(isnm) > 0 || sum(isnb) > 0
-		warn("Vecnorm: $(sqrt(vecnormnan(X - Wbest * Hbest))) OF: $(ofbest)")
+		warn("Vecnorm: $(ssqrnan(X - Wbest * Hbest)) OF: $(ofbest)")
 	else
 		info("There are no NaN's in the jump solutions.")
 	end

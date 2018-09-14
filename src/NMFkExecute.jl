@@ -180,7 +180,7 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 		Wa = Wbest
 		Ha = Hbest
 	end
-	phi_final = sqrt(vecnorm(X .- Xe))
+	phi_final = ssqrnan(X .- Xe)
 	numobservations = length(vec(X[.!indexnan]))
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	numparameters -= (size(Wa)[1] + size(Wa)[3])
@@ -348,7 +348,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(mean(objvalue[idxsol])) std $(std(objvalue[idxsol]))")
 	for i in 1:nNMF
 		Xe = WBig[i] * HBig[i]
-		println("OF $i:$(vecnormnan(X-Xe)) vs $(objvalue[i])")
+		println("OF $i:$(ssqrnan(X-Xe)) vs $(objvalue[i])")
 	end
 	Xe = Wbest * Hbest
 	fn = vecnormnan(X)
@@ -550,6 +550,10 @@ function NMFrun(X::Matrix, nk::Integer; maxiter::Integer=maxiter, normalize::Boo
 		H .*= total'
 	end
 	return W, H
+end
+
+function ssqrnan(X)
+	sum(X[.!isnan.(X)].^2)
 end
 
 function vecnormnan(X)

@@ -181,13 +181,13 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		bucketval[isnb] .= 0
 	end
 	if sum(isnm) > 0 || sum(isnb) > 0
-		warn("Vecnorm: $(sqrt(vecnorm(concentrations - mixerval * bucketval))) OF: $(ofbest)")
+		warn("Vecnorm: $(vecnorm(concentrations - mixerval * bucketval)) OF: $(ofbest)")
 	end
 	penalty = regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
 	fitquality = ofbest - penalty
 	if !quiet
 		info("Final objective function: $ofbest")
-		info("Final penalty: $penalty")
+		(regularizationweight > 0) && (info("Final penalty: $penalty"))
 		info("Final fit: $fitquality")
 	end
 	if !quiet && sizeof(ratios) > 0
