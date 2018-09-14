@@ -205,6 +205,7 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 			info("Parameter norm: $(norm(oldcolval - m.colVal))")
 		end
 	end
+	X[nans] = NaN
 	isnm = isnan.(Wbest)
 	isnb = isnan.(Hbest)
 	if sum(isnm) > 0
@@ -237,6 +238,5 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		Xe = Wbest * Hbest
 		NMFk.plotnmf(Xe, Wbest[:,movieorder], Hbest[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
-	X[nans] = NaN
 	return Wbest, Hbest, fitquality
 end
