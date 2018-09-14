@@ -402,7 +402,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 			E = X - Wa * Ha
 		end
 		E[isnan.(E)] = 0
-		phi_final = sqrt(sum(E.^2))
+		phi_final = sum(E.^2)
 	else
 		Ha_conc = Ha[:,1:nC]
 		Ha_deltas = Ha[:,nC+1:end]
@@ -414,7 +414,7 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 		end
 		E[isnan.(E)] = 0
 		id = !isnan.(deltas)
-		phi_final = sqrt(sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2))
+		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
 	end
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
