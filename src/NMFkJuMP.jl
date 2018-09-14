@@ -139,12 +139,12 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	if fixW
 		Wbest = W
 	else
-		Wbest = Wbest = convert(Array{Float32,2}, JuMP.getvalue(W))
+		Wbest = JuMP.getvalue(W)
 	end
 	if fixH
 		Hbest = H
 	else
-		Hbest = Hbest = convert(Array{Float32,2}, JuMP.getvalue(H))
+		Hbest = JuMP.getvalue(H)
 	end
 	of = JuMP.getobjectivevalue(m)
 	!quiet && info("Initial objective function $of")
@@ -193,8 +193,8 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 					outiters = 0
 				end
 			end
-			!fixW && (Wbest = convert(Array{Float32,2}, JuMP.getvalue(W)))
-			!fixH && (Hbest = convert(Array{Float32,2}, JuMP.getvalue(H)))
+			!fixW && (Wbest = JuMP.getvalue(W))
+			!fixH && (Hbest = JuMP.getvalue(H))
 			ofbest = of
 			objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 		end
@@ -218,9 +218,9 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	penalty = regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	fitquality = ofbest - penalty
 	if sum(isnm) > 0 || sum(isnb) > 0
-		warn("Vecnorm: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality)")
+		warn("SSQR: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality)")
 	else
-		warn("Vecnorm: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality) (no NaN's)")
+		warn("SSQR: $(ssqrnan(X - Wbest * Hbest)) $(ssqrnan(X - convert(Array{Float32, 2}, Wbest) * convert(Array{Float32, 2}, Hbest))) OF: $(fitquality) (no NaN's) penalty $penalty")
 		# info("There are no NaN's in the jump solutions.")
 	end
 	if !quiet
