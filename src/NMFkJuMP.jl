@@ -196,12 +196,12 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 			!fixW && (Wbest = convert(Array{Float32,2}, JuMP.getvalue(W)))
 			!fixH && (Hbest = convert(Array{Float32,2}, JuMP.getvalue(H)))
 			ofbest = of
+			objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 		end
-		objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 		if !quiet
 			info("Iteration $iters")
 			info("Objective function $of")
-			(regularizationweight > 0.) && info("Objective function + regularization penalty $objvalue")
+			(regularizationweight > 0.) && info("Objective function - regularization penalty $objvalue")
 			info("Parameter norm: $(norm(oldcolval - m.colVal))")
 		end
 	end
@@ -215,13 +215,14 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		warn("There are NaN's in the H matrix!")
 		Hbest[isnb] .= 0
 	end
-	if sum(isnm) > 0 || sum(isnb) > 0
-		warn("Vecnorm: $(ssqrnan(X - Wbest * Hbest)) OF: $(ofbest)")
-	else
-		info("There are no NaN's in the jump solutions.")
-	end
 	penalty = regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	fitquality = ofbest - penalty
+	if sum(isnm) > 0 || sum(isnb) > 0
+		warn("Vecnorm: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality)")
+	else
+		warn("Vecnorm: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality) (no NaN's)")
+		# info("There are no NaN's in the jump solutions.")
+	end
 	if !quiet
 		info("Final objective function: $ofbest")
 		(regularizationweight > 0.) && info("Final penalty: $penalty")
@@ -237,5 +238,5 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		NMFk.plotnmf(Xe, Wbest[:,movieorder], Hbest[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
 	X[nans] = NaN
-	return Wbest, Hbest, objvalue
+	return Wbest, Hbest, fitquality
 end
