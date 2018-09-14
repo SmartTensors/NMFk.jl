@@ -52,7 +52,7 @@ end
 function jump(X::Matrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Array{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
 	end
@@ -154,6 +154,7 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	iters = 1
 	outiters = 0
 	resets = 0
+	#TODO this does not work; JuMP fails when restarted
 	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol) && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		if movie
@@ -220,9 +221,6 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	fitquality = ofbest - penalty
 	if sum(isnm) > 0 || sum(isnb) > 0
 		warn("SSQR: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality)")
-	else
-		warn("SSQR: $(ssqrnan(X - Wbest * Hbest)) $(ssqrnan(X - convert(Array{Float32, 2}, Wbest) * convert(Array{Float32, 2}, Hbest))) OF: $(fitquality) (no NaN's) penalty $penalty")
-		# info("There are no NaN's in the jump solutions.")
 	end
 	if !quiet
 		info("Final objective function: $ofbest")
