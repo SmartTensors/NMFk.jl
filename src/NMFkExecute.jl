@@ -115,14 +115,14 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
 		idxrat = vec([trues(ccc); falses(nNMF-ccc)])
-		println("NMF solutions removed based on an acceptance ratio: $(sum(idxrat)) out of $(nNMF) solutions")
+		println("NMF solutions removed based on an acceptance ratio: $(sum(idxrat)) out of $(nNMF) solutions remain")
 	else
 		idxrat = trues(nNMF)
 	end
 	if acceptfactor < Inf
 		cutoff = objvalue[bestIdx] * acceptfactor
 		idxcut = objvalue[idxsort] .< cutoff
-		println("NMF solutions removed based on an acceptance factor: $(sum(idxcut)) out of $(nNMF) solutions")
+		println("NMF solutions removed based on an acceptance factor: $(sum(idxcut)) out of $(nNMF) solutions remain")
 	else
 		idxcut = trues(nNMF)
 	end
@@ -133,6 +133,9 @@ function execute_run(X::Array, nk::Int, nNMF::Int; clusterweights::Bool=false, a
 		elseif sum(isnan.(HBig[i])) > 0
 			idxnan[idxsort[i]] = false
 		end
+	end
+	if sum(idxnan) < nNMF
+		println("NMF solutions removed because they contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions remain")
 	end
 	idxsol = idxrat .& idxcut .& idxnan
 	if sum(idxsol) < nNMF
@@ -317,16 +320,23 @@ function execute_run(X::Matrix, nk::Int, nNMF::Int; clusterweights::Bool=false, 
 	end
 	idxnan = trues(nNMF)
 	for i in 1:nNMF
-		if zeronans
-			WBig[i][isnan.(WBig[i])] .= 0
-			HBig[i][isnan.(HBig[i])] .= 0
-		else
-			if sum(isnan.(WBig[i])) > 0
-				idxnan[idxsort[i]] = false
-			elseif sum(isnan.(HBig[i])) > 0
-				idxnan[idxsort[i]] = false
+		isnw = isnan.(WBig[i])
+		isnh = isnan.(HBig[i])
+		if sum(isnw) > 0
+			if zeronans
+				WBig[i][isnw] .= 0
 			end
+			idxnan[idxsort[i]] = false
+		elseif sum(isnh) > 0
+			if zeronans
+				HBig[i][isnh] .= 0
+			end
+			idxnan[idxsort[i]] = false
 		end
+	end
+	if zeronans
+		warn("NMF solutions contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions! Nan's have been removed!")
+		idxnan = trues(nNMF)
 	end
 	if sum(idxnan) < nNMF
 		println("NMF solutions removed because they contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions remain")

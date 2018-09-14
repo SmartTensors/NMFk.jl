@@ -139,12 +139,12 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	if fixW
 		Wbest = W
 	else
-		Wbest = JuMP.getvalue(W)
+		Wbest = Wbest = convert(Array{Float32,2}, JuMP.getvalue(W))
 	end
 	if fixH
 		Hbest = H
 	else
-		Hbest = JuMP.getvalue(H)
+		Hbest = Hbest = convert(Array{Float32,2}, JuMP.getvalue(H))
 	end
 	of = JuMP.getobjectivevalue(m)
 	!quiet && info("Initial objective function $of")
@@ -193,8 +193,8 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 					outiters = 0
 				end
 			end
-			!fixW && (Wbest = JuMP.getvalue(W))
-			!fixH && (Hbest = JuMP.getvalue(H))
+			!fixW && (Wbest = convert(Array{Float32,2}, JuMP.getvalue(W)))
+			!fixH && (Hbest = convert(Array{Float32,2}, JuMP.getvalue(H)))
 			ofbest = of
 		end
 		objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
@@ -217,12 +217,14 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	end
 	if sum(isnm) > 0 || sum(isnb) > 0
 		warn("Vecnorm: $(sqrt(vecnorm(X - Wbest * Hbest))) OF: $(ofbest)")
+	else
+		info("There no NaN's in the jump solutions.")
 	end
 	penalty = regularizationweight * sum(log.(1. + Hbest).^2) / nk
 	fitquality = ofbest - penalty
 	if !quiet
 		info("Final objective function: $ofbest")
-		(regularizationweight > 0.) && iinfo("Final penalty: $penalty")
+		(regularizationweight > 0.) && info("Final penalty: $penalty")
 		info("Final fit: $fitquality")
 	end
 	if normalize

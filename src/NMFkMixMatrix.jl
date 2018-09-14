@@ -122,8 +122,8 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	else
 		JuMP.solve(m)
 	end
-	mixerval = JuMP.getvalue(mixer)
-	bucketval = JuMP.getvalue(buckets)
+	mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
+	bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
 	of = JuMP.getobjectivevalue(m)
 	if movie
 		Xe = mixerval * bucketval
@@ -144,8 +144,8 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			JuMP.solve(m)
 		end
 		if movie
-			We = JuMP.getvalue(mixer)
-			He = JuMP.getvalue(buckets)
+			We = convert(Array{Float32,2}, JuMP.getvalue(mixer))
+			He = convert(Array{Float32,2}, JuMP.getvalue(buckets))
 			Xe = We * He
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
 			frame += 1
@@ -161,8 +161,8 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 					outiters = 0
 				end
 			end
-			mixerval = JuMP.getvalue(mixer)
-			bucketval = JuMP.getvalue(buckets)
+			mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
+			bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
 			ofbest = of
 		else
 			outiters = maxouteriters + 1
@@ -328,9 +328,9 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 		)
 	oldcolval = copy(m.colVal)
 	JuMP.solve(m)
-	mixerval = JuMP.getvalue(mixer)
-	bucketval = JuMP.getvalue(buckets)
-	bucketdeltasval = JuMP.getvalue(bucketdeltas)
+	mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
+	bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
+	bucketdeltasval = convert(Array{Float32,2}, JuMP.getvalue(bucketdeltas))
 	of = JuMP.getobjectivevalue(m)
 	ofbest = of
 	iters = 1
@@ -342,9 +342,9 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 		!quiet && info("Iteration: $iters Objective function: $of Best: $ofbest")
 		if of < ofbest
 			iters = 0
-			mixerval = JuMP.getvalue(mixer)
-			bucketval = JuMP.getvalue(buckets)
-			bucketdeltasval = JuMP.getvalue(bucketdeltas)
+			mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
+			bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
+			bucketdeltasval = convert(Array{Float32,2}, JuMP.getvalue(bucketdeltas))
 			ofbest = of
 		end
 		iters += 1
@@ -391,8 +391,8 @@ function mixmatchwaterdeltas(deltas::Matrix{Float32}, numbuckets::Int; method::S
 		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
 	end
 	JuMP.solve(m)
-	mixerval = JuMP.getvalue(mixer)
-	bucketval = JuMP.getvalue(buckets)
+	mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
+	bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
 	fitquality = JuMP.getobjectivevalue(m) - regularizationweight * sum((bucketval - bucketmeans).^2) / numbuckets
 	return mixerval, bucketval, fitquality
 end
