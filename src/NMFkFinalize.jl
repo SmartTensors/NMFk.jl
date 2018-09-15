@@ -32,12 +32,15 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 	if clusterweights
 		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
 		WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...))
+		WaDist[isnan.(HaDist)] .= 0
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
 	else
 		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
 		HaDist = Distances.pairwise(Distances.CosineDist(), vcat(Ha...)')
+		HaDist[isnan.(HaDist)] .= 0
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
 	end
+	silhouettes[isnan.(silhouettes)] .= 0
 	clustersilhouettes = Array{Float64}(nk, 1)
 	W = Array{Float64}(nP, nk)
 	H = Array{Float64}(nk, nC)

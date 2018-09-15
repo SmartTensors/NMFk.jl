@@ -130,6 +130,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 				clusterDistances[factorColIdx, centroidIdx] = Distances.cosine_dist(W[:, factorColIdx], centroid)
 			end
 		end
+		clusterDistances[isnan.(clusterDistances)] .= 0
 		while minimum(clusterDistances) < Inf
 			# get the row and column of the smallest distance
 			selectFactorCol, selectCentIdx = ind2sub(clusterDistances, indmin(clusterDistances))
