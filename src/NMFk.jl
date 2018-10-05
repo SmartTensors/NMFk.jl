@@ -15,6 +15,7 @@ module NMFk
 	quiet = true
 	restart = false
 
+	include("NMFkHelpers.jl")
 	include("NMFkCluster.jl")
 	include("NMFkGeoChem.jl")
 	include("NMFkMixMatrix.jl")

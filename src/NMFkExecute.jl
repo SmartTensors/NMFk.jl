@@ -561,16 +561,3 @@ function NMFrun(X::Matrix, nk::Integer; maxiter::Integer=maxiter, normalize::Boo
 	end
 	return W, H
 end
-
-function ssqrnan(X)
-	sum(X[.!isnan.(X)].^2)
-end
-
-function vecnormnan(X)
-	vecnorm(X[.!isnan.(X)])
-end
-
-function cornan(x, y)
-	isn = isnan.(x) .| isnan.(y)
-	cov(x[.!isn], y[.!isn])
-end
