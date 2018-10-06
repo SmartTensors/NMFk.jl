@@ -1,3 +1,11 @@
+function maximumnan(X, c...; kw...)
+	maximum(X[.!isnan.(X)], c...; kw...)
+end
+
+function minimumnan(X, c...; kw...)
+	minimum(X[.!isnan.(X)], c...; kw...)
+end
+
 function sumnan(X, c...; kw...)
 	sum(X[.!isnan.(X)], c...; kw...)
 end
