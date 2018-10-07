@@ -31,6 +31,7 @@ module NMFk
 	include("NMFkMultiplicative.jl")
 	include("NMFkPlot.jl")
 	include("NMFkCapture.jl")
+	include("NMFkMultivariateStats.jl")
 
 	restartoff()
 end
