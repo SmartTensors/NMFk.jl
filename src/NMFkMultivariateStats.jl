@@ -1,6 +1,9 @@
 import MultivariateStats
 
 function regression(X::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method::Symbol=:ridge, bias::Bool=true, r::Number=0.1) where T
+	if method == nothing
+		method = :ridge
+	end
 	Xe = Array{T}(size(Mpredict, 1), size(X, 2), size(X, 3))
 	try
 		al = []
@@ -17,7 +20,7 @@ function regression(X::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method:
 			end
 		end
 	catch e
-		display(e)
+		# display(e)
 		return nothing
 	end
 	return Xe
