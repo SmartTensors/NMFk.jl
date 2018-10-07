@@ -52,14 +52,9 @@ end
 function jump(X::Matrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix=Array{Float32}(0, 0), initH::Array=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=true, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix=Array{Float32}(0, 0), initH::Array=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
-	end
-	if normalize
-		X, cmin, cmax = normalizematrix!(X)
-	elseif scale
-		X, cmax = scalematrix!(X)
 	end
 	if weightinverse
 		obsweights = convert(Array{Float32,2}, 1. ./ X)
@@ -118,13 +113,16 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 	if fixW
 		W = initW
 	else
+		constrainW && normalizematrix!(initW)
 		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk] >= 0., start = convert(Float32, initW[i, j]))
 		constrainW && @JuMP.constraint(m, W .<= 1) # this is very important constraint to make optimization faster
 	end
 	if fixH
 		H = initH
 	else
+		constrainH && normalizematrix!(initH)
 		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents] >= 0., start = convert(Float32, initH[i, j]))
+		constrainH && @JuMP.constraint(m, H .<= 1)
 	end
 	if kullbackleibler
 		smallnumber = eps(Float64)
@@ -240,11 +238,6 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		info("Final objective function: $ofbest")
 		(regularizationweight > 0.) && info("Final penalty: $penalty")
 		info("Final fit: $fitquality")
-	end
-	if normalize
-		Hbest = denormalizematrix!(Hbest, Wbest, cmin, cmax)
-	elseif scale
-		Hbest = descalematrix!(Hbest, cmax)
 	end
 	if movie
 		Xe = Wbest * Hbest

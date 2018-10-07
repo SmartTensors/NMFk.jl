@@ -494,9 +494,9 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=NMFk.quiet, r
 	if mixture != :null
 		if mixture == :mixmatch
 			if sizeof(deltas) == 0
-				W, H, objvalue = NMFk.mixmatchdata(Xn, nk; method=method, algorithm=algorithm, ratios=ratios, ratioindices=ratioindices, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
+				W, H, objvalue = NMFk.mixmatchdata(Xn, nk; method=method, algorithm=algorithm, ratios=ratios, ratioindices=ratioindices, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
 			else
-				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; method=method, algorithm=algorithm, normalize=normalize, scale=false, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
+				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; method=method, algorithm=algorithm, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
 				H = [Hconc Hdeltas]
 			end
 		elseif mixture == :matchwaterdeltas
@@ -505,7 +505,7 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=NMFk.quiet, r
 	elseif method == :sparse
 		W, H, (_, objvalue, _) = NMFk.NMFsparse(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
 	elseif method == :ipopt || method == :nlopt
-		W, H, objvalue = NMFk.jump(Xn, nk; method=method, algorithm=algorithm, normalize=normalize, scale=false, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
+		W, H, objvalue = NMFk.jump(Xn, nk; method=method, algorithm=algorithm, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple
 		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, tol=tol, maxiter=maxiter, kw...)
 		objvalue = sum((X - W * H).^2)
@@ -528,9 +528,11 @@ function execute_singlerun_compute(X::Matrix, nk::Int; quiet::Bool=NMFk.quiet, r
 	end
 	if scale
 		if transpose
+			X = NMFk.descalematrix!(Xn, Xmax)
 			W = NMFk.descalematrix!(W, Xmax')
 			E = X' - W * H
 		else
+			X = NMFk.descalematrix!(Xn, Xmax)
 			H = NMFk.descalematrix!(H, Xmax)
 			E = X - W * H
 		end

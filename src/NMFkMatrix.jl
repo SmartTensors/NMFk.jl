@@ -3,11 +3,13 @@ function normalizematrix!(a::Matrix)
 	amin = minimum(a, 1)
 	amax = maximum(a, 1)
 	dx = amax - amin
-	i0 = dx .== 0 # check for zeros
-	min[i0] = 0
-	dx[i0] = amax[i0]
-	i0 = dx .== 0 # check for zeros again
-	dx[i0] = 1
+	if length(dx) > 1
+		i0 = dx .== 0 # check for zeros
+		amin[i0] .= 0
+		dx[i0] .= amax[i0]
+		i0 = dx .== 0 # check for zeros again
+		dx[i0] .= 1
+	end
 	a = (a .- amin) ./ dx
 	return a, amin, amax
 end
