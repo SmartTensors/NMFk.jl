@@ -52,7 +52,7 @@ end
 function jump(X::Matrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix=Array{Float32}(0, 0), initH::Array=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix=Array{Float32}(0, 0), initH::Array=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
 	end
@@ -83,6 +83,7 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		end
 		nansw = 0
 	else
+		@assert size(initW) == (nummixtures, nk)
 		nansw = isnan.(initW)
 		initW[nansw] = 0
 	end
@@ -101,6 +102,7 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		end
 		nansh = 0
 	else
+		@assert size(initH) == (nk, numconstituents)
 		nansh = isnan.(initH)
 		initH[nansh] = 0
 	end
@@ -114,28 +116,35 @@ function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symb
 		W = initW
 	else
 		constrainW && normalizematrix!(initW)
-		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk] >= 0., start = convert(Float32, initW[i, j]))
-		constrainW && @JuMP.constraint(m, W .<= 1) # this is very important constraint to make optimization faster
+		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk], start=convert(Float32, initW[i, j]))
+		nonnegW && @JuMP.constraint(m, W .>= 0)
+		constrainW && @JuMP.constraint(m, W .<= 1)
 	end
 	if fixH
 		H = initH
 	else
 		constrainH && normalizematrix!(initH)
-		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents] >= 0., start = convert(Float32, initH[i, j]))
+		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents], start=convert(Float32, initH[i, j]))
+		nonnegH && @JuMP.constraint(m, H .>= 0)
 		constrainH && @JuMP.constraint(m, H .<= 1)
 	end
 	if kullbackleibler
 		smallnumber = eps(Float64)
 		@JuMP.NLobjective(m, Min, sum(X[i, j] * (log(smallnumber + X[i, j]) - log(smallnumber + sum(W[i, k] * H[k, j] for k = 1:nk))) - X[i, j] + sum(W[i, k] * H[k, j] for k = 1:nk) for i=1:nummixtures, j=1:numconstituents))
 	else
-		if fixH
+		if regularizationweight == 0.
 			@JuMP.NLobjective(m, Min,
-				regularizationweight * sum(sum(log(1. + W[i, j])^2 for i=1:numconstituents) for j=1:nk) / nk +
 				sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 		else
-			@JuMP.NLobjective(m, Min,
-				regularizationweight * sum(sum(log(1. + H[i, j])^2 for i=1:nk) for j=1:numconstituents) / nk +
-				sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
+			if fixH
+				@JuMP.NLobjective(m, Min,
+					regularizationweight * sum(sum(log(1. + W[i, j])^2 for i=1:numconstituents) for j=1:nk) / nk +
+					sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
+			else
+				@JuMP.NLobjective(m, Min,
+					regularizationweight * sum(sum(log(1. + H[i, j])^2 for i=1:nk) for j=1:numconstituents) / nk +
+					sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
+			end
 		end
 	end
 	oldcolval = copy(m.colVal)
