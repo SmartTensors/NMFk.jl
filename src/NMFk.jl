@@ -1,4 +1,4 @@
-__precompile__()
+# __precompile__()
 
 "Non-negative Matrix Factorization + k-means Clustering"
 module NMFk
