@@ -154,8 +154,13 @@ function setnewfilename(filename::AbstractString, frame::Integer=0; keyword::Abs
 	if !contains(fn, keyword)
 		fn = root * "-$(keyword)0000." * ext
 	end
-	if ismatch(Regex(string("-", keyword, "[0-9]*\..*\$")), fn)
-		rm = match(Regex(string("-", keyword, "([0-9]*)\.(.*)\$")), fn)
+	if VERSION >= v"0.7"
+		rtest = occursin(Regex(string("-", keyword, "[0-9]*[.].*\$")), fn)
+	else
+		rtest = ismatch(Regex(string("-", keyword, "[0-9]*[.].*\$")), fn)
+	end
+	if rtest
+		rm = match(Regex(string("-", keyword, "([0-9]*)[.](.*)\$")), fn)
 		if frame == 0
 			v = parse(Int, rm.captures[1]) + 1
 		else

@@ -47,7 +47,9 @@ function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 
 	local it, of, last_of, divergence
 
-	for it = 1:maxiter
+	it = 0
+	while it < maxiter
+		it += 1
 		if update_h > 0
 			if sparse_div_beta == 1
 				dph = bsxfun(+, sum(W[:,h_ind], 1)', sparsity)
