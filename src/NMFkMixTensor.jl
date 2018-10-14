@@ -3,7 +3,7 @@ import Ipopt
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{T, 2}=Array{T}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(0, 0), initH::Matrix{T}=Array{T}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
+function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(0, 0), initH::Matrix{T}=Array{T}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
 	if seed >= 0
 		srand(seed)
 	end
@@ -116,7 +116,7 @@ function mixmatchdata(concentrations::Array{T, 3}, numbuckets::Int; method::Symb
 	return abs.(W), abs.(H), fitquality
 end
 
-function setbadmixerelements!(X::Array, W::Array)
+function setbadmixerelements!(X::AbstractArray, W::AbstractArray)
 	nw, nc, nt = size(X)
 	for t = 1:nt
 		for w = 1:nw
@@ -127,7 +127,7 @@ function setbadmixerelements!(X::Array, W::Array)
 	end
 end
 
-function mixmatchcompute(X::Array{T, 3}, W::Array{T, 3}, H::Array{T, 2}, isn=isnan.(X)) where {T}
+function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::AbstractArray{T, 2}, isn=isnan.(X)) where {T}
 	nummixtures, numconstituents, ntimes = size(X)
 	nummixtures2, numbuckets, ntimes2 = size(W)
 	numbuckets2, numconstituents2 = size(H)
@@ -146,10 +146,10 @@ function mixmatchcompute(X::Array{T, 3}, W::Array{T, 3}, H::Array{T, 2}, isn=isn
 		end
 	end
 	Xe[isn] = NaN
-	return convert(Array{T, 3}, Xe)
+	return convert(AbstractArray{T, 3}, Xe)
 end
 
-function mixmatchcompute(W::Array{T, 3}, H::Array{T, 2}) where {T}
+function mixmatchcompute(W::AbstractArray{T, 3}, H::AbstractArray{T, 2}) where {T}
 	nummixtures, numbuckets, ntimes = size(W)
 	numbuckets2, numconstituents = size(H)
 	@assert numbuckets == numbuckets2
@@ -166,7 +166,7 @@ function mixmatchcompute(W::Array{T, 3}, H::Array{T, 2}) where {T}
 	return convert(Array{T, 3}, Xe)
 end
 
-function fixmixers!(X::Array{T, 3}, W::Array{T, 3}) where {T}
+function fixmixers!(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}) where {T}
 	nw, nc, nt = size(X)
 	for t = 1:nt
 		for w = 1:nw
