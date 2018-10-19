@@ -8,11 +8,11 @@ const defaultmaxiter = 1000
 const defaultverbosity = 0
 
 "Iterative factorization of matrix X (X = W * H) using Ipopt fixing W and H matrices"
-function jumpiter(X::Matrix, nk::Int; kw...)
+function jumpiter(X::AbstractMatrix, nk::Int; kw...)
 	m, n = size(X)
 	jumpiter(convert(Array{Float32, 2}, X), nk, convert(Array{Float32, 2}, rand(m, nk)), convert(Array{Float32, 2}, rand(nk, n)); kw...)
 end
-function jumpiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=NMFk.quiet, kw...)
+function jumpiter(X::AbstractMatrix{Float32}, nk::Int, W::AbstractMatrix{Float32}, H::AbstractMatrix{Float32}; iter::Int=100, tolerance::Float64=1e-2, quiet::Bool=NMFk.quiet, kw...)
 	m, n = size(X)
 	mw, k = size(W)
 	k, nh = size(H)
@@ -37,7 +37,7 @@ function jumpiter(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Flo
 end
 
 "Factorize matrix X (X = W * H) using Ipopt for each row of X/H"
-function jumpHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Float32}; quiet::Bool=NMFk.quiet, kw...)
+function jumpHrows(X::AbstractMatrix{Float32}, nk::Int, W::AbstractMatrix{Float32}, H::AbstractMatrix{Float32}; quiet::Bool=NMFk.quiet, kw...)
 	fit = 0
 	for i = 1:size(X, 2)
 		fitrowold = sum((X[:,i] .- W * H[:,i]).^2)
@@ -49,10 +49,10 @@ function jumpHrows(X::Matrix{Float32}, nk::Int, W::Matrix{Float32}, H::Matrix{Fl
 end
 
 "Factorize matrix X (X = W * H) using Ipopt"
-function jump(X::Matrix{Float64}, nk::Int; kw...)
+function jump(X::AbstractMatrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::Array{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::Matrix=Array{Float32}(0, 0), initH::Array=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::AbstractMatrix=Array{Float32}(0, 0), initH::AbstractArray=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
 		srand(seed)
 	end

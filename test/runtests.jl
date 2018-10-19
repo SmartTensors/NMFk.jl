@@ -74,7 +74,7 @@ end
 		buckets = convert(Array{Float32, 2}, [0.001 1. .03 1.; .01 1. .0001 1.])
 		truedata = mixer * buckets
 		data = fill(NaN, size(truedata))
-		ratiocomponents = Int[1 3; 2 4]'
+		ratiocomponents = permutedims(Int[1 3; 2 4])
 		numberofratios = size(ratiocomponents, 1)
 		ratiomatrix = Array{Float32, 2}(nummixtures, numberofratios)
 		for i = 1:nummixtures
@@ -100,7 +100,7 @@ end
 		data = fill(NaN, size(truedata))
 		data[:, 1] = truedata[:, 1] # we only observe concentrations for the first constituent
 		data[:, end] = truedata[:, end] # we only observe concentrations for the last constituent
-		ratiocomponents = Int[1 3; 2 6]'
+		ratiocomponents = permutedims(Int[1 3; 2 6])
 		numberofratios = size(ratiocomponents, 1)
 		ratiomatrix = Array{Float32, 2}(nummixtures, numberofratios)
 		for i = 1:nummixtures
