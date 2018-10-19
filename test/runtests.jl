@@ -5,9 +5,9 @@ import Base.Test
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
 	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-3), maxiter=1000, verbosity=0, tol=1., method=:ipopt)
-	concs[idxnan] = 0
+	concs[idxnan] .= 0
 	predictedconcs = mixerestimate * bucketestimate
-	predictedconcs[idxnan] = 0
+	predictedconcs[idxnan] .= 0
 	if length(conccomponents) > 0
 		@Base.Test.test norm(predictedconcs[:, conccomponents] - concs[:, conccomponents], 2) / norm(concs[:, conccomponents], 2) < 1 # fit the data within 1%
 		for j = 1:size(buckets, 1)
@@ -157,7 +157,7 @@ X = [a a*10 b b*5 a+b*2]
 info("NMFk ipopt: 2 sources, 5 sensors, 100 transients")
 srand(2015)
 a = exp.(-(0:.5:10))*100
-b = 100 + sin.(0:20)*10
+b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
 @NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-7)
 @Base.Test.test isapprox(p, 0, atol=1e-3)
@@ -170,7 +170,7 @@ X = [a a*10 b b*5 a+b*2]
 info("NMFk nlopt: 2 sources, 5 sensors, 100 transients")
 srand(2015)
 a = exp.(-(0:.5:10))*100
-b = 100 + sin.(0:20)*10
+b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
 @NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
 @Base.Test.test isapprox(p, 0, atol=1e-3)
