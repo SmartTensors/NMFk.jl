@@ -11,6 +11,7 @@ if VERSION >= v"0.7"
 	using LinearAlgebra
 	using Dates
 	using DelimitedFiles
+	using Distributed
 end
 
 import NMF

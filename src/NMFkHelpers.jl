@@ -8,8 +8,19 @@ function minimumnan(X, c...; kw...)
 	minimum(X[.!isnan.(X)], c...; kw...)
 end
 
-function sumnan(X, c...; kw...)
-	sum(X[.!isnan.(X)], c...; kw...)
+function sumnan(X, c=nothing; kw...)
+	if c == nothing
+		return sum(X[.!isnan.(X)]; kw...)
+	else
+		count = .*(size(X)[vec(collect(c))]...)
+		I = isnan.(X)
+		X[I] .= 0
+		sX = sum(X, c; kw...)
+		X[I] .= NaN
+		sI = sum(I, c; kw...)
+		sX[sI.==count] .= NaN
+		return sX
+	end
 end
 
 function ssqrnan(X)
