@@ -15,22 +15,22 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	end
 	concentrations = copy(concentrations_in)
 	if weightinverse
-		concweights = convert(Array{Float32,2}, 1. ./ concentrations)
+		concweights = convert(Array{Float32,2}, 1 ./ concentrations)
 		zis = concentrations .== 0
-		concweights[zis] = maximum(concentrations[!zis]) * 10
+		concweights[zis] .= maximum(concentrations[!zis]) * 10
 	else
 		concweights = ones(Float32, size(concentrations))
 	end
 	nummixtures, numconstituents = size(concentrations)
 	nans = isnan.(concentrations)
-	concweights[nans] = 0
+	concweights[nans] .= 0
 	if normalize
 		concentrations, cmin, cmax = normalizematrix!(concentrations)
 	elseif scale
 		concentrations, cmax = scalematrix!(concentrations)
 	end
 	if sizeof(ratios) == 0
-		concentrations[nans] = 0
+		concentrations[nans] .= 0
 	else
 		sr = size(ratioindices)
 		if length(sr) == 1

@@ -411,7 +411,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 		else
 			E = X - Wa * Ha
 		end
-		E[isnan.(E)] = 0
+		E[isnan.(E)] .= 0
 		phi_final = sum(E.^2)
 	else
 		Ha_conc = Ha[:,1:nC]
@@ -422,7 +422,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 		else
 			E = X - Wa * Ha_conc
 		end
-		E[isnan.(E)] = 0
+		E[isnan.(E)] .= 0
 		id = !isnan.(deltas)
 		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
 	end

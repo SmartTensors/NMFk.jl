@@ -138,10 +138,10 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 			# println("Assigned: Trial: $trial, Factor: $selectFactorCol, Centroid: $selectCentIdx")
 			clusterLbls[selectFactorCol, trial] = selectCentIdx
 			# this factor cannot belong to other centSeeds
-			clusterDistances[selectFactorCol, :] += Inf
+			clusterDistances[selectFactorCol, :] .+= Inf
 			# this cluster cannot collect more factor columns
-			clusterDistances[:, selectCentIdx] += Inf
-			newClusterCenters[:, selectCentIdx] += W[:, selectFactorCol]
+			clusterDistances[:, selectCentIdx] .+= Inf
+			newClusterCenters[:, selectCentIdx] .+= W[:, selectFactorCol]
 		end
 	end
 	while minimum(clusterLbls) == 0

@@ -64,8 +64,8 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		obsweights = ones(Float32, size(X))
 	end
 	nans = isnan.(X)
-	X[nans] = 0
-	obsweights[nans] = 0
+	X[nans] .= 0
+	obsweights[nans] .= 0
 	nummixtures = size(X, 1)
 	numconstituents = size(X, 2)
 	if sizeof(initW) == 0
@@ -85,7 +85,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	else
 		@assert size(initW) == (nummixtures, nk)
 		nansw = isnan.(initW)
-		initW[nansw] = 0
+		initW[nansw] .= 0
 	end
 	if sizeof(initH) == 0
 		fixH = false
@@ -104,7 +104,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	else
 		@assert size(initH) == (nk, numconstituents)
 		nansh = isnan.(initH)
-		initH[nansh] = 0
+		initH[nansh] .= 0
 	end
 	if method == :ipopt
 		m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity, tol=tol))
