@@ -1,6 +1,7 @@
 julia 0.6
 DocumentFunction
 ReusableFunctions
+JLD2
 JuMP 0.15
 Ipopt 0.2.6
 NLopt
