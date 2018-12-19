@@ -15,9 +15,9 @@ function sumnan(X, c=nothing; kw...)
 		count = .*(size(X)[vec(collect(c))]...)
 		I = isnan.(X)
 		X[I] .= 0
-		sX = sum(X, c; kw...)
+		sX = sum(X; dims=c, kw...)
 		X[I] .= NaN
-		sI = sum(I, c; kw...)
+		sI = sum(I; dims=c, kw...)
 		sX[sI.==count] .= NaN
 		return sX
 	end
@@ -27,8 +27,8 @@ function ssqrnan(X)
 	sum(X[.!isnan.(X)].^2)
 end
 
-function vecnormnan(X)
-	vecnorm(X[.!isnan.(X)])
+function normnan(X)
+	norm(X[.!isnan.(X)])
 end
 
 function cornan(x, y)

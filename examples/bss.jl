@@ -1,9 +1,9 @@
 import NMFk
 
-info("Reconstruction of sin/rand disturbance signal ...")
-srand(2015)
+@info("Reconstruction of sin/rand disturbance signal ...")
+Random.seed!(2015)
 noise = [0, 0.1, 0.2, 0.5, 1]
-suc = Array{Int}(length(noise))
+suc = Array{Int}(undef, length(noise))
 for n in 1:length(noise)
 	suc[n] = 0
 	for i = 1:1000
@@ -18,7 +18,7 @@ for n in 1:length(noise)
 		W, H, fitquality, robustness, aic = NMFk.execute(X, 2:4, 100)
 		if robustness[2] > 0.9 && robustness[3] > 0.9 && robustness[4] < 0.9
 			suc[n] += 1
-			info("Success!")
+			@info("Success!")
 		end
 	end
 end

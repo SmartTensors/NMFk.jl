@@ -1,11 +1,11 @@
 "Execute NMFk analysis for a range of number of sources"
-function load(range::Range{Int}, nNMF::Integer=10; kw...)
+function load(range::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	maxsources = maximum(collect(range))
-	W = Array{Array{Float64, 2}}(maxsources)
-	H = Array{Array{Float64, 2}}(maxsources)
-	fitquality = Array{Float64}(maxsources)
-	robustness = Array{Float64}(maxsources)
-	aic = Array{Float64}(maxsources)
+	W = Array{Array{Float64, 2}}(undef, maxsources)
+	H = Array{Array{Float64, 2}}(undef, maxsources)
+	fitquality = Array{Float64}(undef, maxsources)
+	robustness = Array{Float64}(undef, maxsources)
+	aic = Array{Float64}(undef, maxsources)
 	for numsources in range
 		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.load(numsources, nNMF; kw...)
 	end
@@ -22,7 +22,7 @@ function load(nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", fi
 		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
 		return W, H, fitquality, robustness, aic
 	else
-		warn("File named $filename is missing!")
-		return Array{Float64,2}(0, 0), Array{Float64,2}(0, 0), NaN, NaN, NaN
+		@warn("File named $filename is missing!")
+		return Array{Float64,2}(0, 0), Array{Float64,2}(undef, 0, 0), NaN, NaN, NaN
 	end
 end

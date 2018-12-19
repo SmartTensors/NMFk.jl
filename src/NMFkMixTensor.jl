@@ -3,9 +3,9 @@ import Ipopt
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(0, 0), initH::Matrix{T}=Array{T}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
+function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef. 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(undef, 0, 0), initH::Matrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
 	if seed >= 0
-		srand(seed)
+		Random.seed!(seed)
 	end
 	if weightinverse
 		concweights = convert(Array{T,2}, 1. ./ concentrations)
@@ -37,7 +37,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 			initH = ones(T, numbuckets, numconstituents) / 2
 		end
 		if maxH
-			maxconc = vec(maximum(concentrations, (1,3)))'
+			maxconc = permutedims(vec(maximum(concentrations, (1,3))))
 			for i=1:numbuckets
 				initH[i:i, :] .*= maxconc
 			end
@@ -76,7 +76,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	outiters = 0
 	resets = 0
 	frame = 2
-	!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
+	!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	while norm(oldcolval - m.colVal) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		if quiet
@@ -91,9 +91,9 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 			if (ofbest - of) > tolOF
 				resets += 1
 				if resets > maxresets
-					warn("Maximum number of resets has been reached; quit!")
+					@warn("Maximum number of resets has been reached; quit!")
 				else
-					warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+					@warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
 					outiters = 0
 				end
 			end
@@ -103,7 +103,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 		else
 			outiters = maxouteriters + 1
 		end
-		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
+		!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	end
 	concentrations[nans] = NaN
 	fitquality = ofbest - regularizationweight * sum(log.(1. + H).^2) / numbuckets

@@ -52,9 +52,9 @@ end
 function jump(X::AbstractMatrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::AbstractMatrix=Array{Float32}(0, 0), initH::AbstractArray=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::AbstractMatrix=Array{Float32}(undef, 0, 0), initH::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
 	if seed >= 0
-		srand(seed)
+		Random.seed!(seed)
 	end
 	if weightinverse
 		obsweights = convert(Array{Float32,2}, 1. ./ X)
@@ -168,9 +168,9 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		Hbest = JuMP.getvalue(H)
 	end
 	of = JuMP.getobjectivevalue(m)
-	!quiet && info("Initial objective function $of")
+	!quiet && @info("Initial objective function $of")
 	ofbest = of
-	objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
+	objvalue = ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk
 	frame = 2
 	iters = 1
 	outiters = 0
@@ -209,9 +209,9 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			if (ofbest - of) > tolOF
 				resets += 1
 				if resets > maxresets
-					!quiet && warn("Maximum number of resets has been reached; quit!")
+					!quiet && @warn("Maximum number of resets has been reached; quit!")
 				else
-					!quiet && warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+					!quiet && @warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
 					outiters = 0
 				end
 			end
@@ -221,32 +221,32 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 		end
 		if !quiet
-			info("Iteration $iters")
-			info("Objective function $of")
-			(regularizationweight > 0.) && info("Objective function - regularization penalty $objvalue")
-			info("Parameter norm: $(norm(oldcolval - m.colVal))")
+			@info("Iteration $iters")
+			@info("Objective function $of")
+			(regularizationweight > 0.) && @info("Objective function - regularization penalty $objvalue")
+			@info("Parameter norm: $(norm(oldcolval - m.colVal))")
 		end
 	end
-	X[nans] = NaN
+	X[nans] .= NaN
 	isnm = isnan.(Wbest)
 	isnb = isnan.(Hbest)
 	if sum(isnm) > 0
-		warn("There are NaN's in the W matrix!")
+		@warn("There are NaN's in the W matrix!")
 		Wbest[isnm] .= 0
 	end
 	if sum(isnb) > 0
-		warn("There are NaN's in the H matrix!")
+		@warn("There are NaN's in the H matrix!")
 		Hbest[isnb] .= 0
 	end
-	penalty = regularizationweight * sum(log.(1. + Hbest).^2) / nk
+	penalty = regularizationweight * sum(log.(1. .+ Hbest).^2) / nk
 	fitquality = ofbest - penalty
 	if sum(isnm) > 0 || sum(isnb) > 0
-		warn("SSQR: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality)")
+		@warn("SSQR: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality)")
 	end
 	if !quiet
-		info("Final objective function: $ofbest")
-		(regularizationweight > 0.) && info("Final penalty: $penalty")
-		info("Final fit: $fitquality")
+		@info("Final objective function: $ofbest")
+		(regularizationweight > 0.) && @info("Final penalty: $penalty")
+		@info("Final fit: $fitquality")
 	end
 	if movie
 		Xe = Wbest * Hbest

@@ -44,7 +44,7 @@ end
 
 "Descale matrix (by rows)"
 function descalearray!(a::Matrix, amax::Vector)
-	a .*= amax'
+	a .*= permutedims(amax)
 	return a
 end
 

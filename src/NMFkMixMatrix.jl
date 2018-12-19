@@ -9,9 +9,9 @@ const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(undef, 0, 0), initH::Matrix{Float32}=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
-		srand(seed)
+		Random.seed!(seed)
 	end
 	concentrations = copy(concentrations_in)
 	if weightinverse
@@ -63,7 +63,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			end
 		end
 		nans = isnan.(concentrations)
-		concentrations[nans] = 0
+		concentrations[nans] .= 0
 	end
 	if sizeof(initW) == 0
 		if random
@@ -135,7 +135,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	outiters = 0
 	resets = 0
 	frame = 3
-	!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
+	!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	while norm(oldcolval - m.colVal) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		if quiet
@@ -155,9 +155,9 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			if (ofbest - of) > tolOF
 				resets += 1
 				if resets > maxresets
-					!quiet && warn("Maximum number of resets has been reached; quit!")
+					!quiet && @warn("Maximum number of resets has been reached; quit!")
 				else
-					!quiet && warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+					!quiet && @warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
 					outiters = 0
 				end
 			end
@@ -168,27 +168,27 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			outiters = maxouteriters + 1
 		end
 		iters += 1
-		!quiet && info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
+		!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
 	end
 	isnm = isnan.(mixerval)
 	isnb = isnan.(bucketval)
 	if sum(isnm) > 0
-		warn("There are NaN's in the W matrix!")
+		@warn("There are NaN's in the W matrix!")
 		mixerval[isnm] .= 0
 	end
 	if sum(isnb) > 0
-		warn("There are NaN's in the H matrix!")
+		@warn("There are NaN's in the H matrix!")
 		bucketval[isnb] .= 0
 	end
 	if sum(isnm) > 0 || sum(isnb) > 0
-		warn("Vecnorm: $(vecnorm(concentrations - mixerval * bucketval)) OF: $(ofbest)")
+		@warn("norm: $(norm(concentrations - mixerval * bucketval)) OF: $(ofbest)")
 	end
-	penalty = regularizationweight * sum(log.(1. + bucketval).^2) / numbuckets
+	penalty = regularizationweight * sum(log.(1. .+ bucketval).^2) / numbuckets
 	fitquality = ofbest - penalty
 	if !quiet
-		info("Final objective function: $ofbest")
-		(regularizationweight > 0) && (info("Final penalty: $penalty"))
-		info("Final fit: $fitquality")
+		@info("Final objective function: $ofbest")
+		(regularizationweight > 0) && (@info("Final penalty: $penalty"))
+		@info("Final fit: $fitquality")
 	end
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
@@ -206,7 +206,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		!quiet && println("Ratio reconstruction = $ratiosreconstruction")
 	end
 	if sizeof(ratios) > 0
-		ratios[ratios.==0] = NaN32
+		ratios[ratios.==0] .= NaN32
 	end
 	if normalize
 		bucketval = denormalizematrix!(bucketval, mixerval, cmin, cmax)
@@ -221,7 +221,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), initHd::Matrix{Float32}=Array{Float32}(0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet)
+function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(undef, 0, 0), initH::Matrix{Float32}=Array{Float32}(undef, 0, 0), initHd::Matrix{Float32}=Array{Float32}(undef, undef, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet)
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)
@@ -284,7 +284,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 				initHd = ones(Float32, numbuckets, numdeltas) / 2
 			else
 				max = maximum(deltas, 1)
-				initHd = Array{Float32}(numbuckets, numdeltas)
+				initHd = Array{Float32}(undef, numbuckets, numdeltas)
 				for i=1:numbuckets
 					initHd[i,:] = max
 				end
@@ -334,12 +334,12 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	of = JuMP.getobjectivevalue(m)
 	ofbest = of
 	iters = 1
-	!quiet && info("Iteration: $iters Objective function: $of Best: $ofbest")
+	!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 	while !(norm(oldcolval - m.colVal) < tol) && iters < maxouteriters # keep doing the optimization until we really reach an optimum
 		oldcolval = copy(m.colVal)
 		JuMP.solve(m)
 		of = JuMP.getobjectivevalue(m)
-		!quiet && info("Iteration: $iters Objective function: $of Best: $ofbest")
+		!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 		if of < ofbest
 			iters = 0
 			mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
@@ -349,7 +349,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 		end
 		iters += 1
 	end
-	!quiet && info("Iteration: $iters Objective function: $of Best: $ofbest")
+	!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 	fitquality = ofbest - regularizationweight * sum(log(1. + bucketval).^2) / numbuckets - regularizationweight * sum(log(1. + abs(bucketdeltasval)).^2) / numbuckets
 	if normalize
 		bucketval = descalematrix!(bucketval, cmax)

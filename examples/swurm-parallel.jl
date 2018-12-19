@@ -1,11 +1,11 @@
-info("start")
+@info("start")
 include(joinpath(Pkg.dir("Mads"), "src-interactive", "MadsParallel.jl"))
-info("setprocs")
+@info("setprocs")
 setprocs()
 
 import NMFk
 
-srand(2015)
+Random.seed!(2015)
 nP = 1000
 nNMF = 100
 a = rand(nP)

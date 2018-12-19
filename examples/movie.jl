@@ -1,7 +1,7 @@
 reload("NMFk")
 reload("rMF")
 
-srand(14)
+Random.seed!(14)
 W = rand(6, 3)
 W = W .* [1 2 3]
 H = rand(3, 4)
@@ -12,7 +12,7 @@ We, He, p, s = NMFk.execute(X, 2, 1; method=:ipopt, tolX=1e-6, tol=1e-8, seed=16
 Xe = We * He
 NMFk.plotnmf(Xe, We, He; filename="movie/m643-estimate.png")
 
-srand(2015)
+Random.seed!(2015)
 a = rand(20)
 b = rand(20)
 W = [a b]
@@ -29,7 +29,7 @@ Xn = copy(X)
 NMFk.plotnmf(X, (Wn .= NaN), (Hn .= NaN); filename="movie/m2052-trueX.png")
 NMFk.plotnmf((Xn .= NaN), W, H; filename="movie/m2052-trueWH.png")
 
-srand(2015)
+Random.seed!(2015)
 a = rand(20)
 b = rand(20)
 W = [a b]

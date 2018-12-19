@@ -17,7 +17,7 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 	nx = dim == 1 ? msize[2] : msize[1]
 	xvalues = timescale ? vec(collect(1/nx:1/nx:1)) : vec(collect(1:nx))
 	componentnames = map(i->"T$i", 1:nfeatures)
-	pl = Vector{Any}(nfeatures)
+	pl = Vector{Any}(undef, nfeatures)
 	for i = 1:nfeatures
 		cc = loopcolors ? parse(Colors.Colorant, colors[(i-1)%ncolors+1]) : parse(Colors.Colorant, colors[i])
 		if dim == 2
@@ -110,7 +110,7 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::AbstractString="", m
 	fig[:delaxes](throwawayax)
 	s = maximum(W, 1)
 	W = W ./ s
-	H = H .* s'
+	H = H .* permutedims(s)
 	#spatialax = fig[:add_axes]([0, 0, 1, 1], frameon=false)
 	#spatialax[:imshow](rand(100, 100), extent=[0, 100, 0, 100], cmap=PyPlot.ColorMap("RYG"), alpha=0.7, interpolation="nearest")
 
@@ -171,7 +171,7 @@ function setnewfilename(filename::AbstractString, frame::Integer=0; keyword::Abs
 		filename = "$(fn[1:rm.offset-1])-$(keyword)$(sprintf(f, v)).$(rm.captures[2])"
 		return joinpath(dir, filename)
 	else
-		warn("setnewfilename failed!")
+		@warn("setnewfilename failed!")
 		return ""
 	end
 end

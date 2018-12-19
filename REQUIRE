@@ -5,6 +5,7 @@ JLD2
 JuMP 0.15
 Ipopt 0.2.6
 NLopt
+Distributions
 NMF 0.2.5
 Clustering 0.7.0
 Distances 0.3.2

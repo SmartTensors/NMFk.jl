@@ -1,13 +1,13 @@
 import DocumentFunction
 
 """
-Capture STDOUT of a block
+Capture stdout of a block
 """
 macro stdoutcapture(block)
 	if quiet
 		quote
 			if ccall(:jl_generating_output, Cint, ()) == 0
-				outputoriginal = STDOUT;
+				outputoriginal = stdout;
 				(outR, outW) = redirect_stdout();
 				outputreader = @async read(outR, String);
 				evalvalue = $(esc(block))
@@ -25,13 +25,13 @@ macro stdoutcapture(block)
 end
 
 """
-Capture STDERR of a block
+Capture stderr of a block
 """
 macro stderrcapture(block)
 	if quiet
 		quote
 			if ccall(:jl_generating_output, Cint, ()) == 0
-				errororiginal = STDERR;
+				errororiginal = stderr;
 				(errR, errW) = redirect_stderr();
 				errorreader = @async read(errR, String);
 				evalvalue = $(esc(block))
@@ -49,16 +49,16 @@ macro stderrcapture(block)
 end
 
 """
-Capture STDERR & STDERR of a block
+Capture stderr & stderr of a block
 """
 macro stdouterrcapture(block)
 	if quiet
 		quote
 			if ccall(:jl_generating_output, Cint, ()) == 0
-				outputoriginal = STDOUT;
+				outputoriginal = stdout;
 				(outR, outW) = redirect_stdout();
 				outputreader = @async read(outR, String);
-				errororiginal = STDERR;
+				errororiginal = stderr;
 				(errR, errW) = redirect_stderr();
 				errorreader = @async read(errR), String;
 				evalvalue = $(esc(block))
@@ -79,12 +79,12 @@ macro stdouterrcapture(block)
 end
 
 """
-Redirect STDOUT to a reader
+Redirect stdout to a reader
 
 $(DocumentFunction.documentfunction(stdoutcaptureon))
 """
 function stdoutcaptureon()
-	global outputoriginal = STDOUT;
+	global outputoriginal = stdout;
 	(outR, outW) = redirect_stdout();
 	global outputread = outR;
 	global outputwrite = outW;
@@ -92,7 +92,7 @@ function stdoutcaptureon()
 end
 
 """
-Restore STDOUT
+Restore stdout
 
 $(DocumentFunction.documentfunction(stdoutcaptureoff))
 
@@ -109,12 +109,12 @@ function stdoutcaptureoff()
 end
 
 """
-Redirect STDERR to a reader
+Redirect stderr to a reader
 
 $(DocumentFunction.documentfunction(stderrcaptureon))
 """
 function stderrcaptureon()
-	global errororiginal = STDERR;
+	global errororiginal = stderr;
 	(errR, errW) = redirect_stderr();
 	global errorread = errR;
 	global errorwrite = errW;
@@ -122,7 +122,7 @@ function stderrcaptureon()
 end
 
 """
-Restore STDERR
+Restore stderr
 
 $(DocumentFunction.documentfunction(stderrcaptureoff))
 
@@ -139,7 +139,7 @@ function stderrcaptureoff()
 end
 
 """
-Redirect STDOUT & STDERR to readers
+Redirect stdout & stderr to readers
 
 $(DocumentFunction.documentfunction(stdouterrcaptureon))
 """
@@ -149,7 +149,7 @@ function stdouterrcaptureon()
 end
 
 """
-Restore STDOUT & STDERR
+Restore stdout & stderr
 
 $(DocumentFunction.documentfunction(stdouterrcaptureoff))
 

@@ -28,7 +28,7 @@ function remap2count(assignments)
 	return map(mfunc, assignments)
 end
 
-function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
+function robustkmeans(X::Array, range::AbstractRange{Int}, repeats::Int=1000; kw...)
 	best_totalcost = Inf
 	best_silhouette = 0
 	kbest = range[1]
@@ -36,7 +36,7 @@ function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 	local best_sc
 	for k in range
 		if k >= size(X, 2)
-			info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
+			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
 		local c_new
@@ -45,7 +45,7 @@ function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 		@Suppressor.suppress begin
 			c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
 		end
-		info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Cluster Silhouettes: $(sc)")
+		@info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Cluster Silhouettes: $(sc)")
 		if best_silhouette < mean_silhouettes
 			best_silhouette = mean_silhouettes
 			best_totalcost = c_new.totalcost
@@ -54,15 +54,15 @@ function robustkmeans(X::Array, range::Range{Int}, repeats::Int=1000; kw...)
 			kbest = k
 		end
 	end
-	info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_silhouette Cluster Silhouettes: $(best_sc)")
+	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_silhouette Cluster Silhouettes: $(best_sc)")
 	return cbest
 end
 
 function robustkmeans(X::Array, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
 	best_totalcost = Inf
 	local c
-	best_mean_cluster_silhouettes = Vector{Float64}(k)
-	mean_cluster_silhouettes = Vector{Float64}(k)
+	best_mean_cluster_silhouettes = Vector{Float64}(undef, k)
+	mean_cluster_silhouettes = Vector{Float64}(undef, k)
 	local best_mean_silhouettes
 	for i = 1:repeats
 		c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
@@ -97,7 +97,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	needZeroFix = false
 	for i in 1:numFactors
 		factor = factors[i]
-		if minimum(sum(factor, 1)) == 0  # if we have a zero column
+		if minimum(sum(factor; dims=1)) == 0  # if we have a zero column
 			needZeroFix = true
 			break
 		end
@@ -120,7 +120,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	# by definition, the columns of the first solution belong to their own cluster.
 	clusterLbls[:, 1] = [i for i in 1:k]
 
-	clusterDistances = Matrix{Float64}(k, k)
+	clusterDistances = Matrix{Float64}(undef, k, k)
 	for trial in 2:numTrials
 		W = factors[trial]
 		# clusterDistances[a, b] = c --> dist(W[:,a], centSeeds[:,b]) = c
@@ -133,7 +133,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 		clusterDistances[isnan.(clusterDistances)] .= 0
 		while minimum(clusterDistances) < Inf
 			# get the row and column of the smallest distance
-			selectFactorCol, selectCentIdx = ind2sub(clusterDistances, indmin(clusterDistances))
+			selectFactorCol, selectCentIdx = Tuple(CartesianIndices(clusterDistances)[argmin(clusterDistances)])
 			# save that col in trial belongs to centroid's cluster
 			# println("Assigned: Trial: $trial, Factor: $selectFactorCol, Centroid: $selectCentIdx")
 			clusterLbls[selectFactorCol, trial] = selectCentIdx
@@ -145,26 +145,26 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 		end
 	end
 	while minimum(clusterLbls) == 0
-		idx, trial = ind2sub(clusterLbls, indmin(clusterLbls))
+		idx, trial = Tuple(CartesianIndices(clusterLbls)[argmin(clusterLbls)])
 		if sum(clusterLbls[:, trial]) == 0
-			warn("Solution $trial was not assigned to any of the cluster!")
+			@warn("Solution $trial was not assigned to any of the cluster!")
 			clusterLbls[:, trial] = [i for i in 1:k]
 		else
-			warn("Parameter $idx in solution $trial was not assigned a cluster!")
+			@warn("Parameter $idx in solution $trial was not assigned a cluster!")
 			clusterLbls[idx, trial] = idx
 		end
 	end
 	if minimum(clusterLbls) <= 0
-		warn("Minimum assignments should be greater than 1: $(minimum(clusterLbls))")
+		@warn("Minimum assignments should be greater than 1: $(minimum(clusterLbls))")
 	end
 	if maximum(clusterLbls) > k
-		warn("Maximum assignments should be less than $k: $(maximum(clusterLbls))")
+		@warn("Maximum assignments should be less than $k: $(maximum(clusterLbls))")
 	end
 	for i in 1:k
 		for j in 1:numTrials
-			l = length(findin(clusterLbls[:, j], i))
+			l = length(findall((in)(i), clusterLbls[:, j]))
 			if l != 1
-				warn("Cluster $i does not appear only once in column $j; it appears $l times!")
+				@warn("Cluster $i does not appear only once in column $j; it appears $l times!")
 			end
 		end
 	end
@@ -181,7 +181,7 @@ function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 	nk = clusterweights ? nr : nc
 
 	centroids = W[1]
-	idx = Array{Int}(nk, nNMF)
+	idx = Array{Int}(undef, nk, nNMF)
 
 	for clusterIt = 1:nNMF
 		for globalIterID = 1:nNMF
@@ -202,7 +202,7 @@ function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 						end
 					end
 				end
-				minProcess, minCentroid = ind2sub(size(distMatrix), indmin(distMatrix))
+				minProcess, minCentroid = Tuple(CartesianIndices(size(distMatrix))[argmin(distMatrix)])
 				processesTaken[minProcess] = true
 				centroidsTaken[minCentroid] = true
 				idx[minProcess, globalIterID] = minCentroid
@@ -212,9 +212,9 @@ function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 		for centroidID = 1:nk
 			for globalIterID = 1:nNMF
 				if clusterweights
-					centroids[:, centroidID] += W[globalIterID][:, findin(idx[:, globalIterID], centroidID)]
+					centroids[:, centroidID] += W[globalIterID][:, findall((in)(centroidID), idx[:, globalIterID])]
 				else
-					centroids[centroidID:centroidID, :] += W[globalIterID][findin(idx[:, globalIterID], centroidID), :]
+					centroids[centroidID:centroidID, :] += W[globalIterID][findall((in)(centroidID), idx[:, globalIterID]), :]
 				end
 			end
 		end
@@ -228,7 +228,7 @@ function clustersolutions_old(W::Matrix, nNMF::Integer)
 	nk = convert(Int, nT / nNMF)
 
 	centroids = W[:, 1:nk]
-	idx = Array{Int}(nk, nNMF)
+	idx = Array{Int}(undef, nk, nNMF)
 
 	for clusterIt = 1:nNMF
 		for globalIterID = 1:nNMF
@@ -245,7 +245,7 @@ function clustersolutions_old(W::Matrix, nNMF::Integer)
 						end
 					end
 				end
-				minProcess, minCentroid = ind2sub(size(distMatrix), indmin(distMatrix))
+				minProcess, minCentroid = Tuple(CartesianIndices(size(distMatrix))[argmin(distMatrix)])
 				processesTaken[minProcess] = true
 				centroidsTaken[minCentroid] = true
 				idx[minProcess, globalIterID] = minCentroid
@@ -254,7 +254,7 @@ function clustersolutions_old(W::Matrix, nNMF::Integer)
 		centroids = zeros(nP, nk)
 		for centroidID = 1:nk
 			for globalIterID = 1:nNMF
-				centroids[:, centroidID] += W[:, findin(idx[:, globalIterID], centroidID) + (globalIterID - 1) * nk]
+				centroids[:, centroidID] += W[:, findall((in)(centroidID), idx[:, globalIterID]) + (globalIterID - 1) * nk]
 			end
 		end
 		centroids ./= nNMF

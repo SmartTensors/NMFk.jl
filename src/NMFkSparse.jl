@@ -1,24 +1,24 @@
-function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(0, 0), quiet::Bool=NMFk.quiet)
+function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(undef, 0, 0), quiet::Bool=NMFk.quiet)
 	if seed != -1
-		srand(seed)
+		Random.seed!(seed)
 	end
 
 	if sparse_div_beta == -1
 		if sparse_cf == :kl #
 			sparse_div_beta = 1
-			!quiet && info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
+			!quiet && @info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
 		elseif sparse_cf == :ed # Euclidean distance
 			sparse_div_beta = 2
-			!quiet && info("Sparse NMF with Euclidean divergence (beta = $(sparse_div_beta))")
+			!quiet && @info("Sparse NMF with Euclidean divergence (beta = $(sparse_div_beta))")
 		elseif sparse_cf == :is # Itakura-Saito divergence
 			sparse_div_beta = 0
-			!quiet && info("Sparse NMF with Itakura-Saito divergence (beta = $(sparse_div_beta))")
+			!quiet && @info("Sparse NMF with Itakura-Saito divergence (beta = $(sparse_div_beta))")
 		else
 			sparse_div_beta = 1
-			!quiet && info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
+			!quiet && @info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
 		end
 	else
-		!quiet && info("Sparse NMF with fractional beta divergence (beta = $(sparse_div_beta))")
+		!quiet && @info("Sparse NMF with fractional beta divergence (beta = $(sparse_div_beta))")
 	end
 
 	(m, n) = size(X)
@@ -100,11 +100,11 @@ function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 		end
 		of = divergence + sum(H .* sparsity)
 
-		!quiet && info("Iteration $(it): divergence = $(divergence) objective function = $(of)")
+		!quiet && @info("Iteration $(it): divergence = $(divergence) objective function = $(of)")
 
 		if it > 1 && tol > 0
 			if (abs(of - last_of) / last_of) < tol
-				!quiet && info("Convergence reached!")
+				!quiet && @info("Convergence reached!")
 				break
 			end
 		end

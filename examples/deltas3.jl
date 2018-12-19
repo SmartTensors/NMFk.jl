@@ -3,7 +3,7 @@ import NMFk
 cs = Float64[]
 ds = Float64[]
 for i = 1:100
-	srand(i)
+	Random.seed!(i)
 	nummixtures = 20
 	numbuckets = 2
 	numconstituents = 2
@@ -18,9 +18,9 @@ for i = 1:100
 	deltas = NMFk.computedeltas(mixer, buckets, bucketdeltas, deltaindices)
 
 	#=
-	info("Concentrations")
+	@info("Concentrations")
 	display(concentrations)
-	info("Deltas")
+	@info("Deltas")
 	display(deltas)
 	=#
 
@@ -28,9 +28,9 @@ for i = 1:100
 	fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 	#=
-	info("Match concentrations")
+	@info("Match concentrations")
 	display(concentrations - fitmixer * fitbuckets)
-	info("Match deltas")
+	@info("Match deltas")
 	display(deltas - fitdeltas)
 	=#
 
@@ -39,13 +39,13 @@ for i = 1:100
 	push!(cs, sum(collect(concentrations - fitmixer * fitbuckets).^2))
 	push!(ds, sum(collect(deltas - fitdeltas).^2))
 	#=
-	info("Bucket concentrations")
+	@info("Bucket concentrations")
 	display(buckets)
-	info("Bucket deltas")
+	@info("Bucket deltas")
 	display(bucketdeltas)
-	info("Bucket concentrations")
+	@info("Bucket concentrations")
 	display(fitbuckets)
-	info("Bucket deltas")
+	@info("Bucket deltas")
 	display(fitbucketdeltas)
 	=#
 	#=

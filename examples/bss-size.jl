@@ -1,11 +1,11 @@
 import NMFk
 
-info("Reconstruction of sin/rand disturbance signal ...")
-srand(2015)
+@info("Reconstruction of sin/rand disturbance signal ...")
+Random.seed!(2015)
 nTests = 10 # number of tests
 noise = [0, 0.1, 0.2, 0.5, 1] # noise levels
 xsize = 1000 # signal size
-suc = Array{Float64}(length(noise))
+suc = Array{Float64}(undef, length(noise))
 for n in 1:length(noise)
 	suc[n] = 0
 	for i = 1:nTests
@@ -20,9 +20,9 @@ for n in 1:length(noise)
 		W, H, fitquality, robustness, aic = NMFk.execute(X, 2:4, 10) # run for 2, 3 and 4 sources
 		if robustness[2] > 0.9 && robustness[3] > 0.9 && robustness[4] < 0.9 # success if the number of signals is 3
 			suc[n] += 1
-			info("NMFk Success!")
+			@info("NMFk Success!")
 		else
-			warn("NMFk Failure!")
+			@warn("NMFk Failure!")
 		end
 	end
 	suc[n] /= nTests
