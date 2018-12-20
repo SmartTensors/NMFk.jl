@@ -130,7 +130,7 @@ W = [a b]
 H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
 X = W * H
 X = [a a*10 b b*5 a+b*2]
-@NMFk.stdouterrcapture We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-6, tol=1e-12)
+@NMFk.stdouterrcapture We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
 @Test.test isapprox(p, 0; atol=1e-3)
 @Test.test isapprox(s, 1; rtol=1e-1)
 @Test.test isapprox(He[1,2] / He[1,1], 10; rtol=1e-3)
