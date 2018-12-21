@@ -1,16 +1,27 @@
 NMFk: Nonnegative Matrix Factorization + custom k-means clustering
 ===============
+
+![logo](./logo/nmfk-logo.png)
+
+[![][gitlab-img]][gitlab-url] [![][codecov-img]][codecov-url]
+
+[gitlab-img]: https://gitlab.com/TensorFactorization/NMFk.jl/badges/master/pipeline.svg
+[gitlab-url]: https://gitlab.com/TensorFactorization/NMFk.jl/pipelines
+
+[codecov-img]: https://gitlab.com/TensorFactorization/NMFk.jl/badges/master/coverage.svg
+[codecov-url]: https://gitlab.com/TensorFactorization/NMFk.jl
+
 Documentation
 =============
 
 
 Installation
 ============
-Downlod the tar.gz file and extract it in .julia/v.06 repository
+
 After starting Julia, execute:
 
 ```
-Pkg.add("NMFk")
+import Pkg; Pkg.add("NMFk")
 ```
 
 Installation of NMFk behind a firewall
@@ -49,3 +60,9 @@ export http_proxy=http://proxyout.lanl.gov:8080
 export https_proxy=http://proxyout.lanl.gov:8080
 export no_proxy=.lanl.gov
 ```
+
+Publications, Presentations, Projects
+=====================================
+
+* [mads.gitlab.io](mads.gitlab.io)
+* [monty.gitlab.io](monty.gitlab.io)
