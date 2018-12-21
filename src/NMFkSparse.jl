@@ -1,4 +1,4 @@
-function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(0, 0), initH::Matrix{Float32}=Array{Float32}(undef, 0, 0), quiet::Bool=NMFk.quiet)
+function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::Matrix{Float32}=Array{Float32}(undef, 0, 0), initH::Matrix{Float32}=Array{Float32}(undef, 0, 0), quiet::Bool=NMFk.quiet)
 	if seed != -1
 		Random.seed!(seed)
 	end
@@ -35,7 +35,7 @@ function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 		H = initH
 	end
 
-	Wn = sqrt.(sum(W.^2, 1))
+	Wn = sqrt.(sum(W.^2; dims=1))
 	W  = bsxfun(\, W, Wn)
 	H  = bsxfun(*, H, Wn')
 
@@ -52,7 +52,7 @@ function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 		it += 1
 		if update_h > 0
 			if sparse_div_beta == 1
-				dph = bsxfun(+, sum(W[:,h_ind], 1)', sparsity)
+				dph = bsxfun(+, sum(W[:,h_ind]; dims=1)', sparsity)
 				dph = max.(dph, lambda)
 				dmh = W[:,h_ind]' * (X ./ lambda_new)
 				H[h_ind,:] = bsxfun(\, H[h_ind,:] .* dmh, dph)
@@ -71,22 +71,22 @@ function NMFsparse(X::Matrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1,
 		end
 		if update_w > 0
 			if sparse_div_beta == 1
-				dpw = bsxfun(+, sum(H[w_ind,:], 2)', bsxfun(*, sum((X ./ lambda_new) * H[w_ind,:]' .* W[:,w_ind], 1), W[:,w_ind]))
+				dpw = bsxfun(+, sum(H[w_ind,:]; dims=2)', bsxfun(*, sum((X ./ lambda_new) * H[w_ind,:]' .* W[:,w_ind]; dims=1), W[:,w_ind]))
 				dpw = max.(dpw, lambda)
-				dmw = X ./ lambda_new * H[w_ind,:]' + bsxfun(*, sum(bsxfun(*, sum(H[w_ind,:], 2)', W[:,w_ind]), 1), W[:,w_ind])
+				dmw = X ./ lambda_new * H[w_ind,:]' + bsxfun(*, sum(bsxfun(*, sum(H[w_ind,:]; dims=2)', W[:,w_ind]); dims=1), W[:,w_ind])
 				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			elseif sparse_div_beta == 2
-				dpw = lambda_new * H[w_ind,:]' + bsxfun(*, sum(x * H[w_ind,:]' .* W[:,w_ind], 1), W[:,w_ind])
+				dpw = lambda_new * H[w_ind,:]' + bsxfun(*, sum(x * H[w_ind,:]' .* W[:,w_ind]; dims=1), W[:,w_ind])
 				dpw = max.(dpw, lambda)
-				dmw = X * H[w_ind,:]' + bsxfun(*, sum(lambda_new * H[w_ind,:]' .* W[:,w_ind], 1), W[:,w_ind])
+				dmw = X * H[w_ind,:]' + bsxfun(*, sum(lambda_new * H[w_ind,:]' .* W[:,w_ind]; dims=1), W[:,w_ind])
 				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			else
-				dpw = lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' + bsxfun(*, sum((X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' .* W[:, w_ind], 1), W[:, w_ind])
+				dpw = lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' + bsxfun(*, sum((X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' .* W[:, w_ind]; dims=1), W[:, w_ind])
 				dpw = max.(dpw, lambda)
-				dmw = (X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' + bsxfun(*, sum(lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' .* W[:, w_ind], 1), W[:, w_ind])
+				dmw = (X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' + bsxfun(*, sum(lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' .* W[:, w_ind]; dims=1), W[:, w_ind])
 				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			end
-			W = bsxfun(\, W, sqrt.(sum(W.^2, 1)))
+			W = bsxfun(\, W, sqrt.(sum(W.^2; dims=1)))
 			lambda_new = max.(W * H, lambda)
 		end
 		if sparse_div_beta == 1

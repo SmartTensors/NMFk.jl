@@ -1,5 +1,6 @@
 import NMFk
 import Test
+import Random
 
 @NMFk.stderrcapture function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
 	numbuckets = size(buckets, 1)

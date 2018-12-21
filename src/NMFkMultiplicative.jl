@@ -1,8 +1,8 @@
-function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k)
+function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k)
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
-	if minimum(sum(X, 2)) == 0
+	if minimum(sum(X; dims=2)) == 0
 		error("All matrix entries in a row can be 0!")
 	end
 
@@ -36,7 +36,7 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float6
 	index = Array{Int}(undef, m)
 	for i=1:maxiter
 		# X1 = repmat(sum(W, 1)', 1, m)
-		H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dmis=1))
+		H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1))
 		if movie
 			frame += 1
 			Xe = W * H
@@ -58,10 +58,10 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float6
 			H = max.(H, eps())
 			W = max.(W, eps())
 			for q = 1:m
-				index[q] = indmax(H[:, q])
+				index[q] = argmin(H[:, q])
 			end
 			# sum(map(i->sum(index.==i).^2, 1:3))
-			cons = repmat(index, 1, m) .== repmat(permutedims(index), m, 1)
+			cons = repeat(index, 1, m) .== repeat(permutedims(index), m, 1)
 			consdiff = sum(cons .!= consold)
 			if consdiff == 0
 				inc += 1

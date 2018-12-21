@@ -84,7 +84,7 @@ end
 
 function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	if !clusterWeights
-		factors = [f' for f in factors]
+		factors = [permutedims(f) for f in factors]
 	end
 	# invariant: we can now assume that our matrices are n x k
 	numFactors = length(factors)
@@ -170,7 +170,9 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	end
 
 	newClusterCenters ./= numTrials
-
+	if !clusterWeights
+		factors = [permutedims(f) for f in factors]
+	end
 	return clusterLbls, newClusterCenters'
 end
 

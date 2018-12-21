@@ -384,6 +384,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 			Wbest[:, i] = WBig[bestIdx][:, c]
 			Hbest[i, :] = HBig[bestIdx][c, :]
 		end
+		Xe = Wbest * Hbest
 		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[idxsort][idxsol], HBig[idxsort][idxsol], clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
 		if !quiet
@@ -405,6 +406,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 		Wa = Wbest
 		Ha = Hbest
 	end
+	Xe = Wbest * Hbest
 	if sizeof(deltas) == 0
 		if transpose
 			E = permutedims(X) - Wa * Ha
