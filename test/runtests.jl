@@ -1,8 +1,10 @@
 import NMFk
 import Test
 import Random
+import Suppressor
+using LinearAlgebra
 
-@NMFk.stderrcapture function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
+function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
 	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-3), maxiter=1000, verbosity=0, tol=1., method=:ipopt)
@@ -18,7 +20,7 @@ import Random
 	checkratios(mixerestimate, bucketestimate, ratios, ratiocomponents)
 end
 
-@NMFk.stderrcapture function checkratios(mixerestimate::Matrix, bucketestimate::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratiocomponents::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0))
+function checkratios(mixerestimate::Matrix, bucketestimate::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratiocomponents::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0))
 	if sizeof(ratios) == 0
 		return
 	end
@@ -33,7 +35,7 @@ end
 	end
 end
 
-@NMFk.stderrcapture function buckettest()
+function buckettest()
 	nummixtures = 20
 	numbuckets = 2
 	numconstituents = 3
@@ -49,7 +51,7 @@ end
 	end
 end
 
-@NMFk.stderrcapture function nmfktest()
+function nmfktest()
 	M = convert(Array{Float64, 2}, [1. 10. 0. 0. 1.; 0. 0. 1. 5. 2.])
 	for iternum = 1:10
 		a = rand(20)
@@ -63,7 +65,7 @@ end
 	end
 end
 
-@NMFk.stderrcapture function pureratiotest()
+function pureratiotest()
 	nummixtures = 20
 	numbuckets = 2
 	numconstituents = 4
@@ -87,7 +89,7 @@ end
 	end
 end
 
-@NMFk.stderrcapture function ratiotest()
+function ratiotest()
 	nummixtures = 20
 	numbuckets = 2
 	numconstituents = 6
@@ -115,15 +117,16 @@ end
 
 Random.seed!(2015)
 @info("NMFk: pure ratio test ...")
-@NMFk.stdouterrcapture pureratiotest()
+pureratiotest()
 @info("NMFk: ratio test ...")
-@NMFk.stdouterrcapture ratiotest()
+ratiotest()
 @info("NMFk: bucket test ...")
-@NMFk.stdouterrcapture buckettest()
+buckettest()
 @info("NMFk: nmfk test ...")
-@NMFk.stdouterrcapture nmfktest()
+nmfktest()
 
-@info("NMFk ipopt: 2 sources, 5 sensors, 20 transients")
+global We, He, p, s
+@info("NMFk: ipopt: 2 sources, 5 sensors, 20 transients")
 Random.seed!(2015)
 a = rand(20)
 b = rand(20)
@@ -131,7 +134,7 @@ W = [a b]
 H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
 X = W * H
 X = [a a*10 b b*5 a+b*2]
-@NMFk.stdouterrcapture We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
 @Test.test isapprox(p, 0; atol=1e-3)
 @Test.test isapprox(s, 1; rtol=1e-1)
 @Test.test isapprox(He[1,2] / He[1,1], 10; rtol=1e-3)
@@ -139,7 +142,7 @@ X = [a a*10 b b*5 a+b*2]
 @Test.test isapprox(He[2,4] / He[2,3], 5; rtol=1e-3)
 @Test.test isapprox(He[1,4] / He[1,3], 5; rtol=1e-3)
 
-@info("NMFk nlopt: 2 sources, 5 sensors, 20 transients")
+@info("NMFk: nlopt: 2 sources, 5 sensors, 20 transients")
 Random.seed!(2015)
 a = rand(20)
 b = rand(20)
@@ -147,7 +150,7 @@ W = [a b]
 H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
 X = W * H
 X = [a a*10 b b*5 a+b*2]
-@NMFk.stdouterrcapture We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-6, tol=1e-19)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-6, tol=1e-19)
 @Test.test isapprox(p, 0, atol=1e-3)
 @Test.test isapprox(s, 1, rtol=1e-1)
 @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
@@ -155,31 +158,31 @@ X = [a a*10 b b*5 a+b*2]
 @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
 @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
-@info("NMFk ipopt: 2 sources, 5 sensors, 100 transients")
+@info("NMFk: ipopt: 2 sources, 5 sensors, 100 transients")
 Random.seed!(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
-@NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-7)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-7)
 @Test.test isapprox(p, 0, atol=1e-3)
 @Test.test isapprox(s, 1, rtol=1e-1)
-@Test.test isapprox(H[1,2] / H[1,1], 10, rtol=1e-2)
-@Test.test isapprox(H[2, 3] / H[1, 3], 0.38, rtol=0.1)
-@Test.test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
-@Test.test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
+@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-2)
+@Test.test isapprox(He[2,3] / He[1,3], 0.38, rtol=0.1)
+@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
-@info("NMFk nlopt: 2 sources, 5 sensors, 100 transients")
+@info("NMFk: nlopt: 2 sources, 5 sensors, 100 transients")
 Random.seed!(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
-@NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
 @Test.test isapprox(p, 0, atol=1e-3)
 @Test.test isapprox(s, 1, rtol=1e-1)
-@Test.test isapprox(H[1,2] / H[1,1], 10, rtol=1e-3)
-@Test.test isapprox(H[1,3] / H[2,3], 3, rtol=0.9)
-@Test.test isapprox(H[2,4] / H[2,3], 5, rtol=1e-3)
-@Test.test isapprox(H[1,4] / H[1,3], 5, rtol=1e-3)
+@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+@Test.test isapprox(He[1,3] / He[2,3], 3, rtol=0.9)
+@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: 3 sources, 5 sensors, 15 transients")
 Random.seed!(2015)
@@ -188,15 +191,15 @@ b = rand(15)
 c = rand(15)
 X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 @info("NMFk: ipopt ...")
-@NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:ipopt)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:ipopt)
 @info("NMFk: nlopt ...")
-@NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:nlopt)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:nlopt)
 @info("NMFk: simple ...")
-@NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:simple)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:simple)
 @info("NMFk: nmf ...")
-@NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:nmf)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:nmf)
 @info("NMFk: sparse ...")
-@NMFk.stdouterrcapture W, H, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:sparse)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:sparse)
 
 @info("NMFk: concentrantions/delta tests ...")
 a0 = Float64[[20,10,1] [5,1,1]]
