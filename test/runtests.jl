@@ -4,6 +4,8 @@ import Random
 import Suppressor
 using LinearAlgebra
 
+@Test.testset "NMFk" begin
+
 function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
@@ -116,12 +118,16 @@ function ratiotest()
 end
 
 Random.seed!(2015)
+
 @info("NMFk: pure ratio test ...")
 pureratiotest()
+
 @info("NMFk: ratio test ...")
 ratiotest()
+
 @info("NMFk: bucket test ...")
 buckettest()
+
 @info("NMFk: nmfk test ...")
 nmfktest()
 
@@ -216,4 +222,7 @@ a0 = 20.0
 b = NMFk.getisotopeconcentration(a0, 0.001, 100)
 a = NMFk.getisotopedelta(b, 0.001, 100)[1]
 @Test.test a0 ≈ a
+
+end
+
 :passed
