@@ -24,7 +24,7 @@ After starting Julia, execute:
 import Pkg; Pkg.add("NMFk")
 ```
 
-Installation of NMFk behind a firewall
+Installation behind a firewall
 ------------------------------
 
 Julia uses git for package management. Add in the `.gitconfig` file in your home directory:
@@ -64,5 +64,4 @@ export no_proxy=.lanl.gov
 Publications, Presentations, Projects
 =====================================
 
-* [mads.gitlab.io](mads.gitlab.io)
 * [monty.gitlab.io](monty.gitlab.io)

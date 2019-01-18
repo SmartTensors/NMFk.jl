@@ -23,6 +23,10 @@ end
 
 "Execute NMFk analysis for a given number of sources"
 function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
+	if save && casefilename == ""
+		@info("Saving requested but casefilename not specified; casefilename = \"nmfk\" will be used!")
+		casefilename = "nmfk"
+	end
 	runflag = true
 	if load && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
