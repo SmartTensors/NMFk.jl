@@ -1,4 +1,5 @@
 import NMFk
+import NTFk
 import Random
 
 Random.seed!(14)
@@ -12,8 +13,8 @@ We, He, p, s = NMFk.execute(X, 2, 1; method=:ipopt, tolX=1e-6, tol=1e-8, seed=16
 Xe = We * He
 NMFk.plotnmf(Xe, We, He; filename="movie/m643-estimate.png")
 
-We, He, p, s = NMFk.execute(X, 3, 1; method=:simple,  tol=1e-14, seed=16, maxiter=9, movie=true, moviename="movie/m643-frame0001.png", moviecheat=5)
-NMFk.makemovie(prefix="movie/m643", cleanup=false)
+We, He, p, s = NMFk.execute(X, 3, 1; method=:simple, tol=1e-14, seed=16, maxiter=3, movie=true, moviename="movie/m643-frame0001.png", moviecheat=10)
+NTFk.makemovie(prefix="movie/m643", cleanup=false, numberofdigits=4, movieformat="webm")
 
 for mcheat = 1:10
 	We = deepcopy(W)
