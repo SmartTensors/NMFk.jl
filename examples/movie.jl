@@ -1,5 +1,5 @@
-reload("NMFk")
-reload("rMF")
+import NMFk
+import Random
 
 Random.seed!(14)
 W = rand(6, 3)
@@ -7,10 +7,23 @@ W = W .* [1 2 3]
 H = rand(3, 4)
 X = W * H
 NMFk.plotnmf(X, W, H; filename="movie/m643-true.png")
-We, He, p, s = NMFk.execute(X, 3, 1; method=:ipopt, tolX=1e-15, tol=1e-14, seed=16, maxiter=9, movie=true, moviename="movie/m643-frame0001.png", initH=convert(Array{Float32,2}, He), initW=convert(Array{Float32,2},We))
+We, He, p, s = NMFk.execute(X, 3, 1; method=:ipopt, tolX=1e-15, tol=1e-14, seed=16, maxiter=9, movie=true, moviename="movie/m643-frame0001.png", initH=convert(Array{Float32,2}, H), initW=convert(Array{Float32,2},W))
 We, He, p, s = NMFk.execute(X, 2, 1; method=:ipopt, tolX=1e-6, tol=1e-8, seed=16)
 Xe = We * He
 NMFk.plotnmf(Xe, We, He; filename="movie/m643-estimate.png")
+
+We, He, p, s = NMFk.execute(X, 3, 1; method=:simple,  tol=1e-14, seed=16, maxiter=9, movie=true, moviename="movie/m643-frame0001.png", moviecheat=5)
+NMFk.makemovie(prefix="movie/m643", cleanup=false)
+
+for mcheat = 1:10
+	We = deepcopy(W)
+	c = 1
+	We .+= rand(size(We)...) .* c
+	He = deepcopy(H)
+	He .+= rand(size(He)...) .* c
+	Xe = We * He
+	NMFk.plotnmf(Xe, We, He)
+end
 
 Random.seed!(2015)
 a = rand(20)

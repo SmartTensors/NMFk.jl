@@ -1,4 +1,4 @@
-function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k)
+function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1)
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
@@ -38,6 +38,15 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float6
 		# X1 = repmat(sum(W, 1)', 1, m)
 		H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1))
 		if movie
+			for mcheat = 1:moviecheat
+				We = copy(W)
+				We .+= rand(size(We)...) .* cheatlevel ./ maxiter
+				He = copy(H)
+				He .+= rand(size(He)...) .* cheatlevel ./ maxiter
+				Xe = We * He
+				frame += 1
+				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+			end
 			frame += 1
 			Xe = W * H
 			NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
@@ -45,6 +54,15 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float6
 		# X2 = repmat(sum(H, 2)', n, 1)
 		W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2))
 		if movie
+			for mcheat = 1:moviecheat
+				We = copy(W)
+				We .+= rand(size(We)...) .* cheatlevel ./ maxiter
+				He = copy(H)
+				He .+= rand(size(He)...) .* cheatlevel ./ maxiter
+				Xe = We * He
+				frame += 1
+				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+			end
 			frame += 1
 			Xe = W * H
 			NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
@@ -78,6 +96,19 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float6
 			end
 			consold = cons
 		end
+	end
+	for mcheat = 1:(moviecheat*2)
+		We = copy(W)
+		We .+= rand(size(We)...) .* cheatlevel ./ mcheat
+		He = copy(H)
+		He .+= rand(size(He)...) .* cheatlevel ./ mcheat
+		Xe = We * He
+		frame += 1
+		NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+	end
+	for mcheat = 1:(moviecheat*2)
+		frame += 1
+		NMFk.plotnmf(X, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
 	objvalue = sum((X - W * H).^2)
 	return W, H, objvalue

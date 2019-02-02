@@ -79,7 +79,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			initH = ones(Float32, numbuckets, numconstituents) / 2
 		end
 		if maxH
-			maxc = maximum(concentrations, 1)
+			maxc = maximum(concentrations, dims=1)
 			for i=1:numbuckets
 				initH[i:i,:] .*= maxc
 			end
@@ -262,7 +262,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 			initH = ones(Float32, numbuckets, numconstituents) / 2
 		end
 		if maxH
-			maxc = maximum(concentrations, 1)
+			maxc = maximum(concentrations, dims=1)
 			for i=1:numbuckets
 				initH[i:i,:] .*= maxc
 			end
@@ -273,7 +273,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 			if scale
 				initHd = rand(Float32, numbuckets, numdeltas)
 			else
-				max = maximum(deltas, 1) / 10
+				max = maximum(deltas, dims=1) / 10
 				initHd = rand(Float32, numbuckets, numdeltas)
 				for i=1:numbuckets
 					initHd[i,:] .*= max
@@ -283,7 +283,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 			if scale
 				initHd = ones(Float32, numbuckets, numdeltas) / 2
 			else
-				max = maximum(deltas, 1)
+				max = maximum(deltas, dims=1)
 				initHd = Array{Float32}(undef, numbuckets, numdeltas)
 				for i=1:numbuckets
 					initHd[i,:] = max

@@ -37,7 +37,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 			initH = ones(T, numbuckets, numconstituents) / 2
 		end
 		if maxH
-			maxconc = permutedims(vec(maximum(concentrations, (1,3))))
+			maxconc = permutedims(vec(maximum(concentrations, dims=(1,3))))
 			for i=1:numbuckets
 				initH[i:i, :] .*= maxconc
 			end

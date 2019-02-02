@@ -1,3 +1,5 @@
+import JLD
+
 "Test NMFk functions"
 function test()
 	include(joinpath(nmfkdir, "test", "runtests.jl"))

@@ -6,8 +6,6 @@ import Colors
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "lavender", "beige"]
 ncolors = length(colors)
 
-PyPlot.register_cmap("RYG", PyPlot.ColorMap("RYG", [parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")]))
-
 function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))))
 	msize = size(M)
 	ndimensons = length(msize)
@@ -45,6 +43,7 @@ function plotmatrix(A::Matrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixel
 	h = pixelsize * size(A, 1)
 	ax = fig[:add_axes]([x0, y0, w, h], frameon=false)
 	ax[:axis]("off")
+	PyPlot.register_cmap("RYG", PyPlot.ColorMap("RYG", [parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")]))
 	ax[:imshow](A, interpolation="nearest", extent=[0, w, 0, h], cmap=PyPlot.ColorMap("RYG"), alpha=alpha)
 	gap = pixelsize / 5
 
@@ -108,9 +107,10 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::AbstractString="", m
 	nk, nc = size(H)
 	fig, throwawayax = PyPlot.subplots(figsize=(16,9))
 	fig[:delaxes](throwawayax)
-	s = maximum(W, 1)
+	s = maximum(W, dims=1)
 	W = W ./ s
 	H = H .* permutedims(s)
+	PyPlot.register_cmap("RYG", PyPlot.ColorMap("RYG", [parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")]))
 	#spatialax = fig[:add_axes]([0, 0, 1, 1], frameon=false)
 	#spatialax[:imshow](rand(100, 100), extent=[0, 100, 0, 100], cmap=PyPlot.ColorMap("RYG"), alpha=0.7, interpolation="nearest")
 
@@ -122,16 +122,17 @@ function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::AbstractString="", m
 		plotequation(X, W, H, fig; pixelsize=1/nr, x0=0.1, y0=0)
 	end
 
-	Base.display(fig); println()
 	if movie
 		filename = setnewfilename(filename, frame)
 		if frame > 0
-			fig[:text](0.9, 0.1, "$(sprintf("%04d", frame))", fontsize=24, va="center", ha="center")
+			fig[:text](0.9, 0.1, "$(sprintf("Iteration: %04d", frame))", fontsize=16, va="center", ha="center")
 		end
 	end
 	if filename != ""
 		fig[:savefig](filename)
-		Base.display(Images.load(filename))
+		Base.display(Images.load(filename)); println()
+	else
+		Base.display(fig); println()
 	end
 	PyPlot.close(fig)
 end
@@ -151,14 +152,10 @@ function setnewfilename(filename::AbstractString, frame::Integer=0; keyword::Abs
 		ext = "png"
 		fn = fn * "." * ext
 	end
-	if !contains(fn, keyword)
+	if !occursin(keyword, fn)
 		fn = root * "-$(keyword)0000." * ext
 	end
-	if VERSION >= v"0.7"
-		rtest = occursin(Regex(string("-", keyword, "[0-9]*[.].*\$")), fn)
-	else
-		rtest = ismatch(Regex(string("-", keyword, "[0-9]*[.].*\$")), fn)
-	end
+	rtest = occursin(Regex(string("-", keyword, "[0-9]*[.].*\$")), fn)
 	if rtest
 		rm = match(Regex(string("-", keyword, "([0-9]*)[.](.*)\$")), fn)
 		if frame == 0

@@ -52,7 +52,7 @@ end
 function jump(X::AbstractMatrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::AbstractMatrix=Array{Float32}(undef, 0, 0), initH::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0)
+function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::AbstractMatrix=Array{Float32}(undef, 0, 0), initH::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0, cheatlevel::Number=1)
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -76,7 +76,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			initW = ones(Float32, nummixtures, nk) / nk
 		end
 		if maxW
-			maxx = maximum(X, 2)
+			maxx = maximum(X, dims=2)
 			for i=1:nk
 				initW[:,i:i] .*= maxx
 			end
@@ -95,7 +95,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			initH = ones(Float32, nk, numconstituents) / 2
 		end
 		if maxH
-			maxx = maximum(X, 1)
+			maxx = maximum(X, dims=1)
 			for i=1:nk
 				initH[i:i,:] .*= maxx
 			end
@@ -168,7 +168,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		Hbest = JuMP.getvalue(H)
 	end
 	of = JuMP.getobjectivevalue(m)
-	!quiet && @info("Initial objective function $of")
+	!quiet && @info("Objective function $of")
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk
 	frame = 2
@@ -179,22 +179,19 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol) && outiters < maxouteriters && resets <= maxresets
 		oldcolval = copy(m.colVal)
 		if movie
-			mcheat = 1
-			while mcheat <= moviecheat
+			for mcheat = 1:moviecheat
 				We = JuMP.getvalue(W)
-				c = (moviecheat - mcheat) / moviecheat + 0.1
-				We += rand(similar(We)) .* c
+				We .+= rand(size(We)...) .* cheatlevel
 				He = JuMP.getvalue(H)
-				He += rand(similar(He)) .* c / 10
+				He .+= rand(size(He)...) .* cheatlevel
 				Xe = We * He
-				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
+				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 				frame += 1
-				mcheat += 1
 			end
 			!fixW && (We = JuMP.getvalue(W))
 			!fixH && (He = JuMP.getvalue(H))
 			Xe = We * He
-			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
+			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 			frame += 1
 		end
 		if quiet
