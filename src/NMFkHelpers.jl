@@ -32,6 +32,10 @@ function normnan(X)
 end
 
 function cornan(x, y)
-	isn = isnan.(x) .| isnan.(y)
-	cov(x[.!isn], y[.!isn])
+	isn = .!(isnan.(x) .| isnan.(y))
+	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
+		return cov(x[isn], y[isn])
+	else
+		return NaN
+	end
 end
