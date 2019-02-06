@@ -1,24 +1,20 @@
 __precompile__()
 
-"Non-negative Matrix Factorization + k-means Clustering"
+"Non-negative Matrix Factorization + k-means Clustering and sparsity constraints"
 module NMFk
 
-if VERSION >= v"0.7"
-	import Pkg
-	using Printf
-	using Random
-	using Statistics
-	using LinearAlgebra
-	using Dates
-	using DelimitedFiles
-	using Distributed
-end
+import Pkg
+using Printf
+using Random
+using Statistics
+using LinearAlgebra
+using Distributed
 
 import NMF
 import Distances
 import Clustering
-import JuMP
 import Ipopt
+import JuMP
 import JLD2
 import FileIO
 import ReusableFunctions
