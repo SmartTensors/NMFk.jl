@@ -9,12 +9,12 @@ Colors
 FileIO
 JLD
 JLD2
-JuMP 0.15
-Ipopt 0.2.6
-NLopt
 Distributions
+MultivariateStats
+JuMP 0.19
+Ipopt 0.5
+NLopt
 NMF 0.2.5
 Clustering 0.7.0
 Distances 0.3.2
 Suppressor
-MultivariateStats
