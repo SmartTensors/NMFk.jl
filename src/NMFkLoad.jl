@@ -23,6 +23,6 @@ function load(nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", fi
 		return W, H, fitquality, robustness, aic
 	else
 		@warn("File named $filename is missing!")
-		return Array{Float64,2}(0, 0), Array{Float64,2}(undef, 0, 0), NaN, NaN, NaN
+		return Array{Float64,2}(undef, 0, 0), Array{Float64,2}(undef, 0, 0), NaN, NaN, NaN
 	end
 end

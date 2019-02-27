@@ -107,9 +107,9 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		initH[nansh] .= 0
 	end
 	if method == :ipopt
-		m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity, tol=tol))
+		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, max_iter=maxiter, print_level=verbosity, tol=tol))
 	elseif method == :nlopt
-		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
+		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer, algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
 	end
 	#IMPORTANT the order at which parameters are defined is very important
 	if fixW
@@ -147,26 +147,20 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			end
 		end
 	end
-	oldcolval = copy(m.colVal)
 	if movie
 		Xe = initW * initH
 		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
+	jumpvariables = JuMP.all_variables(m)
+	jumpvalues = JuMP.start_value.(jumpvariables)
 	if quiet
-		@Suppressor.suppress JuMP.solve(m)
+		@Suppressor.suppress JuMP.optimize!(m)
 	else
-		JuMP.solve(m)
+		JuMP.optimize!(m)
 	end
-	if fixW
-		Wbest = W
-	else
-		Wbest = JuMP.getvalue(W)
-	end
-	if fixH
-		Hbest = H
-	else
-		Hbest = JuMP.getvalue(H)
-	end
+
+	Wbest = (fixW) ? W : JuMP.value.(W)
+	Hbest = (fixH) ? H : JuMP.value.(H)
 	of = JuMP.getobjectivevalue(m)
 	!quiet && @info("Objective function $of")
 	ofbest = of
@@ -176,28 +170,28 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	outiters = 0
 	resets = 0
 	#TODO this does not work; JuMP fails when restarted
-	while !(norm(oldcolval - m.colVal) < tolX) && !(objvalue < tol) && outiters < maxouteriters && resets <= maxresets
-		oldcolval = copy(m.colVal)
+	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tolX) && !(objvalue < tol) && outiters < maxouteriters && resets <= maxresets
+		jumpvalues = JuMP.value.(jumpvariables)
 		if movie
 			for mcheat = 1:moviecheat
-				We = JuMP.getvalue(W)
+				We = JuMP.value.(W)
 				We .+= rand(size(We)...) .* cheatlevel
-				He = JuMP.getvalue(H)
+				He = JuMP.value.(H)
 				He .+= rand(size(He)...) .* cheatlevel
 				Xe = We * He
 				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 				frame += 1
 			end
-			!fixW && (We = JuMP.getvalue(W))
-			!fixH && (He = JuMP.getvalue(H))
+			!fixW && (We = JuMP.value.(W))
+			!fixH && (He = JuMP.value.(H))
 			Xe = We * He
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 			frame += 1
 		end
 		if quiet
-			@Suppressor.suppress JuMP.solve(m)
+			@Suppressor.suppress JuMP.optimize!(m)
 		else
-			JuMP.solve(m)
+			JuMP.optimize!(m)
 		end
 		of = JuMP.getobjectivevalue(m)
 		outiters += 1
@@ -212,8 +206,8 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 					outiters = 0
 				end
 			end
-			!fixW && (Wbest = JuMP.getvalue(W))
-			!fixH && (Hbest = JuMP.getvalue(H))
+			!fixW && (Wbest = JuMP.value.(W))
+			!fixH && (Hbest = JuMP.value.(H))
 			ofbest = of
 			objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
 		end
@@ -221,7 +215,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			@info("Iteration $iters")
 			@info("Objective function $of")
 			(regularizationweight > 0.) && @info("Objective function - regularization penalty $objvalue")
-			@info("Parameter norm: $(norm(oldcolval - m.colVal))")
+			@info("Parameter norm: $(norm(jumpvalues - JuMP.value.(jumpvariables)))")
 		end
 	end
 	X[nans] .= NaN

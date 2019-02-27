@@ -86,9 +86,9 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		end
 	end
 	if method == :ipopt
-		m = JuMP.Model(solver=Ipopt.IpoptSolver(max_iter=maxiter, print_level=verbosity)) # tol here is something else
+		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, max_iter=maxiter, print_level=verbosity)) # tol here is something else
 	elseif method == :nlopt
-		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
+		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer, algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
 	end
 	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(Float32, initW[i, j]))
 	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, initH[i, j]))
@@ -112,18 +112,19 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 					for k=1:numbuckets) - ratios[i, j])^2 for i=1:nummixtures)
 					for (j, c1, c2) in zip(1:numberofratios, ratioindices[:,1], ratioindices[:,2])))
 	end
-	oldcolval = copy(m.colVal)
 	if movie
 		Xe = initW * initH
 		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
+	jumpvariables = JuMP.all_variables(m)
+	jumpvalues = JuMP.start_value.(jumpvariables)
 	if quiet
-		@Suppressor.suppress JuMP.solve(m)
+		@Suppressor.suppress JuMP.optimize!(m)
 	else
-		JuMP.solve(m)
+		JuMP.optimize!(m)
 	end
-	mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
-	bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
+	mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
+	bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
 	of = JuMP.getobjectivevalue(m)
 	if movie
 		Xe = mixerval * bucketval
@@ -136,16 +137,16 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	resets = 0
 	frame = 3
 	!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
-	while norm(oldcolval - m.colVal) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
-		oldcolval = copy(m.colVal)
+	while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
+		jumpvalues = JuMP.value.(jumpvariables)
 		if quiet
-			@Suppressor.suppress JuMP.solve(m)
+			@Suppressor.suppress JuMP.optimize!(m)
 		else
-			JuMP.solve(m)
+			JuMP.optimize!(m)
 		end
 		if movie
-			We = convert(Array{Float32,2}, JuMP.getvalue(mixer))
-			He = convert(Array{Float32,2}, JuMP.getvalue(buckets))
+			We = convert(Array{Float32,2}, JuMP.value.(mixer))
+			He = convert(Array{Float32,2}, JuMP.value.(buckets))
 			Xe = We * He
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
 			frame += 1
@@ -161,8 +162,8 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 					outiters = 0
 				end
 			end
-			mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
-			bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
+			mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
+			bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
 			ofbest = of
 		else
 			outiters = maxouteriters + 1
@@ -326,25 +327,26 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 		sum(sum(concweights[i, j] * (concentrations[i, j] - (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets)))^2 for i=1:nummixtures) for j=1:numconstituents) +
 		sum(sum(deltasweights[i, di] * (deltas[i, di] - (sum(mixer[i, j] * buckets[j, deltaindices[di]] * bucketdeltas[j, di] for j=1:numbuckets) / sum(mixer[i, j] * buckets[j, deltaindices[di]] for j=1:numbuckets)))^2 for i = 1:nummixtures) for di=1:numdeltas)
 		)
-	oldcolval = copy(m.colVal)
-	JuMP.solve(m)
-	mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
-	bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
-	bucketdeltasval = convert(Array{Float32,2}, JuMP.getvalue(bucketdeltas))
+	jumpvariables = JuMP.all_variables(m)
+	jumpvalues = JuMP.start_value.(jumpvariables)
+	JuMP.optimize!(m)
+	mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
+	bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
+	bucketdeltasval = convert(Array{Float32,2}, JuMP.value.(bucketdeltas))
 	of = JuMP.getobjectivevalue(m)
 	ofbest = of
 	iters = 1
 	!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
-	while !(norm(oldcolval - m.colVal) < tol) && iters < maxouteriters # keep doing the optimization until we really reach an optimum
-		oldcolval = copy(m.colVal)
-		JuMP.solve(m)
+	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tol) && iters < maxouteriters # keep doing the optimization until we really reach an optimum
+		jumpvalues = JuMP.value.(jumpvariables)
+		JuMP.optimize!(m)
 		of = JuMP.getobjectivevalue(m)
 		!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 		if of < ofbest
 			iters = 0
-			mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
-			bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
-			bucketdeltasval = convert(Array{Float32,2}, JuMP.getvalue(bucketdeltas))
+			mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
+			bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
+			bucketdeltasval = convert(Array{Float32,2}, JuMP.value.(bucketdeltas))
 			ofbest = of
 		end
 		iters += 1
@@ -390,9 +392,9 @@ function mixmatchwaterdeltas(deltas::Matrix{Float32}, numbuckets::Int; method::S
 	elseif method == :nlopt
 		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
 	end
-	JuMP.solve(m)
-	mixerval = convert(Array{Float32,2}, JuMP.getvalue(mixer))
-	bucketval = convert(Array{Float32,2}, JuMP.getvalue(buckets))
+	JuMP.optimize!(m)
+	mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
+	bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
 	fitquality = JuMP.getobjectivevalue(m) - regularizationweight * sum((bucketval - bucketmeans).^2) / numbuckets
 	return mixerval, bucketval, fitquality
 end

@@ -62,14 +62,15 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	@JuMP.NLobjective(m, Min,
 		regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 		sum(sum(sum(concweights[i, j, t] * (sum(mixer[i, k, t] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j, t])^2 for i=1:nummixtures) for j=1:numconstituents) for t=1:ntimes))
-	oldcolval = copy(m.colVal)
+	jumpvariables = JuMP.all_variables(m)
+	jumpvalues = JuMP.start_value.(jumpvariables)
 	if quiet
-		@Suppressor.suppress JuMP.solve(m)
+		@Suppressor.suppress JuMP.optimize!(m)
 	else
-		JuMP.solve(m)
+		JuMP.optimize!(m)
 	end
-	W = convert(Array{T, 3}, JuMP.getvalue(mixer))
-	H = convert(Array{T, 2}, JuMP.getvalue(buckets))
+	W = convert(Array{T, 3}, JuMP.value.(mixer))
+	H = convert(Array{T, 2}, JuMP.value.(buckets))
 	of = JuMP.getobjectivevalue(m)
 	ofbest = of
 	iters = 1
@@ -77,12 +78,12 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	resets = 0
 	frame = 2
 	!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
-	while norm(oldcolval - m.colVal) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
-		oldcolval = copy(m.colVal)
+	while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
+		jumpvalues = JuMP.value.(jumpvariables)
 		if quiet
-			@Suppressor.suppress JuMP.solve(m)
+			@Suppressor.suppress JuMP.optimize!(m)
 		else
-			JuMP.solve(m)
+			JuMP.optimize!(m)
 		end
 		of = JuMP.getobjectivevalue(m)
 		iters += 1
@@ -97,8 +98,8 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 					outiters = 0
 				end
 			end
-			W = convert(Array{T, 3}, JuMP.getvalue(mixer))
-			H = convert(Array{T, 2}, JuMP.getvalue(buckets))
+			W = convert(Array{T, 3}, JuMP.value.(mixer))
+			H = convert(Array{T, 2}, JuMP.value.(buckets))
 			ofbest = of
 		else
 			outiters = maxouteriters + 1
