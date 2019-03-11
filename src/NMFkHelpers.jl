@@ -1,3 +1,14 @@
+import DocumentFunction
+
+"""
+Set image dpi
+
+$(DocumentFunction.documentfunction(setdpi))
+"""
+function setdpi(dpi::Integer)
+	global imagedpi = dpi;
+end
+
 toupper(x::String, i=1) = x[1:i-1] * uppercase(x[i:i]) * x[i+1:end]
 
 function maximumnan(X, c...; kw...)

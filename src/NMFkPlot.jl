@@ -7,7 +7,7 @@ import DataFrames
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "lavender", "beige"]
 ncolors = length(colors)
 
-function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=150)
+function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
 	nfeatures = length(unique(sort(df[:Attribute])))
 	loopcolors = nfeatures + 1 > ncolors ? true : false
 	if loopcolors
@@ -16,7 +16,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.
 		tc = [Gadfly.Scale.color_discrete_manual(colors[2:nfeatures+1]...)]
 	end
 	# label="Well", Gadfly.Geom.point, Gadfly.Geom.label,
-	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[:Truth]), maximum(df[:Truth])], y=[minimum(df[:Truth]), maximum(df[:Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), tc...)
+	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[:Truth]), maximum(df[:Truth])], y=[minimum(df[:Truth]), maximum(df[:Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
 	!quiet && (display(ff); println())
 	if filename != ""
 		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
@@ -24,7 +24,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.
 	return ff
 end
 
-function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", gm=[], dpi=150)
+function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", gm=[], dpi=imagedpi)
 	nfeatures = length(V)
 	@assert nfeatures == length(A)
 	loopcolors = nfeatures + 1 > ncolors ? true : false
@@ -36,7 +36,7 @@ function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, v
 	else
 		tc = [Gadfly.Scale.color_discrete_manual(colors[nfeatures+1:-1:2]...)]
 	end
-	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge,orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Theme(key_position=:none), tc..., gm...)
+	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge,orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none))
 	!quiet && (display(ff); println())
 	if filename != ""
 		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
@@ -44,7 +44,7 @@ function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, v
 	return ff
 end
 
-function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))), dpi=150)
+function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))), dpi=imagedpi)
 	msize = size(M)
 	ndimensons = length(msize)
 	@assert dim >= 1 && dim <= ndimensons

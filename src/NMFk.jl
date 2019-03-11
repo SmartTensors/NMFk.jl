@@ -18,11 +18,13 @@ import JuMP
 import JLD2
 import FileIO
 import ReusableFunctions
+import DocumentFunction
 
 const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
 
-quiet = true
-restart = false
+global quiet = true
+global restart = false
+global imagedpi = 300
 
 include("NMFkHelpers.jl")
 include("NMFkCluster.jl")
