@@ -24,7 +24,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.
 	return ff
 end
 
-function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", gm=[], dpi=imagedpi)
+function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", gm=[], dpi=imagedpi)
 	nfeatures = length(V)
 	@assert nfeatures == length(A)
 	loopcolors = nfeatures + 1 > ncolors ? true : false
@@ -36,7 +36,7 @@ function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, v
 	else
 		tc = [Gadfly.Scale.color_discrete_manual(colors[nfeatures+1:-1:2]...)]
 	end
-	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge,orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none))
+	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
 	!quiet && (display(ff); println())
 	if filename != ""
 		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
