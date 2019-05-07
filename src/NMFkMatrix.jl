@@ -1,7 +1,7 @@
 "Normalize matrix"
 function normalizematrix!(a::Matrix)
-	amin = minimum(a, dims= 1)
-	amax = maximum(a, dims=1)
+	amin = minimum(a; dims=1)
+	amax = maximum(a; dims=1)
 	dx = amax - amin
 	if length(dx) > 1
 		i0 = dx .== 0 # check for zeros
@@ -22,7 +22,7 @@ end
 
 "Scale matrix (by rows)"
 function scalematrix!(a::Matrix)
-	amax = maximum(abs.(a), dims=1)
+	amax = maximum(abs.(a); dims=1)
 	a ./= amax
 	return a, amax
 end
@@ -50,7 +50,7 @@ end
 
 "Scale matrix (by columns)"
 function scalematrix_col!(a::Matrix)
-	amax = maximum(abs(a), dims=2)
+	amax = maximum(abs(a); dims=2)
 	a = a ./ amax
 	return a, amax
 end

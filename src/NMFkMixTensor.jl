@@ -71,7 +71,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	end
 	W = convert(Array{T, 3}, JuMP.value.(mixer))
 	H = convert(Array{T, 2}, JuMP.value.(buckets))
-	of = JuMP.getobjectivevalue(m)
+	of = JuMP.objective_value(m)
 	ofbest = of
 	iters = 1
 	outiters = 0
@@ -85,7 +85,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 		else
 			JuMP.optimize!(m)
 		end
-		of = JuMP.getobjectivevalue(m)
+		of = JuMP.objective_value(m)
 		iters += 1
 		outiters += 1
 		if of < ofbest

@@ -79,7 +79,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			initH = ones(Float32, numbuckets, numconstituents) / 2
 		end
 		if maxH
-			maxc = maximum(concentrations, dims=1)
+			maxc = maximum(concentrations; dims=1)
 			for i=1:numbuckets
 				initH[i:i,:] .*= maxc
 			end
@@ -125,7 +125,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	end
 	mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
 	bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
-	of = JuMP.getobjectivevalue(m)
+	of = JuMP.objective_value(m)
 	if movie
 		Xe = mixerval * bucketval
 		NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=2)
@@ -151,7 +151,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
 			frame += 1
 		end
-		of = JuMP.getobjectivevalue(m)
+		of = JuMP.objective_value(m)
 		if of < ofbest
 			if (ofbest - of) > tolOF
 				resets += 1
@@ -263,7 +263,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 			initH = ones(Float32, numbuckets, numconstituents) / 2
 		end
 		if maxH
-			maxc = maximum(concentrations, dims=1)
+			maxc = maximum(concentrations; dims=1)
 			for i=1:numbuckets
 				initH[i:i,:] .*= maxc
 			end
@@ -274,7 +274,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 			if scale
 				initHd = rand(Float32, numbuckets, numdeltas)
 			else
-				max = maximum(deltas, dims=1) / 10
+				max = maximum(deltas; dims=1) / 10
 				initHd = rand(Float32, numbuckets, numdeltas)
 				for i=1:numbuckets
 					initHd[i,:] .*= max
@@ -284,7 +284,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 			if scale
 				initHd = ones(Float32, numbuckets, numdeltas) / 2
 			else
-				max = maximum(deltas, dims=1)
+				max = maximum(deltas; dims=1)
 				initHd = Array{Float32}(undef, numbuckets, numdeltas)
 				for i=1:numbuckets
 					initHd[i,:] = max
@@ -333,14 +333,14 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
 	bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
 	bucketdeltasval = convert(Array{Float32,2}, JuMP.value.(bucketdeltas))
-	of = JuMP.getobjectivevalue(m)
+	of = JuMP.objective_value(m)
 	ofbest = of
 	iters = 1
 	!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tol) && iters < maxouteriters # keep doing the optimization until we really reach an optimum
 		jumpvalues = JuMP.value.(jumpvariables)
 		JuMP.optimize!(m)
-		of = JuMP.getobjectivevalue(m)
+		of = JuMP.objective_value(m)
 		!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 		if of < ofbest
 			iters = 0
@@ -395,6 +395,6 @@ function mixmatchwaterdeltas(deltas::Matrix{Float32}, numbuckets::Int; method::S
 	JuMP.optimize!(m)
 	mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
 	bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
-	fitquality = JuMP.getobjectivevalue(m) - regularizationweight * sum((bucketval - bucketmeans).^2) / numbuckets
+	fitquality = JuMP.objective_value(m) - regularizationweight * sum((bucketval - bucketmeans).^2) / numbuckets
 	return mixerval, bucketval, fitquality
 end

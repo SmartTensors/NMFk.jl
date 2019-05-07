@@ -76,14 +76,16 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			initW = ones(Float32, nummixtures, nk) / nk
 		end
 		if maxW
-			maxx = maximum(X, dims=2)
+			maxx = maximum(X; dims=2)
 			for i=1:nk
 				initW[:,i:i] .*= maxx
 			end
 		end
 		nansw = 0
 	else
-		@assert size(initW) == (nummixtures, nk)
+		@show size(initW)
+		@show (nummixtures, nk)
+		# @assert size(initW) == (nummixtures, nk)
 		nansw = isnan.(initW)
 		initW[nansw] .= 0
 	end
@@ -95,7 +97,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			initH = ones(Float32, nk, numconstituents) / 2
 		end
 		if maxH
-			maxx = maximum(X, dims=1)
+			maxx = maximum(X; dims=1)
 			for i=1:nk
 				initH[i:i,:] .*= maxx
 			end
@@ -161,7 +163,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 
 	Wbest = (fixW) ? W : JuMP.value.(W)
 	Hbest = (fixH) ? H : JuMP.value.(H)
-	of = JuMP.getobjectivevalue(m)
+	of = JuMP.objective_value(m)
 	!quiet && @info("Objective function $of")
 	ofbest = of
 	objvalue = ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk
@@ -193,7 +195,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		else
 			JuMP.optimize!(m)
 		end
-		of = JuMP.getobjectivevalue(m)
+		of = JuMP.objective_value(m)
 		outiters += 1
 		iters += 1
 		if of < ofbest

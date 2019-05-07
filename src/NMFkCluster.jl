@@ -66,7 +66,7 @@ function robustkmeans(X::Array, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-
 	local best_mean_silhouettes
 	for i = 1:repeats
 		c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
-		Xd = Distances.pairwise(Distances.CosineDist(), X)
+		Xd = Distances.pairwise(Distances.CosineDist(), X; dims=2)
 		silhouettes = Clustering.silhouettes(c_new, Xd)
 		mean_silhouettes = mean(silhouettes)
 		for i in unique(c_new.assignments)

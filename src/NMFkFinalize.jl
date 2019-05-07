@@ -6,7 +6,7 @@ function finalize(Wa::Vector, idx::Matrix)
 
 	idx_r = vec(reshape(idx, nT, 1))
 	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-	WaDist = Distances.pairwise(Distances.CosineDist(), vcat(Wa...)')
+	WaDist = Distances.pairwise(Distances.CosineDist(), permutedims(vcat(Wa...)); dims=2)
 	silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
 
 	clustersilhouettes = Array{Float64}(undef, nk, 1)
@@ -31,14 +31,14 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 	idx_r = vec(reshape(idx, nT, 1))
 	if clusterweights
 		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-		WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...))
+		WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...); dims=2)
 		inanw = isnan.(WaDist)
 		WaDist[inanw] .= 0
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
 		WaDist[inanw] .= NaN
 	else
 		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-		HaDist = Distances.pairwise(Distances.CosineDist(), vcat(Ha...)')
+		HaDist = Distances.pairwise(Distances.CosineDist(), permutedims(vcat(Ha...)); dims=2)
 		inanh = isnan.(HaDist)
 		HaDist[inanh] .= 0
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
@@ -72,10 +72,10 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterwei
 	idx_r = vec(reshape(idx, nT, 1))
 	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
 	if clusterweights
-		WaDist = Distances.pairwise(Distances.CosineDist(), Wa)
+		WaDist = Distances.pairwise(Distances.CosineDist(), Wa; dims=2)
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
 	else
-		HaDist = Distances.pairwise(Distances.CosineDist(), Ha')
+		HaDist = Distances.pairwise(Distances.CosineDist(), permutedims(Ha); dims=2)
 		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
 	end
 	clustersilhouettes = Array{Float64}(undef, nk, 1)
