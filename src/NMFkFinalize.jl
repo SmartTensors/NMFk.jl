@@ -5,9 +5,8 @@ function finalize(Wa::Vector, idx::Matrix)
 	nT = nk * nNMF # total number of sources to cluster
 
 	idx_r = vec(reshape(idx, nT, 1))
-	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-	WaDist = Distances.pairwise(Distances.CosineDist(), permutedims(vcat(Wa...)); dims=2)
-	silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+	WaDist = Distances.pairwise(Distances.CosineDist(), vcat(Wa...); dims=1)
+	silhouettes = Clustering.silhouettes(idx_r, WaDist)
 
 	clustersilhouettes = Array{Float64}(undef, nk, 1)
 	W = Array{Float64}(undef, nk, nP)
@@ -15,7 +14,7 @@ function finalize(Wa::Vector, idx::Matrix)
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
 		clustersilhouettes[k] = mean(silhouettes[idxk])
-		idxkk = vcat(map(i->findall((in)(k), idx[:,i]), 1:nNMF)...)
+		idxkk = [i[1] for i in idxk]
 		ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
 		W[:, k] = mean(ws, 2)
 		Wvar[:, k] = var(ws, 2)
@@ -30,18 +29,16 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if clusterweights
-		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
 		WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...); dims=2)
 		inanw = isnan.(WaDist)
 		WaDist[inanw] .= 0
-		silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+		silhouettes = reshape(Clustering.silhouettes(idx_r, WaDist), nk, nNMF)
 		WaDist[inanw] .= NaN
 	else
-		clustercounts = convert(Array{Int}, ones(nk) * nNMF)
-		HaDist = Distances.pairwise(Distances.CosineDist(), permutedims(vcat(Ha...)); dims=2)
+		HaDist = Distances.pairwise(Distances.CosineDist(), vcat(Ha...); dims=1)
 		inanh = isnan.(HaDist)
 		HaDist[inanh] .= 0
-		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
+		silhouettes = reshape(Clustering.silhouettes(idx_r, HaDist), nk, nNMF)
 		HaDist[inanh] .= NaN
 	end
 	silhouettes[isnan.(silhouettes)] .= 0
@@ -53,7 +50,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
 		clustersilhouettes[k] = mean(silhouettes[idxk])
-		idxkk = vcat(map(i->findall((in)(k), idx[:,i]), 1:nNMF)...)
+		idxkk = [i[1] for i in idxk]
 		ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
 		hs = hcat(map((i, j)->Ha[i][j, :], 1:nNMF, idxkk)...)
 		H[k, :] = mean(hs; dims=2)
@@ -70,13 +67,12 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterwei
 	nk = convert(Int, nT / nNMF)
 
 	idx_r = vec(reshape(idx, nT, 1))
-	clustercounts = convert(Array{Int}, ones(nk) * nNMF)
 	if clusterweights
 		WaDist = Distances.pairwise(Distances.CosineDist(), Wa; dims=2)
-		silhouettes = Clustering.silhouettes(idx_r, clustercounts, WaDist)
+		silhouettes = reshape(Clustering.silhouettes(idx_r, WaDist), nk, nNMF)
 	else
-		HaDist = Distances.pairwise(Distances.CosineDist(), permutedims(Ha); dims=2)
-		silhouettes = Clustering.silhouettes(idx_r, clustercounts, HaDist)
+		HaDist = Distances.pairwise(Distances.CosineDist(), Ha; dims=1)
+		silhouettes = reshape(Clustering.silhouettes(idx_r, HaDist), nk, nNMF)
 	end
 	clustersilhouettes = Array{Float64}(undef, nk, 1)
 	W = Array{Float64}(undef, nP, nk)

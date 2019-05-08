@@ -83,9 +83,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		end
 		nansw = 0
 	else
-		@show size(initW)
-		@show (nummixtures, nk)
-		# @assert size(initW) == (nummixtures, nk)
+		@assert size(initW) == (nummixtures, nk)
 		nansw = isnan.(initW)
 		initW[nansw] .= 0
 	end
@@ -111,7 +109,8 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	if method == :ipopt
 		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, max_iter=maxiter, print_level=verbosity, tol=tol))
 	elseif method == :nlopt
-		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer, algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
+		@warn "NLopt does not work with JuMP; Ipopt will be used!"
+		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
 	end
 	#IMPORTANT the order at which parameters are defined is very important
 	if fixW
