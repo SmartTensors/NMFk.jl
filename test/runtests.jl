@@ -9,7 +9,7 @@ using LinearAlgebra
 function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
-	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-3), maxiter=1000, verbosity=0, tol=1., method=:ipopt)
+	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-3), maxiter=5000, verbosity=0, tol=0.1, method=:ipopt)
 	concs[idxnan] .= 0
 	predictedconcs = mixerestimate * bucketestimate
 	predictedconcs[idxnan] .= 0
@@ -148,21 +148,21 @@ X = [a a*10 b b*5 a+b*2]
 @Test.test isapprox(He[2,4] / He[2,3], 5; rtol=1e-3)
 @Test.test isapprox(He[1,4] / He[1,3], 5; rtol=1e-3)
 
-@info("NMFk: nlopt: 2 sources, 5 sensors, 20 transients")
-Random.seed!(2015)
-a = rand(20)
-b = rand(20)
-W = [a b]
-H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
-X = W * H
-X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-6, tol=1e-19)
-@Test.test isapprox(p, 0, atol=1e-3)
-@Test.test isapprox(s, 1, rtol=1e-1)
-@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
-@Test.test isapprox(He[2,2] / He[2,1], 10, rtol=1e-3)
-@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
-@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
+# @info("NMFk: nlopt: 2 sources, 5 sensors, 20 transients")
+# Random.seed!(2015)
+# a = rand(20)
+# b = rand(20)
+# W = [a b]
+# H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
+# X = W * H
+# X = [a a*10 b b*5 a+b*2]
+# @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-6, tol=1e-19)
+# @Test.test isapprox(p, 0, atol=1e-3)
+# @Test.test isapprox(s, 1, rtol=1e-1)
+# @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+# @Test.test isapprox(He[2,2] / He[2,1], 10, rtol=1e-3)
+# @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+# @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: ipopt: 2 sources, 5 sensors, 100 transients")
 Random.seed!(2015)
@@ -177,18 +177,18 @@ X = [a a*10 b b*5 a+b*2]
 @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
 @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
-@info("NMFk: nlopt: 2 sources, 5 sensors, 100 transients")
-Random.seed!(2015)
-a = exp.(-(0:.5:10))*100
-b = 100 .+ sin.(0:20)*10
-X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
-@Test.test isapprox(p, 0, atol=1e-3)
-@Test.test isapprox(s, 1, rtol=1e-1)
-@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
-@Test.test isapprox(He[1,3] / He[2,3], 3, rtol=0.9)
-@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
-@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
+# @info("NMFk: nlopt: 2 sources, 5 sensors, 100 transients")
+# Random.seed!(2015)
+# a = exp.(-(0:.5:10))*100
+# b = 100 .+ sin.(0:20)*10
+# X = [a a*10 b b*5 a+b*2]
+# @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
+# @Test.test isapprox(p, 0, atol=1e-3)
+# @Test.test isapprox(s, 1, rtol=1e-1)
+# @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+# @Test.test isapprox(He[1,3] / He[2,3], 3, rtol=0.9)
+# @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+# @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: 3 sources, 5 sensors, 15 transients")
 Random.seed!(2015)
@@ -198,8 +198,8 @@ c = rand(15)
 X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 @info("NMFk: ipopt ...")
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:ipopt)
-@info("NMFk: nlopt ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:nlopt)
+# @info("NMFk: nlopt ...")
+# @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:nlopt)
 @info("NMFk: simple ...")
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:simple)
 @info("NMFk: nmf ...")
