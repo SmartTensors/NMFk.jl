@@ -11,12 +11,14 @@ end
 
 toupper(x::String, i=1) = x[1:i-1] * uppercase(x[i:i]) * x[i+1:end]
 
-function maximumnan(X, c...; kw...)
-	maximum(X[.!isnan.(X)], c...; kw...)
+function maximumnan(X, c...; functionname="isnan", kw...)
+	i = Core.eval(NMFk, Meta.parse(functionname)).(X)
+	maximum(X[.!i], c...; kw...)
 end
 
-function minimumnan(X, c...; kw...)
-	minimum(X[.!isnan.(X)], c...; kw...)
+function minimumnan(X, c...; functionname="isnan", kw...)
+	i = Core.eval(NMFk, Meta.parse(functionname)).(X)
+	minimum(X[.!i], c...; kw...)
 end
 
 function sumnan(X, c=nothing; kw...)
