@@ -43,6 +43,7 @@ include("NMFkMultiplicative.jl")
 include("NMFkPlot.jl")
 include("NMFkCapture.jl")
 include("NMFkMultivariateStats.jl")
+include("NMFkPeaks.jl")
 
 restartoff()
 
