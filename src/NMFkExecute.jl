@@ -206,9 +206,9 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk sources (signals) ...")
 	indexnan = isnan.(X)
-	if any(indexnan) && (method != :ipopt && method != :nlopt && mixture == :null)
-		@warn("The analyzed matrix has missing entries; NMF multiplex algorithm cannot be used (method=$(method)); Ipopt minimization will be performed!")
-		method = :ipopt
+	if any(indexnan) && (method != :simple &&method != :ipopt && method != :nlopt && mixture == :null)
+		@warn("The analyzed matrix has NaN's; Classical NMF cannot be used (method=$(method)); Simple NMF will be performed!")
+		method = :simple
 	end
 	if mixture != :null
 		clusterweights = true
@@ -247,8 +247,8 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 			elseif algorithm == :alspgrad
 				println("NMF Alternate Least Square using Projected Gradient Descent ...")
 			end
-		elseif method == :sparse
-			println("Sparse NMF ...")
+		elseif method == :sparsity
+			println("NMF with sparsity penalty ...")
 		elseif method == :simple
 			println("Simple NMF multiplicative ...")
 		end
@@ -348,7 +348,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 	end
 	if sum(idxnan) < nNMF
 		if zeronans
-			@warn("NMF solutions contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions! Nan's have been removed!")
+			@warn("NMF solutions contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions! NaN's have been removed!")
 			idxnan = trues(nNMF)
 		elseif removenans
 			@warn("NMF solutions removed because they contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions remain")
@@ -510,14 +510,12 @@ function execute_singlerun_compute(X::AbstractMatrix, nk::Int; quiet::Bool=NMFk.
 		elseif mixture == :matchwaterdeltas
 			W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; method=method, algorithm=algorithm, tol=tol, maxiter=maxiter, kw...)
 		end
-	elseif method == :sparse
-		W, H, (_, objvalue, _) = NMFk.NMFsparse(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
+	elseif method == :sparsity
+		W, H, (_, objvalue, _) = NMFk.NMFsparsicty(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
 	elseif method == :ipopt || method == :nlopt
 		W, H, objvalue = NMFk.jump(Xn, nk; method=method, algorithm=algorithm, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple
 		W, H, objvalue = NMFk.NMFmultiplicative(Xn, nk; quiet=quiet, tol=tol, maxiter=maxiter, kw...)
-		objvalue = sum((X - W * H).^2)
-		# objvalue = norm(X - W * H) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 	elseif method == :nmf
 		W, H = NMF.randinit(Xn, nk)
 		if algorithm == :multdiv

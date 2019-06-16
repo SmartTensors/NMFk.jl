@@ -164,7 +164,7 @@ X = [a a*10 b b*5 a+b*2]
 # @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
 # @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
-@info("NMFk: ipopt: 2 sources, 5 sensors, 100 transients")
+@info("NMFk: ipopt: 2 sources, 5 sensors, 21 transients")
 Random.seed!(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 .+ sin.(0:20)*10
@@ -206,6 +206,17 @@ X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:nmf)
 @info("NMFk: sparse ...")
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:sparse)
+
+@info("NMFk: 3 sources, 7 sensors, 50 transients (no sparseness)")
+a = exp.(-(0.2:.2:10))
+b = 1 .+ sin.(0:49)
+c = collect(0:49) / 49
+X = [a b c a+c a+b b+c a+b+c]
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; method=:simple)
+@info("NMFk: 3 sources, 7 sensors, 50 transients (with sparseness)")
+inan = rand(50, 7) .> .8
+X[inan] .= NaN
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; method=:simple)
 
 @info("NMFk: concentrantions/delta tests ...")
 a0 = Float64[[20,10,1] [5,1,1]]
