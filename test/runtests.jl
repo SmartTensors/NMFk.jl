@@ -204,8 +204,8 @@ X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:simple)
 @info("NMFk: nmf ...")
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:nmf)
-@info("NMFk: sparse ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:sparse)
+@info("NMFk: with sparsity constraints ...")
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:sparsity)
 
 @info("NMFk: 3 sources, 7 sensors, 50 transients (no sparseness)")
 a = exp.(-(0.2:.2:10))
