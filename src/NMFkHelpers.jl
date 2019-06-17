@@ -52,3 +52,29 @@ function cornan(x, y)
 		return NaN
 	end
 end
+
+function hardencode(x::Vector{T}) where {T}
+	u = unique(x)
+	i = indexin(x, u)
+	inan = indexin(true, isnan.(u))[1]
+	d = inan != nothing ? length(u) - 1 : d = length(u)
+	m = zeros(length(x), d)
+	for (j, k) in enumerate(i)
+		if inan != nothing
+			if k == inan
+				m[j, :] .= NaN
+			elseif k < inan
+				m[j, k] = 1
+			else
+				m[j, k-1] = 1
+			end
+		else
+			m[j, k] = 1
+		end
+	end
+	return m
+end
+
+function hardencode(x::Matrix{T}) where {T}
+	hcat([hardencode(x[:,i]) for i = 1:size(x, 2)]...)
+end

@@ -1,4 +1,4 @@
-function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1)
+function NMFmultiplicative(X::AbstractMatrix, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1)
 	inan = isnan.(X)
 	X[inan] .= 0
 	if minimum(X) < 0
