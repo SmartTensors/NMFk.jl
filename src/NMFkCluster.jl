@@ -34,10 +34,10 @@ function robustkmeans(X::AbstractMatrix, range::AbstractRange{Int}, repeats::Int
 		return nothing
 	end
 	best_totalcost = Inf
-	best_mean_silhouettes = Inf
+	best_mean_silhouettes = 0
 	kbest = range[1]
 	local cbest = nothing
-	local best_sc = Inf
+	local best_sc = nothing
 	for k in range
 		if k >= size(X, 2)
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
@@ -49,7 +49,7 @@ function robustkmeans(X::AbstractMatrix, range::AbstractRange{Int}, repeats::Int
 		@Suppressor.suppress begin
 			c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
 		end
-		@info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Cluster Silhouettes: $(sc)")
+		@info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Worst Silhouette: $(minimum(sc)) Cluster Silhouettes: $(sc)")
 		if best_mean_silhouettes < mean_silhouettes
 			best_mean_silhouettes = mean_silhouettes
 			best_totalcost = c_new.totalcost
@@ -58,7 +58,7 @@ function robustkmeans(X::AbstractMatrix, range::AbstractRange{Int}, repeats::Int
 			kbest = k
 		end
 	end
-	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Cluster Silhouettes: $(best_sc)")
+	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(best_sc)) Silhouettes: $(best_sc)")
 	return cbest
 end
 
@@ -66,21 +66,18 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 	best_totalcost = Inf
 	local c = nothing
 	best_mean_cluster_silhouettes = Vector{Float64}(undef, k)
-	mean_cluster_silhouettes = Vector{Float64}(undef, k)
 	local best_mean_silhouettes = Inf
 	for i = 1:repeats
 		c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		Xd = Distances.pairwise(Distances.CosineDist(), X; dims=2)
 		silhouettes = Clustering.silhouettes(c_new, Xd)
-		mean_silhouettes = mean(silhouettes)
-		for i in unique(c_new.assignments)
-			mean_cluster_silhouettes[i] = mean(silhouettes[c_new.assignments.==i])
-		end
 		if c_new.totalcost < best_totalcost
-			best_mean_cluster_silhouettes = copy(mean_cluster_silhouettes)
-			best_mean_silhouettes = mean_silhouettes
-			best_totalcost = c_new.totalcost
 			c = deepcopy(c_new)
+			best_totalcost = c_new.totalcost
+			best_mean_silhouettes = mean(silhouettes)
+			for i in unique(c_new.assignments)
+				best_mean_cluster_silhouettes[i] = mean(silhouettes[c_new.assignments.==i])
+			end
 		end
 	end
 	return c, best_mean_silhouettes, best_mean_cluster_silhouettes
