@@ -28,12 +28,16 @@ function remap2count(assignments)
 	return map(mfunc, assignments)
 end
 
-function robustkmeans(X::Array, range::AbstractRange{Int}, repeats::Int=1000; kw...)
+function robustkmeans(X::AbstractMatrix, range::AbstractRange{Int}, repeats::Int=1000; kw...)
+	if range[1] >= size(X, 2)
+		@info("Cannot be computed (min range is greater than or equal to size(X,2); $range[1] >= $(size(X, 2)))")
+		return nothing
+	end
 	best_totalcost = Inf
-	best_silhouette = 0
+	best_mean_silhouettes = Inf
 	kbest = range[1]
-	local cbest
-	local best_sc
+	local cbest = nothing
+	local best_sc = Inf
 	for k in range
 		if k >= size(X, 2)
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
@@ -46,24 +50,24 @@ function robustkmeans(X::Array, range::AbstractRange{Int}, repeats::Int=1000; kw
 			c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
 		end
 		@info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Cluster Silhouettes: $(sc)")
-		if best_silhouette < mean_silhouettes
-			best_silhouette = mean_silhouettes
+		if best_mean_silhouettes < mean_silhouettes
+			best_mean_silhouettes = mean_silhouettes
 			best_totalcost = c_new.totalcost
 			cbest = deepcopy(c_new)
 			best_sc = copy(sc)
 			kbest = k
 		end
 	end
-	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_silhouette Cluster Silhouettes: $(best_sc)")
+	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Cluster Silhouettes: $(best_sc)")
 	return cbest
 end
 
-function robustkmeans(X::Array, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
+function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
 	best_totalcost = Inf
-	local c
+	local c = nothing
 	best_mean_cluster_silhouettes = Vector{Float64}(undef, k)
 	mean_cluster_silhouettes = Vector{Float64}(undef, k)
-	local best_mean_silhouettes
+	local best_mean_silhouettes = Inf
 	for i = 1:repeats
 		c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		Xd = Distances.pairwise(Distances.CosineDist(), X; dims=2)
