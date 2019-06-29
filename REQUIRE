@@ -1,7 +1,7 @@
 julia 0.7
 DocumentFunction
-DataFrames
 ReusableFunctions
+DataFrames
 PyPlot
 Gadfly
 Images
