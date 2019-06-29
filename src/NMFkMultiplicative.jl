@@ -1,4 +1,6 @@
-function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1)
+function NMFmultiplicative(X::AbstractMatrix, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1)
+	inan = isnan.(X)
+	X[inan] .= 0
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
@@ -67,8 +69,9 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float6
 			Xe = W * H
 			NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 		end
+		X[inan] = (W * H)[inan]
 		if mod(i, 10) == 0
-			objvalue = sum((X - W * H).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
+			objvalue = sum(((X - W * H)[.!inan]).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 			if objvalue < tol
 				!quiet && println("Converged by tolerance: number of iterations $(i) $(objvalue)")
 				break
@@ -110,6 +113,7 @@ function NMFmultiplicative(X::Array, k::Int; quiet::Bool=NMFk.quiet, tol::Float6
 		frame += 1
 		NMFk.plotnmf(X, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
-	objvalue = sum((X - W * H).^2)
+	X[inan] .= NaN
+	objvalue = sum(((X - W * H)[.!inan]).^2)
 	return W, H, objvalue
 end
