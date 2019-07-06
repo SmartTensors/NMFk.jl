@@ -1,12 +1,12 @@
 function NMFmultiplicative(X::AbstractMatrix, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1)
-	inan = isnan.(X)
-	X[inan] .= 0
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
 	if minimum(sum(X; dims=2)) == 0
-		error("All matrix entries in a row can be 0!")
+		error("All matrix entries in a row cannot be 0!")
 	end
+	inan = isnan.(X)
+	X[inan] .= 0
 
 	if seed >= 0
 		Random.seed!(seed)
