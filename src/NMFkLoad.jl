@@ -1,4 +1,3 @@
-"Execute NMFk analysis for a range of number of sources"
 function load(range::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	maxsources = maximum(collect(range))
 	W = Array{Array{Float64, 2}}(undef, maxsources)
@@ -11,11 +10,9 @@ function load(range::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	end
 	return W, H, fitquality, robustness, aic
 end
-
-"Execute NMFk analysis for a given number of sources"
-function load(nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", filename::AbstractString="")
+function load(nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
-		filename = "$casefilename-$nk-$nNMF.jld"
+		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
 	if isfile(filename)
 		W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
@@ -26,3 +23,7 @@ function load(nk::Integer, nNMF::Integer=10; casefilename::AbstractString="", fi
 		return Array{Float64,2}(undef, 0, 0), Array{Float64,2}(undef, 0, 0), NaN, NaN, NaN
 	end
 end
+
+@doc """
+Load NMFk analysis for a given number of sources
+""" load
