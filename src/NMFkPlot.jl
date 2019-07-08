@@ -212,3 +212,68 @@ end
 
 "Convert `@sprintf` macro into `sprintf` function"
 sprintf(args...) = eval(:@sprintf($(args...)))
+
+"Generate Sankey inputs"
+function sankey(c1, c2, t1="Type1", t2="Type2")
+	s1 = length(unique(c1))
+	s2 = length(unique(c2))
+	n1 = ["$t1 $i" for i=1:s1]
+	n2 = ["$t2 $i" for i=1:s2]
+	nn = [n1; n2]
+	ns = Array{Int64}(undef, 0)
+	nt = Array{Int64}(undef, 0)
+	v = Array{Int64}(undef, 0)
+	for i = 1:s1
+		for j = 1:s2
+			push!(ns, i - 1)
+			push!(nt, s1 + j - 1)
+			c = 0
+			for k = 1:length(c1)
+				if c1[k] == i && c2[k] == j
+					c += 1
+				end
+			end
+			push!(v, c)
+		end
+	end
+	return nn, ns, nt, v
+end
+function sankey(c1, c2, c3, t1="Type1", t2="Type2", t3="Type3")
+	s1 = length(unique(c1))
+	s2 = length(unique(c2))
+	s3 = length(unique(c3))
+	n1 = ["$t1 $i" for i=1:s1]
+	n2 = ["$t2 $i" for i=1:s2]
+	n3 = ["$t3 $i" for i=1:s3]
+	nn = [n1; n2; n3]
+	ns = Array{Int64}(undef, 0)
+	nt = Array{Int64}(undef, 0)
+	v = Array{Int64}(undef, 0)
+	for i = 1:s1
+		for j = 1:s2
+			push!(ns, i - 1)
+			push!(nt, s1 + j - 1)
+			c = 0
+			for k = 1:length(c1)
+				if c1[k] == i && c2[k] == j
+					c += 1
+				end
+			end
+			push!(v, c)
+		end
+	end
+	for i = 1:s2
+		for j = 1:s3
+			push!(ns, s1 + i - 1)
+			push!(nt, s1 + s2 + j - 1)
+			c = 0
+			for k = 1:length(c3)
+				if c2[k] == i && c3[k] == j
+					c += 1
+				end
+			end
+			push!(v, c)
+		end
+	end
+	return nn, ns, nt, v
+end
