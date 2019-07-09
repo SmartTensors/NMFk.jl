@@ -140,7 +140,6 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 	W = DistributedArrays.distribute(rand(n, k))
 	H = DistributedArrays.distribute(rand(k, m))
 
-	# maxinc = 0
 	index = Array{Int}(undef, m)
 	for i = 1:maxiter
 		a = permutedims(collect(sum(W; dims=1)))
@@ -162,7 +161,6 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 			for q = 1:m
 				index[q] = argmin(H[:, q])
 			end
-			# sum(map(i->sum(index.==i).^2, 1:3))
 			cons = repeat(index, 1, m) .== repeat(permutedims(index), m, 1)
 			consdiff = sum(cons .!= consold)
 			if consdiff == 0
