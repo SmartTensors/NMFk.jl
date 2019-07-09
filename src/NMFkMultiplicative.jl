@@ -177,7 +177,6 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 			consold = cons
 		end
 	end
-	X[inan] .= NaN
 	objvalue = sum(((X - W * H)).^2)
 	return W, H, objvalue
 end
