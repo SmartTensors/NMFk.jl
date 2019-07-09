@@ -11,6 +11,8 @@ JLD
 JLD2
 Distributions
 MultivariateStats
+Distributed
+DistributedArrays
 JuMP 0.19
 Ipopt 0.5
 NLopt

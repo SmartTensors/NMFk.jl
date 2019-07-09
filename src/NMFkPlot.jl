@@ -214,7 +214,7 @@ end
 sprintf(args...) = eval(:@sprintf($(args...)))
 
 "Generate Sankey inputs"
-function sankey(c1, c2, t1="Type1", t2="Type2")
+function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2")
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	n1 = ["$t1 $i" for i=1:s1]
@@ -238,7 +238,7 @@ function sankey(c1, c2, t1="Type1", t2="Type2")
 	end
 	return nn, ns, nt, v
 end
-function sankey(c1, c2, c3, t1="Type1", t2="Type2", t3="Type3")
+function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2", t3::AbstractString="Type3")
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	s3 = length(unique(c3))
