@@ -1,6 +1,6 @@
 import DistributedArrays
 
-function NMFmultiplicative(X::AbstractMatrix, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1)
+function NMFmultiplicative(X::AbstractMatrix{T,N}, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, initW::Matrix{Float64}=Array{Float64}(undef, 0, 0), initH::Matrix{Float64}=Array{Float64}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1) where {T,N}
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
@@ -40,7 +40,7 @@ function NMFmultiplicative(X::AbstractMatrix, k::Int; quiet::Bool=NMFk.quiet, to
 	index = Array{Int}(undef, m)
 	for i = 1:maxiter
 		# X1 = repmat(sum(W, 1)', 1, m)
-		H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1))
+		!Hfixed && (H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1)))
 		if movie
 			for mcheat = 1:moviecheat
 				We = copy(W)
@@ -56,7 +56,7 @@ function NMFmultiplicative(X::AbstractMatrix, k::Int; quiet::Bool=NMFk.quiet, to
 			NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 		end
 		# X2 = repmat(sum(H, 2)', n, 1)
-		W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2))
+		!Wfixed && (W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2)))
 		if movie
 			for mcheat = 1:moviecheat
 				We = copy(W)
