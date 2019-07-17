@@ -26,6 +26,9 @@ global quiet = true
 global restart = false
 global imagedpi = 300
 
+modules = ["NMFk"]
+
+include("NMFkHelp.jl")
 include("NMFkHelpers.jl")
 include("NMFkCluster.jl")
 include("NMFkGeoChem.jl")

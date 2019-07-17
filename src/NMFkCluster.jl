@@ -80,7 +80,22 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 			end
 		end
 	end
-	return c, best_mean_silhouettes, best_mean_cluster_silhouettes
+	return sortclustering(c)
+end
+
+function sortclustering(c; rev=true)
+	i = sortperm(c.counts; rev=rev)
+	cassignments = similar(c.assignments)
+	# for j = 1:length(i)
+	# 	@show sum(c.assignments .== j)
+	# end
+	for (k, a) in enumerate(i)
+		cassignments[c.assignments .== a] .= k
+	end
+	# for j = 1:length(i)
+	# 	@show sum(cassignments .== j)
+	# end
+	return Clustering.KmeansResult(c.centers[:,i], cassignments, c.costs, c.counts[i], c.wcounts[i], c.totalcost, c.iterations, c.converged)
 end
 
 function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
