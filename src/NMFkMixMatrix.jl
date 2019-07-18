@@ -9,7 +9,7 @@ const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(undef, 0, 0), initH::Matrix{Float32}=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::Matrix{Float32}=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -65,23 +65,23 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		nans = isnan.(concentrations)
 		concentrations[nans] .= 0
 	end
-	if sizeof(initW) == 0
+	if sizeof(Winit) == 0
 		if random
-			initW = rand(Float32, nummixtures, numbuckets)
+			Winit = rand(Float32, nummixtures, numbuckets)
 		else
-			initW = ones(Float32, nummixtures, numbuckets) / numbuckets
+			Winit = ones(Float32, nummixtures, numbuckets) / numbuckets
 		end
 	end
-	if sizeof(initH) == 0
+	if sizeof(Hinit) == 0
 		if random
-			initH = rand(Float32, numbuckets, numconstituents)
+			Hinit = rand(Float32, numbuckets, numconstituents)
 		else
-			initH = ones(Float32, numbuckets, numconstituents) / 2
+			Hinit = ones(Float32, numbuckets, numconstituents) / 2
 		end
 		if maxH
 			maxc = maximum(concentrations; dims=1)
 			for i=1:numbuckets
-				initH[i:i,:] .*= maxc
+				Hinit[i:i,:] .*= maxc
 			end
 		end
 	end
@@ -90,8 +90,8 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	elseif method == :nlopt
 		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer, algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(Float32, initW[i, j]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, initH[i, j]))
+	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(Float32, Winit[i, j]))
+	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, Hinit[i, j]))
 	if !normalize
 		@JuMP.constraint(m, buckets .>= 0)
 	end
@@ -113,8 +113,8 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 					for (j, c1, c2) in zip(1:numberofratios, ratioindices[:,1], ratioindices[:,2])))
 	end
 	if movie
-		Xe = initW * initH
-		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
+		Xe = Winit * Hinit
+		NMFk.plotnmf(Xe, Winit[:,movieorder], Hinit[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
 	jumpvariables = JuMP.all_variables(m)
 	jumpvalues = JuMP.start_value.(jumpvariables)
@@ -222,7 +222,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, initW::Matrix{Float32}=Array{Float32}(undef, 0, 0), initH::Matrix{Float32}=Array{Float32}(undef, 0, 0), initHd::Matrix{Float32}=Array{Float32}(undef, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet)
+function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, Winit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinitd::Matrix{Float32}=Array{Float32}(undef, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet)
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)
@@ -249,45 +249,45 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 		concentrations, cmax = scalematrix!(concentrations)
 		deltas, dmax = scalematrix!(deltas)
 	end
-	if sizeof(initW) == 0
+	if sizeof(Winit) == 0
 		if random
-			initW = rand(Float32, nummixtures, numbuckets)
+			Winit = rand(Float32, nummixtures, numbuckets)
 		else
-			initW = ones(Float32, nummixtures, numbuckets) / numbuckets
+			Winit = ones(Float32, nummixtures, numbuckets) / numbuckets
 		end
 	end
-	if sizeof(initH) == 0
+	if sizeof(Hinit) == 0
 		if random
-			initH = rand(Float32, numbuckets, numconstituents)
+			Hinit = rand(Float32, numbuckets, numconstituents)
 		else
-			initH = ones(Float32, numbuckets, numconstituents) / 2
+			Hinit = ones(Float32, numbuckets, numconstituents) / 2
 		end
 		if maxH
 			maxc = maximum(concentrations; dims=1)
 			for i=1:numbuckets
-				initH[i:i,:] .*= maxc
+				Hinit[i:i,:] .*= maxc
 			end
 		end
 	end
-	if sizeof(initHd) == 0
+	if sizeof(Hinitd) == 0
 		if random
 			if scale
-				initHd = rand(Float32, numbuckets, numdeltas)
+				Hinitd = rand(Float32, numbuckets, numdeltas)
 			else
 				max = maximum(deltas; dims=1) / 10
-				initHd = rand(Float32, numbuckets, numdeltas)
+				Hinitd = rand(Float32, numbuckets, numdeltas)
 				for i=1:numbuckets
-					initHd[i,:] .*= max
+					Hinitd[i,:] .*= max
 				end
 			end
 		else
 			if scale
-				initHd = ones(Float32, numbuckets, numdeltas) / 2
+				Hinitd = ones(Float32, numbuckets, numdeltas) / 2
 			else
 				max = maximum(deltas; dims=1)
-				initHd = Array{Float32}(undef, numbuckets, numdeltas)
+				Hinitd = Array{Float32}(undef, numbuckets, numdeltas)
 				for i=1:numbuckets
-					initHd[i,:] = max
+					Hinitd[i,:] = max
 				end
 			end
 		end
@@ -297,9 +297,9 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	elseif method == :nlopt
 		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(Float32, initW[i, j]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, initH[i, j]))
-	@JuMP.variable(m, bucketdeltas[i=1:numbuckets, j=1:numdeltas], start = convert(Float32, initHd[i, j]))
+	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(Float32, Winit[i, j]))
+	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(Float32, Hinit[i, j]))
+	@JuMP.variable(m, bucketdeltas[i=1:numbuckets, j=1:numdeltas], start = convert(Float32, Hinitd[i, j]))
 	@JuMP.constraint(m, buckets .>= 0)
 	@JuMP.constraint(m, mixer .>= 0)
 	for i = 1:nummixtures
@@ -309,14 +309,14 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	for i = 1:numbuckets
 		for j = 1:numconstituents
 			if i != 1 || j != 1
-				@JuMP.constraint(m, buckets[i, j] == initH[i, j]) # Fix buckets for testing
+				@JuMP.constraint(m, buckets[i, j] == Hinit[i, j]) # Fix buckets for testing
 			end
 		end
 	end
 	for i = 1:numbuckets
 		for j = 1:numdeltas
 			#if i != 1 || j != 1
-				@JuMP.constraint(m, bucketdeltas[i, j] == initHd[i, j]) # Fix buckets for testing
+				@JuMP.constraint(m, bucketdeltas[i, j] == Hinitd[i, j]) # Fix buckets for testing
 			#end
 		end
 	end

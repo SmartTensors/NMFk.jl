@@ -44,7 +44,7 @@ function regression(P::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method:
 			else
 				nonnegW = false
 			end
-			@Suppressor.suppress W, H, of, sil, aic = NMFk.execute(P[:,:,k]', nk, 1; nonnegW=nonnegW, initH=[Mtrain ones(size(Mtrain, 1))]', fixH=true, removenans=false, zeronans=false, method=:ipopt, regularizationweight=0.)
+			@Suppressor.suppress W, H, of, sil, aic = NMFk.execute(P[:,:,k]', nk, 1; nonnegW=nonnegW, Hinit=[Mtrain ones(size(Mtrain, 1))]', fixH=true, removenans=false, zeronans=false, method=:ipopt, regularizationweight=0.)
 			# @show NMFk.normnan((W * [Mtrain ones(size(Mtrain, 1))]')' .- P[:,:,k])
 			Xe[:,:,k] = (W * [Mpredict ones(size(Mpredict, 1))]')'
 		end

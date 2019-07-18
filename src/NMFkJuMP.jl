@@ -20,12 +20,12 @@ function jumpiter(X::AbstractMatrix{Float32}, nk::Int, W::AbstractMatrix{Float32
 	@assert n == nh
 	@assert k == nk
 	fit = 0
-	W, H, oldfit = NMFk.jump(X, nk; initW=W, initH=H, fixH=true, quiet=true, kw...)
+	W, H, oldfit = NMFk.jump(X, nk; Winit=W, Hinit=H, fixH=true, quiet=true, kw...)
 	!quiet && println("of: $(oldfit)")
 	for i = 1:iter
-		W, H, fit = NMFk.jump(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixW=true, quiet=true, kw...)
+		W, H, fit = NMFk.jump(X, nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 2}, H), fixW=true, quiet=true, kw...)
 		!quiet && println("of: $(fit)")
-		W, H, fit = NMFk.jump(X, nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 2}, H), fixH=true, quiet=true, kw...)
+		W, H, fit = NMFk.jump(X, nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 2}, H), fixH=true, quiet=true, kw...)
 		!quiet && println("of: $(fit)")
 		if oldfit - fit > tolerance
 			oldfit = fit
@@ -41,7 +41,7 @@ function jumpHrows(X::AbstractMatrix{Float32}, nk::Int, W::AbstractMatrix{Float3
 	fit = 0
 	for i = 1:size(X, 2)
 		fitrowold = sum((X[:,i] .- W * H[:,i]).^2)
-		W, H[:,i], fitrow = NMFk.jump(X[:,i], nk; initW=convert(Array{Float32, 2}, W), initH=convert(Array{Float32, 1}, H[:,i]), fixW=true, quiet=true, kw...)
+		W, H[:,i], fitrow = NMFk.jump(X[:,i], nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 1}, H[:,i]), fixW=true, quiet=true, kw...)
 		!quiet && println("of: $(fitrowold) -> $(fitrow)")
 		fit += fitrow
 	end
@@ -52,7 +52,7 @@ end
 function jump(X::AbstractMatrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, initW::AbstractMatrix=Array{Float32}(undef, 0, 0), initH::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0, cheatlevel::Number=1)
+function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, Winit::AbstractMatrix=Array{Float32}(undef, 0, 0), Hinit::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0, cheatlevel::Number=1)
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -68,43 +68,43 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	obsweights[nans] .= 0
 	nummixtures = size(X, 1)
 	numconstituents = size(X, 2)
-	if sizeof(initW) == 0
+	if sizeof(Winit) == 0
 		fixW = false
 		if random
-			initW = rand(Float32, nummixtures, nk)
+			Winit = rand(Float32, nummixtures, nk)
 		else
-			initW = ones(Float32, nummixtures, nk) / nk
+			Winit = ones(Float32, nummixtures, nk) / nk
 		end
 		if maxW
 			maxx = maximum(X; dims=2)
 			for i=1:nk
-				initW[:,i:i] .*= maxx
+				Winit[:,i:i] .*= maxx
 			end
 		end
 		nansw = 0
 	else
-		@assert size(initW) == (nummixtures, nk)
-		nansw = isnan.(initW)
-		initW[nansw] .= 0
+		@assert size(Winit) == (nummixtures, nk)
+		nansw = isnan.(Winit)
+		Winit[nansw] .= 0
 	end
-	if sizeof(initH) == 0
+	if sizeof(Hinit) == 0
 		fixH = false
 		if random
-			initH = rand(Float32, nk, numconstituents)
+			Hinit = rand(Float32, nk, numconstituents)
 		else
-			initH = ones(Float32, nk, numconstituents) / 2
+			Hinit = ones(Float32, nk, numconstituents) / 2
 		end
 		if maxH
 			maxx = maximum(X; dims=1)
 			for i=1:nk
-				initH[i:i,:] .*= maxx
+				Hinit[i:i,:] .*= maxx
 			end
 		end
 		nansh = 0
 	else
-		@assert size(initH) == (nk, numconstituents)
-		nansh = isnan.(initH)
-		initH[nansh] .= 0
+		@assert size(Hinit) == (nk, numconstituents)
+		nansh = isnan.(Hinit)
+		Hinit[nansh] .= 0
 	end
 	if method == :ipopt
 		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, max_iter=maxiter, print_level=verbosity, tol=tol))
@@ -115,18 +115,18 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	end
 	#IMPORTANT the order at which parameters are defined is very important
 	if fixW
-		W = initW
+		W = Winit
 	else
-		constrainW && normalizematrix!(initW)
-		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk], start=convert(Float32, initW[i, j]))
+		constrainW && normalizematrix!(Winit)
+		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk], start=convert(Float32, Winit[i, j]))
 		nonnegW && @JuMP.constraint(m, W .>= 0)
 		constrainW && @JuMP.constraint(m, W .<= 1)
 	end
 	if fixH
-		H = initH
+		H = Hinit
 	else
-		constrainH && normalizematrix!(initH)
-		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents], start=convert(Float32, initH[i, j]))
+		constrainH && normalizematrix!(Hinit)
+		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents], start=convert(Float32, Hinit[i, j]))
 		nonnegH && @JuMP.constraint(m, H .>= 0)
 		constrainH && @JuMP.constraint(m, H .<= 1)
 	end
@@ -150,8 +150,8 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		end
 	end
 	if movie
-		Xe = initW * initH
-		NMFk.plotnmf(Xe, initW[:,movieorder], initH[movieorder,:]; movie=movie, filename=moviename, frame=1)
+		Xe = Winit * Hinit
+		NMFk.plotnmf(Xe, Winit[:,movieorder], Hinit[movieorder,:]; movie=movie, filename=moviename, frame=1)
 	end
 	jumpvariables = JuMP.all_variables(m)
 	jumpvalues = JuMP.start_value.(jumpvariables)
@@ -246,11 +246,11 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		NMFk.plotnmf(Xe, Wbest[:,movieorder], Hbest[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
 	if sum(nansw) > 0
-		initW[nansw] .= NaN
+		Winit[nansw] .= NaN
 		Wbest[nansw] .= NaN
 	end
 	if sum(nansh) > 0
-		initH[nansh] .= NaN
+		Hinit[nansh] .= NaN
 		Hbest[nansh] .= NaN
 	end
 	return Wbest, Hbest, fitquality

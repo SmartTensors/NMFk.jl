@@ -1,4 +1,4 @@
-function NMFsparsity(X::AbstractMatrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), initW::AbstractMatrix{Float32}=Array{Float32}(undef, 0, 0), initH::AbstractMatrix{Float32}=Array{Float32}(undef, 0, 0), quiet::Bool=NMFk.quiet)
+function NMFsparsity(X::AbstractMatrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), Winit::AbstractMatrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::AbstractMatrix{Float32}=Array{Float32}(undef, 0, 0), quiet::Bool=NMFk.quiet)
 	if seed != -1
 		Random.seed!(seed)
 	end
@@ -22,17 +22,17 @@ function NMFsparsity(X::AbstractMatrix, k::Int; sparse_cf::Symbol=:kl, sparsity:
 	end
 
 	(m, n) = size(X)
-	if sizeof(initW) == 0
+	if sizeof(Winit) == 0
 		W = rand(m, k)
 	else
-		@assert (m, k) == size(initW)
-		W = initW
+		@assert (m, k) == size(Winit)
+		W = Winit
 	end
-	if sizeof(initH) == 0
+	if sizeof(Hinit) == 0
 		H = rand(k, n)
 	else
-		@assert (k, n) == size(initH)
-		H = initH
+		@assert (k, n) == size(Hinit)
+		H = Hinit
 	end
 
 	Wn = sqrt.(sum(W.^2; dims=1))

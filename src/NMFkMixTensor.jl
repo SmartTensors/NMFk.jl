@@ -3,7 +3,7 @@ import Ipopt
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef. 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, initW::Matrix{T}=Array{T}(undef, 0, 0), initH::Matrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
+function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef. 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -23,23 +23,23 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	elseif scale
 		concentrations, cmax = scalearray!(concentrations)
 	end
-	if sizeof(initW) == 0
+	if sizeof(Winit) == 0
 		if random
-			initW = rand(T, nummixtures, numbuckets, ntimes)
+			Winit = rand(T, nummixtures, numbuckets, ntimes)
 		else
-			initW = ones(T, nummixtures, numbuckets, ntimes) / numbuckets
+			Winit = ones(T, nummixtures, numbuckets, ntimes) / numbuckets
 		end
 	end
-	if sizeof(initH) == 0
+	if sizeof(Hinit) == 0
 		if random
-			initH = rand(T, numbuckets, numconstituents)
+			Hinit = rand(T, numbuckets, numconstituents)
 		else
-			initH = ones(T, numbuckets, numconstituents) / 2
+			Hinit = ones(T, numbuckets, numconstituents) / 2
 		end
 		if maxH
 			maxconc = permutedims(vec(maximum(concentrations, dims=(1,3))))
 			for i=1:numbuckets
-				initH[i:i, :] .*= maxconc
+				Hinit[i:i, :] .*= maxconc
 			end
 		end
 	end
@@ -48,8 +48,8 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	elseif method == :nlopt
 		m = JuMP.Model(solver=NLopt.NLoptSolver(algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start = convert(T, initW[i, j, k]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, initH[i, j]))
+	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start = convert(T, Winit[i, j, k]))
+	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
 	if !normalize
 		@JuMP.constraint(m, buckets .>= 0)
 	end
