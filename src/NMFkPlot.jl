@@ -8,7 +8,7 @@ colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", 
 ncolors = length(colors)
 
 function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
-	nfeatures = length(unique(sort(df[:Attribute])))
+	nfeatures = length(unique(sort(df[!, :Attribute])))
 	loopcolors = nfeatures + 1 > ncolors ? true : false
 	if loopcolors
 		tc = []
@@ -16,7 +16,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.
 		tc = [Gadfly.Scale.color_discrete_manual(colors[2:nfeatures+1]...)]
 	end
 	# label="Well", Gadfly.Geom.point, Gadfly.Geom.label,
-	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[:Truth]), maximum(df[:Truth])], y=[minimum(df[:Truth]), maximum(df[:Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
+	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
 	!quiet && (display(ff); println())
 	if filename != ""
 		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
@@ -29,8 +29,8 @@ function plotbars(V::Vector, A::Vector; quiet::Bool=false, hsize=8Gadfly.inch, v
 	@assert nfeatures == length(A)
 	loopcolors = nfeatures + 1 > ncolors ? true : false
 	df = DataFrames.DataFrame()
-	df[:Values] = V[end:-1:1]
-	df[:Attributes] = A[end:-1:1]
+	df[!, :Values] = V[end:-1:1]
+	df[!, :Attributes] = A[end:-1:1]
 	if loopcolors
 		tc = []
 	else
