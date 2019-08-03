@@ -2,7 +2,7 @@
 function finalize(Wa::Vector, idx::Matrix)
 	nNMF = length(Wa)
 	nk, nP = size(Wa[1]) # number of observation points (samples)
-	nT = nk * nNMF # total number of sources to cluster
+	nT = nk * nNMF # total number of signals to cluster
 
 	idx_r = vec(reshape(idx, nT, 1))
 	WaDist = Distances.pairwise(Distances.CosineDist(), vcat(Wa...); dims=1)
@@ -24,8 +24,8 @@ end
 function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=false)
 	nNMF = length(Wa)
 	nP = size(Wa[1], 1) # number of observation points (samples)
-	nk, nC = size(Ha[1]) # number of sources / number of observations for each point (components/transients),
-	nT = nk * nNMF # total number of sources to cluster
+	nk, nC = size(Ha[1]) # number of signals / number of observations for each point (components/transients),
+	nT = nk * nNMF # total number of signals to cluster
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if clusterweights
@@ -63,7 +63,7 @@ end
 function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterweights::Bool=false)
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
-	nT = size(Ha, 1) # total number of sources to cluster
+	nT = size(Ha, 1) # total number of signals to cluster
 	nk = convert(Int, nT / nNMF)
 
 	idx_r = vec(reshape(idx, nT, 1))

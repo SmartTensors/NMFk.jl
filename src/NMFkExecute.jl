@@ -5,25 +5,25 @@ function test()
 	include(joinpath(nmfkdir, "test", "runtests.jl"))
 end
 
-"Execute NMFk analysis for a range of number of sources"
-function execute(X::AbstractArray{T,N}, range::AbstractRange{Int}, nNMF::Integer=10; kw...) where {T, N}
+"Execute NMFk analysis for a range of number of signals"
+function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...) where {T, N}
 	maxk = maximum(collect(range))
 	W = Array{Array{T, N}}(undef, maxk)
 	H = Array{Array{T, 2}}(undef, maxk)
 	fitquality = Array{T}(undef, maxk)
 	robustness = Array{T}(undef, maxk)
 	aic = Array{T}(undef, maxk)
-	for nk in range
+	for nk in nkrange
 		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; kw...)
 	end
 	@info("Results")
-	for nk in range
+	for nk in nkrange
 		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality[nk])) Silhouette: $(@sprintf("%12.7g", robustness[nk])) AIC: $(@sprintf("%12.7g", aic[nk]))")
 	end
 	return W, H, fitquality, robustness, aic
 end
 
-"Execute NMFk analysis for a given number of sources"
+"Execute NMFk analysis for a given number of signals"
 function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
 	if save && casefilename == ""
 		@info("Saving requested but casefilename not specified; casefilename = \"nmfk\" will be used!")
@@ -54,7 +54,7 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 	return W, H, fitquality, robustness, aic
 end
 
-"Execute NMFk analysis for a given number of sources in serial or parallel"
+"Execute NMFk analysis for a given number of signals in serial or parallel"
 function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, zeronans::Bool=true, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")

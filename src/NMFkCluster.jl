@@ -242,7 +242,7 @@ function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 end
 
 function clustersolutions_old(W::Matrix, nNMF::Integer)
-	nP, nT = size(W) # number of observations (components/transients), number of total number of sources to cluster
+	nP, nT = size(W) # number of observations (components/transients), number of total number of signals to cluster
 	nk = convert(Int, nT / nNMF)
 
 	centroids = W[:, 1:nk]

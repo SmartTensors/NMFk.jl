@@ -25,5 +25,5 @@ function load(nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::Abstra
 end
 
 @doc """
-Load NMFk analysis for a given number of sources
+Load NMFk analysis for a given number of signals
 """ load
