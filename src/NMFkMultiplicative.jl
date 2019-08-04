@@ -1,6 +1,6 @@
 import DistributedArrays
 
-function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1) where {T}
+function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1) where {T}
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
@@ -36,9 +36,13 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 		NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
 
-	# maxinc = 0
+	objvalue_best = Inf
 	index = Array{Int}(undef, m)
-	for i = 1:maxiter
+	iters = 0
+	baditers = 0
+	reattempts = 0
+	while iters < maxiter && baditers < maxbaditers && reattempts < maxreattempts
+		iters += 1
 		# X1 = repmat(sum(W, 1)', 1, m)
 		!Hfixed && (H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1)))
 		if movie
@@ -72,11 +76,31 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 			NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 		end
 		X[inan] = (W * H)[inan]
-		if mod(i, 10) == 0
+		if mod(iters, 10) == 0
 			objvalue = sum(((X - W * H)[.!inan]).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 			if objvalue < tol
 				!quiet && println("Converged by tolerance: number of iterations $(i) $(objvalue)")
 				break
+			end
+			if objvalue < objvalue_best
+				if (objvalue_best - objvalue) < tolOF
+					baditers += 1
+				else
+					!quiet && @info("Objective function improved substantially (more than $tolOF; $objvalue < $objvalue_best); bad iteration counter reset ...")
+					baditers = 0
+				end
+				objvalue_best = objvalue
+			else
+				baditers += 1
+			end
+			if baditers >= maxbaditers
+				reattempts += 1
+				if reattempts >= maxreattempts
+					!quiet && @info("Objective function does not improve substantially! Maximum number of reattempts ($maxreattempts) has been reached; quit!")
+				end
+				baditers = 0
+			else
+				!quiet && @info("Objective function does not improve substantially! Reattempts $reattempts Bad iterations $baditers")
 			end
 			H = max.(H, eps())
 			W = max.(W, eps())
@@ -91,10 +115,6 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 			else
 				inc = 0
 			end
-			#if inc > maxinc
-			#	maxinc = inc
-			#end
-			# @printf("\t%d\t%d\t%d\n", i, inc, consdiff)
 			if inc > stopconv # this criteria is almost never achieved
 				!quiet && println("Converged by consistency: number of iterations $(i) $(inc) $(objvalue)")
 				break

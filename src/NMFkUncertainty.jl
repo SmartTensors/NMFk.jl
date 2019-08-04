@@ -1,10 +1,10 @@
 "Execute NMFk analysis for a given of number of signals multiple times"
 function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF::Integer=10; save::Bool=false, casefilename::AbstractString="", kw...) where {T, N}
-	W = Array{Array{T, N}}(undef, nreruns)
-	H = Array{Array{T, 2}}(undef, nreruns)
-	fitquality = Array{T}(undef, nreruns)
-	robustness = Array{T}(undef, nreruns)
-	aic = Array{T}(undef, nreruns)
+	W = Vector{Array{T, N}}(undef, nreruns)
+	H = Vector{Array{T, 2}}(undef, nreruns)
+	fitquality = Vector{T}(undef, nreruns)
+	robustness = Vector{T}(undef, nreruns)
+	aic = Vector{T}(undef, nreruns)
 	for i in 1:nreruns
 		@info("Rerun $(i) out of $(nreruns):")
 		if save == true

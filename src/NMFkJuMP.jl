@@ -52,7 +52,7 @@ end
 function jump(X::AbstractMatrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, Winit::AbstractMatrix=Array{Float32}(undef, 0, 0), Hinit::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=-1, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0, cheatlevel::Number=1)
+function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, Winit::AbstractMatrix=Array{Float32}(undef, 0, 0), Hinit::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=3, maxbaditers::Int=10, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0, cheatlevel::Number=1)
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -169,57 +169,57 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	objvalue = ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk
 	frame = 2
 	iters = 1
-	outiters = 0
-	resets = 0
-	#TODO this does not work; JuMP fails when restarted
-	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tolX) && !(objvalue < tol) && outiters < maxouteriters && resets <= maxresets
-		jumpvalues = JuMP.value.(jumpvariables)
-		if movie
-			for mcheat = 1:moviecheat
-				We = JuMP.value.(W)
-				We .+= rand(size(We)...) .* cheatlevel
-				He = JuMP.value.(H)
-				He .+= rand(size(He)...) .* cheatlevel
-				Xe = We * He
-				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
-				frame += 1
-			end
-			!fixW && (We = JuMP.value.(W))
-			!fixH && (He = JuMP.value.(H))
-			Xe = We * He
-			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
-			frame += 1
-		end
-		if quiet
-			@Suppressor.suppress JuMP.optimize!(m)
-		else
-			JuMP.optimize!(m)
-		end
-		of = JuMP.objective_value(m)
-		outiters += 1
-		iters += 1
-		if of < ofbest
-			if (ofbest - of) > tolOF
-				resets += 1
-				if resets > maxresets
-					!quiet && @warn("Maximum number of resets has been reached; quit!")
-				else
-					!quiet && @warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
-					outiters = 0
-				end
-			end
-			!fixW && (Wbest = JuMP.value.(W))
-			!fixH && (Hbest = JuMP.value.(H))
-			ofbest = of
-			objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
-		end
-		if !quiet
-			@info("Iteration $iters")
-			@info("Objective function $of")
-			(regularizationweight > 0.) && @info("Objective function - regularization penalty $objvalue")
-			@info("Parameter norm: $(norm(jumpvalues - JuMP.value.(jumpvariables)))")
-		end
-	end
+	baditers = 0
+	reattempts = 0
+	# TODO this does not work; JuMP fails when restarted
+	# while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tolX) && !(objvalue < tol) && baditers < maxbaditers && reattempts <= maxreattempts
+	# 	jumpvalues = JuMP.value.(jumpvariables)
+	# 	if movie
+	# 		for mcheat = 1:moviecheat
+	# 			We = JuMP.value.(W)
+	# 			We .+= rand(size(We)...) .* cheatlevel
+	# 			He = JuMP.value.(H)
+	# 			He .+= rand(size(He)...) .* cheatlevel
+	# 			Xe = We * He
+	# 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+	# 			frame += 1
+	# 		end
+	# 		!fixW && (We = JuMP.value.(W))
+	# 		!fixH && (He = JuMP.value.(H))
+	# 		Xe = We * He
+	# 		NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+	# 		frame += 1
+	# 	end
+	# 	if quiet
+	# 		@Suppressor.suppress JuMP.optimize!(m)
+	# 	else
+	# 		JuMP.optimize!(m)
+	# 	end
+	# 	of = JuMP.objective_value(m)
+	# 	baditers += 1
+	# 	iters += 1
+	# 	if of < ofbest
+	# 		if (ofbest - of) > tolOF
+	# 			reattempts += 1
+	# 			if reattempts > maxreattempts
+	# 				!quiet && @info("Maximum number of reattempts ($maxreattempts) has been reached; quit!")
+	# 			else
+	# 				!quiet && @info("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
+	# 				baditers = 0
+	# 			end
+	# 		end
+	# 		!fixW && (Wbest = JuMP.value.(W))
+	# 		!fixH && (Hbest = JuMP.value.(H))
+	# 		ofbest = of
+	# 		objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
+	# 	end
+	# 	if !quiet
+	# 		@info("Iteration $iters")
+	# 		@info("Objective function $of")
+	# 		(regularizationweight > 0.) && @info("Objective function - regularization penalty $objvalue")
+	# 		@info("Parameter norm: $(norm(jumpvalues - JuMP.value.(jumpvariables)))")
+	# 	end
+	# end
 	X[nans] .= NaN
 	isnm = isnan.(Wbest)
 	isnb = isnan.(Hbest)

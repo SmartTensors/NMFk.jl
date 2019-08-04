@@ -9,7 +9,7 @@ const defaultratiosweight = convert(Float32, 1)
 const defaultdeltasweight = convert(Float32, 1)
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::Matrix{Float32}=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxresets::Int=3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
+function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{Float32, 2}=Array{Float32}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, ratiosweight::Float32=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::Matrix{Float32}=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=3, maxbaditers::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets)
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -133,11 +133,11 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	end
 	ofbest = of
 	iters = 1
-	outiters = 0
-	resets = 0
+	baditers = 0
+	reattempts = 0
 	frame = 3
-	!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
-	while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && outiters < maxouteriters && resets <= maxresets
+	!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
+	while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts <= maxreattempts
 		jumpvalues = JuMP.value.(jumpvariables)
 		if quiet
 			@Suppressor.suppress JuMP.optimize!(m)
@@ -154,22 +154,22 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		of = JuMP.objective_value(m)
 		if of < ofbest
 			if (ofbest - of) > tolOF
-				resets += 1
-				if resets > maxresets
-					!quiet && @warn("Maximum number of resets has been reached; quit!")
+				reattempts += 1
+				if reattempts > maxreattempts
+					!quiet && @warn("Maximum number of reattempts has been reached; quit!")
 				else
 					!quiet && @warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
-					outiters = 0
+					baditers = 0
 				end
 			end
 			mixerval = convert(Array{Float32,2}, JuMP.value.(mixer))
 			bucketval = convert(Array{Float32,2}, JuMP.value.(buckets))
 			ofbest = of
 		else
-			outiters = maxouteriters + 1
+			baditers = maxbaditers + 1
 		end
 		iters += 1
-		!quiet && @info("Iteration: $iters Resets: $resets Objective function: $of Best: $ofbest")
+		!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
 	end
 	isnm = isnan.(mixerval)
 	isnb = isnan.(bucketval)
@@ -222,7 +222,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, Winit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinitd::Matrix{Float32}=Array{Float32}(undef, 0, 0), tol::Float64=1e-3, maxouteriters::Int=10, quiet::Bool=NMFk.quiet)
+function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Float32}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Float32=defaultregularizationweight, deltasweight::Float32=defaultdeltasweight, weightinverse::Bool=false, Winit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::Matrix{Float32}=Array{Float32}(undef, 0, 0), Hinitd::Matrix{Float32}=Array{Float32}(undef, 0, 0), tol::Float64=1e-3, maxbaditers::Int=10, quiet::Bool=NMFk.quiet)
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)
@@ -337,7 +337,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	ofbest = of
 	iters = 1
 	!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
-	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tol) && iters < maxouteriters # keep doing the optimization until we really reach an optimum
+	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tol) && iters < maxbaditers # keep doing the optimization until we really reach an optimum
 		jumpvalues = JuMP.value.(jumpvariables)
 		JuMP.optimize!(m)
 		of = JuMP.objective_value(m)
