@@ -117,6 +117,7 @@ function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=
 	!quiet && println("Worst objective function = $(objvalue[idxsort[end]])")
 	Wbest = copy(WBig[bestIdx])
 	Hbest = copy(HBig[bestIdx])
+	println()
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
 		idxrat = vec([trues(ccc); falses(nNMF-ccc)])
