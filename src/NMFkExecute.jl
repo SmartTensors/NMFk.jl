@@ -117,7 +117,6 @@ function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=
 	!quiet && println("Worst objective function = $(objvalue[idxsort[end]])")
 	Wbest = copy(WBig[bestIdx])
 	Hbest = copy(HBig[bestIdx])
-	println()
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
 		idxrat = vec([trues(ccc); falses(nNMF-ccc)])
@@ -194,7 +193,7 @@ function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), ratios::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", zeronans::Bool=true, removenans::Bool=true, loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), ratios::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, casefilename::AbstractString="", zeronans::Bool=true, removenans::Bool=true, loadall::Bool=false, saveall::Bool=false, kw...)
 	kw_dict = Dict()
 	for (key, value) in kw
 		kw_dict[key] = value
@@ -206,9 +205,17 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk sources (signals) ...")
 	indexnan = isnan.(X)
-	if any(indexnan) && (method != :simple &&method != :ipopt && method != :nlopt && mixture == :null)
-		@warn("The analyzed matrix has NaN's; Classical NMF cannot be used (method=$(method)); Simple NMF will be performed!")
-		method = :simple
+	if any(indexnan)
+		if method == :null
+			method = :simple
+		elseif method != :simple && method != :ipopt && method != :nlopt && mixture == :null
+			@warn("The analyzed matrix has NaN's; Classical NMF cannot be used (method=$(method)); Simple NMF will be performed!")
+			method = :simple
+		end
+	else
+		if method == :null
+			method = :nmfk
+		end
 	end
 	if mixture != :null
 		clusterweights = true
