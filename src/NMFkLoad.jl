@@ -1,11 +1,11 @@
-function load(range::AbstractRange{Int}, nNMF::Integer=10; kw...)
-	maxsources = maximum(collect(range))
+function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
+	maxsources = maximum(collect(nkrange))
 	W = Array{Array{Float64, 2}}(undef, maxsources)
 	H = Array{Array{Float64, 2}}(undef, maxsources)
 	fitquality = Array{Float64}(undef, maxsources)
 	robustness = Array{Float64}(undef, maxsources)
 	aic = Array{Float64}(undef, maxsources)
-	for numsources in range
+	for numsources in nkrange
 		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.load(numsources, nNMF; kw...)
 	end
 	return W, H, fitquality, robustness, aic

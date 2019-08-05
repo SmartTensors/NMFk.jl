@@ -7,7 +7,7 @@ end
 
 "Execute NMFk analysis for a range of number of signals"
 function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...) where {T, N}
-	maxk = maximum(collect(range))
+	maxk = maximum(collect(nkrange))
 	W = Array{Array{T, N}}(undef, maxk)
 	H = Array{Array{T, 2}}(undef, maxk)
 	fitquality = Array{T}(undef, maxk)
@@ -465,7 +465,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 	end
 	# numparameters = numbuckets # this is wrong
 	# dof = numobservations - numparameters # this is correct, but we cannot use because we may get negative DoF
-	# dof = maximum(range) - numparameters + 1 # this is a hack to make the dof positive.
+	# dof = maximum(nkrange) - numparameters + 1 # this is a hack to make the dof positive.
 	# dof = dof < 0 ? 0 : dof
 	# sml = dof + numobservations * (log(fitquality[numbuckets]/dof) / 2 + 1.837877)
 	# aic[numbuckets] = sml + 2 * numparameters

@@ -3,7 +3,7 @@ import Ipopt
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef. 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=3, maxbaditers::Int=10, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
+function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef. 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -78,35 +78,39 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	reattempts = 0
 	frame = 2
 	!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
-	# TODO Jump restarts does not work
-	# while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts <= maxreattempts
-	# 	jumpvalues = JuMP.value.(jumpvariables)
-	# 	if quiet
-	# 		@Suppressor.suppress JuMP.optimize!(m)
-	# 	else
-	# 		JuMP.optimize!(m)
-	# 	end
-	# 	of = JuMP.objective_value(m)
-	# 	iters += 1
-	# 	baditers += 1
-	# 	if of < ofbest
-	# 		if (ofbest - of) > tolOF
-	# 			reattempts += 1
-	# 			if reattempts > maxreattempts
-	# 				@warn("Maximum number of reattempts has been reached; quit!")
-	# 			else
-	# 				@warn("Objective function improved substantially (more than $tolOF; $of < $ofbest); iteration counter reset ...")
-	# 				baditers = 0
-	# 			end
-	# 		end
-	# 		W = convert(Array{T, 3}, JuMP.value.(mixer))
-	# 		H = convert(Array{T, 2}, JuMP.value.(buckets))
-	# 		ofbest = of
-	# 	else
-	# 		baditers = maxbaditers + 1
-	# 	end
-	# 	!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
-	# end
+	while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts < maxreattempts
+		jumpvalues = JuMP.value.(jumpvariables)
+		if quiet
+			@Suppressor.suppress JuMP.optimize!(m)
+		else
+			JuMP.optimize!(m)
+		end
+		of = JuMP.objective_value(m)
+		iters += 1
+		if of < ofbest
+			if (ofbest - of) < tolOF
+				baditers += 1
+			else
+				!quiet && @info("Objective function improved substantially (more than $tolOF; $objvalue < $objvalue_best); bad iteration counter reset ...")
+				baditers = 0
+			end
+			W = convert(Array{T, 3}, JuMP.value.(mixer))
+			H = convert(Array{T, 2}, JuMP.value.(buckets))
+			ofbest = of
+		else
+			baditers += 1
+		end
+		if baditers >= maxbaditers
+			reattempts += 1
+			if reattempts >= maxreattempts
+				!quiet && @info("Objective function does not improve substantially! Maximum number of reattempts ($maxreattempts) has been reached; quit!")
+			end
+			baditers = 0
+		else
+			!quiet && @info("Objective function does not improve substantially! Reattempts $reattempts Bad iterations $baditers")
+		end
+		!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
+	end
 	concentrations[nans] = NaN
 	fitquality = ofbest - regularizationweight * sum(log.(1. + H).^2) / numbuckets
 	setbadmixerelements!(concentrations, W)
