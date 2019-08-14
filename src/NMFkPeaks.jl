@@ -1,10 +1,16 @@
 import Statistics
 
 function firstjump(y; lag=30, threshold=5, influence=0)
-	if sum(y) == 0
+	isn = .!isnan.(y)
+	if sum(y[isn]) == 0
 		return nothing
 	end
+	if sum(isn) == 0
+		return nothing
+	end
+	y[.!isn] .= 0
 	r = smoothedzscore(y; lag=lag, threshold=threshold, influence=influence)
+	y[.!isn] .= NaN
 	subset([0.,1.], r[:signals])
 end
 
@@ -50,7 +56,7 @@ function subset(x, y)
 		@inbounds for i = 2:lenx
 			y[beg += 1] != x[i] && (beg = 0; break)
 		end
-		beg != 0 && return cur
+		beg != 0 && return cur + 1
 		cur += 1
 	end
 	return nothing

@@ -96,11 +96,11 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 			if baditers >= maxbaditers
 				reattempts += 1
 				if reattempts >= maxreattempts
-					!quiet && @info("Objective function does not improve substantially! Maximum number of reattempts ($maxreattempts) has been reached; quit!")
+					!quiet && @info("Objective function does not improve substantially ($objvalue)! Maximum number of reattempts ($maxreattempts) has been reached; quit!")
 				end
 				baditers = 0
 			else
-				!quiet && @info("Objective function does not improve substantially! Reattempts $reattempts Bad iterations $baditers")
+				!quiet && @info("Objective function does not improve substantially ($objvalue)! Reattempts $reattempts Bad iterations $baditers")
 			end
 			H = max.(H, eps())
 			W = max.(W, eps())

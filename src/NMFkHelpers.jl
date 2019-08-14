@@ -111,7 +111,7 @@ function gettypes(x::Matrix{T}, levels=[0.05,0.35]) where {T}
 	map(i->types[i], iwcode)
 end
 
-function harddecode(x::Matrix, h::Matrix{T}) where {T}
+function harddecode(x::AbstractMatrix, h::AbstractMatrix{T}) where {T}
 	na = size(x, 2)
 	d = [hardencodelength(x[:,i]) for i = 1:na]
 	ns = size(h, 1)
@@ -123,4 +123,27 @@ function harddecode(x::Matrix, h::Matrix{T}) where {T}
 		c = ce + 1
 	end
 	return s
+end
+
+function checkcols(x::AbstractMatrix; quiet::Bool=false)
+	inans = Vector{Int64}(undef, 0)
+	izeros = Vector{Int64}(undef, 0)
+	ineg = Vector{Int64}(undef, 0)
+	na = size(x, 2)
+	for i = 1:na
+		isn = .!isnan.(x[:,i])
+		if sum(isn) == 0
+			!quiet && @info "Column $i has only NaNs!"
+			push!(inans, i)
+		elseif sum(x[isn, i]) == 0
+			!quiet && @info "Column $i has only Zeros!"
+			push!(izeros, i)
+		elseif any(x[isn, i] .< 0)
+			!quiet && @info "Column $i has negative values!"
+			push!(ineg, i)
+		else
+
+		end
+	end
+	return inans, izeros, ineg
 end
