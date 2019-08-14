@@ -1,6 +1,6 @@
 import Statistics
 
-function firstjump(y; lag=30, threshold=5, influence=0)
+function firstjump(y; lag=min(length(y), 30), threshold=5, influence=0)
 	isn = .!isnan.(y)
 	if sum(y[isn]) == 0
 		return nothing
@@ -16,6 +16,9 @@ end
 
 function smoothedzscore(y; lag=30, threshold=5, influence=0)
 	n = length(y)
+	if lag > n
+		lag = n
+	end
 	signals = zeros(n)
 	yfiltered = copy(y)
 	avgfilter = zeros(n)
