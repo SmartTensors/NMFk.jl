@@ -8,7 +8,11 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 		error("All matrix entries in a row cannot be 0!")
 	end
 	inan = isnan.(X)
-	X[inan] .= 1e-32
+	if Hfixed || Wfixed
+		X[inan] .= 1e-32
+	else
+		X[inan] .= 0
+	end
 
 	if seed >= 0
 		Random.seed!(seed)
