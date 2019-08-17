@@ -55,7 +55,7 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, zeronans::Bool=true, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
@@ -194,7 +194,7 @@ function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), ratios::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, casefilename::AbstractString="", zeronans::Bool=true, removenans::Bool=true, loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), ratios::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, kw...)
 	kw_dict = Dict()
 	for (key, value) in kw
 		kw_dict[key] = value
@@ -339,26 +339,32 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 		idxcut = trues(nNMF)
 	end
 	idxnan = trues(nNMF)
-	for i in 1:nNMF
-		isnw = isnan.(WBig[i])
-		isnh = isnan.(HBig[i])
-		if sum(isnw) > 0
-			if zeronans
-				WBig[i][isnw] .= 0
+	if nanaction == :zeroed
+		zerod = 0
+		for i in idxsort
+			isnw = isnan.(WBig[i])
+			WBig[i][isnw] .= 0
+			isnh = isnan.(HBig[i])
+			HBig[i][isnh] .= 0
+			if sum(isnw) > 0 || sum(isnh) > 0
+				zerod += 1
 			end
-			removenans && (idxnan[idxsort[i]] = false)
-		elseif sum(isnh) > 0
-			if zeronans
-				HBig[i][isnh] .= 0
-			end
-			removenans && (idxnan[idxsort[i]] = false)
 		end
-	end
-	if sum(idxnan) < nNMF
-		if zeronans
-			@warn("NMF solutions contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions! NaN's have been removed!")
-			idxnan = trues(nNMF)
-		elseif removenans
+		if zerod > 0
+			@warn("NMF solutions contain NaN's: $(zerod) out of $(nNMF) solutions! NaN's have been converted to zeros!")
+		end
+	elseif nanaction == :removed
+		for i in idxsort
+			isnw = isnan.(WBig[i])
+			if sum(isnw) > 0
+				idxnan[i] = false
+			end
+			isnh = isnan.(HBig[i])
+			if sum(isnh) > 0
+				idxnan[i] = false
+			end
+		end
+		if sum(idxnan) < nNMF
 			@warn("NMF solutions removed because they contain NaN's: $(sum(idxnan)) out of $(nNMF) solutions remain")
 		end
 	end
