@@ -215,7 +215,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 		end
 	else
 		if method == :null
-			method = :nmfk
+			method = :nmf
 		end
 	end
 	if mixture != :null
