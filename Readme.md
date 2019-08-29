@@ -56,7 +56,7 @@ For more information, visit [monty.gitlab.io](http://monty.gitlab.io)
 
 * [Machine Learning](https://madsjulia.github.io/Mads.jl/Examples/machine_learning/index.html)
 * [Blind Source Separation (i.e. Feature Extraction)](https://madsjulia.github.io/Mads.jl/Examples/blind_source_separation/index.html)
-* [Contaminant Source Identification](https://madsjulia.github.io/Mads.jl/Examples/contaminant_source_identification/index.html)
+* [Source Identification](https://madsjulia.github.io/Mads.jl/Examples/contaminant_source_identification/index.html)
 
 Installation behind a firewall
 ------------------------------
