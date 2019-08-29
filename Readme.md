@@ -5,6 +5,20 @@ NMFk: Nonnegative Matrix Factorization using k-means clustering
     <img src="logo/nmfk-logo.png" alt="nmfk" width=50%  max-width=250px;/>
 </div>
 
+### Installation
+
+After starting Julia, execute:
+
+```julia
+import Pkg; Pkg.clone("https://github.com/TensorDecompositions/NMFk.jl.git")
+```
+
+### Testing
+
+```julia
+Pkg.test("NMFk")
+```
+
 ### Publications:
 
 - Stanev, V., Vesselinov, V.V., Kusne, A.G., Antoszewski, G., Takeuchi,I., Alexandrov, B.A., Unsupervised Phase Mapping of X-ray Diffraction Data by Nonnegative Matrix Factorization Integrated with Custom Clustering, Nature Computational Materials, 10.1038/s41524-018-0099-2, 2018. [PDF](http://monty.gitlab.io/papers/Stanev%20et%20al%202018%20Unsupervised%20phase%20mapping%20of%20X-ray%20diffraction%20data%20by%20nonnegative%20matrix%20factorization%20integrated%20with%20custom%20clustering.pdf)
@@ -43,3 +57,41 @@ For more information, visit [monty.gitlab.io](http://monty.gitlab.io)
 * [Machine Learning](https://madsjulia.github.io/Mads.jl/Examples/machine_learning/index.html)
 * [Blind Source Separation (i.e. Feature Extraction)](https://madsjulia.github.io/Mads.jl/Examples/blind_source_separation/index.html)
 * [Contaminant Source Identification](https://madsjulia.github.io/Mads.jl/Examples/contaminant_source_identification/index.html)
+
+Installation behind a firewall
+------------------------------
+
+Julia uses git for package management. Add in the `.gitconfig` file in your home directory:
+
+```
+[url "https://"]
+        insteadOf = git://
+```
+
+or execute:
+
+```
+git config --global url."https://".insteadOf git://
+```
+
+Set proxies:
+
+```
+export ftp_proxy=http://proxyout.<your_site>:8080
+export rsync_proxy=http://proxyout.<your_site>:8080
+export http_proxy=http://proxyout.<your_site>:8080
+export https_proxy=http://proxyout.<your_site>:8080
+export no_proxy=.<your_site>
+```
+
+For example, if you are doing this at LANL, you will need to execute the
+following lines in your bash command-line environment:
+
+```
+export ftp_proxy=http://proxyout.lanl.gov:8080
+export rsync_proxy=http://proxyout.lanl.gov:8080
+export http_proxy=http://proxyout.lanl.gov:8080
+export https_proxy=http://proxyout.lanl.gov:8080
+export no_proxy=.lanl.gov
+```
+
