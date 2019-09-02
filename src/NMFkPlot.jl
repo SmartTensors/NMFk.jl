@@ -19,6 +19,10 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.
 	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
 	!quiet && (display(ff); println())
 	if filename != ""
+		if !isdir(figuredir)
+			mkdir(figuredir)
+		end
+		recursivemkdir(filename)
 		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
 	end
 	return ff
@@ -29,6 +33,10 @@ function plotscatter(x::AbstractVector, y::AbstractVector; quiet::Bool=true, hsi
 	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, Gadfly.Theme(highlight_width=0Gadfly.pt,default_color="red")), Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="gray")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
 	!quiet && (display(ff); println())
 	if filename != ""
+		if !isdir(figuredir)
+			mkdir(figuredir)
+		end
+		recursivemkdir(filename)
 		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
 	end
 	return ff
@@ -49,6 +57,10 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
 	!quiet && (display(ff); println())
 	if filename != ""
+		if !isdir(figuredir)
+			mkdir(figuredir)
+		end
+		recursivemkdir(filename)
 		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
 	end
 	return ff
@@ -80,6 +92,10 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 	ff = Gadfly.plot(pl..., Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(ymin=ymin, ymax=ymax), tc..., tx..., gm...)
 	!quiet && (display(ff); println())
 	if filename != ""
+		if !isdir(figuredir)
+			mkdir(figuredir)
+		end
+		recursivemkdir(filename)
 		Gadfly.draw(Gadfly.PNG(joinpath(figuredir, filename), hsize, vsize, dpi=dpi), ff)
 	end
 	return ff
@@ -286,4 +302,36 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 		end
 	end
 	return nn, ns, nt, v
+end
+
+"""
+Create directories recursively (if does not already exist)
+
+$(DocumentFunction.documentfunction(recursivemkdir;
+argtext=Dict("dirname"=>"directory")))
+"""
+function recursivemkdir(s::String; filename=true)
+	d = Vector{String}(undef, 0)
+	sc = deepcopy(s)
+	if !filename && sc!= ""
+		push!(d, sc)
+	end
+	while true
+		sd = splitdir(sc)
+		sc = sd[1]
+		if sc == ""
+			break;
+		end
+		push!(d, sc)
+	end
+	for i = length(d):-1:1
+		sc = d[i]
+		if isfile(sc)
+			Mads.madswarn("File $(sc) exists!")
+			return
+		elseif !isdir(sc)
+			mkdir(sc)
+			@info("Make dir $(sc)")
+		end
+	end
 end
