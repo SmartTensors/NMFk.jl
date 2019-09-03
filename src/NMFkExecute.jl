@@ -10,9 +10,9 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 	maxk = maximum(collect(nkrange))
 	W = Array{Array{T, N}}(undef, maxk)
 	H = Array{Array{T, 2}}(undef, maxk)
-	fitquality = Array{T}(undef, maxk)
-	robustness = Array{T}(undef, maxk)
-	aic = Array{T}(undef, maxk)
+	fitquality = zeros(T, maxk)
+	robustness = zeros(T, maxk)
+	aic = zeros(T, maxk)
 	for nk in nkrange
 		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; kw...)
 	end
