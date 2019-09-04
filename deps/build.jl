@@ -1,11 +1,9 @@
-import Compat
 import PyCall
 
 @info("Checking for Python MatPlotLib ...")
 const PACKAGES = ["matplotlib"]
 
 try
-	Core.eval(Main, :(@PyCall.pyimport yaml))
 	Core.eval(Main, :(@PyCall.pyimport matplotlib))
 	@info("Python MatPlotLib is already installed!")
 catch errmsg
