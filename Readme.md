@@ -10,6 +10,12 @@ NMFk: Nonnegative Matrix Factorization using k-means clustering
 After starting Julia, execute:
 
 ```julia
+import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/TensorDecompositions/NMFk.jl.git", rev="master"))
+```
+
+or
+
+```julia
 import Pkg; Pkg.dev("https://github.com/TensorDecompositions/NMFk.jl.git")
 ```
 
