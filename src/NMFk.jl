@@ -20,7 +20,9 @@ import FileIO
 import ReusableFunctions
 import DocumentFunction
 
-const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
+if Base.source_path() != nothing
+	const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
+end
 
 global quiet = true
 global restart = false
@@ -48,6 +50,8 @@ include("NMFkPlot.jl")
 include("NMFkCapture.jl")
 include("NMFkMultivariateStats.jl")
 include("NMFkPeaks.jl")
+include("NMFkPreprocess.jl")
+include("NMFkProgressive.jl")
 
 restartoff()
 
