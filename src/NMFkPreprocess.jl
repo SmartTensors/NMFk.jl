@@ -72,6 +72,5 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol,
 			error("Something went wrong")
 		end
 	end
-	@assert sum(matrix[1,:] .> 0) == length(matrix[1,:])
 	return matrix, startdates, enddates
 end

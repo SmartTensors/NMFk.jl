@@ -1,4 +1,8 @@
 function progressive(X::AbstractArray{T,N}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=10; casefilename::String="progressive", kw...) where {T, N}
+	@assert all(map(i->sum(.!isnan.(X[i, :])) > 0, 1:size(X, 1)))
+	@assert all(map(i->sum(.!isnan.(X[:, i])) > 0, 1:size(X, 2)))
+	# @show map(i->sum(.!isnan.(X[i, :])), 1:size(X, 1))
+	# @show map(i->sum(.!isnan.(X[:, i])), 1:size(X, 2))
 	window_k = Array{Int64}(undef, 0)
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")

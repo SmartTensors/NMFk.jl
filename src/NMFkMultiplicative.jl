@@ -7,11 +7,16 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 	if minimum(sum(X; dims=2)) == 0
 		error("All matrix entries in a row cannot be 0!")
 	end
+	if minimum(sum(X; dims=1)) == 0
+		error("All matrix entries in a column cannot be 0!")
+	end
+	izero = X .<= 0
+	X[izero] .= 1e-32
 	inan = isnan.(X)
 	if Hfixed || Wfixed
 		X[inan] .= 1e-32
 	else
-		X[inan] .= 0
+		X[inan] .= 1e-32
 	end
 
 	if seed >= 0
@@ -139,6 +144,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 		frame += 1
 		NMFk.plotnmf(X, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 	end
+	X[izero] .= 0
 	X[inan] .= NaN
 	objvalue = sum(((X - W * H)[.!inan]).^2)
 	return W, H, objvalue
