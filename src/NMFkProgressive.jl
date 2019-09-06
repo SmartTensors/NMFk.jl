@@ -8,7 +8,7 @@ function progressive(X::AbstractArray{T,N}, windowsize::Vector{Int64}, nkrange::
 		push!(window_k, k)
 		@info("NMFk #2: $(casefilename) Window $ws: Best $k")
 		if ws < size(X, 1)
-			NMFk.execute(X, k, nNMF2; Hinit=convert.(Float32, H[k]), Hfixed=true, casefilename="$(casefilename)_$(ws)_all")
+			NMFk.execute(X, k, nNMF2; Hinit=convert.(Float32, H[k]), Hfixed=true, casefilename="$(casefilename)_$(ws)_all", kw...)
 		end
 	end
 	return window_k
