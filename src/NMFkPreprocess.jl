@@ -4,7 +4,7 @@ import DataFrames
 """
 Extract a matrix from a dataframe
 """
-function df2matrix(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol, dfdate::Symbol, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}})
+function df2matrix(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol, dfdate::Symbol, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}; checkzero::Bool=true)
 	nw = length(id)
 	matrix = Array{Float32}(undef, length(dates), nw)
 	matrix .= NaN32
@@ -17,7 +17,7 @@ function df2matrix(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol, dfdate:
 		welldates = df[!, dfdate][iwell][innattr]
 		iwelldates = indexin(welldates, dates)
 		iwelldates3 = .!isnothing.(iwelldates)
-		if sum(iwelldates3) != 0 && sum(attr[innattr][iwelldates3]) > 0
+		if sum(iwelldates3) != 0 && (checkzero==false || sum(attr[innattr][iwelldates3]) > 0)
 			fwells[i] = true
 			global k += 1
 			matrix[iwelldates[iwelldates3], k] .= 0
@@ -32,7 +32,7 @@ end
 """
 Extract a time shifted matrix from a dataframe
 """
-function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol, dfdate::Symbol, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}})
+function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol, dfdate::Symbol, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}; checkzero::Bool=true)
 	nw = length(id)
 	matrix = Array{Float32}(undef, length(dates), nw)
 	matrix .= NaN32
@@ -46,8 +46,13 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol,
 		isortedwelldates = sortperm(welldates)
 		iwelldates = indexin(welldates[isortedwelldates], dates)
 		iwelldates3 = .!isnothing.(iwelldates)
-		iattrfirst = findfirst(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
-		iattrlast = findlast(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
+		if checkzero
+			iattrfirst = findfirst(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
+			iattrlast = findlast(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
+		else
+			iattrfirst = findfirst(i->i>=0, attr[innattr][isortedwelldates][iwelldates3])
+			iattrlast = findlast(i->i>=0, attr[innattr][isortedwelldates][iwelldates3])
+		end
 		startdates[i] = welldates[isortedwelldates][iwelldates3][iattrfirst]
 		enddates[i] = welldates[isortedwelldates][iwelldates3][iattrlast]
 		iwelldates2 = iwelldates[iwelldates3][iattrfirst:end] .- iwelldates[iwelldates3][iattrfirst] .+ 1
@@ -55,7 +60,7 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol,
 		for (a, b) in enumerate(iattrfirst:length(attr[innattr][isortedwelldates][iwelldates3]))
 			matrix[iwelldates2[a], i] += attr[innattr][isortedwelldates][b]
 		end
-		if NMFk.sumnan(matrix[:, i]) == 0 || sum(matrix[:, i]) == NaN32
+		if checkzero==true && (NMFk.sumnan(matrix[:, i]) == 0 || sum(matrix[:, i]) == NaN32)
 			@show i
 			@show w
 			@show attr
