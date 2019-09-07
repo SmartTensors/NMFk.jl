@@ -16,7 +16,7 @@ import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/TensorDecompositions
 or
 
 ```julia
-import Pkg; Pkg.dev("https://github.com/TensorDecompositions/NMFk.jl.git")
+import Pkg; Pkg.develop(Pkg.PackageSpec(url="https://github.com/TensorDecompositions/NMFk.jl.git"))
 ```
 
 ### Testing
