@@ -27,7 +27,7 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 		k = (kn == nothing) ? findmax(robustness)[2] + min(nkrange...) - 1 : kn
 		push!(window_k, k)
 		@info("NMFk #2: $(casefilename) Window $ws: Best $k")
-		if ws < size(X, 1)
+		if ws < size(X[1], 1)
 			NMFk.execute(vcat(X...), k, nNMF2; Hinit=convert.(Float32, H[k]), Hfixed=true, casefilename="$(casefilename)_$(ws)_all", kw...)
 		end
 	end
