@@ -2,7 +2,7 @@ NMFk: Nonnegative Matrix Factorization using k-means clustering
 ================
 
 <div style="text-align: left">
-    <img src="logo/nmfk-logo.png" alt="nmfk" width=50%  max-width=250px;/>
+    <img src="logo/nmfk-logo.png" alt="nmfk" width=25%  max-width=125px;/>
 </div>
 
 ### Installation
