@@ -25,8 +25,91 @@ import Pkg; Pkg.develop("NMFk")
 Pkg.test("NMFk")
 ```
 
+### Examples
+
+Examples can be found the in the `test` and `examples` directories.
+
+A simple problem demonstrating NMFK can be executed as follows.
+First, generate 3 random signals in a matrix `W`:
+
+```julia
+a = rand(15)
+b = rand(15)
+c = rand(15)
+W = [a b c]
+```
+
+Then, mix the signals to produce a data matrix `X` of 5 sensors observing the mixed signals as follows:
+
+```julia
+X = [a+c*3 a*10+b b b*5+c a+b*2+c*5]
+```
+
+This is equivalent to generated a mixing matrix `H` and obtain `X` by multiplying `W` and `H`
+
+```julia
+H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
+X = W * H
+```
+
+Than execute, NMFk to estimate the number of unknown mixed signals based only on the information in `X`.
+
+```julia
+We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
+```
+
+The execution will produce something like this:
+
+```
+OF: min 15.489002472788494 max 15.505214414323714 mean 15.502096574532583 std 0.006035523349410054
+Worst correlation by columns: 0.4753730738083729
+Worst correlation by rows: 0.03547461892276675
+Worst norm by columns: 0.059725422250546265
+Worst norm by rows: 0.0790557628848402
+Signals:  2 Fit:       15.489 Silhouette:    0.9980145 AIC:    -38.30184
+
+OF: min 3.4522029917816977e-7 max 0.0025482915927249705 mean 0.0008037678265989505 std 0.0007972068676657706
+Worst correlation by columns: 0.5327507888370557
+Worst correlation by rows: 0.06927618677746135
+Worst norm by columns: 9.116083710220285e-6
+Worst norm by rows: 1.2704271967721565e-5
+Signals:  3 Fit: 3.452203e-07 Silhouette:    0.8540085 AIC:    -1319.743
+
+OF: min 8.503987750719897e-7 max 0.0021319489318553943 mean 0.0004552499853675687 std 0.0006769110333423727
+Worst correlation by columns: 0.5327438450312946
+Worst correlation by rows: 0.06927505034866896
+Worst norm by columns: 1.2971472662905814e-5
+Worst norm by rows: 2.1115491710375955e-5
+Signals:  4 Fit: 8.503988e-07 Silhouette:   -0.5775127 AIC:    -1212.129
+
+OF: min 2.5985714757938535e-5 max 0.004567835576397523 mean 0.001051340551842897 std 0.0014293437223154113
+Worst correlation by columns: 0.5327199671973728
+Worst correlation by rows: 0.0692608118744076
+Worst norm by columns: 9.015735148162851e-5
+Worst norm by rows: 0.00012410904819508306
+Signals:  5 Fit: 2.598571e-05 Silhouette:   -0.6757581 AIC:    -915.6589
+[ Info: Results
+Signals:  2 Fit:       15.489 Silhouette:    0.9980145 AIC:    -38.30184
+Signals:  3 Fit: 3.452203e-07 Silhouette:    0.8540085 AIC:    -1319.743
+Signals:  4 Fit: 8.503988e-07 Silhouette:   -0.5775127 AIC:    -1212.129
+Signals:  5 Fit: 2.598571e-05 Silhouette:   -0.6757581 AIC:    -915.6589
+[ Info: Optimal solution: 3 signals
+```
+
+The code returns the estimated optimal number of signals `kopt` which in this case as expected is equal to 3.
+
+The code also returns estimates of matrices `W` and `H`.
+It can be easily verified that `We[kopt]` and `He[kopt]` are scaled versions of the original `W` and `H` matrices.
+
+Note that the order of columns ('signals') in `W` and  `We[kopt]` are not expected to match.
+Also note that the order of rows ('sensors') in `H` and  `He[kopt]` are also not expected to match.
+The estimates orders will be different every time the code is executed.
+
 ### Publications:
 
+- Vesselinov, V.V., Mudunuru, M., Karra, S., O'Malley, D., Alexandrov, B.S., Unsupervised Machine Learning Based on Non-Negative Tensor Factorization for Analyzing Reactive-Mixing, 10.1016/j.jcp.2019.05.039, Journal of Computational Physics, 2019. [PDF](http://monty.gitlab.io/papers/Vesselinov%20et%20al%202018%20Unsupervised%20Machine%20Learning%20Based%20on%20Non-Negative%20Tensor%20Factorization%20for%20Analyzing%20Reactive-Mixing.pdf)
+- Vesselinov, V.V., Alexandrov, B.S., O'Malley, D., Nonnegative Tensor Factorization for Contaminant Source Identification, Journal of Contaminant Hydrology, 10.1016/j.jconhyd.2018.11.010, 2018. [PDF](http://monty.gitlab.io/papers/Vesselinov%20et%20al%202018%20Nonnegative%20Tensor%20Factorization%20for%20Contaminant%20Source%20Identification.pdf)
+- O'Malley, D., Vesselinov, V.V., Alexandrov, B.S., Alexandrov, L.B., Nonnegative/binary matrix factorization with a D-Wave quantum annealer, PlosOne, 10.1371/journal.pone.0206653, 2018. [PDF](http://monty.gitlab.io/papers/OMalley%20et%20al%202017%20Nonnegative:binary%20matrix%20factorization%20with%20a%20D-Wave%20quantum%20annealer.pdf)
 - Stanev, V., Vesselinov, V.V., Kusne, A.G., Antoszewski, G., Takeuchi,I., Alexandrov, B.A., Unsupervised Phase Mapping of X-ray Diffraction Data by Nonnegative Matrix Factorization Integrated with Custom Clustering, Nature Computational Materials, 10.1038/s41524-018-0099-2, 2018. [PDF](http://monty.gitlab.io/papers/Stanev%20et%20al%202018%20Unsupervised%20phase%20mapping%20of%20X-ray%20diffraction%20data%20by%20nonnegative%20matrix%20factorization%20integrated%20with%20custom%20clustering.pdf)
 - Iliev, F.L., Stanev, V.G., Vesselinov, V.V., Alexandrov, B.S., Nonnegative Matrix Factorization for identification of unknown number of sources emitting delayed signals PLoS ONE, 10.1371/journal.pone.0193974. 2018. [PDF](http://monty.gitlab.io/papers/Iliev%20et%20al%202018%20Nonnegative%20Matrix%20Factorization%20for%20identification%20of%20unknown%20number%20of%20sources%20emitting%20delayed%20signals.pdf)
 - Stanev, V.G., Iliev, F.L., Hansen, S.K., Vesselinov, V.V., Alexandrov, B.S., Identification of the release sources in advection-diffusion system by machine learning combined with Green function inverse method, Applied Mathematical Modelling, 10.1016/j.apm.2018.03.006, 2018. [PDF](http://monty.gitlab.io/papers/Stanev%20et%20al%202018%20Identification%20of%20release%20sources%20in%20advection-diffusion%20system%20by%20machine%20learning%20combined%20with%20Green's%20function%20inverse%20method.pdf)
@@ -37,6 +120,12 @@ Research papers are also available at [Google Scholar](http://scholar.google.com
 
 ### Presentations:
 
+- Vesselinov, V.V., Physics-Informed Machine Learning Methods for Data Analytics and Model Diagnostics, M3 NASA DRIVE Workshop, Los Alamos, 2019. [PDF](http://monty.gitlab.io/presentations/Vesselinov%202019%20Physics-Informed%20Machine%20Learning%20Methods%20for%20Data%20Analytics%20and%20Model%20Diagnostics.pdf)
+- Vesselinov, V.V., Unsupervised Machine Learning Methods for Feature Extraction, New Mexico Big Data &amp; Analytics Summit, Albuquerque, 2019. [PDF](http://monty.gitlab.io/presentations/vesselinov%202019%20Unsupervised%20Machine%20Learning%20Methods%20for%20Feature%20Extraction%20LA-UR-19-21450.pdf)
+- Vesselinov, V.V., Novel Unsupervised Machine Learning Methods for Data Analytics and Model Diagnostics, Machine Learning in Solid Earth Geoscience, Santa Fe, 2019. [PDF](http://monty.gitlab.io/presentations/Vesselinov%202019%20GeoScienceMLworkshop.pdf)
+- Vesselinov, V.V., Novel Machine Learning Methods for Extraction of Features Characterizing Datasets and Models, AGU Fall meeting, Washington D.C., 2018. [PDF](http://monty.gitlab.io/presentations/Vesselinov%202018%20Novel%20Machine%20Learning%20Methods%20for%20Extraction%20of%20Features%20Characterizing%20Datasets%20and%20Models%20LA-UR-18-31366.pdf)
+- Vesselinov, V.V., Novel Machine Learning Methods for Extraction of Features Characterizing Complex Datasets and Models, Recent Advances in Machine Learning and Computational Methods for Geoscience, Institute for Mathematics and its Applications, University of Minnesota, 10.13140/RG.2.2.16024.03848, 2018. [PDF](http://monty.gitlab.io/presentations/Vesselinov%202018%20Novel%20Machine%20Learning%20Methods%20for%20Extraction%20of%20Features%20Characterizing%20Complex%20Datasets%20and%20Models%20LA-UR-18-30987.pdf)
+- Vesselinov, V.V., Mudunuru. M., Karra, S., O'Malley, D., Alexandrov, Unsupervised Machine Learning Based on Non-negative Tensor Factorization for Analysis of Filed Data and Simulation Outputs, Computational Methods in Water Resources (CMWR), Saint-Malo, France, 10.13140/RG.2.2.27777.92005, 2018. [PDF](http://monty.gitlab.io/presentations/vesselinov%20et%20al%202018%20Unsupervised%20Machine%20Learning%20Based%20on%20Non-negative%20Tensor%20Factorization%20for%20Analysis%20of%20Filed%20Data%20and%20Simulation%20Outputs%20cmwr-ML-20180606.pdf)
 - O'Malley, D., Vesselinov, V.V., Alexandrov, B.S., Alexandrov, L.B., Nonnegative/binary matrix factorization with a D-Wave quantum annealer [PDF](http://monty.gitlab.io/presentations/OMalley%20et%20al%202017%20Nonnegative%20binary%20matrix%20factorization%20with%20a%20D-Wave%20quantum%20annealer.pdf)
 - Vesselinov, V.V., Alexandrov, B.A, Model-free Source Identification, AGU Fall Meeting, San Francisco, CA, 2014. [PDF](http://monty.gitlab.io/presentations/vesselinov%20bss-agu2014-LA-UR-14-29163.pdf)
 
@@ -80,7 +169,7 @@ or execute:
 git config --global url."https://".insteadOf git://
 ```
 
-Set proxies:
+Julia uses git and curl to install packages. Set proxies:
 
 ```
 export ftp_proxy=http://proxyout.<your_site>:8080
