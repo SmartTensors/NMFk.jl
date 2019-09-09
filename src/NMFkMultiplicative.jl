@@ -1,6 +1,6 @@
 import DistributedArrays
 
-function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1) where {T}
+function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1, normalizevector::Vector{T}=Vector{T}(undef, 0)) where {T}
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative")
 	end
@@ -18,12 +18,17 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 	else
 		X[inan] .= 1e-32
 	end
-
 	if seed >= 0
 		Random.seed!(seed)
 	end
 
 	n, m = size(X)
+
+	if length(normalizevector) == n
+		X ./= normalizevector
+	elseif length(normalizevector) != 0
+		error("Length of normalizevector does not match: $(length(normalizevector)) vs $(n)")
+	end
 
 	consold = falses(m, m)
 	inc = 0
@@ -143,6 +148,10 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 	for mcheat = 1:(moviecheat*2)
 		frame += 1
 		NMFk.plotnmf(X, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
+	end
+	if length(normalizevector) == n
+		X .*= normalizevector
+		W .*= normalizevector
 	end
 	X[izero] .= 0
 	X[inan] .= NaN
