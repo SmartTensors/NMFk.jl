@@ -91,7 +91,6 @@ NMFk.plotmatrix(H)
 NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]))
 ```
 
-
 More examples can be found the in the `test`, `demo`, and `examples` directories of NMFk.
 
 ### Publications:
