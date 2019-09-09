@@ -77,6 +77,21 @@ Note that the order of columns ('signals') in `W` and  `We[kopt]` are not expect
 Also note that the order of rows ('sensors') in `H` and  `He[kopt]` are also not expected to match.
 The estimated orders will be different every time the code is executed.
 
+For example, the matrices can be visualized using:
+
+```julia
+import Pkg; Pkg.add("Mads")
+import Mads
+Mads.plotseries([a b c])
+Mads.plotseries(W[kopt] ./ maximum(W[kopt]))
+```
+
+```julia
+NMFk.plotmatrix(H)
+NMFk.plotmatrix(H[kopt] ./ maximum(H[kopt]))
+```
+
+
 More examples can be found the in the `test`, `demo`, and `examples` directories of NMFk.
 
 ### Publications:

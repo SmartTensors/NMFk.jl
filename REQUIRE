@@ -8,6 +8,7 @@ PyPlot
 Gadfly
 Images
 Colors
+Measures
 FileIO
 JLD
 JLD2
