@@ -27,8 +27,6 @@ Pkg.test("NMFk")
 
 ### Examples
 
-Examples can be found the in the `test` and `examples` directories.
-
 A simple problem demonstrating NMFK can be executed as follows.
 First, generate 3 random signals in a matrix `W`:
 
@@ -45,7 +43,7 @@ Then, mix the signals to produce a data matrix `X` of 5 sensors observing the mi
 X = [a+c*3 a*10+b b b*5+c a+b*2+c*5]
 ```
 
-This is equivalent to generated a mixing matrix `H` and obtain `X` by multiplying `W` and `H`
+This is equivalent to generating a mixing matrix `H` and obtain `X` by multiplying `W` and `H`
 
 ```julia
 H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
@@ -55,39 +53,13 @@ X = W * H
 After that execute, NMFk to estimate the number of unknown mixed signals based only on the information in `X`.
 
 ```julia
+import NMFk
 We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
 ```
 
 The execution will produce something like this:
 
 ```
-OF: min 15.489002472788494 max 15.505214414323714 mean 15.502096574532583 std 0.006035523349410054
-Worst correlation by columns: 0.4753730738083729
-Worst correlation by rows: 0.03547461892276675
-Worst norm by columns: 0.059725422250546265
-Worst norm by rows: 0.0790557628848402
-Signals:  2 Fit:       15.489 Silhouette:    0.9980145 AIC:    -38.30184
-
-OF: min 3.4522029917816977e-7 max 0.0025482915927249705 mean 0.0008037678265989505 std 0.0007972068676657706
-Worst correlation by columns: 0.5327507888370557
-Worst correlation by rows: 0.06927618677746135
-Worst norm by columns: 9.116083710220285e-6
-Worst norm by rows: 1.2704271967721565e-5
-Signals:  3 Fit: 3.452203e-07 Silhouette:    0.8540085 AIC:    -1319.743
-
-OF: min 8.503987750719897e-7 max 0.0021319489318553943 mean 0.0004552499853675687 std 0.0006769110333423727
-Worst correlation by columns: 0.5327438450312946
-Worst correlation by rows: 0.06927505034866896
-Worst norm by columns: 1.2971472662905814e-5
-Worst norm by rows: 2.1115491710375955e-5
-Signals:  4 Fit: 8.503988e-07 Silhouette:   -0.5775127 AIC:    -1212.129
-
-OF: min 2.5985714757938535e-5 max 0.004567835576397523 mean 0.001051340551842897 std 0.0014293437223154113
-Worst correlation by columns: 0.5327199671973728
-Worst correlation by rows: 0.0692608118744076
-Worst norm by columns: 9.015735148162851e-5
-Worst norm by rows: 0.00012410904819508306
-Signals:  5 Fit: 2.598571e-05 Silhouette:   -0.6757581 AIC:    -915.6589
 [ Info: Results
 Signals:  2 Fit:       15.489 Silhouette:    0.9980145 AIC:    -38.30184
 Signals:  3 Fit: 3.452203e-07 Silhouette:    0.8540085 AIC:    -1319.743
@@ -104,6 +76,8 @@ It can be easily verified that `We[kopt]` and `He[kopt]` are scaled versions of 
 Note that the order of columns ('signals') in `W` and  `We[kopt]` are not expected to match.
 Also note that the order of rows ('sensors') in `H` and  `He[kopt]` are also not expected to match.
 The estimated orders will be different every time the code is executed.
+
+More examples can be found the in the `test` and `examples` directories of NMFk.
 
 ### Publications:
 
