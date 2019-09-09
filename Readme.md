@@ -83,12 +83,12 @@ For example, the matrices can be visualized using:
 import Pkg; Pkg.add("Mads")
 import Mads
 Mads.plotseries([a b c])
-Mads.plotseries(W[kopt] ./ maximum(W[kopt]))
+Mads.plotseries(We[kopt] ./ maximum(We[kopt]))
 ```
 
 ```julia
 NMFk.plotmatrix(H)
-NMFk.plotmatrix(H[kopt] ./ maximum(H[kopt]))
+NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]))
 ```
 
 
