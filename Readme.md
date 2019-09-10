@@ -33,7 +33,7 @@ Pkg.test("NMFk")
 
 ### Examples
 
-A simple problem demonstrating NMFK can be executed as follows.
+A simple problem demonstrating **NMFk** can be executed as follows.
 First, generate 3 random signals in a matrix `W`:
 
 ```julia
@@ -56,7 +56,7 @@ H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
 X = W * H
 ```
 
-After that execute, NMFk to estimate the number of unknown mixed signals based only on the information in `X`.
+After that execute, **NMFk** to estimate the number of unknown mixed signals based only on the information in `X`.
 
 ```julia
 import NMFk
@@ -97,7 +97,7 @@ NMFk.plotmatrix(H)
 NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]))
 ```
 
-More examples can be found the in the `test`, `demo`, and `examples` directories of NMFk.
+More examples can be found the in the `test`, `demo`, and `examples` directories of **NMFk**.
 
 ### Publications:
 

@@ -1,3 +1,5 @@
+import Statistics
+
 "Finalize the NMFk results"
 function finalize(Wa::Vector, idx::Matrix)
 	nNMF = length(Wa)
@@ -5,19 +7,22 @@ function finalize(Wa::Vector, idx::Matrix)
 	nT = nk * nNMF # total number of signals to cluster
 
 	idx_r = vec(reshape(idx, nT, 1))
-	WaDist = Distances.pairwise(Distances.CosineDist(), vcat(Wa...); dims=1)
-	silhouettes = Clustering.silhouettes(idx_r, WaDist)
+	if nk > 1
+		WaDist = Distances.pairwise(Distances.CosineDist(), vcat(Wa...); dims=1)
+		silhouettes = Clustering.silhouettes(idx_r, WaDist)
+	end
 
-	clustersilhouettes = Array{Float64}(undef, nk, 1)
+	clustersilhouettes = Vector{Float64}(undef, nk)
 	W = Array{Float64}(undef, nk, nP)
 	Wvar = Array{Float64}(undef, nk, nP)
 	for k = 1:nk
-		idxk = findall((in)(k), idx)
-		clustersilhouettes[k] = mean(silhouettes[idxk])
-		idxkk = [i[1] for i in idxk]
-		ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
-		W[:, k] = mean(ws, 2)
-		Wvar[:, k] = var(ws, 2)
+		idxk = findall((in)(k), idx_r)
+		clustersilhouettes[k] = nk > 1 ? mean(silhouettes[idxk]) : 1
+		idxk2 = findall((in)(k), idx)
+		idxkk = [i[1] for i in idxk2]
+		ws = hcat(map((i, j)->Wa[i][j, :], 1:nNMF, idxkk)...)
+		W[k, :] = Statistics.mean(ws; dims=2)
+		Wvar[k, :] = Statistics.var(ws; dims=2)
 	end
 	return W, clustersilhouettes, Wvar
 end
