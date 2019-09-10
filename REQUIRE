@@ -6,6 +6,7 @@ Dates
 PyCall
 PyPlot
 Gadfly
+Compose
 Images
 Colors
 Measures
