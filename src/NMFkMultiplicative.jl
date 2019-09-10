@@ -27,7 +27,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 	if length(normalizevector) == n
 		X ./= normalizevector
 	elseif length(normalizevector) != 0
-		error("Length of normalizevector does not match: $(length(normalizevector)) vs $(n)")
+		error("Length of normalizing vector does not match: $(length(normalizevector)) vs $(n)")
 	end
 
 	consold = falses(m, m)
