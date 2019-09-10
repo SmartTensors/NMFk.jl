@@ -5,6 +5,12 @@ NMFk: Nonnegative Matrix Factorization using k-means clustering
     <img src="logo/nmfk-logo.png" alt="nmfk" width=25%  max-width=125px;/>
 </div>
 
+**NMFk** is a novel unsupervised machine learning methodology which allows for automatic identification of the optimal number of features (signals) present in the data when NMF (Nonnegative Matrix Factorization) analyses are performed.
+Classical NMF approaches do not allow estimation of the number of features.
+The number of features `k` is estimated through k-means clustering coupled with regularization constraints.
+In addition to feature extraction, **NMFk** allows for data classifications and blind predictions.
+For more details, check the papers and presentations listed below.
+
 ### Installation
 
 After starting Julia, execute:
