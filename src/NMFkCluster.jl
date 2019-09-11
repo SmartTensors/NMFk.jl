@@ -74,9 +74,9 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 		if c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost
-			best_mean_silhouettes = mean(silhouettes)
+			best_mean_silhouettes = Statistics.mean(silhouettes)
 			for i in unique(c_new.assignments)
-				best_mean_cluster_silhouettes[i] = mean(silhouettes[c_new.assignments.==i])
+				best_mean_cluster_silhouettes[i] = Statistics.mean(silhouettes[c_new.assignments.==i])
 			end
 		end
 	end

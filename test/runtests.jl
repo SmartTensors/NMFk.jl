@@ -2,7 +2,7 @@ import NMFk
 import Test
 import Random
 import Suppressor
-using LinearAlgebra
+import LinearAlgebra
 
 @Test.testset "NMFk" begin
 
@@ -14,9 +14,9 @@ function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array
 	predictedconcs = mixerestimate * bucketestimate
 	predictedconcs[idxnan] .= 0
 	if length(conccomponents) > 0
-		@Test.test norm(predictedconcs[:, conccomponents] - concs[:, conccomponents], 2) / norm(concs[:, conccomponents], 2) < 1 # fit the data within 1%
+		@Test.test LinearAlgebra.norm(predictedconcs[:, conccomponents] - concs[:, conccomponents], 2) / LinearAlgebra.norm(concs[:, conccomponents], 2) < 1 # fit the data within 1%
 		for j = 1:size(buckets, 1)
-			@Test.test minimum(map(i->norm(buckets[i, conccomponents] - bucketestimate[j, conccomponents]) / norm(buckets[i, conccomponents], 2), 1:size(buckets, 1))) < 1 # reproduce the buckets within 30%
+			@Test.test minimum(map(i->LinearAlgebra.norm(buckets[i, conccomponents] - bucketestimate[j, conccomponents]) / LinearAlgebra.norm(buckets[i, conccomponents], 2), 1:size(buckets, 1))) < 1 # reproduce the buckets within 30%
 		end
 	end
 	checkratios(mixerestimate, bucketestimate, ratios, ratiocomponents)

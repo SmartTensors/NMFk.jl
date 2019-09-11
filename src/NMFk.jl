@@ -5,11 +5,11 @@ module NMFk
 
 import Pkg
 using Printf
-using Random
-using Statistics
-using LinearAlgebra
 using Distributed
 
+import Random
+import Statistics
+import LinearAlgebra
 import NMF
 import Distances
 import Clustering

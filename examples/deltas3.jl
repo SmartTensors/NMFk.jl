@@ -1,4 +1,5 @@
 import NMFk
+import LinearAlgebra
 
 cs = Float64[]
 ds = Float64[]
@@ -49,8 +50,8 @@ for i = 1:100
 	display(fitbucketdeltas)
 	=#
 	#=
-	@show norm(evalgrad(fitmixer, fitbuckets, fitbucketdeltas))
-	@show norm(evalgrad(mixer, buckets, bucketdeltas))
+	@show LinearAlgebra.norm(evalgrad(fitmixer, fitbuckets, fitbucketdeltas))
+	@show LinearAlgebra.norm(evalgrad(mixer, buckets, bucketdeltas))
 	=#
 end
 @show minimum(cs)

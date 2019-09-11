@@ -1,5 +1,6 @@
 import JuMP
 import Ipopt
+import LinearAlgebra
 import Suppressor
 
 const defaultregularizationweight = convert(Float32, 0)
@@ -137,7 +138,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 	reattempts = 0
 	frame = 3
 	!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
-	while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts < maxreattempts
+	while LinearAlgebra.norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts < maxreattempts
 		jumpvalues = JuMP.value.(jumpvariables)
 		if quiet
 			@Suppressor.suppress JuMP.optimize!(m)
@@ -188,7 +189,7 @@ function mixmatchdata(concentrations_in::Matrix{Float32}, numbuckets::Int; metho
 		bucketval[isnb] .= 0
 	end
 	if sum(isnm) > 0 || sum(isnb) > 0
-		@warn("norm: $(norm(concentrations - mixerval * bucketval)) OF: $(ofbest)")
+		@warn("norm: $(LinearAlgebra.norm(concentrations - mixerval * bucketval)) OF: $(ofbest)")
 	end
 	penalty = regularizationweight * sum(log.(1. .+ bucketval).^2) / numbuckets
 	fitquality = ofbest - penalty
@@ -343,7 +344,7 @@ function mixmatchdeltas(concentrations_in::Matrix{Float32}, deltas_in::Matrix{Fl
 	ofbest = of
 	iters = 1
 	!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
-	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tol) && iters < maxbaditers # keep doing the optimization until we really reach an optimum
+	while !(LinearAlgebra.norm(jumpvalues - JuMP.value.(jumpvariables)) < tol) && iters < maxbaditers # keep doing the optimization until we really reach an optimum
 		jumpvalues = JuMP.value.(jumpvariables)
 		JuMP.optimize!(m)
 		of = JuMP.objective_value(m)

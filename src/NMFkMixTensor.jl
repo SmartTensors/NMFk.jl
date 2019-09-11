@@ -1,5 +1,6 @@
 import JuMP
 import Ipopt
+import LinearAlgebra
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
@@ -78,7 +79,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	reattempts = 0
 	frame = 2
 	!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
-	while norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts < maxreattempts
+	while LinearAlgebra.norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts < maxreattempts
 		jumpvalues = JuMP.value.(jumpvariables)
 		if quiet
 			@Suppressor.suppress JuMP.optimize!(m)

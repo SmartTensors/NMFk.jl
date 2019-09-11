@@ -16,8 +16,12 @@ function finalize(Wa::Vector, idx::Matrix)
 	W = Array{Float64}(undef, nk, nP)
 	Wvar = Array{Float64}(undef, nk, nP)
 	for k = 1:nk
-		idxk = findall((in)(k), idx_r)
-		clustersilhouettes[k] = nk > 1 ? mean(silhouettes[idxk]) : 1
+		if nk > 1
+			idxk = findall((in)(k), idx_r)
+			clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])
+		else
+			clustersilhouettes[k] = 1
+		end
 		idxk2 = findall((in)(k), idx)
 		idxkk = [i[1] for i in idxk2]
 		ws = hcat(map((i, j)->Wa[i][j, :], 1:nNMF, idxkk)...)
@@ -54,14 +58,14 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 	Hvar = Array{Float64}(undef, nk, nC)
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
-		clustersilhouettes[k] = mean(silhouettes[idxk])
+		clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])
 		idxkk = [i[1] for i in idxk]
 		ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
 		hs = hcat(map((i, j)->Ha[i][j, :], 1:nNMF, idxkk)...)
-		H[k, :] = mean(hs; dims=2)
-		W[:, k] = mean(ws; dims=2)
-		Wvar[:, k] = var(ws; dims=2)
-		Hvar[k, :] = var(hs; dims=2)
+		H[k, :] = Statistics.mean(hs; dims=2)
+		W[:, k] = Statistics.mean(ws; dims=2)
+		Wvar[:, k] = Statistics.var(ws; dims=2)
+		Hvar[k, :] = Statistics.var(hs; dims=2)
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
@@ -86,21 +90,21 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterwei
 	Hvar = Array{Float64}(undef, nk, nC)
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
-		clustersilhouettes[k] = mean(silhouettes[idxk])
-		W[:, k] = mean(Wa[:, idxk], 2)
-		H[k, :] = mean(Ha[idxk, :], 1)
-		Wvar[:, k] = var(Wa[:, idxk], 2)
-		Hvar[k, :] = var(Ha[idxk, :], 1)
+		clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])
+		W[:, k] = Statistics.mean(Wa[:, idxk]; dims=2)
+		H[k, :] = Statistics.mean(Ha[idxk, :]; dims=1)
+		Wvar[:, k] = Statistics.var(Wa[:, idxk]; dims=2)
+		Hvar[k, :] = Statistics.var(Ha[idxk, :]; dims=1)
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
 function finalize(Wa::Matrix, Ha::Matrix)
-	W = mean(Wa, 2)
-	H = mean(Ha, 1)
+	W = Statistics.mean(Wa; dims=2)
+	H = Statistics.mean(Ha; dims=1)
 	return W, H
 end
 function finalize(Wa::Vector, Ha::Vector)
-	W = mean(Wa[1], 2)
-	H = mean(Ha[1], 1)
+	W = Statistics.mean(Wa[1]; dims=2)
+	H = Statistics.mean(Ha[1]; dims=1)
 	return W, H
 end

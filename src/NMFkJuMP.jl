@@ -2,6 +2,7 @@ import JuMP
 import Ipopt
 import NLopt
 import Suppressor
+import LinearAlgebra
 
 const defaultregularizationweight = convert(Float32, 0)
 const defaultmaxiter = 1000
@@ -171,7 +172,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	iters = 1
 	baditers = 0
 	reattempts = 0
-	while !(norm(jumpvalues - JuMP.value.(jumpvariables)) < tolX) && !(objvalue < tol) && baditers < maxbaditers && reattempts < maxreattempts
+	while !(LinearAlgebra.norm(jumpvalues - JuMP.value.(jumpvariables)) < tolX) && !(objvalue < tol) && baditers < maxbaditers && reattempts < maxreattempts
 		jumpvalues = JuMP.value.(jumpvariables)
 		if movie
 			for mcheat = 1:moviecheat
@@ -223,7 +224,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			@info("Iteration $iters")
 			@info("Objective function $of")
 			(regularizationweight > 0.) && @info("Objective function - regularization penalty $objvalue")
-			@info("Parameter norm: $(norm(jumpvalues - JuMP.value.(jumpvariables)))")
+			@info("Parameter norm: $(LinearAlgebra.norm(jumpvalues - JuMP.value.(jumpvariables)))")
 		end
 	end
 	X[nans] .= NaN

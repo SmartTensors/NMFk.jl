@@ -1,5 +1,6 @@
 import DocumentFunction
 import Statistics
+import LinearAlgebra
 
 """
 Set image dpi
@@ -52,13 +53,13 @@ function ssqrnan(X)
 end
 
 function normnan(X)
-	norm(X[.!isnan.(X)])
+	LinearAlgebra.norm(X[.!isnan.(X)])
 end
 
 function cornan(x, y)
 	isn = .!(isnan.(x) .| isnan.(y))
 	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
-		return cov(x[isn], y[isn])
+		return Statistics.cov(x[isn], y[isn])
 	else
 		return NaN
 	end
