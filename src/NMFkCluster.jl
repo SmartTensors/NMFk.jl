@@ -43,12 +43,7 @@ function robustkmeans(X::AbstractMatrix, krange::AbstractRange{Int}, repeats::In
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
-		local c_new
-		local mean_silhouettes
-		local sc
-		@Suppressor.suppress begin
-			c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
-		end
+		c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
 		@info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Worst Silhouette: $(minimum(sc)) Cluster Silhouettes: $(sc)")
 		if best_mean_silhouettes < mean_silhouettes
 			best_mean_silhouettes = mean_silhouettes
@@ -68,7 +63,10 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 	best_mean_cluster_silhouettes = Vector{Float64}(undef, k)
 	local best_mean_silhouettes = Inf
 	for i = 1:repeats
-		c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
+		local c_new
+		@Suppressor.suppress begin
+			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
+		end
 		Xd = Distances.pairwise(Distances.CosineDist(), X; dims=2)
 		silhouettes = Clustering.silhouettes(c_new, Xd)
 		if c_new.totalcost < best_totalcost
