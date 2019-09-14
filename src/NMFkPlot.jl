@@ -10,6 +10,7 @@ colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", 
 ncolors = length(colors)
 
 function histogram(data::Vector, classes::Vector; joined::Bool=true, closed::Symbol=:left, quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing)
+	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	xaxis = xmap.(histall.edges[1][1:end])
 	xmin = minimum(xaxis)
