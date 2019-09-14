@@ -18,7 +18,7 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, closed::Sym
 	l = []
 	suc = sort(unique(classes))
 	if !joined
-		opacity = 1.0
+		opacity = 0.9
 	end
 	for ct in suc
 		i = findall((in)(ct), classes)
