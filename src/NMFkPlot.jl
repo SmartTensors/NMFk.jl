@@ -16,6 +16,9 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, closed::Sym
 	xmax = maximum(xaxis)
 	l = []
 	suc = sort(unique(classes))
+	if !joined
+		opacity = 1.0
+	end
 	for ct in suc
 		i = findall((in)(ct), classes)
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], histall.edges...; closed=closed)
