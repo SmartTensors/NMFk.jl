@@ -219,9 +219,10 @@ function remask(sm, repeats::Vector{Int64})
 	return reshape(repeat(sm, 1, *(repeats...)), (size(sm)..., repeats...))
 end
 
-function bincount(x::Vector)
+function bincount(x::Vector; cutoff=0)
 	n = unique(sort(x))
 	c = map(i->sum(x .== i), n)
 	i = sortperm(c; rev=true)
-	return [n[i] c[i]]
+	j = c[i] .> cutoff
+	return [n[i][j] c[i][j]]
 end

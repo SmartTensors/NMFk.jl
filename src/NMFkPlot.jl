@@ -9,10 +9,12 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, closed::Symbol=:left, quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing)
+function histogram(data::Vector, classes::Vector; joined::Bool=true, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
+	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
-	xaxis = xmap.(histall.edges[1][1:end])
+	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
+	xaxis = xmap.(collect(newedges))
 	xmin = minimum(xaxis)
 	xmax = maximum(xaxis)
 	l = []
@@ -20,22 +22,28 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, closed::Sym
 	if !joined
 		opacity = 0.9
 	end
-	for ct in suc
+	local ymaxl = 0
+	ccount = Vector{Int64}(undef, length(suc))
+	for (j, ct) in enumerate(suc)
 		i = findall((in)(ct), classes)
-		hist = StatsBase.fit(StatsBase.Histogram, data[i], histall.edges...; closed=closed)
-		push!(l, Gadfly.layer(xmin=xaxis[1:end-1], xmax=xaxis[2:end], y=hist.weights, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
+		ccount[j] = length(i)
+		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
+		y = proportion ? hist.weights ./ ndata : hist.weights
+		ymaxl = max(maximum(y), ymaxl)
+		push!(l, Gadfly.layer(xmin=xaxis[1:end-1], xmax=xaxis[2:end], y=y, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
 	end
+	ymax = ymax != nothing ? yman : ymaxl
 	s = [Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xmin, maxvalue=xmax), Gadfly.Guide.xticks(ticks=collect(xaxis)), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
 	if xlabelmap != nothing
 		s = [s..., Gadfly.Scale.x_continuous(minvalue=xmin, maxvalue=xmax, labels=xlabelmap)]
 	end
 	if joined
-		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title), Gadfly.Guide.manual_color_key("", ["Type $i" for i in suc], [colors[i] for i in suc]))
+		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i in suc]))
 		!quiet && (display(f); println())
 	else
 		m = []
 		for (i, g) in enumerate(l)
-			push!(m, Gadfly.plot(g, s..., Gadfly.Guide.title(title * " Type $i")))
+			push!(m, Gadfly.plot(g, s..., Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")))
 		end
 		f = Gadfly.vstack(m...)
 		vsize *= length(suc)
