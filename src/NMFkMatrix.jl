@@ -1,7 +1,7 @@
 "Normalize matrix"
 function normalizematrix!(a::Matrix)
-	amin = minimum(a; dims=1)
-	amax = maximum(a; dims=1)
+	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
+	amin = permutedims(map(i->NMFk.minimumnan(a[:,i]), 1:size(a, 2)))
 	dx = amax - amin
 	if length(dx) > 1
 		i0 = dx .== 0 # check for zeros
@@ -22,14 +22,14 @@ end
 
 "Scale matrix (by rows)"
 function scalematrix!(a::Matrix)
-	amax = maximum(abs.(a); dims=1)
+	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
 	a ./= amax
 	return a, amax
 end
 
 "Scale array"
 function scalearray!(a::Array)
-	amax = vec(maximum(abs.(a), dims=(1,3)))
+	amax = vec(maximum(a, dims=(1,3)))
 	for i = 1:length(amax)
 		a[:, i, :] ./= amax[i]
 	end
