@@ -21,12 +21,12 @@ function jumpiter(X::AbstractMatrix{Float32}, nk::Int, W::AbstractMatrix{Float32
 	@assert n == nh
 	@assert k == nk
 	fit = 0
-	W, H, oldfit = NMFk.jump(X, nk; Winit=W, Hinit=H, fixH=true, quiet=true, kw...)
+	W, H, oldfit = NMFk.jump(X, nk; Winit=W, Hinit=H, Hfixed=true, quiet=true, kw...)
 	!quiet && println("of: $(oldfit)")
 	for i = 1:iter
-		W, H, fit = NMFk.jump(X, nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 2}, H), fixW=true, quiet=true, kw...)
+		W, H, fit = NMFk.jump(X, nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 2}, H), Wfixed=true, quiet=true, kw...)
 		!quiet && println("of: $(fit)")
-		W, H, fit = NMFk.jump(X, nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 2}, H), fixH=true, quiet=true, kw...)
+		W, H, fit = NMFk.jump(X, nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 2}, H), Hfixed=true, quiet=true, kw...)
 		!quiet && println("of: $(fit)")
 		if oldfit - fit > tolerance
 			oldfit = fit
@@ -42,7 +42,7 @@ function jumpHrows(X::AbstractMatrix{Float32}, nk::Int, W::AbstractMatrix{Float3
 	fit = 0
 	for i = 1:size(X, 2)
 		fitrowold = sum((X[:,i] .- W * H[:,i]).^2)
-		W, H[:,i], fitrow = NMFk.jump(X[:,i], nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 1}, H[:,i]), fixW=true, quiet=true, kw...)
+		W, H[:,i], fitrow = NMFk.jump(X[:,i], nk; Winit=convert(Array{Float32, 2}, W), Hinit=convert(Array{Float32, 1}, H[:,i]), Wfixed=true, quiet=true, kw...)
 		!quiet && println("of: $(fitrowold) -> $(fitrow)")
 		fit += fitrow
 	end
@@ -53,7 +53,7 @@ end
 function jump(X::AbstractMatrix{Float64}, nk::Int; kw...)
 	jump(convert(Array{Float32, 2}, X), nk; kw...)
 end
-function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, Winit::AbstractMatrix=Array{Float32}(undef, 0, 0), Hinit::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, kullbackleibler=false, fixW::Bool=false, fixH::Bool=false, seed::Number=-1, nonnegW::Bool=true, nonnegH::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0, cheatlevel::Number=1)
+function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorithm::Symbol=:LD_LBFGS, maxW::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::Number=defaultregularizationweight, weightinverse::Bool=false, Winit::AbstractMatrix=Array{Float32}(undef, 0, 0), Hinit::AbstractArray=Array{Float32}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, kullbackleibler=false, Wfixed::Bool=false, Hfixed::Bool=false, seed::Number=-1, Wnonneg::Bool=true, Hnonneg::Bool=true, constrainW::Bool=false, constrainH::Bool=false, movie::Bool=false, moviename::AbstractString="", movieorder=1:nk, moviecheat::Integer=0, cheatlevel::Number=1)
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -70,7 +70,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 	nummixtures = size(X, 1)
 	numconstituents = size(X, 2)
 	if sizeof(Winit) == 0
-		fixW = false
+		Wfixed = false
 		if random
 			Winit = rand(Float32, nummixtures, nk)
 		else
@@ -89,7 +89,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		Winit[nansw] .= 0
 	end
 	if sizeof(Hinit) == 0
-		fixH = false
+		Hfixed = false
 		if random
 			Hinit = rand(Float32, nk, numconstituents)
 		else
@@ -115,20 +115,20 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, max_iter=maxiter, print_level=verbosity, tol=tol))
 	end
 	#IMPORTANT the order at which parameters are defined is very important
-	if fixW
+	if Wfixed
 		W = Winit
 	else
 		constrainW && normalizematrix!(Winit)
 		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk], start=convert(Float32, Winit[i, j]))
-		nonnegW && @JuMP.constraint(m, W .>= 0)
+		Wnonneg && @JuMP.constraint(m, W .>= 0)
 		constrainW && @JuMP.constraint(m, W .<= 1)
 	end
-	if fixH
+	if Hfixed
 		H = Hinit
 	else
 		constrainH && normalizematrix!(Hinit)
 		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents], start=convert(Float32, Hinit[i, j]))
-		nonnegH && @JuMP.constraint(m, H .>= 0)
+		Hnonneg && @JuMP.constraint(m, H .>= 0)
 		constrainH && @JuMP.constraint(m, H .<= 1)
 	end
 	if kullbackleibler
@@ -139,7 +139,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 			@JuMP.NLobjective(m, Min,
 				sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 		else
-			if fixH
+			if Hfixed
 				@JuMP.NLobjective(m, Min,
 					regularizationweight * sum(sum(log(1. + W[i, j])^2 for i=1:numconstituents) for j=1:nk) / nk +
 					sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
@@ -162,12 +162,12 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		JuMP.optimize!(m)
 	end
 
-	Wbest = (fixW) ? W : JuMP.value.(W)
-	Hbest = (fixH) ? H : JuMP.value.(H)
+	Wbest = (Wfixed) ? W : JuMP.value.(W)
+	Hbest = (Hfixed) ? H : JuMP.value.(H)
 	of = JuMP.objective_value(m)
 	!quiet && @info("Objective function $of")
 	ofbest = of
-	objvalue = ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk
+	objvalue = regularizationweight > 0. ? ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk : ofbest
 	frame = 2
 	iters = 1
 	baditers = 0
@@ -184,8 +184,8 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 				frame += 1
 			end
-			!fixW && (We = JuMP.value.(W))
-			!fixH && (He = JuMP.value.(H))
+			!Wfixed && (We = JuMP.value.(W))
+			!Hfixed && (He = JuMP.value.(H))
 			Xe = We * He
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 			frame += 1
@@ -204,10 +204,10 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 				!quiet && @info("Objective function improved substantially (more than $tolOF; $objvalue < $objvalue_best); bad iteration counter reset ...")
 				baditers = 0
 			end
-			!fixW && (Wbest = JuMP.value.(W))
-			!fixH && (Hbest = JuMP.value.(H))
+			!Wfixed && (Wbest = JuMP.value.(W))
+			!Hfixed && (Hbest = JuMP.value.(H))
 			ofbest = of
-			objvalue = ofbest - regularizationweight * sum(log.(1. + Hbest).^2) / nk
+			objvalue = regularizationweight > 0. ? ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk : ofbest
 		else
 			baditers += 1
 		end
@@ -238,7 +238,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		@warn("There are NaN's in the H matrix!")
 		Hbest[isnb] .= 0
 	end
-	penalty = regularizationweight * sum(log.(1. .+ Hbest).^2) / nk
+	penalty = regularizationweight > 0. ? regularizationweight * sum(log.(1. .+ Hbest).^2) / nk : 0
 	fitquality = ofbest - penalty
 	if sum(isnm) > 0 || sum(isnb) > 0
 		@warn("SSQR: $(ssqrnan(X - Wbest * Hbest)) OF: $(fitquality)")

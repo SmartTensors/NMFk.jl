@@ -203,7 +203,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterweights::Bool
 		kw_dict[key] = value
 	end
 	rescalematrices = true
-	if haskey(kw_dict, :fixW) || haskey(kw_dict, :fixH)
+	if haskey(kw_dict, :Wfixed) || haskey(kw_dict, :Hfixed)
 		rescalematrices = false
 	end
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false

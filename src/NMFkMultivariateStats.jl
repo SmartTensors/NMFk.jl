@@ -40,11 +40,11 @@ function regression(P::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method:
 					Ab = repeat(P[:,:,k], outer=[Int(ceil(nk/ng)),1])[1:nk,:]
 				end
 				Ab[isnan.(Ab)] .= 1
-				nonnegW = false
+				Wnonneg = false
 			else
-				nonnegW = false
+				Wnonneg = false
 			end
-			@Suppressor.suppress W, H, of, sil, aic = NMFk.execute(P[:,:,k]', nk, 1; nonnegW=nonnegW, Hinit=[Mtrain ones(size(Mtrain, 1))]', fixH=true, method=:ipopt, regularizationweight=0.)
+			@Suppressor.suppress W, H, of, sil, aic = NMFk.execute(P[:,:,k]', nk, 1; Wnonneg=Wnonneg, Hinit=[Mtrain ones(size(Mtrain, 1))]', Hfixed=true, method=:ipopt, regularizationweight=0.)
 			# @show NMFk.normnan((W * [Mtrain ones(size(Mtrain, 1))]')' .- P[:,:,k])
 			Xe[:,:,k] = (W * [Mpredict ones(size(Mpredict, 1))]')'
 		end
