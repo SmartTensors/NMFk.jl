@@ -1,6 +1,7 @@
 import DocumentFunction
 import Statistics
 import LinearAlgebra
+import Suppressor
 
 """
 Set image dpi
@@ -225,4 +226,32 @@ function bincount(x::Vector; cutoff=0)
 	i = sortperm(c; rev=true)
 	j = c[i] .> cutoff
 	return [n[i][j] c[i][j]]
+end
+
+function flip!(X)
+	X = -X .+ NMFk.maximumnan(X) .+ NMFk.minimumnan(X)
+end
+
+function flip(X)
+	-X .+ NMFk.maximumnan(X) .+ NMFk.minimumnan(X)
+end
+
+function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
+	@assert size(X, 2) == size(Y, 2)
+	@assert size(A, 2) == size(B, 2)
+	@assert size(X, 1) == size(B, 1)
+	@assert size(Y, 1) == size(A, 1)
+	nparam = size(X, 2)
+	nk = size(X, 1)
+	vflip = falses(nparam)
+	for i = 1:nparam
+		local H1
+		@Suppressor.suppress W, H1, of, sil, aic = NMFk.execute(permutedims(Y[:,i]), nk, nNNF; Winit=permutedims(X[:,i]), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		a = Statistics.norm(permutedims(A) .- (permutedims(B) * H1))
+		local H2
+		@Suppressor.suppress W, H2, of, sil, aic = NMFk.execute(permutedims(NMFk.flip(Y[:,i])), nk, nNNF; Winit=permutedims(NMFk.flip(X[:,i])), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		b = Statistics.norm(permutedims(A) .- (permutedims(B) * H2))
+		vflip[i] = a < b ? false : true
+	end
+	return vflip
 end
