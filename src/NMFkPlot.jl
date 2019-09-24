@@ -1,5 +1,6 @@
 import PyPlot
 import Gadfly
+import PlotlyJS
 import Compose
 import Images
 import Colors
@@ -304,7 +305,7 @@ end
 sprintf(args...) = eval(:@sprintf($(args...)))
 
 "Generate Sankey inputs"
-function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2")
+function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2"; htmlfile::AbstractString="", pdffile::AbstractString="")
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	n1 = ["$t1 $i" for i=1:s1]
@@ -326,9 +327,12 @@ function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString="Type
 			push!(v, c)
 		end
 	end
-	return nn, ns, nt, v
+	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
+	htmlfile !="" && PlotlyJS.savehtml(s, htmlfile, :remote)
+	pdffile != "" && PlotlyJS.savefig(s, pdffile)
+	return s
 end
-function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2", t3::AbstractString="Type3")
+function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2", t3::AbstractString="Type3"; htmlfile::AbstractString="", pdffile::AbstractString="")
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	s3 = length(unique(c3))
@@ -365,7 +369,10 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 			push!(v, c)
 		end
 	end
-	return nn, ns, nt, v
+	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
+	htmlfile !="" && PlotlyJS.savehtml(s, htmlfile, :remote)
+	pdffile != "" && PlotlyJS.savefig(s, pdffile)
+	return s
 end
 
 """
