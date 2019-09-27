@@ -1,4 +1,8 @@
 import PyCall
+import Pkg
+
+Pkg.add("Ipopt")
+Pkg.build("Ipopt")
 
 @info("Checking for Python MatPlotLib ...")
 const PACKAGES = ["matplotlib"]
