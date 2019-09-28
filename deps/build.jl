@@ -1,14 +1,10 @@
 import PyCall
-import Pkg
-
-Pkg.add("Ipopt")
-Pkg.build("Ipopt")
 
 @info("Checking for Python MatPlotLib ...")
 const PACKAGES = ["matplotlib"]
 
 try
-	Core.eval(Main, :(@PyCall.pyimport matplotlib))
+	Core.eval(Main, :(PyCall.pyimport("matplotlib")))
 	@info("Python MatPlotLib is already installed!")
 catch errmsg
 	println(errmsg)
@@ -16,7 +12,7 @@ catch errmsg
 
 	try
 		@info("Checking for python pip using PyCall ...")
-		Core.eval(Main, :(@PyCall.pyimport pip))
+		Core.eval(Main, :(PyCall.pyimport("pip")))
 	catch errmsg
 		println(errmsg)
 		@warn("Python pip is not installed!")
@@ -29,7 +25,7 @@ catch errmsg
 
 	try
 		@info("Installing MatPlotLib using pip ...")
-		Core.eval(Main, :(@PyCall.pyimport pip))
+		Core.eval(Main, :(PyCall.pyimport("pip")))
 		global proxy_args = String[]
 		if haskey(ENV, "http_proxy")
 			push!(proxy_args, "--proxy")
@@ -44,7 +40,7 @@ catch errmsg
 	end
 
 	try
-		Core.eval(Main, :(@PyCall.pyimport matplotlib))
+		Core.eval(Main, :(@PyCall.pyimport("matplotlib")))
 		@info("Python MatPlotLib is installed using pip!")
 	catch errmsg
 		println(errmsg)
