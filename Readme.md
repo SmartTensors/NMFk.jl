@@ -31,6 +31,13 @@ or
 import Pkg; Pkg.develop("NMFk")
 ```
 
+Docker
+-------
+
+```bash
+docker run --interactive --tty montyvesselinov/nmfk
+```
+
 ### Testing
 
 ```julia
