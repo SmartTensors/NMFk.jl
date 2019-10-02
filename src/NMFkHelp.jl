@@ -8,7 +8,7 @@ function welcome()
 	d2 = c[:bold] * c[:red]     # second dot
 	d3 = c[:bold] * c[:green]   # third dot
 	d4 = c[:bold] * c[:magenta] # fourth dot
-	println("$(bl)NMFk: Nonnegative Matrix Factorization + k-means clustering $(tx)")
+	println("$(bl)NMFk: Nonnegative Matrix Factorization + k-means clustering$(tx)")
 	println("====")
 	println("")
 	println("$(d1)  _     _  $(d2) _      _  $(d3) _______   $(d4)_$(tx)")

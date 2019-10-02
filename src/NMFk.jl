@@ -1,7 +1,7 @@
 __precompile__()
 
 """
-NMFk.jl: Nonnegative Matrix Factorization + k-means Clustering and sparsity constraints
+NMFk.jl: Nonnegative Matrix Factorization + k-means clustering
 ----
 
 NMFk performs unsupervised machine learning based on matrix decomposition coupled with sparsity and nonnegativity constraints.
