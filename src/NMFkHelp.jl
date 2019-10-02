@@ -1,5 +1,29 @@
 import DocumentFunction
 
+function welcome()
+	c = Base.text_colors
+	tx = c[:normal] # text
+	bl = c[:bold] # bold
+	d1 = c[:bold] * c[:blue]    # first dot
+	d2 = c[:bold] * c[:red]     # second dot
+	d3 = c[:bold] * c[:green]   # third dot
+	d4 = c[:bold] * c[:magenta] # fourth dot
+	println("$(bl)NMFk: Nonnegative Matrix Factorization + k-means clustering $(tx)")
+	println("====")
+	println("")
+	println("$(d1)  _     _  $(d2) _      _  $(d3) _______   $(d4)_$(tx)")
+	println("$(d1) |  \\  | | $(d2)|  \\  /  | $(d3)|  _____| $(d4)| |  _$(tx)")
+	println("$(d1) | . \\ | | $(d2)| . \\/ . | $(d3)| |___    $(d4)| | / /$(tx)")
+	println("$(d1) | |\\ \\| | $(d2)| |\\  /| | $(d3)|  ___|   $(d4)| |/ /$(tx)")
+	println("$(d1) | | \\ ' | $(d2)| | \\/ | | $(d3)| |       $(d4)|   ($(tx)")
+	println("$(d1) | |  \\  | $(d2)| |    | | $(d3)| |       $(d4)| |\\ \\$(tx)")
+	println("$(d1) |_|   \\_| $(d2)|_|    |_| $(d3)|_|       $(d4)|_| \\_\\$(tx)")
+	println("")
+	println("NMFk performs unsupervised machine learning based on matrix decomposition coupled with sparsity and nonnegativity constraints.")
+	println("NMFk methodology allows for automatic identification of the optimal number of features (signals) present in two-dimensional data arrays (matrices).")
+	println("The number of features is estimated automatically.")
+end
+
 function functions(re::Regex; stdout::Bool=false, quiet::Bool=false)
 	n = 0
 	for i in modules

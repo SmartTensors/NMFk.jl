@@ -1,6 +1,15 @@
 __precompile__()
 
-"Non-negative Matrix Factorization + k-means Clustering and sparsity constraints"
+"""
+Non-negative Matrix Factorization + k-means Clustering and sparsity constraints
+----
+
+NMFk performs unsupervised machine learning based on matrix decomposition coupled with sparsity and nonnegativity constraints.
+
+NMFk methodology allows for automatic identification of the optimal number of features (signals) present in two-dimensional data arrays (matrices).
+
+The number of features is estimated automatically.
+"""
 module NMFk
 
 import Pkg
@@ -57,5 +66,7 @@ include("NMFkPreprocess.jl")
 include("NMFkProgressive.jl")
 
 restartoff()
+
+NMFk.welcome()
 
 end
