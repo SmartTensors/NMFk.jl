@@ -260,5 +260,7 @@ function jump(X::AbstractArray{Float32}, nk::Int; method::Symbol=:nlopt, algorit
 		Hinit[nansh] .= NaN
 		Hbest[nansh] .= NaN
 	end
+	Hnonneg && (Hbest[Hbest .< 0] .= 0)
+	Wnonneg && (Wbest[Wbest .< 0] .= 0)
 	return Wbest, Hbest, fitquality
 end
