@@ -1,4 +1,5 @@
 function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T, N}
+	md = Array{Int64}(undef, N)
 	for d = 1:N
 		@info("Dimension $d")
 		dd = size(X, d)
@@ -21,7 +22,9 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 		ir = sortperm(l)
 		@show l[ir][1:15]
 		@show l[ir][end-15:end]
+		md[d] = length(e) > 0 ? e[1] : 0
 	end
+	return md
 end
 
 function getdatawindow(X::Array{T,N}, d::Integer; func::Function=.!isnan, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T, N}
