@@ -31,7 +31,6 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfir
 			afirstentry[i] = alastentry[i] = datasize[i] = 0
 		end
 	end
-	@show maximum(datasize)
 	return afirstentry, alastentry, datasize
 end
 
