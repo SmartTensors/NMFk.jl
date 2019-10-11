@@ -30,7 +30,7 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=.!isnan, funcfi
 	return afirstentry, alastentry, l
 end
 
-function shiftmatrix(X::Array{T,N}, d::Integer, start::Vector{Int64}, latest::Vector{Int64}, datasize::Vector{Int64}) where {T, N}
+function shiftarray(X::Array{T,N}, d::Integer, start::Vector{Int64}, latest::Vector{Int64}, datasize::Vector{Int64}) where {T, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	@assert length(start) == dd
