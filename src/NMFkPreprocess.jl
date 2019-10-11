@@ -30,17 +30,17 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=.!isnan, funcfi
 	return afirstentry, alastentry, l
 end
 
-function shiftarray(X::Array{T,N}, d::Integer, start::Vector{Int64}, latest::Vector{Int64}, datasize::Vector{Int64}) where {T, N}
+function shiftarray(X::Array{T,N}, d::Integer, start::Vector{Int64}, finish::Vector{Int64}, datasize::Vector{Int64}) where {T, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	@assert length(start) == dd
-	@assert length(latest) == dd
+	@assert length(finish) == dd
 	@assert length(datasize) == dd
 	Y = Array{T}(undef, maximum(datasize), dd)
 	Y .= NaN
 	for i = 1:dd
 		nty = ntuple(k->(k == d ? i : Base.Slice(1:datasize[i])), N)
-		ntx = ntuple(k->(k == d ? i : Base.Slice(start[i]:latest[i])), N)
+		ntx = ntuple(k->(k == d ? i : Base.Slice(start[i]:finish[i])), N)
 		Y[nty...] = X[ntx...]
 	end
 	return Y
