@@ -10,24 +10,24 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=.!isnan, funcfi
 	end
 	afirstentry = Vector{Int64}(undef, dd)
 	alastentry = Vector{Int64}(undef, dd)
-	l = Vector{Int64}(undef, dd)
+	datasize = Vector{Int64}(undef, dd)
 	for i = 1:dd
-		if length(start) == 0 && start[i] > 0
-			nt = ntuple(k->(k == d ? i : Colon()), N)
-		else
+		if length(start) > 0 && start[i] > 0
 			nt = ntuple(k->(k == d ? i : Base.Slice(start[i]:endd[k])), N)
+		else
+			nt = ntuple(k->(k == d ? i : Colon()), N)
 		end
 		firstentry = findfirst(funcfirst.(X[nt...]))
 		if firstentry != nothing
 			lastentry = findlast(funclast.(X[nt...]))
-			l[i] = lastentry - firstentry + 1
+			datasize[i] = lastentry - firstentry + 1
 			afirstentry[i] = firstentry
 			alastentry[i] = lastentry
 		else
-			afirstentry[i] = alastentry[i] = l[i] = 0
+			afirstentry[i] = alastentry[i] = datasize[i] = 0
 		end
 	end
-	return afirstentry, alastentry, l
+	return afirstentry, alastentry, datasize
 end
 
 function shiftarray(X::Array{T,N}, d::Integer, start::Vector{Int64}, finish::Vector{Int64}, datasize::Vector{Int64}) where {T, N}
