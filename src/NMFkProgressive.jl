@@ -27,35 +27,6 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 	return md
 end
 
-function getdatawindow(X::Array{T,N}, d::Integer; func::Function=.!isnan, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T, N}
-	@assert d >= 1 && d <= N
-	dd = size(X, d)
-	if length(start) > 0
-		@assert length(start) == dd
-		endd = size(X)
-	end
-	afirstentry = Vector{Int64}(undef, dd)
-	alastentry = Vector{Int64}(undef, dd)
-	l = Vector{Int64}(undef, dd)
-	for i = 1:dd
-		if length(start) == 0
-			nt = ntuple(k->(k == d ? i : Colon()), N)
-		else
-			nt = ntuple(k->(k == d ? i : Base.Slice(start[i]:endd[k])), N)
-		end
-		firstentry = findfirst(funcfirst.(X[nt...]))
-		if firstentry != nothing
-			lastentry = findlast(funclast.(X[nt...]))
-			l[i] = lastentry - firstentry + 1
-			afirstentry[i] = firstentry
-			alastentry[i] = lastentry
-		else
-			afirstentry[i] = alastentry[i] = l[i] = 0
-		end
-	end
-	return afirstentry, alastentry, l
-end
-
 function checkarray_zeros(X::Array{T,N}) where {T, N}
 	local flag = true
 	for d = 1:N
