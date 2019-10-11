@@ -8,11 +8,15 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 		for i = 1:dd
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			firstentry = findfirst(funcfirst.(X[nt...]))
-			lastentry = findlast(funclast.(X[nt...]))
-			if lastentry == nothing || firstentry == nothing
-				l[i] = 0
+			if firstentry != nothing
+				lastentry = findlast(funclast.(X[nt...]))
+				if lastentry != nothing
+					l[i] = lastentry - firstentry + 1
+				else
+					l[i] = 0
+				end
 			else
-				l[i] = lastentry - firstentry + 1
+				l[i] = 0
 			end
 			if l[i] <= cutoff
 				push!(e, i)
@@ -23,6 +27,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 		@show l[ir][1:15]
 		@show l[ir][end-15:end]
 		md[d] = length(e) > 0 ? e[1] : 0
+		@show maximum(l)
 	end
 	return md
 end

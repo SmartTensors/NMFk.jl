@@ -1,7 +1,7 @@
 import Dates
 import DataFrames
 
-function getdatawindow(X::Array{T,N}, d::Integer; func::Function=.!isnan, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T, N}
+function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	if length(start) > 0
@@ -19,14 +19,19 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=.!isnan, funcfi
 		end
 		firstentry = findfirst(funcfirst.(X[nt...]))
 		if firstentry != nothing
-			lastentry = findlast(funclast.(X[nt...]))
-			datasize[i] = lastentry - firstentry + 1
 			afirstentry[i] = firstentry
-			alastentry[i] = lastentry
+			lastentry = findlast(funclast.(X[nt...]))
+			if lastentry != nothing
+				datasize[i] = lastentry - firstentry + 1
+				alastentry[i] = lastentry
+			else
+				alastentry[i] = datasize[i] = 0
+			end
 		else
 			afirstentry[i] = alastentry[i] = datasize[i] = 0
 		end
 	end
+	@show maximum(datasize)
 	return afirstentry, alastentry, datasize
 end
 
