@@ -20,13 +20,13 @@ function r2(x::Vector, y::Vector)
 	(sum((x .- Statistics.mean(x)) .* (y .- Statistics.mean(y)))/sqrt(sum((x .- Statistics.mean(x)).^2 .* sum((y .- Statistics.mean(y)).^2))))^2
 end
 
-function maximumnan(X; functionname="isnan", kw...)
-	i = Core.eval(NMFk, Meta.parse(functionname)).(X)
+function maximumnan(X; func::Function=isnan, kw...)
+	i = func.(X)
 	maximum(X[.!i]; kw...)
 end
 
-function minimumnan(X; functionname="isnan", kw...)
-	i = Core.eval(NMFk, Meta.parse(functionname)).(X)
+function minimumnan(X; func::Function=isnan, kw...)
+	i = func.(X)
 	minimum(X[.!i]; kw...)
 end
 
@@ -161,7 +161,7 @@ function checkcols(x::AbstractMatrix; quiet::Bool=false)
 	return inans, izeros, ineg
 end
 
-function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; functionname::String="maximum") where {T, N}
+function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Function=maximum) where {T, N}
 	if windowsize == 0
 		return A
 	end
@@ -176,7 +176,7 @@ function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; functionname
 		for J in CartesianIndices(ci)
 			push!(s, A[J])
 		end
-		B[I] = Core.eval(NTFk, Meta.parse(functionname))(s)
+		B[I] = func(s)
 	end
 	return B
 end
