@@ -83,8 +83,12 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractR
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
 		W, H, fitquality, robustness, aic = NMFk.execute(X[1:ws,:], nkrange, nNMF1; casefilename="$(casefilename)_$(ws)", load=load, kw...)
-		kn = findlast(i->i > 0.25, robustness)
-		k = (kn == nothing) ? findmax(robustness)[2] : kn
+		if length(nkrange) == 1
+			k = nkrange[1]
+		else
+			kn = findlast(i->i > 0.25, robustness)
+			k = (kn == nothing) ? findmax(robustness)[2] : kn
+		end
 		push!(window_k, k)
 		@info("NMFk #2: $(casefilename) Window $ws: Best $k")
 		if ws < size(X, 1)
