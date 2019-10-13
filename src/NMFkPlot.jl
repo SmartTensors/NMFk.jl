@@ -1,5 +1,6 @@
 import PyPlot
 import Gadfly
+import Plotly
 import PlotlyJS
 import Compose
 import Images
@@ -414,7 +415,30 @@ function plot_wells(wx, wy, wz, c; hover=nothing)
 	return convert(Array{typeof(wells[1])}, wells)
 end
 
-function plot_heel_toe(heel_x, heel_y, toe_x, toe_y, c)
+function plot_heel_toe_bad(heel_x, heel_y, toe_x, toe_y, c; hover=nothing)
+	wells = []
+	for (j, i) in enumerate(sort(unique(c)))
+		ic = c .== i
+		hx = heel_x[ic]
+		hy = heel_y[ic]
+		tx = toe_x[ic]
+		ty = toe_y[ic]
+		for k = 1:length(hx)
+			well_trace = PlotlyJS.scatter(;x=[hx[k], tx[k]], y=[ty[k], ty[k]], mode="lines+markers", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]), transform=Plotly.attr(type="groupby", groups=fill(i, length(hx)), styles=Plotly.attr(target="$i $(sum(ic))")), color=NMFk.colors[j])
+			push!(wells, well_trace)
+		end
+	end
+	return convert(Array{typeof(wells[1])}, wells)
+end
+
+function plot_heel_toe(heel_x, heel_y, toe_x, toe_y, c; hover=nothing)
+	if hover != nothing
+		@assert length(hover) == length(heel_x)
+	end
+	@assert length(heel_x) == length(heel_y)
+	@assert length(heel_x) == length(toe_x)
+	@assert length(heel_x) == length(toe_y)
+	@assert length(heel_x) == length(c)
 	traces = []
 	for (j,i) in enumerate(sort(unique(c)))
 		ic = c .== i
@@ -424,13 +448,25 @@ function plot_heel_toe(heel_x, heel_y, toe_x, toe_y, c)
 		ty = toe_y[ic]
 		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
 		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
-		well_trace = PlotlyJS.scatter(;x=x, y=y, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
+		if hover != nothing
+			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
+			well_trace = PlotlyJS.scatter(;x=x, y=y, hovertext=h, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
+		else
+			well_trace = PlotlyJS.scatter(;x=x, y=y, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
+		end
 		push!(traces, well_trace)
 	end
 	return convert(Array{typeof(traces[1])}, traces)
 end
 
-function plot_heel_toe(heel_x, heel_y, heel_z, toe_x, toe_y, toe_z, c)
+function plot_heel_toe(heel_x, heel_y, heel_z, toe_x, toe_y, toe_z, c; hover=nothing)
+	if hover != nothing
+		@assert length(hover) == length(heel_x)
+	end
+	@assert length(heel_x) == length(heel_y)
+	@assert length(heel_x) == length(toe_x)
+	@assert length(heel_x) == length(toe_y)
+	@assert length(heel_x) == length(c)
 	traces = []
 	for (j,i) in enumerate(sort(unique(c)))
 		ic = c .== i
@@ -443,7 +479,12 @@ function plot_heel_toe(heel_x, heel_y, heel_z, toe_x, toe_y, toe_z, c)
 		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
 		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
 		z = vec(hcat([[hz[i] tz[i] NaN] for i = 1:length(hz)]...))
-		well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
+		if hover != nothing
+			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
+			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, hovertext=h, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
+		else
+			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
+		end
 		push!(traces, well_trace)
 	end
 	return convert(Array{typeof(traces[1])}, traces)
