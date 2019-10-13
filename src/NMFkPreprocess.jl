@@ -1,6 +1,18 @@
 import Dates
 import DataFrames
 
+function remap(v::Vector{T}, mapping::Vector; func::Function=!isnothing) where {T}
+	o = Vector{T}(undef, length(mapping))
+	if typeof(T) <: Integer
+		o .= 0
+	else
+		o .= NaN
+	end
+	i = func.(mapping)
+	o[i] .= v[mapping[i]]
+	return o
+end
+
 function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)

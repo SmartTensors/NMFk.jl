@@ -375,6 +375,80 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 	return s
 end
 
+function plot_wells(wx, wy, c; hover=nothing)
+	if hover != nothing
+		@assert length(hover) == length(wx)
+	end
+	@assert length(wx) == length(wy)
+	@assert length(wx) == length(c)
+	wells = []
+	for (j, i) in enumerate(sort(unique(c)))
+		ic = c .== i
+		if hover != nothing
+			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], hovertext=hover[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
+		else
+			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
+		end
+		push!(wells, well_p)
+	end
+	return convert(Array{typeof(wells[1])}, wells)
+end
+
+function plot_wells(wx, wy, wz, c; hover=nothing)
+	if hover != nothing
+		@assert length(hover) == length(wx)
+	end
+	@assert length(wx) == length(wy)
+	@assert length(wx) == length(wz)
+	@assert length(wx) == length(c)
+	wells = []
+	for (j, i) in enumerate(sort(unique(c)))
+		ic = c .== i
+		if hover != nothing
+			well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], hovertext=hover[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
+		else
+			well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
+		end
+		push!(wells, well_p)
+	end
+	return convert(Array{typeof(wells[1])}, wells)
+end
+
+function plot_heel_toe(heel_x, heel_y, toe_x, toe_y, c)
+	traces = []
+	for (j,i) in enumerate(sort(unique(c)))
+		ic = c .== i
+		hx = heel_x[ic]
+		hy = heel_y[ic]
+		tx = toe_x[ic]
+		ty = toe_y[ic]
+		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
+		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
+		well_trace = PlotlyJS.scatter(;x=x, y=y, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
+		push!(traces, well_trace)
+	end
+	return convert(Array{typeof(traces[1])}, traces)
+end
+
+function plot_heel_toe(heel_x, heel_y, heel_z, toe_x, toe_y, toe_z, c)
+	traces = []
+	for (j,i) in enumerate(sort(unique(c)))
+		ic = c .== i
+		hx = heel_x[ic]
+		hy = heel_y[ic]
+		hz = heel_z[ic]
+		tx = toe_x[ic]
+		ty = toe_y[ic]
+		tz = toe_z[ic]
+		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
+		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
+		z = vec(hcat([[hz[i] tz[i] NaN] for i = 1:length(hz)]...))
+		well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
+		push!(traces, well_trace)
+	end
+	return convert(Array{typeof(traces[1])}, traces)
+end
+
 """
 Create directories recursively (if does not already exist)
 
