@@ -6,6 +6,8 @@ Dates
 PyCall
 PyPlot
 Gadfly
+Plotly
+PlotlyJS
 Compose
 Images
 Colors

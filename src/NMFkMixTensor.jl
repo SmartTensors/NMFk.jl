@@ -4,7 +4,7 @@ import LinearAlgebra
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef. 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
+function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=defaultregularizationweight, ratiosweight::T=defaultratiosweight, weightinverse::Bool=false, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <:Float32}
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -17,8 +17,8 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	end
 	nummixtures, numconstituents, ntimes = size(concentrations)
 	nans = isnan.(concentrations)
-	concweights[nans] = 0
-	concentrations[nans] = 0
+	concweights[nans] .= 0
+	concentrations[nans] .= 0
 	if normalize
 		concentrations, cmin, cmax = normalizearrar!(concentrations)
 	elseif scale
@@ -45,9 +45,9 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 		end
 	end
 	if method == :ipopt
-		m = JuMP.Model(JuMP.with_optimizer(Ipopt.IpoptSolver; max_iter=maxiter, print_level=verbosity)) # tol here is something else
+		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer; max_iter=maxiter, print_level=verbosity)) # tol here is something else
 	elseif method == :nlopt
-		m = JuMP.Model(JuMP.with_optimizer(NLopt.NLoptSolver; algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
+		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer; algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
 	end
 	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start = convert(T, Winit[i, j, k]))
 	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
