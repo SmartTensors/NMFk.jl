@@ -112,7 +112,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 		end
 		!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
 	end
-	concentrations[nans] = NaN
+	concentrations[nans] .= NaN
 	fitquality = ofbest - regularizationweight * sum(log.(1. + H).^2) / numbuckets
 	setbadmixerelements!(concentrations, W)
 	if normalize
@@ -128,7 +128,7 @@ function setbadmixerelements!(X::AbstractArray, W::AbstractArray)
 	for t = 1:nt
 		for w = 1:nw
 			if !any(.!isnan.(X[w, :, t]))
-				W[w, :, t] = NaN
+				W[w, :, t] .= NaN
 			end
 		end
 	end
@@ -152,7 +152,7 @@ function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::Abst
 			end
 		end
 	end
-	Xe[isn] = NaN
+	Xe[isn] .= NaN
 	return convert(AbstractArray{T, 3}, Xe)
 end
 
@@ -178,7 +178,7 @@ function fixmixers!(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}) where {T}
 	for t = 1:nt
 		for w = 1:nw
 			if !any(.!isnan.(X[w,:,t]))
-				W[w,:,t] = NaN
+				W[w,:,t] .= NaN
 			end
 		end
 	end
