@@ -113,7 +113,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 		!quiet && @info("Iteration: $iters Resets: $reattempts Objective function: $of Best: $ofbest")
 	end
 	concentrations[nans] .= NaN
-	fitquality = ofbest - regularizationweight * sum(log.(1. + H).^2) / numbuckets
+	fitquality = ofbest - regularizationweight * sum(log.(1. .+ H).^2) / numbuckets
 	setbadmixerelements!(concentrations, W)
 	if normalize
 		H = denormalizematrix!(H, W, cmin, cmax)
