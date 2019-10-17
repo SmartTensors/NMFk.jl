@@ -58,7 +58,7 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterweights::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...) where {T,N}
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
@@ -165,8 +165,15 @@ function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=
 		end
 		ci = clusterassignments[:, 1]
 		for (i, c) in enumerate(ci)
-			Wbest[:, i] = WBig[bestIdx][:, c]
-			Hbest[i, :] = HBig[bestIdx][c, :]
+			if N == 2
+				Wbest[:, i] = WBig[bestIdx][:, c]
+				Hbest[i, :] = HBig[bestIdx][c, :]
+			else
+				nti = ntuple(k->(k == 2 ? i : Colon()), N)
+				ntc = ntuple(k->(k == 2 ? c : Colon()), N)
+				Wbest[nti...] = WBig[bestIdx][ntc...]
+				Hbest[i, :] = HBig[bestIdx][c, :]
+			end
 		end
 		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[idxsort][idxsol], HBig[idxsort][idxsol], clusterassignments, clusterweights)
 		minsilhouette = minimum(clustersilhouettes)
@@ -194,6 +201,7 @@ function execute_run(X::AbstractArray, nk::Int, nNMF::Int; clusterweights::Bool=
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	numparameters -= (size(Wa)[1] + size(Wa)[3])
 	aic = 2 * numparameters + numobservations * log(phi_final/numobservations)
+		E = X .- Xe
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
@@ -560,6 +568,8 @@ function execute_singlerun_compute(X::AbstractMatrix, nk::Int; quiet::Bool=NMFk.
 			E = X - W * H
 		end
 		objvalue = sum(E.^2)
+	else
+		E = X - W * H
 	end
 	!quiet && println("Objective function = $(objvalue)")
 	if mixture == :null && rescalematrices

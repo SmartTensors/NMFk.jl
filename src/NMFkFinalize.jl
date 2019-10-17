@@ -31,6 +31,7 @@ function finalize(Wa::Vector, idx::Matrix)
 	return W, clustersilhouettes, Wvar
 end
 function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=false)
+	N = ndims(Wa[1])
 	nNMF = length(Wa)
 	nP = size(Wa[1], 1) # number of observation points (samples)
 	nk, nC = size(Ha[1]) # number of signals / number of observations for each point (components/transients),
@@ -60,12 +61,15 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 		idxk = findall((in)(k), idx)
 		clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])
 		idxkk = [i[1] for i in idxk]
-		ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
-		hs = hcat(map((i, j)->Ha[i][j, :], 1:nNMF, idxkk)...)
-		H[k, :] = Statistics.mean(hs; dims=2)
-		W[:, k] = Statistics.mean(ws; dims=2)
-		Wvar[:, k] = Statistics.var(ws; dims=2)
-		Hvar[k, :] = Statistics.var(hs; dims=2)
+		if N == 2
+			ws = hcat(map((i, j)->Wa[i][:, j], 1:nNMF, idxkk)...)
+			hs = hcat(map((i, j)->Ha[i][j, :], 1:nNMF, idxkk)...)
+			H[k, :] = Statistics.mean(hs; dims=2)
+			W[:, k] = Statistics.mean(ws; dims=2)
+			Wvar[:, k] = Statistics.var(ws; dims=2)
+			Hvar[k, :] = Statistics.var(hs; dims=2)
+		else
+		end
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
