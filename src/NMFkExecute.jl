@@ -181,7 +181,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			minsilhouette = minimum(clustersilhouettes)
 			if !quiet
 				@info("Silhouettes for each of the $nk clusters:" )
-				display(clustersilhouettes')
+				display(permutedims(clustersilhouettes))
 				println("Mean silhouette = ", Statistics.mean(clustersilhouettes))
 				println("Min  silhouette = ", minimum(clustersilhouettes))
 			end

@@ -10,8 +10,8 @@ function getisotopeconcentration(delta::Union{Number,Vector,Matrix}, deltastanda
 		@assert size(delta)[2] == lds
 	end
 	if lds > 1
-		Adeltastandard = repeat(collect(deltastandard), outer=[1,size(delta)[1]])'
-		Ascalefactor = repeat(collect(scalefactor), outer=[1,size(delta)[1]])'
+		Adeltastandard = permutedims(repeat(collect(deltastandard), outer=[1,size(delta)[1]]))
+		Ascalefactor = permutedims(repeat(collect(scalefactor), outer=[1,size(delta)[1]]))
 	else
 		Adeltastandard = deltastandard
 		Ascalefactor = scalefactor
@@ -32,8 +32,8 @@ function getisotopedelta(concentration_isotope::Union{Number,Vector,Matrix}, del
 		@assert size(concentration_isotope)[2] == lds
 	end
 	if lds > 1
-		Adeltastandard = repeat(collect(deltastandard), outer=[1,size(concentration_isotope)[1]])'
-		Ascalefactor = repeat(collect(scalefactor), outer=[1,size(concentration_isotope)[1]])'
+		Adeltastandard = permutedims(repeat(collect(deltastandard), outer=[1,size(concentration_isotope)[1]]))
+		Ascalefactor = permutedims(repeat(collect(scalefactor), outer=[1,size(concentration_isotope)[1]]))
 	else
 		Adeltastandard = deltastandard
 		Ascalefactor = scalefactor
