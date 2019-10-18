@@ -1,7 +1,7 @@
 function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T, N}
 	md = Array{Int64}(undef, N)
 	for d = 1:N
-		@info("Dimension $d")
+		@info("Dimension $d ...")
 		dd = size(X, d)
 		l = Array{Int64}(undef, dd)
 		e = Array{Int64}(undef, 0)
@@ -22,7 +22,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 				push!(e, i)
 			end
 		end
-		@show e
+		@info "Bad indices in dimension $d: $e"
 		ir = sortperm(l)
 		@show l[ir][1:15]
 		@show l[ir][end-15:end]
@@ -32,23 +32,27 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 	return md
 end
 
-function checkarray_zeros(X::Array{T,N}) where {T, N}
-	local flag = true
-	for d = 1:N
-		for i = 1:size(X, d)
-			nt = ntuple(k->(k == d ? i : Colon()), N)
-			flag = flag && sum((X[nt...] .> 0)) > 0
-		end
-	end
-	return flag
-end
+checkarray_zeros(X::Array) = checkarrayentries(X, func=i->i>0)
+checkarray_nans(X::Array) = checkarrayentries(X, func=.!isnan)
 
-function checkarray_nans(X::Array{T,N}) where {T, N}
+function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=false) where {T, N}
 	local flag = true
 	for d = 1:N
+		badindex = Array{Int64}(undef, 0)
 		for i = 1:size(X, d)
 			nt = ntuple(k->(k == d ? i : Colon()), N)
-			flag = flag && sum(.!isnan.(X[nt...])) > 0
+			flagi = sum(func.(X[nt...])) > 0
+			if good
+				flagi && push!(badindex, i)
+			else
+				!flagi && push!(badindex, i)
+			end
+			flag = flag && flagi
+		end
+		if good
+			@info "Good indices in dimension $d: $badindex"
+		else
+			@info "Bad indices in dimension $d: $badindex"
 		end
 	end
 	return flag

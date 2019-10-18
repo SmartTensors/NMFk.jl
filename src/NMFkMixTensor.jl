@@ -114,7 +114,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	end
 	concentrations[nans] .= NaN
 	fitquality = ofbest - regularizationweight * sum(log.(1. .+ H).^2) / numbuckets
-	setbadmixerelements!(concentrations, W)
+	# setbadmixerelements!(concentrations, W, H) this is not needed
 	if normalize
 		H = denormalizematrix!(H, W, cmin, cmax)
 	elseif scale
@@ -123,11 +123,14 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	return abs.(W), abs.(H), fitquality
 end
 
-function setbadmixerelements!(X::AbstractArray, W::AbstractArray)
+function setbadmixerelements!(X::AbstractArray, W::AbstractArray, H::AbstractArray) # this function is not needed
 	nw, nc, nt = size(X)
 	for t = 1:nt
 		for w = 1:nw
-			if !any(.!isnan.(X[w, :, t]))
+			@show X[w, :, t]
+			Xe = mixmatchcompute(X, W, H)
+			@show Xe[w, :, t]
+			if any(.!isnan.(X[w, :, t]))
 				W[w, :, t] .= NaN
 			end
 		end

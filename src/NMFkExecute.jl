@@ -138,9 +138,10 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	end
 	idxnan = trues(nNMF)
 	for i in 1:nNMF
-		if sum(isnan.(WBig[i])) > 0
+		if clusterWmatrix && sum(isnan.(WBig[i])) > 0
 			idxnan[idxsort[i]] = false
-		elseif sum(isnan.(HBig[i])) > 0
+		end
+		if !clusterWmatrix && sum(isnan.(HBig[i])) > 0
 			idxnan[idxsort[i]] = false
 		end
 	end
