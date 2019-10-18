@@ -120,6 +120,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	!quiet && println("Worst objective function = $(objvalue[idxsort[end]])")
 	Wbest = copy(WBig[bestIdx])
 	Hbest = copy(HBig[bestIdx])
+	Xe = NMFk.mixmatchcompute(X, Wbest, Hbest)
 	println()
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
@@ -148,49 +149,50 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	end
 	idxsol = idxrat .& idxcut .& idxnan
 	if sum(idxsol) < nNMF
-		println("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions remain")
+		@warn("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions remain")
 		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(Statistics.mean(objvalue)) std $(Statistics.std(objvalue)) (ALL)")
 	end
-	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
-	Xe = NMFk.mixmatchcompute(X, Wbest, Hbest)
-	minsilhouette = 1
-	if nk > 1
-		clusterWmatrix = false
-		clusterassignments, M = NMFk.clustersolutions(HBig[idxsort][idxsol], clusterWmatrix) # cluster based on the sources
-		if !quiet
-			@info("Cluster assignments:")
-			display(clusterassignments)
-			@info("Cluster centroids:")
-			display(M)
-		end
-		ci = clusterassignments[:, 1]
-		for (i, c) in enumerate(ci)
-			if N == 2
-				Wbest[:, i] = WBig[bestIdx][:, c]
-				Hbest[i, :] = HBig[bestIdx][c, :]
-			else
-				nti = ntuple(k->(k == 2 ? i : Colon()), N)
-				ntc = ntuple(k->(k == 2 ? c : Colon()), N)
-				Wbest[nti...] = WBig[bestIdx][ntc...]
-				Hbest[i, :] = HBig[bestIdx][c, :]
+	minsilhouette = -1
+	if sum(idxnan) > 0
+		println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
+		if nk > 1
+			clusterWmatrix = false
+			clusterassignments, M = NMFk.clustersolutions(HBig[idxsort][idxsol], clusterWmatrix) # cluster based on the sources
+			if !quiet
+				@info("Cluster assignments:")
+				display(clusterassignments)
+				@info("Cluster centroids:")
+				display(M)
 			end
+			ci = clusterassignments[:, 1]
+			for (i, c) in enumerate(ci)
+				if N == 2
+					Wbest[:, i] = WBig[bestIdx][:, c]
+					Hbest[i, :] = HBig[bestIdx][c, :]
+				else
+					nti = ntuple(k->(k == 2 ? i : Colon()), N)
+					ntc = ntuple(k->(k == 2 ? c : Colon()), N)
+					Wbest[nti...] = WBig[bestIdx][ntc...]
+					Hbest[i, :] = HBig[bestIdx][c, :]
+				end
+			end
+			Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[idxsort][idxsol], HBig[idxsort][idxsol], clusterassignments, clusterWmatrix)
+			minsilhouette = minimum(clustersilhouettes)
+			if !quiet
+				@info("Silhouettes for each of the $nk clusters:" )
+				display(clustersilhouettes')
+				println("Mean silhouette = ", Statistics.mean(clustersilhouettes))
+				println("Min  silhouette = ", minimum(clustersilhouettes))
+			end
+		else
+			Wv = NaN
+			Hv = NaN
+			Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
 		end
-		Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[idxsort][idxsol], HBig[idxsort][idxsol], clusterassignments, clusterWmatrix)
-		minsilhouette = minimum(clustersilhouettes)
-		if !quiet
-			@info("Silhouettes for each of the $nk clusters:" )
-			display(clustersilhouettes')
-			println("Mean silhouette = ", Statistics.mean(clustersilhouettes))
-			println("Min  silhouette = ", minimum(clustersilhouettes))
+		if saveall && casefilename != ""
+			filename = "$casefilename-$nk-$nNMF-all.jld"
+			JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
 		end
-	else
-		Wv = NaN
-		Hv = NaN
-		Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
-	end
-	if saveall && casefilename != ""
-		filename = "$casefilename-$nk-$nNMF-all.jld"
-		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
 	end
 	if best
 		Wa = Wbest
