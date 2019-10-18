@@ -30,7 +30,7 @@ function finalize(Wa::Vector, idx::Matrix)
 	end
 	return W, clustersilhouettes, Wvar
 end
-function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=false)
+function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=false)
 	N = ndims(Wa[1])
 	nNMF = length(Wa)
 	nP = size(Wa[1], 1) # number of observation points (samples)
@@ -38,7 +38,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 	nT = nk * nNMF # total number of signals to cluster
 
 	idx_r = vec(reshape(idx, nT, 1))
-	if clusterweights
+	if clusterWmatrix
 		WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...); dims=2)
 		inanw = isnan.(WaDist)
 		WaDist[inanw] .= 0
@@ -73,14 +73,14 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterweights::Bool=fals
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
-function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterweights::Bool=false)
+function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterWmatrix::Bool=false)
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
 	nT = size(Ha, 1) # total number of signals to cluster
 	nk = convert(Int, nT / nNMF)
 
 	idx_r = vec(reshape(idx, nT, 1))
-	if clusterweights
+	if clusterWmatrix
 		WaDist = Distances.pairwise(Distances.CosineDist(), Wa; dims=2)
 		silhouettes = reshape(Clustering.silhouettes(idx_r, WaDist), nk, nNMF)
 	else

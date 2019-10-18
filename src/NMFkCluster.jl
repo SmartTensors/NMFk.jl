@@ -96,8 +96,8 @@ function sortclustering(c; rev=true)
 	return Clustering.KmeansResult(c.centers[:,i], cassignments, c.costs, c.counts[i], c.wcounts[i], c.totalcost, c.iterations, c.converged)
 end
 
-function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
-	if !clusterWeights
+function clustersolutions(factors::Vector{Matrix}, clusterWmatrix::Bool=false)
+	if !clusterWmatrix
 		factors = [permutedims(f) for f in factors]
 	end
 	# invariant: we can now assume that our matrices are n x k
@@ -117,7 +117,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 		end
 	end
 	if needZeroFix
-		biasRow = ones(k)'
+		biasRow = permutedims(ones(k))
 		for i in 1:numFactors
 			factors[i] = vcat(factors[i], biasRow)
 		end
@@ -127,12 +127,12 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	centSeeds = factors[1]
 	# when we label a factor column, we are going to keep a sum
 	newClusterCenters = factors[1]
-	# clusterLbls[a, b] = c --> factors[b][:, a] belongs to cluster c
-	clusterLbls = zeros(Int, k, numTrials)
-	# note: all clusterLbls should be in [1, k] upon return
+	# clusterLabels[a, b] = c --> factors[b][:, a] belongs to cluster c
+	clusterLabels = zeros(Int, k, numTrials)
+	# note: all clusterLabels should be in [1, k] upon return
 
 	# by definition, the columns of the first solution belong to their own cluster.
-	clusterLbls[:, 1] = [i for i in 1:k]
+	clusterLabels[:, 1] = [i for i in 1:k]
 
 	clusterDistances = Matrix{Float64}(undef, k, k)
 	for trial in 2:numTrials
@@ -150,7 +150,7 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 			selectFactorCol, selectCentIdx = Tuple(CartesianIndices(clusterDistances)[argmin(clusterDistances)])
 			# save that col in trial belongs to centroid's cluster
 			# println("Assigned: Trial: $trial, Factor: $selectFactorCol, Centroid: $selectCentIdx")
-			clusterLbls[selectFactorCol, trial] = selectCentIdx
+			clusterLabels[selectFactorCol, trial] = selectCentIdx
 			# this factor cannot belong to other centSeeds
 			clusterDistances[selectFactorCol, :] .+= Inf
 			# this cluster cannot collect more factor columns
@@ -158,25 +158,25 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 			newClusterCenters[:, selectCentIdx] .+= W[:, selectFactorCol]
 		end
 	end
-	while minimum(clusterLbls) == 0
-		idx, trial = Tuple(CartesianIndices(clusterLbls)[argmin(clusterLbls)])
-		if sum(clusterLbls[:, trial]) == 0
+	while minimum(clusterLabels) == 0
+		idx, trial = Tuple(CartesianIndices(clusterLabels)[argmin(clusterLabels)])
+		if sum(clusterLabels[:, trial]) == 0
 			@warn("Solution $trial was not assigned to any of the cluster!")
-			clusterLbls[:, trial] = [i for i in 1:k]
+			clusterLabels[:, trial] = [i for i in 1:k]
 		else
 			@warn("Parameter $idx in solution $trial was not assigned a cluster!")
-			clusterLbls[idx, trial] = idx
+			clusterLabels[idx, trial] = idx
 		end
 	end
-	if minimum(clusterLbls) <= 0
-		@warn("Minimum assignments should be greater than 1: $(minimum(clusterLbls))")
+	if minimum(clusterLabels) <= 0
+		@warn("Minimum assignments should be greater than 1: $(minimum(clusterLabels))")
 	end
-	if maximum(clusterLbls) > k
-		@warn("Maximum assignments should be less than $k: $(maximum(clusterLbls))")
+	if maximum(clusterLabels) > k
+		@warn("Maximum assignments should be less than $k: $(maximum(clusterLabels))")
 	end
 	for i in 1:k
 		for j in 1:numTrials
-			l = length(findall((in)(i), clusterLbls[:, j]))
+			l = length(findall((in)(i), clusterLabels[:, j]))
 			if l != 1
 				@warn("Cluster $i does not appear only once in column $j; it appears $l times!")
 			end
@@ -184,17 +184,17 @@ function clustersolutions(factors::Vector{Matrix}, clusterWeights::Bool=false)
 	end
 
 	newClusterCenters ./= numTrials
-	if !clusterWeights
+	if !clusterWmatrix
 		factors = [permutedims(f) for f in factors]
 	end
-	return clusterLbls, newClusterCenters'
+		return clusterLabels, permutedims(newClusterCenters)
 end
 
 "Cluster NMFk solutions"
-function clustersolutions_old(W::Vector, clusterweights::Bool=false)
+function clustersolutions_old(W::Vector, clusterWmatrix::Bool=false)
 	nNMF = length(W)
 	nc, nr = size(W[1])
-	nk = clusterweights ? nr : nc
+	nk = clusterWmatrix ? nr : nc
 
 	centroids = W[1]
 	idx = Array{Int}(undef, nk, nNMF)
@@ -209,7 +209,7 @@ function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 					if !processesTaken[processID]
 						for centroidID = 1:nk
 							if !centroidsTaken[centroidID]
-								if clusterweights
+								if clusterWmatrix
 									distMatrix[processID, centroidID] = Distances.cosine_dist(W[globalIterID][:, processID], centroids[:, centroidID])
 								else
 									distMatrix[processID, centroidID] = Distances.cosine_dist(W[globalIterID][processID, :], centroids[centroidID, :])
@@ -227,7 +227,7 @@ function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 		centroids = zeros(size(W[1]))
 		for centroidID = 1:nk
 			for globalIterID = 1:nNMF
-				if clusterweights
+				if clusterWmatrix
 					centroids[:, centroidID] += W[globalIterID][:, findall((in)(centroidID), idx[:, globalIterID])]
 				else
 					centroids[centroidID:centroidID, :] += W[globalIterID][findall((in)(centroidID), idx[:, globalIterID]), :]
@@ -236,7 +236,7 @@ function clustersolutions_old(W::Vector, clusterweights::Bool=false)
 		end
 		centroids ./= nNMF
 	end
-	return idx, centroids'
+	return idx, permutedims(centroids)
 end
 
 function clustersolutions_old(W::Matrix, nNMF::Integer)
@@ -275,5 +275,5 @@ function clustersolutions_old(W::Matrix, nNMF::Integer)
 		end
 		centroids ./= nNMF
 	end
-	return idx, centroids'
+	return idx, permutedims(centroids)
 end
