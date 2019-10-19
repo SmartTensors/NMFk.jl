@@ -58,7 +58,7 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...) where {T,N}
+function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...) where {T, N}
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
@@ -90,7 +90,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 				WBig[i] = r[i][1]
 				HBig[i] = r[i][2]
 			end
-			objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
+			objvalue = map(i->convert(T, r[i][3]), 1:nNMF)
 		else
 			WBig = Vector{Array}(undef, nNMF)
 			HBig = Vector{Matrix}(undef, nNMF)
@@ -208,7 +208,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), ratios::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, kw...)
+function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, kw...) where {T}
 	kw_dict = Dict()
 	for (key, value) in kw
 		kw_dict[key] = value
@@ -309,7 +309,7 @@ function execute_run(X::AbstractMatrix, nk::Int, nNMF::Int; clusterWmatrix::Bool
 				WBig[i] = r[i][1]
 				HBig[i] = r[i][2]
 			end
-			objvalue = map(i->convert(Float32, r[i][3]), 1:nNMF)
+			objvalue = map(i->convert(T, r[i][3]), 1:nNMF)
 		else
 			WBig = Vector{Matrix}(undef, nNMF)
 			HBig = Vector{Matrix}(undef, nNMF)
@@ -509,7 +509,7 @@ function execute_singlerun_compute(X::AbstractArray, nk::Int; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::AbstractMatrix, nk::Int; quiet::Bool=NMFk.quiet, ratios::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), ratioindices::Union{AbstractArray{Int, 1},AbstractArray{Int, 2}}=Array{Int}(undef, 0, 0), deltas::AbstractArray{Float32, 2}=Array{Float32}(undef, 0, 0), deltaindices::AbstractArray{Int, 1}=Array{Int}(undef, 0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::Float32=convert(Float32, 1), weightinverse::Bool=false, transpose::Bool=false, mixture::Symbol=:null, rescalematrices::Bool=true, method::Symbol=:nmf, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false, bootstrap::Bool=false, kw...)
+function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NMFk.quiet, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{AbstractArray{Int, 1},AbstractArray{Int, 2}}=Array{Int}(undef, 0, 0), deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), deltaindices::AbstractArray{Int, 1}=Array{Int}(undef, 0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::T=convert(T, 1), weightinverse::Bool=false, transpose::Bool=false, mixture::Symbol=:null, rescalematrices::Bool=true, method::Symbol=:nmf, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false, bootstrap::Bool=false, kw...) where {T}
 	if scale
 		if transpose
 			Xn = permutedims(Xn)

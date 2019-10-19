@@ -1,4 +1,4 @@
-function NMFsparsity(X::AbstractMatrix, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), Winit::AbstractMatrix{Float32}=Array{Float32}(undef, 0, 0), Hinit::AbstractMatrix{Float32}=Array{Float32}(undef, 0, 0), quiet::Bool=NMFk.quiet)
+function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), quiet::Bool=NMFk.quiet) where {T,N}
 	if seed != -1
 		Random.seed!(seed)
 	end
