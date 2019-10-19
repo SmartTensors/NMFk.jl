@@ -20,10 +20,30 @@ function load(nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::Abstra
 		return W, H, fitquality, robustness, aic
 	else
 		@warn("File named $filename is missing!")
-		return Array{Float64,2}(undef, 0, 0), Array{Float64,2}(undef, 0, 0), NaN, NaN, NaN
+		return Array{Float64, 2}(undef, 0, 0), Array{Float64,2}(undef, 0, 0), NaN, NaN, NaN
 	end
 end
 
 @doc """
-Load NMFk analysis for a given number of signals
+Load NMFk analysis results
 """ load
+
+function save(W, H, fitquality, robustness, aic, nk::AbstractRange{Int}, nNMF::Integer=10; kw...)
+	for numsources in nkrange
+		NMFk.save(W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources], numsources, nNMF; kw...)
+	end
+end
+function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
+	if casefilename != "" && filename == ""
+		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
+	end
+	if !isfile(filename)
+		JLD.save(filename, "W", W, "H", H, "fit", fit, "robustness", "aic", aic)
+	else
+		@warn("File named $filename already exists!")
+	end
+end
+
+@doc """
+Save NMFk analysis results
+""" save
