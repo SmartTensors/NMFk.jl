@@ -234,9 +234,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	if mixture != :null
 		clusterWmatrix = true
-		if method == :nmf
-			method = :ipopt
-		end
+		method = :ipopt
 	end
 	if method == :nlopt && algorithm == :multdiv
 		algorithm = :LD_SLSQP
@@ -253,6 +251,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	if !quiet
 		if mixture == :mixmatch
+			method = :ipopt
 			print("MixMatch using ")
 		elseif mixture == :matchwaterdeltas
 			print("MixMatchDeltas using ")

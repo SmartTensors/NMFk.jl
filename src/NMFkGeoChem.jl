@@ -51,9 +51,9 @@ function computedeltas(mixer::Matrix, buckets::Matrix, bucketdeltas::Matrix, del
 		for j = 1:numdeltas
 			v = vec(mixer[i, :]) .* vec(buckets[:, deltaindices[j]])
 			if compute_contributions
-				deltas[i, j] = dot(v, bucketdeltas[:, j])
+				deltas[i, j] = LinearAlgebra.dot(v, bucketdeltas[:, j])
 			else
-				deltas[i, j] = dot(v, bucketdeltas[:, j]) / sum(v)
+				deltas[i, j] = LinearAlgebra.dot(v, bucketdeltas[:, j]) / sum(v)
 			end
 		end
 	end

@@ -44,7 +44,7 @@ function buckettest()
 	for iternum = 1:10
 		mixer = rand(nummixtures, numbuckets)
 		for i = 1:nummixtures
-			mixer[i, :] /= sum(mixer[i, :])
+			mixer[i, :] ./= sum(mixer[i, :])
 		end
 		buckets = convert(Array{Float32,2}, [100 0 3; 5 10 20])
 		data = convert(Array{Float32, 2}, mixer * buckets)
@@ -60,7 +60,7 @@ function nmfktest()
 		b = rand(20)
 		S = [a b]
 		for i = 1:size(S, 1)
-			S[i, :] /= sum(S[i, :])
+			S[i, :] ./= sum(S[i, :])
 		end
 		X = convert(Array{Float32, 2}, S * M)
 		runtest(X, M)
@@ -74,7 +74,7 @@ function pureratiotest()
 	for iternum = 1:10
 		mixer = rand(nummixtures, numbuckets)
 		for i = 1:nummixtures
-			mixer[i, :] /= sum(mixer[i, :])
+			mixer[i, :] ./= sum(mixer[i, :])
 		end
 		buckets = convert(Array{Float32, 2}, [0.001 1. .03 1.; .01 1. .0001 1.])
 		truedata = mixer * buckets
@@ -98,7 +98,7 @@ function ratiotest()
 	for iternum = 1:10
 		mixer = rand(nummixtures, numbuckets)
 		for i = 1:nummixtures
-			mixer[i, :] /= sum(mixer[i, :])
+			mixer[i, :] ./= sum(mixer[i, :])
 		end
 		buckets = convert(Array{Float32, 2}, [100 0.001 .15 1 1. 3; 5 1 1 .2 .33 20])
 		truedata = mixer * buckets

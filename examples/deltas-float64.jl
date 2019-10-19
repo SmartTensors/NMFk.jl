@@ -5,20 +5,20 @@ import Random
 nummixtures = 20
 numbuckets = 2
 Random.seed!(2015)
-mixer = convert(Array{Float32,2}, rand(nummixtures, numbuckets))
+mixer = convert(Array{Float64,2}, rand(nummixtures, numbuckets))
 for i = 1:nummixtures
 	mixer[i, :] /= sum(mixer[i, :])
 end
-buckets = convert(Array{Float32,2}, [100 0 3 50; 5 10 20 6])
-bucketdeltas = convert(Array{Float32,2}, [-10 3 0; -4 5 7])
+buckets = convert(Array{Float64,2}, [100 0 3 50; 5 10 20 6])
+bucketdeltas = convert(Array{Float64,2}, [-10 3 0; -4 5 7])
 @info("Bucket concentrations")
 display(buckets)
 @info("Bucket deltas")
 display(bucketdeltas)
 deltaindices = [1, 3, 4]
-concentrations = convert(Array{Float32,2}, mixer * buckets)
+concentrations = convert(Array{Float64,2}, mixer * buckets)
 # concentrations[1, 1] = NaN
-deltas = convert(Array{Float32,2}, NMFk.computedeltas(mixer, buckets, bucketdeltas, deltaindices))
+deltas = convert(Array{Float64,2}, NMFk.computedeltas(mixer, buckets, bucketdeltas, deltaindices))
 
 #=
 @info("Concentrations")

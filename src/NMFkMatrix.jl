@@ -16,7 +16,7 @@ end
 
 "Denormalize matrix"
 function denormalizematrix!(a::Matrix, b::Matrix, amin::Matrix, amax::Matrix)
-	a = a .* (amax - amin) + pinv(b) * repeat(amin, outer=[size(b, 1), 1])
+	a = a .* (amax - amin) + LinearAlgebra.pinv(b) * repeat(amin, outer=[size(b, 1), 1])
 	return a
 end
 

@@ -24,7 +24,7 @@ for i = 1:100
 	display(deltas)
 	=#
 
-	fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.matchdata(concentrations, deltas, deltaindices, 2; deltaweightsfactor=1, verbosity=1)
+	fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.mixmatchdeltas(concentrations, deltas, deltaindices, 2)
 	fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 	#=

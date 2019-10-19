@@ -262,5 +262,5 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 	end
 	Hnonneg && (Hbest[Hbest .< 0] .= 0)
 	Wnonneg && (Wbest[Wbest .< 0] .= 0)
-	return Wbest, Hbest, fitquality
+	return convert(Array{T, 2}, Wbest), convert(Array{T, 2}, Hbest), convert(T, fitquality)
 end

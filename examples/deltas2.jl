@@ -1,4 +1,6 @@
 import NMFk
+import LinearAlgebra
+import Random
 
 nummixtures = 20
 numbuckets = 2
@@ -8,9 +10,9 @@ mixer = rand(nummixtures-numbuckets, numbuckets)
 for i = 1:nummixtures-numbuckets
 	mixer[i, :] /= sum(mixer[i, :])
 end
-mixer = [eye(numbuckets, numbuckets); mixer]
+mixer = [Matrix(LinearAlgebra.I, numbuckets, numbuckets); mixer]
 buckets = [1 0.1; 0.1 1]
-bucketdeltas = [0.1 1]'
+bucketdeltas = permutedims([0.1 1])
 @info("Bucket concentrations")
 display(buckets)
 @info("Bucket deltas")
@@ -42,7 +44,7 @@ display(fitbuckets)
 
 @info("Concentrations and deltas")
 # fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.matchdata(concentrations, deltas, deltaindices, 2, normalize=true, Winit=mixer, Hinit=buckets, Hinitd=bucketdeltas, random=true, maxouteriters=100)
-fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.matchdata(concentrations, deltas, deltaindices, 2, scale=false, random=true, maxouteriters=100)
+fitmixer, fitbuckets, fitbucketdeltas, fitquality = NMFk.mixmatchdeltas(concentrations, deltas, deltaindices, 2; scale=false, random=true)
 fitdeltas = NMFk.computedeltas(fitmixer, fitbuckets, fitbucketdeltas, deltaindices)
 
 #=
