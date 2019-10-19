@@ -41,6 +41,7 @@ modules = ["NMFk"]
 
 include("NMFkHelp.jl")
 include("NMFkHelpers.jl")
+include("NMFkChecks.jl")
 include("NMFkCluster.jl")
 include("NMFkGeoChem.jl")
 include("NMFkMixMatrix.jl")

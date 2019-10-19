@@ -46,7 +46,7 @@ function regression(P::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method:
 			end
 			@Suppressor.suppress W, H, of, sil, aic = NMFk.execute(permutedims(P[:,:,k]), nk, 1; Wnonneg=Wnonneg, Hinit=[Mtrain ones(size(Mtrain, 1))]', Hfixed=true, method=:ipopt, regularizationweight=0.)
 			# @show NMFk.normnan((W * [Mtrain ones(size(Mtrain, 1))]')' .- P[:,:,k])
-			Xe[:,:,k] = permutedims(W * permutedims([Mpredict ones(size(Mpredict, 1))])
+			Xe[:,:,k] = permutedims(W * permutedims([Mpredict ones(size(Mpredict, 1))]))
 		end
 	end
 	return Xe
