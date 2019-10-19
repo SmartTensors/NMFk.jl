@@ -28,6 +28,9 @@ end
 Load NMFk analysis results
 """ load
 
+function save(t::Tuple, o...; kw...)
+	NMFk.save(t..., o...; kw...)
+end
 function save(W, H, fitquality, robustness, aic, nkrange::AbstractRange{Int}=1:length(W), nNMF::Integer=10; kw...)
 	for nk in nkrange
 		if isassigned(W, nk)
