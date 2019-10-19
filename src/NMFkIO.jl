@@ -28,9 +28,11 @@ end
 Load NMFk analysis results
 """ load
 
-function save(W, H, fitquality, robustness, aic, nk::AbstractRange{Int}, nNMF::Integer=10; kw...)
-	for numsources in nkrange
-		NMFk.save(W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources], numsources, nNMF; kw...)
+function save(W, H, fitquality, robustness, aic, nkrange::AbstractRange{Int}=1:length(W), nNMF::Integer=10; kw...)
+	for nk in nkrange
+		if isassigned(W, nk)
+			NMFk.save(W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk], nk, nNMF; kw...)
+		end
 	end
 end
 function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
@@ -38,7 +40,8 @@ function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; 
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
 	if !isfile(filename)
-		JLD.save(filename, "W", W, "H", H, "fit", fit, "robustness", "aic", aic)
+		@info("Results saved in $filename ...")
+		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	else
 		@warn("File named $filename already exists!")
 	end
