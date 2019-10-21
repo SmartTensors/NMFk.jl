@@ -12,10 +12,10 @@ end
 H = [100 0 3; 5 10 20] # true contaminant sources
 X = W * H
 X[1, 1] = NaN # missing sample
-We, He, fit, aic = NMFk.execute(X, 2:4; mixture=:mixmatch);
+We, He, fit, sil, aic, kopt = NMFk.execute(X, 2:4; mixture=:mixmatch);
 display(He[2]) # estimated mixing matrix
 display(H) # true mixing matrix
 
-We, He, fit, aic = NMFk.execute(convert.(Float32, X), 2:4; mixture=:mixmatch);
+We, He, fit, sil, aic, kopt = NMFk.execute(convert.(Float32, X), 2:4; mixture=:mixmatch);
 display(He[2]) # estimated mixing matrix
 display(H) # true mixing matrix
