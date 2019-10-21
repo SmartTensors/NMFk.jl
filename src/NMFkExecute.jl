@@ -204,8 +204,8 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	numparameters -= (size(Wa)[1] + size(Wa)[3])
 	aic = 2 * numparameters + numobservations * log(phi_final/numobservations)
-		E = X .- Xe
-	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E))
+	E = X .- Xe
+	!quiet && println("Objective function = ", phi_final, " Max error = ", maximumnan(E), " Min error = ", minimumnan(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
 function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, kw...) where {T}
@@ -489,7 +489,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	# sml = dof + numobservations * (log(fitquality[numbuckets]/dof) / 2 + 1.837877)
 	# aic[numbuckets] = sml + 2 * numparameters
 	aic = 2 * numparameters + numobservations * log(phi_final/numobservations)
-	!quiet && println("Objective function = ", phi_final, " Max error = ", maximum(E), " Min error = ", minimum(E) )
+	!quiet && println("Objective function = ", phi_final, " Max error = ", maximumnan(E), " Min error = ", minimumnan(E) )
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
 
