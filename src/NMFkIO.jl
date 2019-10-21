@@ -29,12 +29,12 @@ Load NMFk analysis results
 """ load
 
 function save(t::Tuple, o...; kw...)
-	NMFk.save(t..., o...; kw...)
+	save(t..., o...; kw...)
 end
 function save(W, H, fitquality, robustness, aic, nkrange::AbstractRange{Int}=1:length(W), nNMF::Integer=10; kw...)
 	for nk in nkrange
 		if isassigned(W, nk)
-			NMFk.save(W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk], nk, nNMF; kw...)
+			save(W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk], nk, nNMF; kw...)
 		end
 	end
 end
