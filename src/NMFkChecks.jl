@@ -32,9 +32,9 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 	return md
 end
 
-checkarray_zeros(X::Array) = checkarrayentries(X, func=i->i>0)
-checkarray_nans(X::Array) = checkarrayentries(X, func=.!isnan)
-checkarray_count(X::Array) = checkarrayentries(X, func=.!isnan; ecount=true)
+checkarray_nans(X::Array) = checkarrayentries(Xn)
+checkarray_zeros(X::Array) = checkarrayentries(X, i->i>0)
+checkarray_count(X::Array) = checkarrayentries(X; ecount=true)
 
 function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=false, ecount::Bool=false) where {T, N}
 	local flag = true
