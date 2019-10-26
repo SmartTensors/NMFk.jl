@@ -11,19 +11,19 @@ Classical NMF approaches do not allow for automatic estimation of the number of 
 
 **NMFk** can be applied to perform:
 
-    - Feature extraction (**FE**)
-    - Blind source separation (**BSS**)
-    - Detection of disruptions / anomalies
-    - Image recognition
-    - Separation of (physics) processes
-    - Discovery of unknown dependencies and phenomena
-    - Development reduced-order/surrogate models
-    - Identificatioon of dependencies between model inputs and outputs
-    - Guiding development of physics models representing the ML analyzed data
-    - Data classification
-    - Blind predictions
-    - Optimization of data acquisition (optimal experimental design)
-    - Labeling of datasets for supervised ML analyses
+- Feature extraction (**FE**)
+- Blind source separation (**BSS**)
+- Detection of disruptions / anomalies
+- Image recognition
+- Separation of (physics) processes
+- Discovery of unknown dependencies and phenomena
+- Development reduced-order/surrogate models
+- Identificatioon of dependencies between model inputs and outputs
+- Guiding development of physics models representing the ML analyzed data
+- Data classification
+- Blind predictions
+- Optimization of data acquisition (optimal experimental design)
+- Labeling of datasets for supervised ML analyses
 
 **NMFk** provides high-performance computing capabilities to solve problems with Shared and Distributed Arrays in parallel.
 The parallelization allows for utilization of multi-core / multi-processor environments.
