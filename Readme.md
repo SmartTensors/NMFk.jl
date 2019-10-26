@@ -18,7 +18,7 @@ Classical NMF approaches do not allow for automatic estimation of the number of 
 - Separation of (physics) processes
 - Discovery of unknown dependencies and phenomena
 - Development reduced-order/surrogate models
-- Identificatioon of dependencies between model inputs and outputs
+- Identification of dependencies between model inputs and outputs
 - Guiding development of physics models representing the ML analyzed data
 - Data classification
 - Blind predictions
@@ -39,8 +39,8 @@ After starting Julia, execute:
 import Pkg; Pkg.add("NMFk")
 ```
 
-to access the latest released verdion.
-To utlizie the latest updates (commits) use:
+to access the latest released version.
+To utilize the latest updates (commits) use:
 
 ```julia
 import Pkg; Pkg.develop("NMFk")
@@ -53,7 +53,7 @@ Docker
 docker run --interactive --tty montyvesselinov/tensors
 ```
 
-The docker image provised access to all **TensorDecomposition** packages.
+The docker image provides access to all **TensorDecomposition** packages.
 
 ### Testing
 
@@ -131,7 +131,7 @@ More examples can be found the in the `test`, `demo`, and `examples` directories
 
 ### Applications:
 
-**NNMk** has been applied in a wide range of real-world applications.
+**NMFk** has been applied in a wide range of real-world applications.
 The analyzed datasets include model outputs, laboratory experimental data, and field tests:
 
 - Climate modeling
@@ -155,7 +155,7 @@ Videos are also available at [YouTube](https://www.youtube.com/playlist?list=PLp
 
 ### Notebooks:
 
-A series of Jupyter notebooks demonstrating **NMFk** have been developed.
+A series of Jupyter notebooks demonstrating **NMFk** have been developed:
 
 * [Blind Source Separation (i.e. Feature Extraction)](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/blind_source_separation.ipynb)
 * [Blind Prediction](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/simple_mapping.ipynb)
