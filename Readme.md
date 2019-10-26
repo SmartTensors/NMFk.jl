@@ -6,10 +6,24 @@ NMFk: Nonnegative Matrix Factorization using k-means clustering
 </div>
 
 **NMFk** is a novel unsupervised machine learning methodology which allows for automatic identification of the optimal number of features (signals) present in the data when NMF (Nonnegative Matrix Factorization) analyses are performed.
-Classical NMF approaches do not allow estimation of the number of features.
-The number of features `k` is estimated through k-means clustering coupled with regularization constraints.
+Classical NMF approaches do not allow for automatic estimation of the number of features.
+**NMFk** estimates the number of features `k` through k-means clustering coupled with regularization constraints.
 
-In addition to feature extraction, **NMFk** also allows for data classifications and blind predictions.
+**NMFk** can be applied to perform:
+
+    - Feature extraction (**FE**)
+    - Blind source separation (**BSS**)
+    - Detection of disruptions / anomalies
+    - Image recognition
+    - Separation of (physics) processes
+    - Discovery of unknown dependencies and phenomena
+    - Development reduced-order/surrogate models
+    - Identificatioon of dependencies between model inputs and outputs
+    - Guiding development of physics models representing the ML analyzed data
+    - Data classification
+    - Blind predictions
+    - Optimization of data acquisition (optimal experimental design)
+    - Labeling of datasets for supervised ML analyses
 
 **NMFk** provides high-performance computing capabilities to solve problems with Shared and Distributed Arrays in parallel.
 The parallelization allows for utilization of multi-core / multi-processor environments.
@@ -25,7 +39,8 @@ After starting Julia, execute:
 import Pkg; Pkg.add("NMFk")
 ```
 
-or
+to access the latest released verdion.
+To utlizie the latest updates (commits) use:
 
 ```julia
 import Pkg; Pkg.develop("NMFk")
@@ -35,8 +50,10 @@ Docker
 -------
 
 ```bash
-docker run --interactive --tty montyvesselinov/nmfk
+docker run --interactive --tty montyvesselinov/tensors
 ```
+
+The docker image provised access to all **TensorDecomposition** packages.
 
 ### Testing
 
@@ -114,6 +131,9 @@ More examples can be found the in the `test`, `demo`, and `examples` directories
 
 ### Applications:
 
+**NNMk** has been applied in a wide range of real-world applications.
+The analyzed datasets include model outputs, laboratory experimental data, and field tests:
+
 - Climate modeling
 - Material characterization using X rays
 - Reactive mixing
@@ -165,7 +185,15 @@ Alexandrov, B.S., Vesselinov, V.V., Alexandrov, L.B., Stanev, V., Iliev, F.L., S
 
 For more information, visit [monty.gitlab.io](http://monty.gitlab.io)
 
-### Examples:
+### Notebooks:
+
+A series of Jupyter notebooks demonstrating **NMFk** have been developed.
+
+* [Blind Source Separation (i.e. Feature Extraction)](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/blind_source_separation.ipynb)
+* [Blind Prediction](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/simple_mapping.ipynb)
+* [Unmixing concentration data](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/mixing-concentrations.ipynb)
+
+### Other Examples:
 
 * [Machine Learning](https://madsjulia.github.io/Mads.jl/Examples/machine_learning/index.html)
 * [Blind Source Separation (i.e. Feature Extraction)](https://madsjulia.github.io/Mads.jl/Examples/blind_source_separation/index.html)
