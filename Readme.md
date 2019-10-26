@@ -153,12 +153,6 @@ The analyzed datasets include model outputs, laboratory experimental data, and f
 
 Videos are also available at [YouTube](https://www.youtube.com/playlist?list=PLpVcrIWNlP22LfyIu5MSZ7WHp7q0MNjsj)
 
-### Patent:
-
-Alexandrov, B.S., Vesselinov, V.V., Alexandrov, L.B., Stanev, V., Iliev, F.L., Source identification by non-negative matrix factorization combined with semi-supervised clustering, [US20180060758A1](https://patents.google.com/patent/US20180060758A1/en)
-
-For more information, visit [monty.gitlab.io](http://monty.gitlab.io)
-
 ### Notebooks:
 
 A series of Jupyter notebooks demonstrating **NMFk** have been developed.
@@ -172,6 +166,10 @@ A series of Jupyter notebooks demonstrating **NMFk** have been developed.
 * [Machine Learning](https://madsjulia.github.io/Mads.jl/Examples/machine_learning/index.html)
 * [Blind Source Separation (i.e. Feature Extraction)](https://madsjulia.github.io/Mads.jl/Examples/blind_source_separation/index.html)
 * [Source Identification](https://madsjulia.github.io/Mads.jl/Examples/contaminant_source_identification/index.html)
+
+### Patent:
+
+Alexandrov, B.S., Vesselinov, V.V., Alexandrov, L.B., Stanev, V., Iliev, F.L., Source identification by non-negative matrix factorization combined with semi-supervised clustering, [US20180060758A1](https://patents.google.com/patent/US20180060758A1/en)
 
 ### Publications:
 
@@ -198,6 +196,10 @@ Research papers are also available at [Google Scholar](http://scholar.google.com
 - Vesselinov, V.V., Alexandrov, B.A, Model-free Source Identification, AGU Fall Meeting, San Francisco, CA, 2014. [PDF](http://monty.gitlab.io/presentations/vesselinov%20bss-agu2014-LA-UR-14-29163.pdf)
 
 Presentations are also available at [slideshare.net](https://www.slideshare.net/VelimirmontyVesselin), [ResearchGate](https://www.researchgate.net/profile/Velimir_Vesselinov) and [Academia.edu](https://lanl.academia.edu/monty)
+
+### Extra information
+
+For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [tensordecompositions.github.io],(https://tensordecompositions.github.io), and [tensors.lanl.gov](http://tensors.lanl.gov)
 
 Installation behind a firewall
 ------------------------------
