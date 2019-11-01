@@ -20,17 +20,23 @@ function r2(x::Vector, y::Vector)
 	(sum((x .- Statistics.mean(x)) .* (y .- Statistics.mean(y)))/sqrt(sum((x .- Statistics.mean(x)).^2 .* sum((y .- Statistics.mean(y)).^2))))^2
 end
 
-function maximumnan(X; func::Function=isnan, kw...)
+function maximumnan(X::AbstractArray; func::Function=isnan, kw...)
 	i = func.(X)
-	maximum(X[.!i]; kw...)
+	X[i] .= 0
+	m = maximum(X; kw...)
+	X[i] .= NaN
+	return m
 end
 
-function minimumnan(X; func::Function=isnan, kw...)
+function minimumnan(X::AbstractArray; func::Function=.!isnan, kw...)
 	i = func.(X)
-	minimum(X[.!i]; kw...)
+	X[i] .= 0
+	m = minimum(X; kw...)
+	X[i] .= NaN
+	return m
 end
 
-function sumnan(X; dims=nothing, kw...)
+function sumnan(X::AbstractArray; dims=nothing, kw...)
 	if dims == nothing
 		return sum(X[.!isnan.(X)]; kw...)
 	else
@@ -45,15 +51,15 @@ function sumnan(X; dims=nothing, kw...)
 	end
 end
 
-function meannan(X)
+function meannan(X::AbstractArray)
 	Statistics.mean(X[.!isnan.(X)])
 end
 
-function ssqrnan(X)
+function ssqrnan(X::AbstractArray)
 	sum(X[.!isnan.(X)].^2)
 end
 
-function normnan(X)
+function normnan(X::AbstractArray)
 	LinearAlgebra.norm(X[.!isnan.(X)])
 end
 

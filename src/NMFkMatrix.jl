@@ -29,9 +29,11 @@ end
 
 "Scale array"
 function scalearray!(a::Array)
-	amax = vec(maximum(a, dims=(1,3)))
+	amax = vec(maximumnan(a; dims=(1,3)))
 	for i = 1:length(amax)
-		a[:, i, :] ./= amax[i]
+		if amax[i] != 0 && !isnan(amax[i])
+			a[:, i, :] ./= amax[i]
+		end
 	end
 	return a, amax
 end
@@ -44,7 +46,11 @@ end
 
 "Descale matrix (by rows)"
 function descalearray!(a::Matrix, amax::Vector)
-	a .*= permutedims(amax)
+	for i = 1:length(amax)
+		if amax[i] != 0 && !isnan(amax[i])
+			a[:, i, :] .*= amax[i]
+		end
+	end
 	return a
 end
 
