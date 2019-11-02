@@ -30,7 +30,7 @@ end
 
 function minimumnan(X::AbstractArray; func::Function=.!isnan, kw...)
 	i = func.(X)
-	X[i] .= 0
+	X[i] .= Inf
 	m = minimum(X; kw...)
 	X[i] .= NaN
 	return m
