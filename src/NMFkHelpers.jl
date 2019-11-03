@@ -20,19 +20,42 @@ function r2(x::Vector, y::Vector)
 	(sum((x .- Statistics.mean(x)) .* (y .- Statistics.mean(y)))/sqrt(sum((x .- Statistics.mean(x)).^2 .* sum((y .- Statistics.mean(y)).^2))))^2
 end
 
-function maximumnan(X::AbstractArray; func::Function=isnan, kw...)
-	i = func.(X)
-	X[i] .= 0
-	m = maximum(X; kw...)
-	X[i] .= NaN
+function findfirst(v::Vector, func::Function=i->i > 0; zerod::Bool=true, funczerod::Function=isnan)
+	if zerod
+		i = funczerod.(v)
+		v[i] .= 0
+	end
+	vi = Base.findfirst(func, v)
+	if zerod
+		i = isnan.(v)
+		v[i] .= NaN
+	end
+	return vi
+end
+
+function maximumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
+	if dims == nothing
+		i = func.(X)
+		m = maximum(X[.!i]; kw...)
+	else
+		i = func.(X)
+		X[i] .= 0
+		m = maximum(X; dims=dims, kw...)
+		X[i] .= NaN
+	end
 	return m
 end
 
-function minimumnan(X::AbstractArray; func::Function=.!isnan, kw...)
-	i = func.(X)
-	X[i] .= Inf
-	m = minimum(X; kw...)
-	X[i] .= NaN
+function minimumnan(X::AbstractArray; dims=nothing, func::Function=.!isnan, kw...)
+	if dims == nothing
+		i = func.(X)
+		m = minimum(X[.!i]; kw...)
+	else
+		i = func.(X)
+		X[i] .= Inf
+		m = minimum(X; dims=dims, kw...)
+		X[i] .= NaN
+	end
 	return m
 end
 
@@ -40,13 +63,13 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 	if dims == nothing
 		return sum(X[.!isnan.(X)]; kw...)
 	else
-		count = .*(size(X)[vec(collect(dims))]...)
+		ecount = .*(size(X)[vec(collect(dims))]...)
 		I = isnan.(X)
 		X[I] .= 0
 		sX = sum(X; dims=dims, kw...)
 		X[I] .= NaN
 		sI = sum(I; dims=dims, kw...)
-		sX[sI.==count] .= NaN
+		sX[sI.==ecount] .= NaN
 		return sX
 	end
 end
@@ -101,7 +124,6 @@ function hardencode(x::Vector{T}) where {T}
 	end
 	return m
 end
-
 
 function hardencode(x::Matrix{T}) where {T}
 	hcat([hardencode(x[:,i]) for i = 1:size(x, 2)]...)
