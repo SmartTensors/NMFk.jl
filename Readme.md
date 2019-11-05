@@ -43,7 +43,7 @@ to access the latest released version.
 To utilize the latest updates (commits) use:
 
 ```julia
-import Pkg; Pkg.develop("NMFk")
+import Pkg; Pkg.add(Pkg.PackageSpec(name="NMFk", rev="master"))
 ```
 
 Docker
