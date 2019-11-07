@@ -29,7 +29,7 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfir
 		else
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 		end
-		firstentry = findfirst(funcfirst.(X[nt...]))
+		firstentry = Base.findfirst(funcfirst.(X[nt...]))
 		if firstentry != nothing
 			afirstentry[i] = firstentry
 			lastentry = findlast(funclast.(X[nt...]))
@@ -108,10 +108,10 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol,
 		iwelldates = indexin(welldates[isortedwelldates], dates)
 		iwelldates3 = .!isnothing.(iwelldates)
 		if checkzero
-			iattrfirst = findfirst(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
+			iattrfirst = Base.findfirst(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
 			iattrlast = findlast(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
 		else
-			iattrfirst = findfirst(i->i>=0, attr[innattr][isortedwelldates][iwelldates3])
+			iattrfirst = Base.findfirst(i->i>=0, attr[innattr][isortedwelldates][iwelldates3])
 			iattrlast = findlast(i->i>=0, attr[innattr][isortedwelldates][iwelldates3])
 		end
 		startdates[i] = welldates[isortedwelldates][iwelldates3][iattrfirst]

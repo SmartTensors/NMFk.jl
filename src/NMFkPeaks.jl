@@ -12,9 +12,9 @@ function firstjump(y; lag=min(length(y), 30), threshold=5, influence=0)
 	r = smoothedzscore(y; lag=lag, threshold=threshold, influence=influence)
 	if1 = subset([0., 1.], r[:signals])
 	if if1 != nothing
-		if2 = if1 + findfirst(i->i > 0, y[if1:end]) - 1
+		if2 = if1 + Base.findfirst(i->i > 0, y[if1:end]) - 1
 	else
-		if2 = findfirst(i->i > 0, y)
+		if2 = Base.findfirst(i->i > 0, y)
 	end
 	y[.!isn] .= NaN
 	if2

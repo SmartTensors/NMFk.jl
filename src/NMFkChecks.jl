@@ -7,7 +7,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 		e = Array{Int64}(undef, 0)
 		for i = 1:dd
 			nt = ntuple(k->(k == d ? i : Colon()), N)
-			firstentry = findfirst(funcfirst.(X[nt...]))
+			firstentry = Base.findfirst(funcfirst.(X[nt...]))
 			if firstentry != nothing
 				lastentry = findlast(funclast.(X[nt...]))
 				if lastentry != nothing
