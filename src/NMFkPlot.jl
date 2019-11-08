@@ -11,7 +11,7 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
+function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
@@ -39,11 +39,11 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, proportion:
 	if xlabelmap != nothing
 		s = [s..., Gadfly.Scale.x_continuous(minvalue=xmin, maxvalue=xmax, labels=xlabelmap)]
 	end
+	m = []
 	if joined
 		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i in suc]))
 		!quiet && (display(f); println())
 	else
-		m = []
 		for (i, g) in enumerate(l)
 			push!(m, Gadfly.plot(g, s..., Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")))
 		end
@@ -60,7 +60,15 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, proportion:
 			mkdir(figuredir)
 		end
 		recursivemkdir(filename)
-		Gadfly.draw(Gadfly.PNG(joinpath(figuredir, filename), hsize, vsize), f)
+		if separate && length(m) > 1
+			vsize /= length(suc)
+			fp = splitext(filename)
+			for (i, p) in enumerate(m)
+				Gadfly.draw(Gadfly.PNG(joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize), p)
+			end
+		else
+			Gadfly.draw(Gadfly.PNG(joinpath(figuredir, filename), hsize, vsize), f)
+		end
 	end
 	return nothing
 end
