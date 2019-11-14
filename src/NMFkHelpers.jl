@@ -46,7 +46,7 @@ function maximumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	return m
 end
 
-function minimumnan(X::AbstractArray; dims=nothing, func::Function=.!isnan, kw...)
+function minimumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if dims == nothing
 		i = func.(X)
 		m = minimum(X[.!i]; kw...)
