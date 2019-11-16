@@ -82,18 +82,47 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 end
 
 function sortclustering(c; rev=true)
-	i = sortperm(c.counts; rev=rev)
 	cassignments = similar(c.assignments)
-	# for j = 1:length(i)
+	j = unique(c.assignments)
+	# @show j
+	# for j = 1:length(j)
 	# 	@show sum(c.assignments .== j)
 	# end
-	for (k, a) in enumerate(i)
+	for (k, a) in enumerate(j)
 		cassignments[c.assignments .== a] .= k
 	end
-	# for j = 1:length(i)
+	# @show unique(cassignments)
+	# for j = 1:length(j)
 	# 	@show sum(cassignments .== j)
 	# end
-	return Clustering.KmeansResult(c.centers[:,i], cassignments, c.costs, c.counts[i], c.wcounts[i], c.totalcost, c.iterations, c.converged)
+	i = sortperm(c.counts[j]; rev=rev)
+	cassignments2 = similar(c.assignments)
+	for (k, a) in enumerate(i)
+		cassignments2[cassignments .== a] .= k
+	end
+	# @show unique(cassignments2)
+	# for j = 1:length(i)
+	# 	@show sum(cassignments2 .== j)
+	# end
+	r = j[i]
+	return Clustering.KmeansResult(c.centers[:,r], cassignments2, c.costs, c.counts[r], c.wcounts[r], c.totalcost, c.iterations, c.converged)
+end
+
+function letterassignements(c::Vector)
+	t = unique(c)
+	nc = length(c)
+	nt = length(t)
+	if nt < 31
+		types = collect(range('A'; length=nt))
+		cassignments = Vector{Char}(undef, nc)
+	else
+		types = ["T$i" for i=1:nt]
+		cassignments = Vector{String}(undef, nc)
+	end
+	for a in t
+		cassignments[c .== a] .= types[a]
+	end
+	return cassignments
 end
 
 function clustersolutions(factors::Vector{Matrix}, clusterWmatrix::Bool=false)
