@@ -1,6 +1,6 @@
-function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
+function load(nkrange::AbstractRange{Int}, nNMF::Integer=10, dim::Integer=2; kw...)
 	maxsources = maximum(collect(nkrange))
-	W = Array{Array{Float64, 2}}(undef, maxsources)
+	W = Array{Array{Float64, dim}}(undef, maxsources)
 	H = Array{Array{Float64, 2}}(undef, maxsources)
 	fitquality = Array{Float64}(undef, maxsources)
 	robustness = Array{Float64}(undef, maxsources)
