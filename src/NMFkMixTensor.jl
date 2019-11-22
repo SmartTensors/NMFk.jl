@@ -125,10 +125,10 @@ end
 
 function setbadmixerelements!(X::AbstractArray, W::AbstractArray, H::AbstractArray)
 	nw, nc, nt = size(X)
+	Xe = mixmatchcompute(W, H)
 	for t = 1:nt
 		for w = 1:nw
 			@show X[w, :, t]
-			Xe = mixmatchcompute(W, H)
 			@show Xe[w, :, t]
 			if all(isnan.(X[w, :, t]))
 				@info "bad"
