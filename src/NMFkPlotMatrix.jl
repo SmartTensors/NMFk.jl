@@ -143,7 +143,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	p = Gadfly.plot(c...)
 	# display(p); println();
 	if filename != ""
-		Gadfly.draw(Gadfly.PNG(joinpath(figuredir, filename), hsize, vsize, dpi=dpi), p)
+		plotfileformat(p, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
 		if flatten
 			f = joinpath(figuredir, filename)
 			e = splitext(f)

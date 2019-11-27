@@ -64,10 +64,10 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 			vsize /= length(suc)
 			fp = splitext(filename)
 			for (i, p) in enumerate(m)
-				Gadfly.draw(Gadfly.PNG(joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize), p)
+				plotfileformat(p, joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize; dpi=dpi)
 			end
 		else
-			Gadfly.draw(Gadfly.PNG(joinpath(figuredir, filename), hsize, vsize), f)
+			plotfileformat(f, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
 		end
 	end
 	return nothing
@@ -93,7 +93,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.
 			mkdir(figuredir)
 		end
 		recursivemkdir(filename)
-		Gadfly.draw(Gadfly.PNG(joinpath(figuredir, filename), hsize, vsize), ff)
+		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
 	end
 	return nothing
 end
@@ -111,7 +111,7 @@ function plotscatter(x::AbstractVector, y::AbstractVector; quiet::Bool=false, hs
 			mkdir(figuredir)
 		end
 		recursivemkdir(filename)
-		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
+		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
 	end
 	return nothing
 end
@@ -135,7 +135,7 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 			mkdir(figuredir)
 		end
 		recursivemkdir(filename)
-		Gadfly.draw(Gadfly.PDF(joinpath(figuredir, filename), hsize, vsize), ff)
+		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
 	end
 	return ff
 end
@@ -170,7 +170,7 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 			mkdir(figuredir)
 		end
 		recursivemkdir(filename)
-		Gadfly.draw(Gadfly.PNG(joinpath(figuredir, filename), hsize, vsize, dpi=dpi), ff)
+		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
 	end
 	return ff
 end
@@ -527,5 +527,40 @@ function recursivemkdir(s::String; filename=true)
 			mkdir(sc)
 			@info("Make dir $(sc)")
 		end
+	end
+end
+
+"""
+Set image file `format` based on the `filename` extension, or sets the `filename` extension based on the requested `format`. The default `format` is `PNG`. `SVG`, `PDF`, `ESP`, and `PS` are also supported.
+
+$(DocumentFunction.documentfunction(setplotfileformat;
+argtext=Dict("filename"=>"output file name")))
+
+Returns:
+
+- output file name
+- output plot format (`png`, `pdf`, etc.)
+"""
+function setplotfileformat(filename::String, format::String="PNG")
+	d = splitdir(filename)
+	root, extension = splitext(d[end])
+	if extension == ""
+		extension = lowercase(format)
+		filename = joinpath(d[1], root * "." * extension)
+	else
+		format = uppercase(extension[2:end])
+	end
+	if format == "EPS"
+		format = "PS"
+	end
+	return filename, Symbol(format)
+end
+
+function plotfileformat(p, filename::String, hsize, vsize; dpi=imagedpi)
+	filename, format = setplotfileformat(filename)
+	if format == :PNG
+		Gadfly.draw(Gadfly.PNG(filename, hsize, vsize; dpi=dpi), p)
+	else
+		Gadfly.draw(Gadfly.eval(format)(filename, hsize, vsize), p)
 	end
 end
