@@ -11,7 +11,7 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
+function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
@@ -44,8 +44,13 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i in suc]))
 		!quiet && (display(f); println())
 	else
+		if title != ""
+			mt = [Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")]
+		else
+			mt = []
+		end
 		for (i, g) in enumerate(l)
-			push!(m, Gadfly.plot(g, s..., Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")))
+			push!(m, Gadfly.plot(g, s..., mt...))
 		end
 		f = Gadfly.vstack(m...)
 		vsize *= length(suc)
@@ -73,7 +78,7 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 	return nothing
 end
 
-function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
+function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
 	nfeatures = length(unique(sort(df[!, :Attribute])))
 	loopcolors = nfeatures + 1 > ncolors ? true : false
 	if loopcolors
@@ -98,7 +103,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=8Gadfly.
 	return nothing
 end
 
-function plotscatter(x::AbstractVector, y::AbstractVector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=6Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
+function plotscatter(x::AbstractVector, y::AbstractVector; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
 	m = [min(x..., y...), max(x..., y...)]
 	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, Gadfly.Theme(highlight_width=0Gadfly.pt,default_color="red")), Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="gray")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
 	gw = Compose.default_graphic_width
