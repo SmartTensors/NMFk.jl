@@ -1,16 +1,16 @@
-function load(nkrange::AbstractRange{Int}, nNMF::Integer=10, dim::Integer=2; kw...)
+function load(nkrange::AbstractRange{Int}, nNMF::Integer=10, dim::Integer=2, t::DataType=Float64; kw...)
 	maxsources = maximum(collect(nkrange))
-	W = Array{Array{Float64, dim}}(undef, maxsources)
-	H = Array{Array{Float64, 2}}(undef, maxsources)
-	fitquality = Array{Float64}(undef, maxsources)
-	robustness = Array{Float64}(undef, maxsources)
-	aic = Array{Float64}(undef, maxsources)
+	W = Array{Array{t, dim}}(undef, maxsources)
+	H = Array{Array{t, 2}}(undef, maxsources)
+	fitquality = Array{t}(undef, maxsources)
+	robustness = Array{t}(undef, maxsources)
+	aic = Array{t}(undef, maxsources)
 	for numsources in nkrange
-		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.load(numsources, nNMF; kw...)
+		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.load(numsources, nNMF, t; dim=dim, kw...)
 	end
 	return W, H, fitquality, robustness, aic
 end
-function load(nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
+function load(nk::Integer, nNMF::Integer=10, t::DataType=Float64; dim=2, resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
@@ -20,7 +20,7 @@ function load(nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::Abstra
 		return W, H, fitquality, robustness, aic
 	else
 		@warn("File named $filename is missing!")
-		return Array{Float64, 2}(undef, 0, 0), Array{Float64,2}(undef, 0, 0), NaN, NaN, NaN
+		return Array{t, dim}(undef, [0 for i=1:dim]...), Array{t, 2}(undef, 0, 0), NaN, NaN, NaN
 	end
 end
 
