@@ -207,14 +207,23 @@ Installation behind a firewall
 Julia uses git for package management. Add in the `.gitconfig` file in your home directory:
 
 ```
+[url "git@github.com:"]
+    insteadOf = https://github.com/
+[url "git@gitlab.com:"]
+    insteadOf = https://gitlab.com/
 [url "https://"]
-        insteadOf = git://
+    insteadOf = git://
+[url "http://"]
+    insteadOf = git://
 ```
 
 or execute:
 
 ```
 git config --global url."https://".insteadOf git://
+git config --global url."http://".insteadOf git://
+git config --global url."git@gitlab.com:".insteadOf https://gitlab.com/
+git config --global url."git@github.com:".insteadOf https://github.com/
 ```
 
 Julia uses git and curl to install packages. Set proxies:
