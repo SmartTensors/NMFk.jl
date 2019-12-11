@@ -25,7 +25,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 		if length(bad_indices) > 0
 			@info "Bad indices in dimension $d: $bad_indices"
 		else
-			@info "No bad indices in dimension $d!"
+			@info "No bad indices in dimension $(d)!"
 		end
 		ir = sortperm(record_length)
 		@show record_length[ir][1:15]
@@ -69,9 +69,9 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=fal
 				end
 			else
 				if good
-					@info "No good indices in dimension $d!"
+					@info "No good indices in dimension $(d)!"
 				else
-					@info "No bad indices in dimension $d!"
+					@info "No bad indices in dimension $(d)!"
 				end
 			end
 		end
