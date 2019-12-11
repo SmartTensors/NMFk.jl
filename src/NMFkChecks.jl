@@ -22,12 +22,17 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 				push!(e, i)
 			end
 		end
-		@info "Bad indices in dimension $d: $e"
+		if length(e) > 0
+			@info "Bad indices in dimension $d: $e"
+		else
+			@info "No bad indices in dimension $d"
+		end
 		ir = sortperm(l)
 		@show l[ir][1:15]
 		@show l[ir][end-15:end]
-		md[d] = length(e) > 0 ? e[1] : 0
 		@show maximum(l)
+		# md[d] = length(e) > 0 ? e[1] : 0
+		md[d] = maximum(l)
 	end
 	return md
 end
