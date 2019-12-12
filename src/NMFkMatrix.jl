@@ -1,9 +1,9 @@
-function normalizematrix!(a...)
-	normalizematrix_col!(a...)
+function normalizematrix!(a...; kw...)
+	normalizematrix_col!(a...; kw...)
 end
 
 "Normalize matrix (by columns)"
-function normalizematrix_col!(a::AbstractMatrix)
+function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false)
 	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
 	amin = permutedims(map(i->NMFk.minimumnan(a[:,i]), 1:size(a, 2)))
 	dx = amax - amin
@@ -14,12 +14,17 @@ function normalizematrix_col!(a::AbstractMatrix)
 		i0 = dx .== 0 # check for zeros again
 		dx[i0] .= 1
 	end
-	a = (a .- amin) ./ dx
-	return a, amin, amax
+	if rev
+		a = (amax .- a) ./ dx
+		return a, amax, amin
+	else
+		a = (a .- amin) ./ dx
+		return a, amin, amax
+	end
 end
 
 "Normalize matrix (by rows)"
-function normalizematrix_row!(a::AbstractMatrix)
+function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false)
 	amax = map(i->NMFk.maximumnan(a[i,:]), 1:size(a, 1))
 	amin = map(i->NMFk.minimumnan(a[i,:]), 1:size(a, 1))
 	dx = amax - amin
@@ -30,13 +35,22 @@ function normalizematrix_row!(a::AbstractMatrix)
 		i0 = dx .== 0 # check for zeros again
 		dx[i0] .= 1
 	end
-	a = (a .- amin) ./ dx
-	return a, amin, amax
+	if rev
+		a = (amax .- a) ./ dx
+		return a, amax, amin
+	else
+		a = (a .- amin) ./ dx
+		return a, amin, amax
+	end
 end
 
 "Denormalize matrix"
-function denormalizematrix!(a::AbstractMatrix, b::Matrix, amin::Matrix, amax::Matrix)
-	a = a .* (amax - amin) + LinearAlgebra.pinv(b) * repeat(amin, outer=[size(b, 1), 1])
+function denormalizematrix!(a::AbstractMatrix, amin::Matrix, amax::Matrix)
+	if all(amax .>= amin)
+		a = a .* (amax - amin) + repeat(amin; outer=[size(a, 1), 1])
+	else
+		a = repeat(amin; outer=[size(a, 1), 1]) + a .* (amax - amin)
+	end
 	return a
 end
 
