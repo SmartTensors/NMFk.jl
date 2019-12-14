@@ -106,11 +106,13 @@ end
 function plotscatter(x::AbstractVector, y::AbstractVector; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
 	m = [min(x..., y...), max(x..., y...)]
 	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, Gadfly.Theme(highlight_width=0Gadfly.pt,default_color="red")), Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="gray")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
-	gw = Compose.default_graphic_width
-	gh = Compose.default_graphic_height
-	Compose.set_default_graphic_size(gw, gw)
-	!quiet && (display(ff); println())
-	Compose.set_default_graphic_size(gw, gh)
+	if !quiet
+		gw = Compose.default_graphic_width
+		gh = Compose.default_graphic_height
+		Compose.set_default_graphic_size(gw, gw)
+		display(ff); println()
+		Compose.set_default_graphic_size(gw, gh)
+	end
 	if filename != ""
 		if !isdir(figuredir)
 			mkdir(figuredir)
@@ -564,7 +566,8 @@ end
 function plotfileformat(p, filename::String, hsize, vsize; dpi=imagedpi)
 	filename, format = setplotfileformat(filename)
 	if format == :PNG
-		Gadfly.draw(Gadfly.PNG(filename, hsize, vsize; dpi=dpi), p)
+		try
+			Gadfly.draw(Gadfly.PNG(filename, hsize, vsize; dpi=dpi), p)
 	else
 		Gadfly.draw(Gadfly.eval(format)(filename, hsize, vsize), p)
 	end
