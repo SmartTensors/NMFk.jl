@@ -566,8 +566,7 @@ end
 function plotfileformat(p, filename::String, hsize, vsize; dpi=imagedpi)
 	filename, format = setplotfileformat(filename)
 	if format == :PNG
-		try
-			Gadfly.draw(Gadfly.PNG(filename, hsize, vsize; dpi=dpi), p)
+		Gadfly.draw(Gadfly.PNG(filename, hsize, vsize; dpi=dpi), p)
 	else
 		Gadfly.draw(Gadfly.eval(format)(filename, hsize, vsize), p)
 	end
