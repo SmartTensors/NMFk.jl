@@ -28,11 +28,16 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			@info "No bad indices in dimension $(d)!"
 		end
 		ir = sortperm(record_length)
-		@show record_length[ir][1:15]
-		@show record_length[ir][end-15:end]
-		@show maximum(record_length)
+		if length(record_length[ir]) > 50
+			@info "Worst 15 entry counts: $(record_length[ir][1:15])"
+			@info "Best 15 entry counts: $(record_length[ir][end-15:end])"
+		else
+			@info "Entry counts: $(record_length[ir])"
+		end
+		mm = maximum(record_length)
+		@info "Maximum entry counts: $(mm)"
 		# md[d] = length(bad_indices) > 0 ? bad_indices[1] : 0
-		md[d] = maximum(record_length)
+		md[d] = mm
 	end
 	return md
 end
