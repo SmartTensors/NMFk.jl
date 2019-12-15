@@ -66,6 +66,7 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 		if sum(I) == ecount
 			return NaN
 		else
+			@show (ecount - sum(I))
 			return sum(X[.!I]; kw...)
 		end
 	else
@@ -80,8 +81,26 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
-function meannan(X::AbstractArray)
-	Statistics.mean(X[.!isnan.(X)])
+function meannan(X::AbstractArray; dims=nothing, kw...)
+	if dims == nothing
+		ecount = .*(size(X)...)
+		I = isnan.(X)
+		if sum(I) == ecount
+			return NaN
+		else
+			return sum(X[.!I]; kw...) / (ecount - sum(I))
+		end
+	else
+		ecount = .*(size(X)[vec(collect(dims))]...)
+		I = isnan.(X)
+		X[I] .= 0
+		sX = sum(X; dims=dims, kw...)
+		X[I] .= NaN
+		sI = sum(I; dims=dims, kw...)
+		sX[sI.==ecount] .= NaN
+		sX ./= sum(I .== 0; dims=dims)
+		return sX
+	end
 end
 
 function ssqrnan(X::AbstractArray)
