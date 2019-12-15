@@ -1,8 +1,9 @@
 import Dates
 import DataFrames
 
-function remap(v::Vector{T}, mapping::Vector; func::Function=!isnothing) where {T}
+function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing) where {T}
 	o = Vector{T}(undef, length(mapping))
+	o .= NaN
 	if typeof(T) <: Integer
 		o .= 0
 	else
@@ -10,6 +11,19 @@ function remap(v::Vector{T}, mapping::Vector; func::Function=!isnothing) where {
 	end
 	i = func.(mapping)
 	o[i] .= v[mapping[i]]
+	return o
+end
+
+function remap(v::AbstractMatrix{T}, mapping::Vector; func::Function=!isnothing) where {T, N}
+	o = Array{T}(undef, length(mapping), size(v, 2))
+	o .= NaN
+	if typeof(T) <: Integer
+		o .= 0
+	else
+		o .= NaN
+	end
+	i = func.(mapping)
+	o[i, :] .= v[mapping[i], :]
 	return o
 end
 
