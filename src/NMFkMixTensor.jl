@@ -49,8 +49,8 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	elseif method == :nlopt
 		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer; algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start = convert(T, Winit[i, j, k]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
+	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start=convert(T, Winit[i, j, k]))
+	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start=convert(T, Hinit[i, j]))
 	if !normalize
 		@JuMP.constraint(m, buckets .>= 0)
 	end
