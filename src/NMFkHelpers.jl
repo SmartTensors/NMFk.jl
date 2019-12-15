@@ -61,7 +61,13 @@ end
 
 function sumnan(X::AbstractArray; dims=nothing, kw...)
 	if dims == nothing
-		return sum(X[.!isnan.(X)]; kw...)
+		ecount = .*(size(X)...)
+		I = isnan.(X)
+		if sum(I) == ecount
+			return NaN
+		else
+			return sum(X[.!I]; kw...)
+		end
 	else
 		ecount = .*(size(X)[vec(collect(dims))]...)
 		I = isnan.(X)
