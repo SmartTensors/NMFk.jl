@@ -289,7 +289,7 @@ function flip(X)
 	-X .+ NMFk.maximumnan(X) .+ NMFk.minimumnan(X)
 end
 
-function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
+function estimateflip_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
 	@assert size(X, 2) == size(Y, 2)
 	@assert size(A, 2) == size(B, 2)
 	@assert size(X, 1) == size(B, 1)
@@ -304,6 +304,26 @@ function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMat
 		local H2
 		@Suppressor.suppress W, H2, of, sil, aic = NMFk.execute(permutedims(NMFk.flip(Y[:,i])), nk, nNNF; Winit=permutedims(NMFk.flip(X[:,i])), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
 		b = Statistics.norm(permutedims(A) .- (permutedims(B) * H2))
+		vflip[i] = a < b ? false : true
+	end
+	return vflip
+end
+
+function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
+	@assert size(X, 1) == size(Y, 1)
+	@assert size(A, 1) == size(B, 1)
+	@assert size(X, 2) == size(B, 2)
+	@assert size(Y, 2) == size(A, 2)
+	nparam = size(X, 1)
+	nk = size(X, 2)
+	vflip = falses(nparam)
+	for i = 1:nparam
+		local H1
+		@Suppressor.suppress W, H1, of, sil, aic = NMFk.execute(Y[i:i,:], nk, nNNF; Winit=X[i:i,:], Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		a = Statistics.norm(A .- (B * H1))
+		local H2
+		@Suppressor.suppress W, H2, of, sil, aic = NMFk.execute(NMFk.flip(Y[i:i,:]), nk, nNNF; Winit=NMFk.flip(X[i:i,:]), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		b = Statistics.norm(A .- (B * H2))
 		vflip[i] = a < b ? false : true
 	end
 	return vflip
