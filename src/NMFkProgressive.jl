@@ -1,4 +1,17 @@
-function progressive(X::Matrix{T}, windowsize::Vector{Int64}, window_k::Vector{Int64}, nNMF1::Integer=10, nNMF2::Integer=10; casefilename::String="progressive", load::Bool=true, kw...) where {T}
+function progressive(X::Matrix{T}, windowsize::Int64, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::String="progressive", load::Bool=true, kw...) where {T}
+	@assert checkarray_nans(X)
+	@info("NMFk #1: $(casefilename) Window $windowsize")
+	W, H, fitquality, robustness, aic = NMFk.execute(X[1:windowsize,:], nkrange, nNMF1; casefilename="$(casefilename)_$(windowsize)", load=load, kw...)
+	if windowsize < size(X, 1)
+		for k in nkrange
+			@info("NMFk #2: $(casefilename) Window $windowsize Features $k")
+			NMFk.execute(X, k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, casefilename="$(casefilename)_$(windowsize)_all", load=load, kw...)
+		end
+	end
+	return nothing
+end
+
+function progressive(X::Matrix{T}, windowsize::Vector{Int64}, window_k::Vector{Int64}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::String="progressive", load::Bool=true, kw...) where {T}
 	@assert checkarray_nans(X)
 	@assert length(windowsize) == length(window_k)
 	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, 1:size(X, 1)))
@@ -14,10 +27,10 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, window_k::Vector{I
 			NMFk.execute(X, k, nNMF2; Hinit=convert.(T, H), Hfixed=true, casefilename="$(casefilename)_$(ws)_all", load=load, kw...)
 		end
 	end
-	return window_k
+	return nothing
 end
 
-function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=10; casefilename::String="progressive", load::Bool=true, kw...) where {T}
+function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::String="progressive", load::Bool=true, kw...) where {T}
 	@assert checkarray_nans(X)
 	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, 1:size(X, 1)))
 	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, 1:size(X, 2)))
@@ -31,7 +44,8 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractR
 			k = nkrange[1]
 		else
 			kn = findlast(i->i > 0.25, robustness)
-			k = (kn == nothing) ? findmax(robustness)[2] : kn
+			kn = (kn == nothing) ? findmax(robustness)[2] : kn
+			k = nkrange[kn]
 		end
 		push!(window_k, k)
 		if ws < size(X, 1)
@@ -42,14 +56,19 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractR
 	return window_k
 end
 
-function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=10; casefilename::String="progressive", load::Bool=true, kw...) where {T}
+function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::String="progressive", load::Bool=true, kw...) where {T}
 	window_k = Array{Int64}(undef, 0)
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
 		normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i][1:ws,:]), ws), 1:length(X))...)
 		W, H, fitquality, robustness, aic = NMFk.execute(vcat([X[i][1:ws,:] for i = 1:length(X)]...), nkrange, nNMF1; normalizevector=normalizevector,casefilename="$(casefilename)_$(ws)", load=load, kw...)
-		kn = findlast(i->i > 0.25, robustness)
-		k = (kn == nothing) ? findmax(robustness)[2] : kn
+		if length(nkrange) == 1
+			k = nkrange[1]
+		else
+			kn = findlast(i->i > 0.25, robustness)
+			kn = (kn == nothing) ? findmax(robustness)[2] : kn
+			k = nkrange[kn]
+		end
 		push!(window_k, k)
 		# global wws = 1
 		# global wwe = ws
