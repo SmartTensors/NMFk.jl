@@ -2,7 +2,7 @@ import MultivariateStats
 import Statistics
 
 """
-Predict A based on the mapping X -> Y
+Predict A based on the mapping X -> Y; permuting all the matrices; old
 """
 function mapping_old(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
 	nk = size(X, 1)
@@ -23,6 +23,9 @@ function mapping_old(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatr
 	end
 end
 
+"""
+Predict A based on the mapping X -> Y; permuting all the matrices
+"""
 function mapping_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; kw...) where T
 	mapping(permutedims(X), permutedims(Y), permutedims(A), permutedims(B), nNNF; kw...)
 end
