@@ -20,8 +20,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 	for nk in nkrange
 		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality[nk])) Silhouette: $(@sprintf("%12.7g", robustness[nk])) AIC: $(@sprintf("%12.7g", aic[nk]))")
 	end
-	kn = findlast(i->i > 0.25, robustness)
-	k = (kn == nothing) ? findmax(robustness)[2] : kn
+	k = getk(nkrange, robustness)
 	@info("Optimal solution: $k signals")
 	return W, H, fitquality, robustness, aic, k
 end
