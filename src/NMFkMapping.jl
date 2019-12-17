@@ -34,7 +34,7 @@ end
 """
 Predict B based on A and the mapping X -> Y
 """
-function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, fliptest=true, kw...) where T
+function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:simple, regularizationweight=1e-8, fliptest=false, kw...) where T
 	kwx = method == :ipopt ? Dict("regularizationweight"=>regularizationweight) : Dict()
 	nk = size(X, 2)
 	np = size(X, 1)
