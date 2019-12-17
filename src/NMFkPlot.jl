@@ -104,7 +104,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 end
 
 function plotscatter(x::AbstractVector, y::AbstractVector; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
-	m = [min(x..., y...), max(x..., y...)]
+	m = [minimumnan([x y]), maximumnan([x y])]
 	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, Gadfly.Theme(highlight_width=0Gadfly.pt,default_color="red")), Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="gray")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
 	if !quiet
 		gw = Compose.default_graphic_width
