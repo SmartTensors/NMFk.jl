@@ -93,7 +93,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 		if mod(iters, 10) == 0
 			objvalue = sum(((X - W * H)[.!inan]).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 			if objvalue < tol
-				!quiet && println("Converged by tolerance: number of iterations $(i) $(objvalue)")
+				!quiet && println("Converged by tolerance: number of iterations $(iters) $(objvalue)")
 				break
 			end
 			if objvalue < objvalue_best
