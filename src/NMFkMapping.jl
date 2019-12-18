@@ -28,14 +28,15 @@ end
 Predict B based on A and the mapping X -> Y; permuting all the matrices
 """
 function mapping_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; kw...) where T
-	mapping(permutedims(X), permutedims(Y), permutedims(A), permutedims(B), nNNF; kw...)
+	W, H, of, sil, aic = mapping(permutedims(X), permutedims(Y), permutedims(A), permutedims(B), nNNF; kw...)
+	return permutedims(W), permutedims(H), of, sil, aic
 end
 
 """
 Predict B based on A and the mapping X -> Y
 """
 function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:simple, regularizationweight=1e-8, fliptest=false, kw...) where T
-	kwx = method == :ipopt ? Dict("regularizationweight"=>regularizationweight) : Dict()
+	kwx = method == :ipopt ? Dict(:regularizationweight=>regularizationweight) : Dict()
 	nk = size(X, 2)
 	np = size(X, 1)
 	nz = sum(isnan.(X))
