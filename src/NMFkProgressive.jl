@@ -86,12 +86,14 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 	return window_k
 end
 
-function getk(nkrange::Union{AbstractRange{Int},Vector{Integer}}, robustness::Vector{Number})
+function getk(nkrange::Union{AbstractRange{Int},Vector{Integer}}, robustness::Vector)
+	@assert length(nkrange) == length(robustness)
 	if length(nkrange) == 1
 		k = nkrange[1]
 	else
 		kn = findlast(i->i > 0.25, robustness)
 		kn = (kn == nothing) ? findmax(robustness)[2] : kn
+		@show kn
 		k = nkrange[kn]
 	end
 	return k
