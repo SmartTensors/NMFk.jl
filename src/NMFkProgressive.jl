@@ -9,9 +9,9 @@ function progressive(X::Matrix{T}, windowsize::Int64, nkrange::AbstractRange{Int
 			_, _, _, r, _ = NMFk.execute(X, k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, casefilename="$(casefilename)_$(windowsize)_all", load=load, kw...)
 			push!(robustness, r)
 		end
-		k = getk(nkrange, robustness)
+		k = getk(nkrange, robustness[nkrange])
 	else
-		k = getk(nkrange, robustness)
+		k = getk(nkrange, robustness[nkrange])
 	end
 	return k
 end
@@ -45,7 +45,7 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractR
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
 		W, H, fitquality, robustness, aic = NMFk.execute(X[1:ws,:], nkrange, nNMF1; casefilename="$(casefilename)_$(ws)", load=load, kw...)
-		k = getk(nkrange, robustness)
+		k = getk(nkrange, robustness[nkrange])
 		push!(window_k, k)
 		if ws < size(X, 1)
 			@info("NMFk #2: $(casefilename) Window $ws: Best $k")
@@ -61,7 +61,7 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 		@info("NMFk #1: $(casefilename) Window $ws")
 		normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i][1:ws,:]), ws), 1:length(X))...)
 		W, H, fitquality, robustness, aic = NMFk.execute(vcat([X[i][1:ws,:] for i = 1:length(X)]...), nkrange, nNMF1; normalizevector=normalizevector,casefilename="$(casefilename)_$(ws)", load=load, kw...)
-		k = getk(nkrange, robustness)
+		k = getk(nkrange, robustness[nkrange])
 		push!(window_k, k)
 		# global wws = 1
 		# global wwe = ws
@@ -93,7 +93,6 @@ function getk(nkrange::Union{AbstractRange{Int},Vector{Integer}}, robustness::Ve
 	else
 		kn = findlast(i->i > 0.25, robustness)
 		kn = (kn == nothing) ? findmax(robustness)[2] : kn
-		@show kn
 		k = nkrange[kn]
 	end
 	return k
