@@ -4,7 +4,7 @@ import Statistics
 """
 Predict B based on A and the mapping X -> Y; permuting all the matrices; old
 """
-function mapping_old(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
+function mapping_old(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF::Integer=10; save::Bool=false, method::Symbol=:ipopt, regularizationweight::Number=1e-8, kw...) where T
 	nk = size(X, 1)
 	np = size(X, 2)
 	local W1, H1, of1, sil1, aic1
@@ -27,15 +27,15 @@ end
 """
 Predict B based on A and the mapping X -> Y; permuting all the matrices
 """
-function mapping_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; kw...) where T
+function mapping_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF::Integer=10; kw...) where T
 	W, H, of, sil, aic = mapping(permutedims(X), permutedims(Y), permutedims(A), permutedims(B), nNNF; kw...)
-	return permutedims(W), permutedims(H), of, sil, aic
+	return permutedims(H), permutedims(W), of, sil, aic
 end
 
 """
 Predict B based on A and the mapping X -> Y
 """
-function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:simple, regularizationweight=1e-8, fliptest=false, kw...) where T
+function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF::Integer=10; save::Bool=false, method::Symbol=:simple, regularizationweight::Number=1e-8, fliptest::Bool=false, kw...) where T
 	kwx = method == :ipopt ? Dict(:regularizationweight=>regularizationweight) : Dict()
 	nk = size(X, 2)
 	np = size(X, 1)

@@ -86,7 +86,7 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 	return window_k
 end
 
-function getk(nkrange, robustness)
+function getk(nkrange::Union{AbstractRange{Int},Vector{Integer}}, robustness::Vector{Number})
 	if length(nkrange) == 1
 		k = nkrange[1]
 	else
