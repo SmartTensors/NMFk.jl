@@ -58,10 +58,10 @@ function robustkmeans(X::AbstractMatrix, krange::AbstractRange{Int}, repeats::In
 end
 
 function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
-	best_totalcost = Inf
 	local c = nothing
-	best_mean_cluster_silhouettes = Vector{Float64}(undef, k)
+	local best_totalcost = Inf
 	local best_mean_silhouettes = Inf
+	best_mean_cluster_silhouettes = Vector{Float64}(undef, k)
 	for i = 1:repeats
 		local c_new
 		@Suppressor.suppress begin
@@ -69,7 +69,7 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 		end
 		Xd = Distances.pairwise(Distances.CosineDist(), X; dims=2)
 		silhouettes = Clustering.silhouettes(c_new, Xd)
-		if c_new.totalcost < best_totalcost
+		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost
 			best_mean_silhouettes = Statistics.mean(silhouettes)
