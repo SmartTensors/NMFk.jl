@@ -39,7 +39,8 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 	kwx = method == :ipopt ? Dict(:regularizationweight=>regularizationweight) : Dict()
 	nk = size(X, 2)
 	np = size(X, 1)
-	nz = sum(isnan.(X))
+	inan = isnan.(X)
+	nz = sum(inan)
 	if nz > 0
 		@warn("Training matrix X has $nz NaNs!")
 	end
@@ -48,6 +49,7 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 		@warn("Training matrix A has $nz NaNs!")
 	end
 	@info "Mapping matrix size will be: $nk x $(size(Y, 2))"
+	X[inan] .= 0
 	local W1, H1, of1, sil1, aic1
 	@Suppressor.suppress W1, H1, of1, sil1, aic1 = NMFk.execute(Y, nk, nNNF; Winit=X, Wfixed=true, save=save, method=method, kw..., kwx...)
 	if fliptest
@@ -58,12 +60,17 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 		local W2, H2, of2, sil2, aic2
 		@Suppressor.suppress W2, H2, of2, sil2, aic2 = NMFk.execute(Yn, nk, nNNF; Winit=Xn, Wfixed=true, save=save, method=method, kw..., kwx...)
 		b = NMFk.normnan(B .- (A * H2))
+		X[inan] .= NaN
 		if a < b
+			W1[inan] .= NaN
 			return W1, H1, of1, sil1, aic1
 		else
+			W2[inan] .= NaN
 			return W2, H2, of2, sil2, aic2
 		end
 	else
+		X[inan] .= NaN
+		W1[inan] .= NaN
 		return W1, H1, of1, sil1, aic1
 	end
 end

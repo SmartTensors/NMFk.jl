@@ -37,11 +37,18 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 		W = rand(n, k)
 	else
 		W = Winit
+		if sum(isnan.(W)) > 0
+			error("Initial values for the W matrix entries include NaNs!")
+		end
 	end
+
 	if sizeof(Hinit) == 0
 		H = rand(k, m)
 	else
 		H = Hinit
+		if sum(isnan.(H)) > 0
+			error("Initial values for the H matrix entries include NaNs!")
+		end
 	end
 
 	if movie
