@@ -20,9 +20,9 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 	for nk in nkrange
 		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality[nk])) Silhouette: $(@sprintf("%12.7g", robustness[nk])) AIC: $(@sprintf("%12.7g", aic[nk]))")
 	end
-	k = getk(nkrange, robustness[nkrange])
-	@info("Optimal solution: $k signals")
-	return W, H, fitquality, robustness, aic, k
+	kopt = getk(nkrange, robustness[nkrange])
+	@info("Optimal solution: $kopt features")
+	return W, H, fitquality, robustness, aic, kopt
 end
 
 "Execute NMFk analysis for a given number of signals"

@@ -8,7 +8,9 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10, dim::Integer=2, t::
 	for numsources in nkrange
 		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.load(numsources, nNMF, t; dim=dim, kw...)
 	end
-	return W, H, fitquality, robustness, aic
+	kopt = getk(nkrange, robustness[nkrange])
+	@info("Optimal solution: $kopt features")
+	return W, H, fitquality, robustness, aic, kopt
 end
 function load(nk::Integer, nNMF::Integer=10, t::DataType=Float64; dim=2, resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
