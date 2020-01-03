@@ -9,7 +9,7 @@ function progressive(X::Matrix{T}, windowsize::Int64, nkrange::AbstractRange{Int
 			_, _, _, r, _ = NMFk.execute(X, k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, casefilename="$(casefilename)_$(windowsize)_all", load=load, kw...)
 			push!(robustness, r)
 		end
-		k = getk(nkrange, robustness[nkrange])
+		k = getk(nkrange, robustness)
 	else
 		k = getk(nkrange, robustness[nkrange])
 	end
