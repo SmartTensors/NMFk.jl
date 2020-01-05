@@ -3,6 +3,11 @@ import Statistics
 import LinearAlgebra
 import Suppressor
 
+"Test NMFk functions"
+function test()
+	include(joinpath(nmfkdir, "test", "runtests.jl"))
+end
+
 """
 Set image dpi
 

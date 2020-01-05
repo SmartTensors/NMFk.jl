@@ -2,7 +2,7 @@ import DistributedArrays
 
 function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1, normalizevector::Vector{T}=Vector{T}(undef, 0)) where {T}
 	if minimum(X) < 0
-		error("All matrix entries must be nonnegative")
+		error("All matrix entries must be nonnegative!")
 	end
 	if minimum(sum(X; dims=2)) == 0
 		@warn("All matrix entries in a row should not be 0!")
@@ -168,7 +168,7 @@ end
 
 function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, seed::Int=-1) where {T,N}
 	if minimum(X) < 0
-		error("All matrix entries must be nonnegative")
+		error("All matrix entries must be nonnegative!")
 	end
 	if minimum(sum(X; dims=2)) == 0
 		error("All matrix entries in a row cannot be 0!")
