@@ -204,13 +204,13 @@ function checkcols(x::AbstractMatrix; quiet::Bool=false)
 	for i = 1:na
 		isn = .!isnan.(x[:,i])
 		if sum(isn) == 0
-			!quiet && @info "Column $i has only NaNs!"
+			!quiet && @info "Matrix column $i has only NaNs!"
 			push!(inans, i)
 		elseif sum(x[isn, i]) == 0
-			!quiet && @info "Column $i has only Zeros!"
+			!quiet && @info "Matrix column $i has only zeros!"
 			push!(izeros, i)
 		elseif any(x[isn, i] .< 0)
-			!quiet && @info "Column $i has negative values!"
+			!quiet && @info "Matrix column $i has negative values!"
 			push!(ineg, i)
 		else
 

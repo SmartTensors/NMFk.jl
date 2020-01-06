@@ -8,7 +8,7 @@ function mapping_old(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatr
 	nk = size(X, 1)
 	np = size(X, 2)
 	local W1, H1, of1, sil1, aic1
-	@info "Mapping matrix size will be: $nk x $(size(Y, 1))"
+	@info "Mapping matrix size: $nk x $(size(Y, 1))"
 	@Suppressor.suppress W1, H1, of1, sil1, aic1 = NMFk.execute(permutedims(Y), nk, nNNF; Winit=permutedims(X), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...)
 	a = NMFk.normnan(permutedims(B) .- (permutedims(A) * H1))
 	vflip = NMFk.estimateflip_permutedims(X, Y, A, B)
@@ -48,7 +48,7 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 	if nz > 0
 		@warn("Training matrix A has $nz NaNs!")
 	end
-	@info "Mapping matrix size will be: $nk x $(size(Y, 2))"
+	@info "Mapping matrix size: $nk x $(size(Y, 2))"
 	X[inan] .= 0
 	local W1, H1, of1, sil1, aic1
 	@Suppressor.suppress W1, H1, of1, sil1, aic1 = NMFk.execute(Y, nk, nNNF; Winit=X, Wfixed=true, save=save, method=method, kw..., kwx...)
