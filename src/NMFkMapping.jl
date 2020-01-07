@@ -52,6 +52,8 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 	X[inan] .= 0
 	local W1, H1, of1, sil1, aic1
 	@Suppressor.suppress W1, H1, of1, sil1, aic1 = NMFk.execute(Y, nk, nNNF; Winit=X, Wfixed=true, save=save, method=method, kw..., kwx...)
+	iz = vec(NMFk.maximumnan(Y; dims=1) .== 0)
+	H1[:, iz] .= 0
 	if fliptest
 		a = NMFk.normnan(B .- (A * H1))
 		vflip = NMFk.estimateflip(X, Y, A, B)
@@ -59,6 +61,8 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 		Yn = permutedims(hcat(map(i->vflip[i] ? NMFk.flip(Y[i,:]) : Y[i,:], 1:np)...))
 		local W2, H2, of2, sil2, aic2
 		@Suppressor.suppress W2, H2, of2, sil2, aic2 = NMFk.execute(Yn, nk, nNNF; Winit=Xn, Wfixed=true, save=save, method=method, kw..., kwx...)
+		iz = vec(NMFk.maximumnan(Yn; dims=1) .== 0)
+		H2[:, iz] .= 0
 		b = NMFk.normnan(B .- (A * H2))
 		X[inan] .= NaN
 		if a < b
