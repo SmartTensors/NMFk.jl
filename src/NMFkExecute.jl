@@ -25,8 +25,11 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 	if .*(size(X)...) == 0
 		error("Array has a zero dimension! size(X)=$(size(X))")
 	end
-	if save && casefilename == ""
-		@info("Saving requested but casefilename not specified; casefilename = \"nmfk\" will be used!")
+	if load && casefilename == ""
+		@info("Loading requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
+		casefilename = "nmfk"
+	elseif save && casefilename == ""
+		@info("Saving requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
 		casefilename = "nmfk"
 	end
 	runflag = true
@@ -34,8 +37,12 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if isfile(filename)
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
-			save = false
-			runflag = false
+			if size(W) == (size(X, 1), nk) && size(H) == (nk, size(X, 2))
+				save = false
+				runflag = false
+			else
+				@warn("File $filename contains inconsistent data; runs will be executed!")
+			end
 		else
 			@info("File $filename is missing; runs will be executed!")
 		end

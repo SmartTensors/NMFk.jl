@@ -12,7 +12,7 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10, dim::Integer=2, t::
 	@info("Optimal solution: $kopt features")
 	return W, H, fitquality, robustness, aic, kopt
 end
-function load(nk::Integer, nNMF::Integer=10, t::DataType=Float64; dim=2, resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
+function load(nk::Integer, nNMF::Integer=10, t::DataType=Float64; dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
