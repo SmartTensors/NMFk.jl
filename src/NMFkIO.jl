@@ -45,7 +45,7 @@ function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; 
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
 	if !isdir(resultdir)
-		mkdir(resultdir)
+		recursivemkdir(resultdir; filename=false)
 	end
 	if !isfile(filename)
 		@info("Results saved in $filename ...")

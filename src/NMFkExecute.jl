@@ -47,7 +47,7 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 	if save && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if !isdir(resultdir)
-			mkdir(resultdir)
+			recursivemkdir(resultdir; filename=false)
 		end
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	end
