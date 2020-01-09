@@ -390,6 +390,43 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 	pdffile != "" && PlotlyJS.savefig(s, pdffile)
 	return s
 end
+function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString="", pdffile::AbstractString="")
+	@assert length(cc) == length(tt)
+	ss = Array{Int64}(undef, length(cc))
+	nn = Array{Array{String}}(undef, length(cc))
+	for c = 1:length(cc)
+		if c > 1
+			@assert length(cc[c-1]) == length(cc[c])
+		end
+		ss[c] = length(unique(cc[c]))
+		nn[c] = ["$(tt[c]) $i" for i=1:ss[c]]
+	end
+	nn = vcat(nn...)
+	ns = Array{Int64}(undef, 0)
+	nt = Array{Int64}(undef, 0)
+	v = Array{Int64}(undef, 0)
+	local csum = 0
+	for c = 1:length(cc)-1
+		for i = 1:ss[c]
+			for j = 1:ss[c+1]
+				push!(ns, csum + i - 1)
+				push!(nt, csum + ss[c] + j - 1)
+				z = 0
+				for k = 1:length(cc[c])
+					if cc[c][k] == i && cc[c+1][k] == j
+						z += 1
+					end
+				end
+				push!(v, z)
+			end
+		end
+		csum += ss[c]
+	end
+	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
+	htmlfile !="" && PlotlyJS.savehtml(s, htmlfile, :remote)
+	pdffile != "" && PlotlyJS.savefig(s, pdffile)
+	return s
+end
 
 function plot_wells(wx, wy, c; hover=nothing)
 	if hover != nothing
