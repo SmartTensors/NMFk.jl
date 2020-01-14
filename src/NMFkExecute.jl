@@ -399,10 +399,10 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	Xe = Wbest * Hbest
 	fn = normnan(X)
-	println("Worst correlation by columns: $(minimum(map(i->cornan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
-	println("Worst correlation by rows: $(minimum(map(i->cornan(X[:, i], Xe[:, i]), 1:size(X, 2))))")
-	println("Worst norm by columns: $(maximum(map(i->(normnan(X[i, :] - Xe[i, :])/fn), 1:size(X, 1))))")
-	println("Worst norm by rows: $(maximum(map(i->(normnan(X[:, i] - Xe[:, i])/fn), 1:size(X, 2))))")
+	println("Worst correlation by columns: $(minimumnan(map(i->cornan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
+	println("Worst correlation by rows: $(minimumnan(map(i->cornan(X[:, i], Xe[:, i]), 1:size(X, 2))))")
+	println("Worst norm by columns: $(maximumnan(map(i->(normnan(X[i, :] - Xe[i, :])/fn), 1:size(X, 1))))")
+	println("Worst norm by rows: $(maximumnan(map(i->(normnan(X[:, i] - Xe[:, i])/fn), 1:size(X, 2))))")
 	minsilhouette = 1
 	if nk > 1
 		if clusterWmatrix
