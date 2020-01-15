@@ -23,32 +23,33 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			end
 		end
 		if length(bad_indices) > 0
-			@info "Bad indices in dimension $d: $bad_indices"
+			@info "Dimension $d bad indices: $bad_indices"
 		else
-			@info "No bad indices in dimension $(d)!"
+			@info "Dimension $(d): No bad indices!"
 		end
 		ir = sortperm(record_length)
 		if length(record_length[ir]) > 50
-			@info "Worst 15 entry counts: $(record_length[ir][1:15])"
-			@info "Best 15 entry counts: $(record_length[ir][end-15:end])"
+			@info "Dimension $(d): Worst 15 entry counts: $(record_length[ir][1:15])"
+			@info "Dimension $(d): Best 15 entry counts: $(record_length[ir][end-15:end])"
 		else
-			@info "Entry counts: $(record_length[ir])"
+			@info "Dimension $(d): Entry counts: $(record_length[ir])"
 		end
 		mm = maximum(record_length)
-		@info "Maximum entry counts: $(mm)"
+		@info "Dimension $(d): Maximum entry counts: $(mm)"
 		# md[d] = length(bad_indices) > 0 ? bad_indices[1] : 0
 		md[d] = mm
 	end
 	return md
 end
 
-checkarray_nans(X::Array) = checkarrayentries(X; ecount=true)
-checkarray_zeros(X::Array) = checkarrayentries(X, i->i>0)
-checkarray_count(X::Array, func) = checkarrayentries(X, func; ecount=true)
+checkarray_nans(X::Array; kw...) = checkarrayentries(X; kw...)
+checkarray_zeros(X::Array; kw...) = checkarrayentries(X, i->i>0; kw...)
+checkarray_count(X::Array, func; kw...) = checkarrayentries(X, func; ecount=true, kw...)
 
 function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=false, ecount::Bool=false) where {T, N}
 	local flag = true
 	for d = 1:N
+		@info("Dimension $d ...")
 		selected_indeces = Array{Int64}(undef, 0)
 		ecount && (acount = Array{Int64}(undef, 0))
 		for i = 1:size(X, d)
@@ -64,19 +65,22 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=fal
 			flag = flag && flagi
 		end
 		if ecount
-			@info "Count in dimension $d: $acount"
+			@info "Dimension $d count: $acount"
 		else
 			if length(selected_indeces) > 0
 				if good
-					@info "Good indices in dimension $d: $selected_indeces"
+					@info "Dimension $d good indices: $selected_indeces"
 				else
-					@info "Bad indices in dimension $d: $selected_indeces"
+					@info "Dimension $d bad indices: $selected_indeces"
+					# nt = ntuple(k->(k == d ? selected_indeces : Colon()), N)
+					# @show nt
+					# display(X[nt...])
 				end
 			else
 				if good
-					@info "No good indices in dimension $(d)!"
+					@info "Dimension $(d): No good indices!"
 				else
-					@info "No bad indices in dimension $(d)!"
+					@info "Dimension $(d): No bad indices!"
 				end
 			end
 		end
