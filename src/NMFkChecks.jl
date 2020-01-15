@@ -42,7 +42,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 	return md
 end
 
-checkarray_nans(X::Array) = checkarrayentries(X)
+checkarray_nans(X::Array) = checkarrayentries(X; ecount=true)
 checkarray_zeros(X::Array) = checkarrayentries(X, i->i>0)
 checkarray_count(X::Array, func) = checkarrayentries(X, func; ecount=true)
 
