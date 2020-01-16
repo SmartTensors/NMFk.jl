@@ -6,6 +6,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 	for d = 1:N
 		@info("Dimension $(d) ...")
 		dd = size(X, d)
+		@info "Dimension $(d): size: $(dd)"
 		firstentrys = Array{Int64}(undef, dd)
 		lastentrys = Array{Int64}(undef, dd)
 		record_length = Array{Int64}(undef, dd)
@@ -13,6 +14,9 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 		for i = 1:dd
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			ix = X[nt...]
+			if i == 1
+				@info "Dimension $(d): section: $(length(ix))"
+			end
 			firstentry = Base.findfirst(funcfirst.(ix))
 			# @show nt
 			# @show ix
