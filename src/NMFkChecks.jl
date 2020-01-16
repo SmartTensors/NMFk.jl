@@ -1,21 +1,35 @@
 function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T, N}
-	md = Array{Int64}(undef, N)
+	rangeentry = Array{UnitRange{Int64}}(undef, N)
+	min_firstentry = Array{Int64}(undef, N)
+	max_lastentry = Array{Int64}(undef, N)
+	max_record_length = Array{Int64}(undef, N)
 	for d = 1:N
-		@info("Dimension $d ...")
+		@info("Dimension $(d) ...")
 		dd = size(X, d)
+		firstentrys = Array{Int64}(undef, dd)
+		lastentrys = Array{Int64}(undef, dd)
 		record_length = Array{Int64}(undef, dd)
 		bad_indices = Array{Int64}(undef, 0)
 		for i = 1:dd
 			nt = ntuple(k->(k == d ? i : Colon()), N)
-			firstentry = Base.findfirst(funcfirst.(X[nt...]))
+			ix = X[nt...]
+			firstentry = Base.findfirst(funcfirst.(ix))
+			# @show nt
+			# @show ix
+			# @show firstentry
 			if firstentry != nothing
-				lastentry = findlast(funclast.(X[nt...]))
+				firstentrys[i] = firstentry
+				lastentry = Base.findfirst(.!funclast.(ix[firstentry:end]))
 				if lastentry != nothing
-					record_length[i] = lastentry - firstentry + 1
+					lastentrys[i] = lastentry + firstentry - 2
+					record_length[i] = lastentry - 1
 				else
-					record_length[i] = 0
+					lastentrys[i] = length(ix)
+					record_length[i] = length(ix[firstentry:end])
 				end
 			else
+				firstentrys[i] = length(ix)
+				lastentrys[i] = 0
 				record_length[i] = 0
 			end
 			if record_length[i] <= cutoff
@@ -23,7 +37,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			end
 		end
 		if length(bad_indices) > 0
-			@info "Dimension $d bad indices: $bad_indices"
+			@info "Dimension $(d) bad indices: $bad_indices"
 		else
 			@info "Dimension $(d): No bad indices!"
 		end
@@ -32,14 +46,21 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			@info "Dimension $(d): Worst 15 entry counts: $(record_length[ir][1:15])"
 			@info "Dimension $(d): Best 15 entry counts: $(record_length[ir][end-15:end])"
 		else
-			@info "Dimension $(d): Entry counts: $(record_length[ir])"
+			@info "Dimension $(d): Entry counts: $(record_length)"
 		end
-		mm = maximum(record_length)
-		@info "Dimension $(d): Maximum entry counts: $(mm)"
+		mfe = minimum(firstentrys)
+		mle = maximum(lastentrys)
+		mrl = maximum(record_length)
+		@info "Dimension $(d): Maximum entry counts: $(mrl)"
+		@info "Dimension $(d): Minimum first  entry: $(mfe)"
+		@info "Dimension $(d): Maximum last   entry: $(mle)"
+		# @info "Dimension $(d): First entry: $(firstentrys)"
+		# @info "Dimension $(d): Last  entry: $(lastentrys)"
 		# md[d] = length(bad_indices) > 0 ? bad_indices[1] : 0
-		md[d] = mm
+		max_record_length[d] = mrl
+		rangeentry[d] = mfe:mle
 	end
-	return md
+	return rangeentry
 end
 
 checkarray_nans(X::Array; kw...) = checkarrayentries(X; kw...)
@@ -49,7 +70,7 @@ checkarray_count(X::Array, func; kw...) = checkarrayentries(X, func; ecount=true
 function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=false, ecount::Bool=false) where {T, N}
 	local flag = true
 	for d = 1:N
-		@info("Dimension $d ...")
+		@info("Dimension $(d) ...")
 		selected_indeces = Array{Int64}(undef, 0)
 		ecount && (acount = Array{Int64}(undef, 0))
 		for i = 1:size(X, d)
@@ -65,13 +86,13 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=fal
 			flag = flag && flagi
 		end
 		if ecount
-			@info "Dimension $d count: $acount"
+			@info "Dimension $(d) count: $acount"
 		else
 			if length(selected_indeces) > 0
 				if good
-					@info "Dimension $d good indices: $selected_indeces"
+					@info "Dimension $(d) good indices: $selected_indeces"
 				else
-					@info "Dimension $d bad indices: $selected_indeces"
+					@info "Dimension $(d) bad indices: $selected_indeces"
 					# nt = ntuple(k->(k == d ? selected_indeces : Colon()), N)
 					# @show nt
 					# display(X[nt...])

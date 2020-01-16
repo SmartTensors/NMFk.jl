@@ -1,7 +1,7 @@
 function progressive(X::Matrix{T}, windowsize::Int64, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::String="progressive", load::Bool=true, kw...) where {T}
 	checknans = checkarray_nans(X)
 	if !checknans
-		@warn("Input matrix has rows or columns which have only NaNs!")
+		@warn("Input matrix contains rows or columns with only NaNs!")
 	end
 	@info("NMFk #1: $(casefilename) Window $windowsize")
 	W, H, fitquality, robustness, aic = NMFk.execute(X[1:windowsize,:], nkrange, nNMF1; casefilename="$(casefilename)_$(windowsize)", load=load, kw...)
@@ -23,7 +23,7 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, window_k::Vector{I
 	@assert length(windowsize) == length(window_k)
 	checknans = checkarray_nans(X)
 	if !checknans
-		@warn("Input matrix has rows or columns which have only NaNs!")
+		@warn("Input matrix contains rows or columns with only NaNs!")
 	end
 	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, 1:size(X, 1)))
 	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, 1:size(X, 2)))
@@ -44,7 +44,7 @@ end
 function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::String="progressive", load::Bool=true, kw...) where {T}
 	checknans = checkarray_nans(X)
 	if !checknans
-		@warn("Input matrix has rows or columns which have only NaNs!")
+		@warn("Input matrix contains rows or columns with only NaNs!")
 	end
 	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, 1:size(X, 1)))
 	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, 1:size(X, 2)))
