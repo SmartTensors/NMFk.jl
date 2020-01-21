@@ -1,5 +1,6 @@
 import Distances
 import Suppressor
+import Clustering
 
 """
 Given a vector of classifiers, return a vector where
@@ -57,7 +58,17 @@ function robustkmeans(X::AbstractMatrix, krange::AbstractRange{Int}, repeats::In
 	return cbest
 end
 
-function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist())
+function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false)
+	if load && casefilename != ""
+		filename = joinpath(resultdir, "$casefilename-$k-$repeats.jld")
+		if isfile(filename)
+			sc = JLD.load(filename, "assignments")
+			@info("Robust k-means analysis results are loaded from file $(filename)!")
+			return sc
+		else
+			@warn("File $filename does not exist! Robust k-means analysis will be executed ...")
+		end
+	end
 	local c = nothing
 	local best_totalcost = Inf
 	local best_mean_silhouettes = Inf
@@ -78,7 +89,16 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 			end
 		end
 	end
-	return sortclustering(c)
+	sc = sortclustering(c)
+	if save && casefilename != ""
+		filename = joinpath(resultdir, "$casefilename-$k-$repeats.jld")
+		if !isdir(resultdir)
+			recursivemkdir(resultdir; filename=false)
+		end
+		JLD.save(filename, "assignments", sc)
+		@info("Robust k-means analysis results are saved in file $(filename)!")
+	end
+	return sc
 end
 
 function sortclustering(c; rev=true)
