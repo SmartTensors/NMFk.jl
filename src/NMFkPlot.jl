@@ -11,18 +11,22 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.3, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
+function histogram(data::Vector; kw...)
+	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
+end
+
+function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
-	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
+	newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
 	xaxis = xmap.(collect(newedges))
 	xmin = minimum(xaxis)
 	xmax = maximum(xaxis)
 	l = []
 	suc = sort(unique(classes))
 	if !joined
-		opacity = 0.9
+		opacity = 0.6
 	end
 	local ymaxl = 0
 	ccount = Vector{Int64}(undef, length(suc))
@@ -30,7 +34,7 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		i = findall((in)(ct), classes)
 		ccount[j] = length(i)
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
-		y = proportion ? hist.weights ./ ndata : hist.weights
+		y = proportion ? hist.weights ./ ndata : hist.weights ./ 1.0
 		ymaxl = max(maximum(y), ymaxl)
 		push!(l, Gadfly.layer(xmin=xaxis[1:end-1], xmax=xaxis[2:end], y=y, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
 	end
@@ -44,12 +48,16 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i in suc]))
 		!quiet && (display(f); println())
 	else
-		if title != ""
-			mt = [Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")]
-		else
-			mt = []
-		end
 		for (i, g) in enumerate(l)
+			if title != ""
+				if length(l) > 1
+					mt = [Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")]
+				else
+					mt = [Gadfly.Guide.title(title)]
+				end
+			else
+				mt = []
+			end
 			push!(m, Gadfly.plot(g, s..., mt...))
 		end
 		f = Gadfly.vstack(m...)
