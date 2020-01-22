@@ -34,7 +34,7 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		i = findall((in)(ct), classes)
 		ccount[j] = length(i)
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
-		y = proportion ? hist.weights ./ ndata : hist.weights ./ 1.0
+		y = proportion ? hist.weights ./ ndata : hist.weights
 		ymaxl = max(maximum(y), ymaxl)
 		push!(l, Gadfly.layer(xmin=xaxis[1:end-1], xmax=xaxis[2:end], y=y, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
 	end
