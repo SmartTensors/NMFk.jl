@@ -19,7 +19,7 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
-	newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
+	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
 	xaxis = xmap.(collect(newedges))
 	xmin = minimum(xaxis)
 	xmax = maximum(xaxis)
