@@ -6,7 +6,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 	for d = 1:N
 		@info("Dimension $(d) ...")
 		dd = size(X, d)
-		@info "Dimension $(d): size: $(dd)"
+		println("Dimension $(d): size: $(dd)")
 		firstentrys = Array{Int64}(undef, dd)
 		lastentrys = Array{Int64}(undef, dd)
 		record_length = Array{Int64}(undef, dd)
@@ -15,7 +15,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			ix = X[nt...]
 			if i == 1
-				@info "Dimension $(d): section: $(length(ix))"
+				println("Dimension $(d): slice: $(length(ix))")
 			end
 			firstentry = Base.findfirst(funcfirst.(ix))
 			# @show nt
@@ -41,23 +41,23 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			end
 		end
 		if length(bad_indices) > 0
-			@info "Dimension $(d) bad indices: $bad_indices"
+			println("Dimension $(d) bad indices: $bad_indices")
 		else
-			@info "Dimension $(d): No bad indices!"
+			println("Dimension $(d): No bad indices!")
 		end
 		ir = sortperm(record_length)
 		if length(record_length[ir]) > 50
-			@info "Dimension $(d): Worst 15 entry counts: $(record_length[ir][1:15])"
-			@info "Dimension $(d): Best 15 entry counts: $(record_length[ir][end-15:end])"
+			println("Dimension $(d): Worst 15 entry counts: $(record_length[ir][1:15])")
+			println("Dimension $(d): Best 15 entry counts: $(record_length[ir][end-15:end])")
 		else
-			@info "Dimension $(d): Entry counts: $(record_length)"
+			println("Dimension $(d): Entry counts: $(record_length)")
 		end
 		mfe = minimum(firstentrys)
 		mle = maximum(lastentrys)
 		mrl = maximum(record_length)
-		@info "Dimension $(d): Maximum entry counts: $(mrl)"
-		@info "Dimension $(d): Minimum first  entry: $(mfe)"
-		@info "Dimension $(d): Maximum last   entry: $(mle)"
+		println("Dimension $(d): Maximum entry counts: $(mrl)")
+		println("Dimension $(d): Minimum first  entry: $(mfe)")
+		println("Dimension $(d): Maximum last   entry: $(mle)")
 		# @info "Dimension $(d): First entry: $(firstentrys)"
 		# @info "Dimension $(d): Last  entry: $(lastentrys)"
 		# md[d] = length(bad_indices) > 0 ? bad_indices[1] : 0
@@ -90,22 +90,22 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=fal
 			flag = flag && flagi
 		end
 		if ecount
-			@info "Dimension $(d) count: $acount"
+			println("Dimension $(d) count: $acount")
 		else
 			if length(selected_indeces) > 0
 				if good
-					@info "Dimension $(d) good indices: $selected_indeces"
+					println("Dimension $(d) good indices: $selected_indeces")
 				else
-					@info "Dimension $(d) bad indices: $selected_indeces"
+					println("Dimension $(d) bad indices: $selected_indeces")
 					# nt = ntuple(k->(k == d ? selected_indeces : Colon()), N)
 					# @show nt
 					# display(X[nt...])
 				end
 			else
 				if good
-					@info "Dimension $(d): No good indices!"
+					println("Dimension $(d): No good indices!")
 				else
-					@info "Dimension $(d): No bad indices!"
+					println("Dimension $(d): No bad indices!")
 				end
 			end
 		end
