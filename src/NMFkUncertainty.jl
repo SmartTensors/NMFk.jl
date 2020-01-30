@@ -6,7 +6,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 	robustness = Vector{T}(undef, nreruns)
 	aic = Vector{T}(undef, nreruns)
 	for i in 1:nreruns
-		@info("Rerun $(i) out of $(nreruns):")
+		@info("Uncertainty run $(i) out of $(nreruns):")
 		if save == true
 			if casefilename == ""
 				casefilenamemod = "nmfk_uncertainty_$i"
@@ -19,16 +19,16 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:window,:], nk, nNMF; kw..., save=save, casefilename=casefilenamemod)
 	end
 	if window == size(X,1)
-		@info("Results")
+		@info("Uncertainty results:")
 	else
-		@info("Results stage #1")
+		@info("Uncertainty results stage #1:")
 	end
 	for i in 1:nreruns
-		println("Rerun: $(@sprintf("%5d", i)) Fit: $(@sprintf("%12.7g", fitquality[i])) Silhouette: $(@sprintf("%12.7g", robustness[i])) AIC: $(@sprintf("%12.7g", aic[i]))")
+		println("Run: $(@sprintf("%5d", i)) Fit: $(@sprintf("%12.7g", fitquality[i])) Silhouette: $(@sprintf("%12.7g", robustness[i])) AIC: $(@sprintf("%12.7g", aic[i]))")
 	end
 	if window != size(X,1)
 		for i in 1:nreruns
-			@info("Rerun stage #2 $(i) out of $(nreruns):")
+			@info("Uncertainty run stage #2 $(i) out of $(nreruns):")
 			if save == true
 				if casefilename == ""
 					casefilenamemod = "nmfk_uncertainty2_$i"
@@ -40,9 +40,9 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 			end
 			W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:maxwindow,:], nk; Hinit=convert.(T, H[i]), Hfixed=true, kw..., save=save, casefilename=casefilenamemod)
 		end
-		@info("Results stage #2")
+		@info("Uncertainty results stage #2:")
 		for i in 1:nreruns
-			println("Rerun: $(@sprintf("%5d", i)) Fit: $(@sprintf("%12.7g", fitquality[i])) Silhouette: $(@sprintf("%12.7g", robustness[i])) AIC: $(@sprintf("%12.7g", aic[i]))")
+			println("Run: $(@sprintf("%5d", i)) Fit: $(@sprintf("%12.7g", fitquality[i])) Silhouette: $(@sprintf("%12.7g", robustness[i])) AIC: $(@sprintf("%12.7g", aic[i]))")
 		end
 	end
 	return W, H, fitquality, robustness, aic
