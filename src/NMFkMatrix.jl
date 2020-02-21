@@ -45,11 +45,26 @@ function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false)
 end
 
 "Denormalize matrix"
-function denormalizematrix!(a::AbstractMatrix, amin::Matrix, amax::Matrix)
+function denormalizematrix!(a...)
+	denormalizematrix_col!(a...)
+end
+
+"Denormalize matrix"
+function denormalizematrix_col!(a::AbstractMatrix, amin::Vector, amax::Vector)
 	if all(amax .>= amin)
 		a = a .* (amax - amin) + repeat(amin; outer=[size(a, 1), 1])
 	else
 		a = repeat(amin; outer=[size(a, 1), 1]) + a .* (amax - amin)
+	end
+	return a
+end
+
+"Denormalize matrix"
+function denormalizematrix_row!(a::AbstractMatrix, amin::Vector, amax::Vector)
+	if all(amax .>= amin)
+		a = a .* (amax - amin) + repeat(amin; outer=[1, size(a, 2)])
+	else
+		a = repeat(amin; outer=[1, size(a, 1),]) + a .* (amax - amin)
 	end
 	return a
 end
