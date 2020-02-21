@@ -15,14 +15,14 @@ function histogram(data::Vector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
+function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, xmin=Inf, xmax=-Inf, refine=1)
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
 	xaxis = xmap.(collect(newedges))
-	xmin = minimum(xaxis)
-	xmax = maximum(xaxis)
+	xminl = min(minimum(xaxis), xmin)
+	xmaxl = max(maximum(xaxis), xmax)
 	l = []
 	suc = sort(unique(classes))
 	if !joined
@@ -39,9 +39,9 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		push!(l, Gadfly.layer(xmin=xaxis[1:end-1], xmax=xaxis[2:end], y=y, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
 	end
 	ymax = ymax != nothing ? yman : ymaxl
-	s = [Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xmin, maxvalue=xmax), Gadfly.Guide.xticks(ticks=collect(xaxis)), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
+	s = [Gadfly.Coord.Cartesian(xmin=xminl, xmax=xmaxl, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl), Gadfly.Guide.xticks(ticks=unique([xminl; collect(xaxis); xmaxl])), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
 	if xlabelmap != nothing
-		s = [s..., Gadfly.Scale.x_continuous(minvalue=xmin, maxvalue=xmax, labels=xlabelmap)]
+		s = [s..., Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl, labels=xlabelmap)]
 	end
 	m = []
 	if joined

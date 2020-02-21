@@ -48,7 +48,7 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 		end
 	end
 	if runflag
-		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; casefilename=casefilename, kw...)
+		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; resultdir=resultdir, casefilename=casefilename, kw...)
 	end
 	println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
 	if save && casefilename != ""
@@ -62,13 +62,13 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...) where {T, N}
+function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...) where {T, N}
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
 	runflag = true
 	if loadall && casefilename != ""
-		filename = "$casefilename-$nk-$nNMF-all.jld"
+		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		if isfile(filename)
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
 			saveall = false
@@ -195,7 +195,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
 		end
 		if saveall && casefilename != ""
-			filename = "$casefilename-$nk-$nNMF-all.jld"
+			filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 			JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
 		end
 	end
@@ -212,7 +212,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximumnan(E), " Min error = ", minimumnan(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, kw...) where {T}
+function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, kw...) where {T}
 	kw_dict = Dict()
 	for (key, value) in kw
 		kw_dict[key] = value
@@ -286,7 +286,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	runflag = true
 	if loadall && casefilename != ""
-		filename = "$casefilename-$nk-$nNMF-all.jld"
+		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		if isfile(filename)
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
 			saveall = false
@@ -436,7 +436,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
 	end
 	if saveall && casefilename != ""
-		filename = "$casefilename-$nk-$nNMF-all.jld"
+		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
 	end
 	if best
