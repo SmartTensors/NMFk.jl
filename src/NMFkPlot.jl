@@ -15,14 +15,14 @@ function histogram(data::Vector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, xmin=Inf, xmax=-Inf, refine=1)
+function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, xmin=nothing, xmax=nothing, refine=1)
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
 	xaxis = xmap.(collect(newedges))
-	xminl = min(minimum(xaxis), xmin)
-	xmaxl = max(maximum(xaxis), xmax)
+	xminl = xmin == nothing ? minimum(xaxis) : min(minimum(xaxis), xmin)
+	xmaxl = xmax == nothing ? maximum(xaxis) : max(maximum(xaxis), xmax)
 	l = []
 	suc = sort(unique(classes))
 	if !joined
