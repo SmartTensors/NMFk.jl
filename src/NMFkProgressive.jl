@@ -113,7 +113,6 @@ function getks(nkrange::Union{AbstractRange{T1},Vector{T1}}, robustness::Vector{
 		k = [nkrange[1]]
 	else
 		kn = findall(i->i > 0.25, robustness)
-		@show kn
 		if (length(kn) == 0)
 			k = [nkrange[findmax(robustness)[2]]]
 		else
