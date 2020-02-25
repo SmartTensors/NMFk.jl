@@ -73,7 +73,6 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 		if sum(I) == ecount
 			return NaN
 		else
-			@show (ecount - sum(I))
 			return sum(X[.!I]; kw...)
 		end
 	else
