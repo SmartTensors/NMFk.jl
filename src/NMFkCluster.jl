@@ -145,6 +145,50 @@ function letterassignements(c::Vector)
 	return cassignments
 end
 
+function finduniquesignals(X::Matrix)
+	k = size(X, 1)
+	@assert k == size(X, 2)
+	smap = zeros(Int64, k)
+	Xc = copy(X)
+	failed = false
+	while any(smap .== 0)
+		if all(Xc .== 0.)
+			@warn "Could not find a solution"
+			failed = true
+			break
+		end
+		rc = findmax(Xc)[2]
+		Xc[rc] = 0.
+		if smap[rc[1]] == 0 && !any(smap .== rc[2])
+			smap[rc[1]] = rc[2]
+		end
+	end
+	local o = 0
+	if !failed
+		for i = 1:k
+			o += X[i,smap[i]]
+		end
+	end
+	return o, smap
+end
+
+function finduniquesignalsbest(X::Matrix)
+	o, smap = finduniquesignals(X)
+	k = size(X, 1)
+	obest = o
+	smapbest = smap
+	for i = 1:k
+		Xc = copy(X)
+		Xc[i, smap[i]] = 0.
+		o, smap = finduniquesignals(Xc)
+		if o > obest
+			obest = o
+			smapbest = smap
+		end
+	end
+	return smapbest
+end
+
 function clustersolutions(factors::Vector{Matrix}, clusterWmatrix::Bool=false)
 	if !clusterWmatrix
 		factors = [permutedims(f) for f in factors]
