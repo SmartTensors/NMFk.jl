@@ -1,7 +1,7 @@
 import DelimitedFiles
 import PlotlyJS
 
-function clusterresults(nkrange, W, H, robustness, locations, attributes; clusterattributes::Bool=true, lat=nothing, lon=nothing, cutoff = .9, cutoff_s = 0.95, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations")
+function clusterresults(nkrange, W, H, robustness, locations, attributes; clusterattributes::Bool=true, sizeW::Integer=0, lat=nothing, lon=nothing, cutoff = .9, cutoff_s = 0.95, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations")
 	for k = NMFk.getks(nkrange, robustness[nkrange])
 		@info("Number of signals: $k")
 
@@ -23,7 +23,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		cmap = Vector{Char}(undef, k)
 		cmap .= ' '
 		for (j, i) in enumerate(cletters)
-			@info "Signal S$(smap[j])/$i (k-means clustering)"
+			@info "Signal $i(S$(smap[j])) (k-means clustering)"
 			display(locations[indexin(c, [i]) .== true])
 			cmap[smap[j]] = i
 		end
@@ -41,17 +41,29 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [latlon permutedims(H[k] ./ sum(H[k]; dims=2)) c], ',')
 
 		if clusterattributes
+			Wa = W[k]
+			if sizeW > 1
+				na = convert(Int64, size(W[k], 1) / sizeW)
+				Wa = Matrix{typeof(W[k][1,1])}(undef, na, size(W[k], 2))
+				i1 = 1
+				i2 = sizeW
+				for i = 1:na
+					Wa[i,:] = sum(W[k][i1:i2,:]; dims=1)
+					i1 += sizeW
+					i2 += sizeW
+ 				end
+			end
 			@info("Attributes (signals=$k)")
-			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", W[k], ',')
-			ia = W[k] ./ maximum(W[k]; dims=1) .> cutoff
+			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", Wa, ',')
+			ia = Wa ./ maximum(Wa; dims=1) .> cutoff
 			for i in 1:k
 				@info "Signal $i (max-normalized elements > $cutoff)"
 				display(attributes[ia[:,i]])
 			end
-			c = NMFk.letterassignements(NMFk.robustkmeans(permutedims(W[k]), k; resultdir=resultdir, casefilename=casefilenameW, load=true, save=true).assignments)
+			c = NMFk.letterassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename=casefilenameW, load=true, save=true).assignments)
 			@assert cletters == sort(unique(c))
 			for (j, i) in enumerate(cletters)
-				Hs[j,:] .= vec(Statistics.mean(W[k][c .== i,is]; dims=1))
+				Hs[j,:] .= vec(Statistics.mean(Wa[c .== i,is]; dims=1))
 			end
 			smap = NMFk.finduniquesignalsbest(Hs)
 			cassgined = zeros(length(attributes))
@@ -79,40 +91,42 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 				display(attributes[indexin(cnew, [i]) .== true])
 			end
 			cs = sortperm(cnew)
-			NMFk.plotmatrix(W[k]./maximum(W[k]); filename="$figuredir/$(casefilenameW)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(c)], colorkey=false)
-			# NMFk.plotmatrix(W[k]./sum(W[k]; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
-			# NMFk.plotmatrix((W[k]./sum(W[k]; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
-			NMFk.plotmatrix((W[k]./sum(W[k]; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
+			NMFk.plotmatrix(Wa./maximum(Wa); filename="$figuredir/$(casefilenameW)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(c)], colorkey=false)
+			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
+			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
+			NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
 		end
 
-		Xe = W[k] * H[k]
-		local table = locations
-		local table2 = locations
-		local table3 = locations
-		for i = 1:k
-			Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
-			Xekm = Xek .> cutoff_s
-			o = findmax(Xek; dims=1)
-			table = hcat(table, map(i->attributes[i], map(i->o[2][i][1], 1:length(locations))))
-			table2 = hcat(table2, map(i->attributes[Xekm[:,i]], 1:length(locations)))
-			table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(locations)))
+		if sizeW < 2
+			Xe = W[k] * H[k]
+			local table = locations
+			local table2 = locations
+			local table3 = locations
+			for i = 1:k
+				Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
+				Xekm = Xek .> cutoff_s
+				o = findmax(Xek; dims=1)
+				table = hcat(table, map(i->attributes[i], map(i->o[2][i][1], 1:length(locations))))
+				table2 = hcat(table2, map(i->attributes[Xekm[:,i]], 1:length(locations)))
+				table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(locations)))
+			end
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_max.csv", [latlon table], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_$(cutoff_s).csv", [latlon table2], ';')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_count_$(cutoff_s).csv", [latlon table3], ',')
+			local table = attributes
+			local table2 = attributes
+			local table3 = attributes
+			for i = 1:k
+				Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
+				Xekm = Xek .> cutoff_s
+				o = findmax(Xek; dims=2)
+				table = hcat(table, map(i->locations[i], map(i->o[2][i][2], 1:length(attributes))))
+				table2 = hcat(table2, map(i->locations[Xekm[i,:]], 1:length(attributes)))
+				table3 = hcat(table3, map(i->sum(Xekm[i,:]), 1:length(attributes)))
+			end
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_max.csv", table, ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_$(cutoff_s).csv", table2, ';')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_count_$(cutoff_s).csv", table3, ',')
 		end
-		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_max.csv", [latlon table], ',')
-		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_$(cutoff_s).csv", [latlon table2], ';')
-		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_count_$(cutoff_s).csv", [latlon table3], ',')
-		local table = attributes
-		local table2 = attributes
-		local table3 = attributes
-		for i = 1:k
-			Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
-			Xekm = Xek .> cutoff_s
-			o = findmax(Xek; dims=2)
-			table = hcat(table, map(i->locations[i], map(i->o[2][i][2], 1:length(attributes))))
-			table2 = hcat(table2, map(i->locations[Xekm[i,:]], 1:length(attributes)))
-			table3 = hcat(table3, map(i->sum(Xekm[i,:]), 1:length(attributes)))
-		end
-		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_max.csv", table, ',')
-		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_$(cutoff_s).csv", table2, ';')
-		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_count_$(cutoff_s).csv", table3, ',')
 	end
 end
