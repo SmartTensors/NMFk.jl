@@ -329,7 +329,7 @@ end
 sprintf(args...) = eval(:@sprintf($(args...)))
 
 "Generate Sankey plots"
-function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2"; htmlfile::AbstractString="", pdffile::AbstractString="")
+function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::AbstractString; htmlfile::AbstractString="", pdffile::AbstractString="")
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	n1 = ["$t1 $i" for i=1:s1]
@@ -356,7 +356,7 @@ function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString="Type
 	pdffile != "" && PlotlyJS.savefig(s, pdffile)
 	return s
 end
-function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2", t3::AbstractString="Type3"; htmlfile::AbstractString="", pdffile::AbstractString="")
+function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString, t2::AbstractString, t3::AbstractString; htmlfile::AbstractString="", pdffile::AbstractString="")
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	s3 = length(unique(c3))
