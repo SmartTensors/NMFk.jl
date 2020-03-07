@@ -328,7 +328,7 @@ end
 "Convert `@sprintf` macro into `sprintf` function"
 sprintf(args...) = eval(:@sprintf($(args...)))
 
-"Generate Sankey inputs"
+"Generate Sankey plots"
 function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString="Type1", t2::AbstractString="Type2"; htmlfile::AbstractString="", pdffile::AbstractString="")
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
