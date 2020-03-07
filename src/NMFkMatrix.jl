@@ -1,3 +1,16 @@
+function normalizematrix_total!(a; rev::Bool=false)
+	amax = NMFk.maximumnan(a)
+	amin = NMFk.minimumnan(a)
+	dx = amax - amin
+	if rev
+		a = (amax .- a) ./ dx
+		return a, amax, amin
+	else
+		a = (a .- amin) ./ dx
+		return a, amin, amax
+	end
+end
+
 function normalizematrix!(a...; kw...)
 	normalizematrix_col!(a...; kw...)
 end
