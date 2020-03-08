@@ -97,36 +97,35 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
 		end
 
-		if sizeW < 2
-			Xe = W[k] * H[k]
-			local table = locations
-			local table2 = locations
-			local table3 = locations
-			for i = 1:k
-				Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
-				Xekm = Xek .> cutoff_s
-				o = findmax(Xek; dims=1)
-				table = hcat(table, map(i->attributes[i], map(i->o[2][i][1], 1:length(locations))))
-				table2 = hcat(table2, map(i->attributes[Xekm[:,i]], 1:length(locations)))
-				table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(locations)))
-			end
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_max.csv", [latlon table], ',')
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_$(cutoff_s).csv", [latlon table2], ';')
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_count_$(cutoff_s).csv", [latlon table3], ',')
-			local table = attributes
-			local table2 = attributes
-			local table3 = attributes
-			for i = 1:k
-				Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
-				Xekm = Xek .> cutoff_s
-				o = findmax(Xek; dims=2)
-				table = hcat(table, map(i->locations[i], map(i->o[2][i][2], 1:length(attributes))))
-				table2 = hcat(table2, map(i->locations[Xekm[i,:]], 1:length(attributes)))
-				table3 = hcat(table3, map(i->sum(Xekm[i,:]), 1:length(attributes)))
-			end
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_max.csv", table, ',')
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_$(cutoff_s).csv", table2, ';')
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_count_$(cutoff_s).csv", table3, ',')
+		attributesl = sizeW > 1 ? repeat(attributes; inner=607) : attributes
+		Xe = W[k] * H[k]
+		local table = locations
+		local table2 = locations
+		local table3 = locations
+		for i = 1:k
+			Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
+			Xekm = Xek .> cutoff_s
+			o = findmax(Xek; dims=1)
+			table = hcat(table, map(i->attributesl[i], map(i->o[2][i][1], 1:length(locations))))
+			table2 = hcat(table2, map(i->attributesl[Xekm[:,i]], 1:length(locations)))
+			table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(locations)))
 		end
+		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_max.csv", [latlon table], ',')
+		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_$(cutoff_s).csv", [latlon table2], ';')
+		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-attribute_table_count_$(cutoff_s).csv", [latlon table3], ',')
+		local table = attributesl
+		local table2 = attributesl
+		local table3 = attributesl
+		for i = 1:k
+			Xek = (W[k][:,i:i] * H[k][i:i,:]) ./ Xe
+			Xekm = Xek .> cutoff_s
+			o = findmax(Xek; dims=2)
+			table = hcat(table, map(i->locations[i], map(i->o[2][i][2], 1:length(attributesl))))
+			table2 = hcat(table2, map(i->locations[Xekm[i,:]], 1:length(attributesl)))
+			table3 = hcat(table3, map(i->sum(Xekm[i,:]), 1:length(attributesl)))
+		end
+		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_max.csv", table, ',')
+		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_$(cutoff_s).csv", table2, ';')
+		DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-location_table_count_$(cutoff_s).csv", table3, ',')
 	end
 end
