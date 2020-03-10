@@ -551,38 +551,6 @@ function plot_heel_toe(heel_x, heel_y, heel_z, toe_x, toe_y, toe_z, c; hover=not
 end
 
 """
-Create directories recursively (if does not already exist)
-
-$(DocumentFunction.documentfunction(recursivemkdir;
-argtext=Dict("dirname"=>"directory")))
-"""
-function recursivemkdir(s::String; filename=true)
-	d = Vector{String}(undef, 0)
-	sc = deepcopy(s)
-	if !filename && sc!= ""
-		push!(d, sc)
-	end
-	while true
-		sd = splitdir(sc)
-		sc = sd[1]
-		if sc == ""
-			break;
-		end
-		push!(d, sc)
-	end
-	for i = length(d):-1:1
-		sc = d[i]
-		if isfile(sc)
-			@warn("File $(sc) exists!")
-			return
-		elseif !isdir(sc)
-			mkdir(sc)
-			@info("Make dir $(sc)")
-		end
-	end
-end
-
-"""
 Set image file `format` based on the `filename` extension, or sets the `filename` extension based on the requested `format`. The default `format` is `PNG`. `SVG`, `PDF`, `ESP`, and `PS` are also supported.
 
 $(DocumentFunction.documentfunction(setplotfileformat;
