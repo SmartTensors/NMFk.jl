@@ -573,7 +573,7 @@ function recursivemkdir(s::String; filename=true)
 	for i = length(d):-1:1
 		sc = d[i]
 		if isfile(sc)
-			Mads.madswarn("File $(sc) exists!")
+			@warn("File $(sc) exists!")
 			return
 		elseif !isdir(sc)
 			mkdir(sc)
