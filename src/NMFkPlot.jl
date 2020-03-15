@@ -11,6 +11,20 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
+function plotbi(X::AbstractMatrix, label=AbstractVector; point_label_font_size=12Gadfly.pt, opacity::Number=1.0)
+	r, c = size(X)
+	@assert length(label) == r
+	@assert c > 1
+ 	l = Vector{Vector{Gadfly.Layer}}(undef, 0)
+ 	x = X[:,1] ./ maximum(X[:,1])
+ 	y = X[:,2] ./ maximum(X[:,2])
+	for i = 1:r
+		push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[i]), opacity))))
+		push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label[i]], Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[i]), opacity), point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[i])))))
+	end
+	Gadfly.plot(l...)
+end
+
 function histogram(data::Vector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
