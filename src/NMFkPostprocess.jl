@@ -30,6 +30,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		is = sortperm(cmap)
 		NMFk.plotmatrix(permutedims(H[k])./maximum(H[k]); filename="$figuredir/$(casefilenameH)-$(k).png", vsize=12Compose.inch, xticks=["S$i" for i=1:k], yticks=["$(locations[i]) $(c[i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix(permutedims((H[k]./sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
+		NMFk.plotbis(permutedims(H[k])[cs,is], locations; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color="black")
 		if lat != nothing && lon != nothing
 			p = PlotlyJS.plot(NMFk.plot_wells(lat, lon, c), Plotly.Layout(title="Clusters: $k"))
 			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
@@ -95,6 +96,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
 			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
 			NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
+			NMFk.plotbis(Wa[cs,is], attributes; filename="$figuredir/$(casefilenameW)-biplots-$(k).pdf", background_color="black")
 		end
 
 		attributesl = sizeW > 1 ? repeat(attributes; inner=607) : attributes

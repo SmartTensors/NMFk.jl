@@ -11,22 +11,63 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function plotbi(X::AbstractMatrix, label=AbstractVector; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, xtitle::String="Signal $col1", ytitle::String="Signal $col2", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], point_label_font_size=12Gadfly.pt, opacity::Number=1.0)
+function plotbis(X::AbstractMatrix, label=AbstractVector; ratiofix::Number=1.2, hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", dpi=imagedpi, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
- 	l = Vector{Vector{Gadfly.Layer}}(undef, 0)
- 	xm = maximum(X)
- 	x = X[:,col1] ./ xm
- 	y = X[:,col2] ./ xm
- 	m = sum.(x.^2 .+ y.^2)
- 	for i = sortperm(m; rev=true)
- 		ic = (i - 1) % ncolors + 1
+	rowp = Vector{Compose.Context}(undef, 0)
+	for j = 1:c
+		colp = Vector{Gadfly.Plot}(undef, 0)
+		for i = 1:c
+			i == j && continue
+			push!(colp, plotbi(X, label; code=true, col1=j, hsize=hsize, vsize=vsize, col2=i, kw...))
+		end
+		push!(rowp, Gadfly.hstack(colp...))
+		# if !quiet
+		# 	gw = Compose.default_graphic_width
+		# 	gh = Compose.default_graphic_height
+		# 	Compose.set_default_graphic_size(gw * (c-1), gw)
+		# 	display(rowp[end]); println()
+		# 	Compose.set_default_graphic_size(gw, gh)
+		# end
+	end
+	p = Gadfly.vstack(rowp...)
+	if !quiet
+		gw = Compose.default_graphic_width
+		gh = Compose.default_graphic_height
+		Compose.set_default_graphic_size(gw * (c-1), gw * (c-1) * ratiofix)
+		display(p); println()
+		Compose.set_default_graphic_size(gw, gh)
+	end
+	if filename != ""
+		if !isdir(figuredir)
+			mkdir(figuredir)
+		end
+		recursivemkdir(filename)
+		plotfileformat(p, joinpath(figuredir, filename), hsize * (c-1), vsize * (c-1) * ratiofix; dpi=dpi)
+	end
+	return nothing
+end
+
+function plotbi(X::AbstractMatrix, label=AbstractVector; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, xtitle::String="Signal $col1", ytitle::String="Signal $col2", gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi)
+	r, c = size(X)
+	@assert length(label) == r
+	@assert c > 1
+	xm = maximum(X)
+	x = X[:,col1] ./ xm
+	y = X[:,col2] ./ xm
+	m = sum.(x.^2 .+ y.^2)
+	l = Vector{Vector{Gadfly.Layer}}(undef, 0)
+	for i = sortperm(m; rev=true)
+		ic = (i - 1) % ncolors + 1
 		push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity))))
 		push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label[i]], Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[ic])))))
 	end
 	push!(l, Gadfly.layer(x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(point_size=0Gadfly.pt)))
-	p = Gadfly.plot(l..., Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
+	p = Gadfly.plot(l..., Gadfly.Theme(background_color=background_color), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
+	if code
+		return p
+	end
 	if !quiet
 		gw = Compose.default_graphic_width
 		gh = Compose.default_graphic_height
@@ -591,7 +632,7 @@ end
 Set image file `format` based on the `filename` extension, or sets the `filename` extension based on the requested `format`. The default `format` is `PNG`. `SVG`, `PDF`, `ESP`, and `PS` are also supported.
 
 $(DocumentFunction.documentfunction(setplotfileformat;
-argtext=Dict("filename"=>"output file name")))
+                                    argtext=Dict("filename"=>"output file name")))
 
 Returns:
 
