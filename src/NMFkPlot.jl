@@ -11,10 +11,13 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function plotbis(X::AbstractMatrix, label=AbstractVector; ratiofix::Number=1.2, hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", dpi=imagedpi, kw...)
+function plotbis(X::AbstractMatrix, label=AbstractVector; ratiofix=nothing, hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", dpi=imagedpi, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
+	if ratiofix == nothing
+		ratiofix = 1. + 1. / c
+	end
 	rowp = Vector{Compose.Context}(undef, 0)
 	for j = 1:c
 		colp = Vector{Gadfly.Plot}(undef, 0)
