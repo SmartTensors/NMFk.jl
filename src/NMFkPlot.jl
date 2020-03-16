@@ -11,25 +11,44 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function plotbi(X::AbstractMatrix, label=AbstractVector; point_label_font_size=12Gadfly.pt, opacity::Number=1.0)
+function plotbi(X::AbstractMatrix, label=AbstractVector; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, xtitle::String="Signal $col1", ytitle::String="Signal $col2", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], point_label_font_size=12Gadfly.pt, opacity::Number=1.0)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
  	l = Vector{Vector{Gadfly.Layer}}(undef, 0)
- 	x = X[:,1] ./ maximum(X[:,1])
- 	y = X[:,2] ./ maximum(X[:,2])
-	for i = 1:r
-		push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[i]), opacity))))
-		push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label[i]], Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[i]), opacity), point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[i])))))
+ 	xm = maximum(X)
+ 	x = X[:,col1] ./ xm
+ 	y = X[:,col2] ./ xm
+ 	m = sum.(x.^2 .+ y.^2)
+ 	for i = sortperm(m; rev=true)
+ 		ic = (i - 1) % ncolors + 1
+		push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity))))
+		push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label[i]], Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[ic])))))
 	end
-	Gadfly.plot(l...)
+	push!(l, Gadfly.layer(x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(point_size=0Gadfly.pt)))
+	p = Gadfly.plot(l..., Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
+	if !quiet
+		gw = Compose.default_graphic_width
+		gh = Compose.default_graphic_height
+		Compose.set_default_graphic_size(gw, gw)
+		display(p); println()
+		Compose.set_default_graphic_size(gw, gh)
+	end
+	if filename != ""
+		if !isdir(figuredir)
+			mkdir(figuredir)
+		end
+		recursivemkdir(filename)
+		plotfileformat(p, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+	end
+	return nothing
 end
 
 function histogram(data::Vector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, quiet::Bool=false, hsize=6Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, xmin=nothing, xmax=nothing, refine=1)
+function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
@@ -76,11 +95,13 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		end
 		f = Gadfly.vstack(m...)
 		vsize *= length(suc)
-		gw = Compose.default_graphic_width
-		gh = Compose.default_graphic_height
-		Compose.set_default_graphic_size(gw, gh * length(suc))
-		!quiet && (display(f); println())
-		Compose.set_default_graphic_size(gw, gh)
+		if !quiet
+			gw = Compose.default_graphic_width
+			gh = Compose.default_graphic_height
+			Compose.set_default_graphic_size(gw, gh * length(suc))
+			display(f); println()
+			Compose.set_default_graphic_size(gw, gh)
+		end
 	end
 	if filename != ""
 		if !isdir(figuredir)
@@ -110,11 +131,13 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 	end
 	# label="Well", Gadfly.Geom.point, Gadfly.Geom.label,
 	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
-	gw = Compose.default_graphic_width
-	gh = Compose.default_graphic_height
-	Compose.set_default_graphic_size(gw, gw)
-	!quiet && (display(ff); println())
-	Compose.set_default_graphic_size(gw, gh)
+	if !quiet
+		gw = Compose.default_graphic_width
+		gh = Compose.default_graphic_height
+		Compose.set_default_graphic_size(gw, gw)
+		display(ff); println()
+		Compose.set_default_graphic_size(gw, gh)
+	end
 	if filename != ""
 		if !isdir(figuredir)
 			mkdir(figuredir)
