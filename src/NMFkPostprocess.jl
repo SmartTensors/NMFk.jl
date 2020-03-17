@@ -75,14 +75,13 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 				Hs[j,:] .= vec(Statistics.mean(Wa[c .== i,is]; dims=1))
 			end
 			smap = NMFk.finduniquesignalsbest(Hs)
-			cassgined = zeros(length(attributes))
+			cassgined = zeros(Int64, length(attributes))
 			cnew = Vector{typeof(c[1])}(undef, length(c))
 			cnew .= ' '
 			for (j, i) in enumerate(cletters)
 				icmap = smap[j]
 				cnew[c .== i] .= cletters[icmap]
-				@info "$i -> S$(smap[icmap])"
-				@info "Signal $(cmap[smap[j]])/S$(smap[j]) $i/$j (k-means clustering)"
+				@info "Signal $i -> S$(smap[j]) -> $(cletters[smap[j]]) (k-means clustering)"
 				imt = indexin(c, [i]) .== true
 				cassgined[imt] .+= 1
 				display(attributes[imt])
