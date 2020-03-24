@@ -109,6 +109,13 @@ function meannan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
+function rmsenan(t::Vector, o::Vector)
+	it = .!isnan.(t)
+	ot = .!isnan.(o)
+	ii = it .& ot
+	return sqrt( sum( (t[ii] .- o[ii]) .^ 2.) ./ sum(ii) )
+end
+
 function ssqrnan(X::AbstractArray)
 	sum(X[.!isnan.(X)].^2)
 end

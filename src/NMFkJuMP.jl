@@ -108,11 +108,14 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 		Hinit[nansh] .= 0
 	end
 	if method == :ipopt
-		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, max_iter=maxiter, print_level=verbosity, tol=tol))
+		m = JuMP.Model(Ipopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity, "tol" => tol)
 	elseif method == :nlopt
-		@warn "NLopt does not work with JuMP; Ipopt will be used!"
-		# m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer, algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
-		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer, max_iter=maxiter, print_level=verbosity, tol=tol))
+		m = JuMP.Model(NLopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter, "xtol_abs" => tolX, "ftol_abs" => tol)
+		# @warn "NLopt does not work with JuMP; Ipopt will be used!"
+		# m = JuMP.Model(Ipopt.Optimizer)
+		# JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity, "tol" => tol)
 	end
 	#IMPORTANT the order at which parameters are defined is very important
 	if Wfixed

@@ -87,9 +87,11 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 		end
 	end
 	if method == :ipopt
-		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer; max_iter=maxiter, print_level=verbosity)) # tol here is something else
+		m = JuMP.Model(Ipopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity, "tol" => tol) # tol here is something else
 	elseif method == :nlopt
-		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer; algorithm=algorithm, maxeval=maxiter)) # xtol_abs=tolX, ftol_abs=tol
+		m = JuMP.Model(NLopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter) # "xtol_abs" => tolX, "ftol_abs" => tol
 	end
 	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(T, Winit[i, j]))
 	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
@@ -300,9 +302,11 @@ function mixmatchdeltas(concentrations_in::Matrix{T}, deltas_in::Matrix{T}, delt
 		end
 	end
 	if method == :ipopt
-		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer; max_iter=maxiter, print_level=verbosity, tol=tol))
+		m = JuMP.Model(Ipopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity, "tol" => tol)
 	elseif method == :nlopt
-		m = JuMP.Model(JuMP.with_optimizer(NLopt.Optimizer; algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
+		m = JuMP.Model(NLopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter, "xtol_abs" => tolX, "ftol_abs" => tol)
 	end
 	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(T, Winit[i, j]))
 	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
@@ -375,7 +379,8 @@ function mixmatchwaterdeltas(deltas::AbstractMatrix{T}, numbuckets::Int; method:
 	deltas = copy(deltas) # we may overwrite some of the fields if there are NaN's, so make a copy
 	nummixtures = size(deltas, 1)
 	numconstituents = 2
-	m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer; max_iter=maxiter, print_level=verbosity))
+	m = JuMP.Model(Ipopt.Optimizer)
+	JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity)
 	if random
 		@JuMP.variable(m, mixer[1:nummixtures, 1:numbuckets] >= 0., start=randn(T))
 		@JuMP.variable(m, buckets[1:numbuckets, 1:numconstituents], start=maxdeltaguess * rand(T))
@@ -395,9 +400,11 @@ function mixmatchwaterdeltas(deltas::AbstractMatrix{T}, numbuckets::Int; method:
 		regularizationweight * sum(sum((buckets[i, j] - bucketmeans[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 		sum(sum(concweights[i, j] * (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets) - deltas[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 	if method == :ipopt
-		m = JuMP.Model(JuMP.with_optimizer(Ipopt.Optimizer; max_iter=maxiter, print_level=verbosity, tol=tol))
+		m = JuMP.Model(Ipopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity, "tol" => tol)
 	elseif method == :nlopt
-		m = JuMP.Model(JuMP.with_optimizer(NLopt.NLoptSolver; algorithm=algorithm, maxeval=maxiter, xtol_abs=tolX, ftol_abs=tol))
+		m = JuMP.Model(NLopt.Optimizer)
+		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter, "xtol_abs" => tolX, "ftol_abs" => tol)
 	end
 	JuMP.optimize!(m)
 	mixerval = convert(Array{T,2 }, JuMP.value.(mixer))
