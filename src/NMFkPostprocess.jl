@@ -78,14 +78,17 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			cassgined = zeros(Int64, length(attributes))
 			cnew = Vector{typeof(c[1])}(undef, length(c))
 			cnew .= ' '
+			snew = Vector{String}(undef, length(c))
 			for (j, i) in enumerate(cletters)
 				icmap = smap[j]
 				cnew[c .== i] .= cletters[icmap]
+				snew[c .== i] .= "S$(smap[j])"
 				@info "Signal $i -> S$(smap[j]) -> $(cletters[smap[j]]) (k-means clustering)"
 				imt = indexin(c, [i]) .== true
 				cassgined[imt] .+= 1
 				display(attributes[imt])
 			end
+			cs = sortperm(cnew)
 			if any(cassgined .== 0)
 				@warn "Attributes not assigned to any cluster:"
 				display(attributes[cassgined .== 0])
@@ -98,8 +101,13 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 				@info "Signal $i (k-means clustering; remapped)"
 				display(attributes[indexin(cnew, [i]) .== true])
 			end
-			cs = sortperm(cnew)
 			NMFk.plotmatrix(Wa ./ maximum(Wa); filename="$figuredir/$(casefilenameW)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(c)], colorkey=false)
+			ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
+			# snew2 = copy(snew)
+			# for i = 1:k
+			# 	snew2[snew .== "S$(i)"] .= "S$(ws[i])"
+			# end
+			NMFk.plotmatrix((Wa ./ maximum(Wa))[:,ws]; filename="$figuredir/$(casefilenameW)-s-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i])" for i=1:length(c)], colorkey=false)
 			NMFk.plotmatrix((Wa ./ maximum(Wa))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
 			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
 			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
