@@ -109,6 +109,34 @@ function meannan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
+function varnan(X::AbstractArray; dims=nothing, kw...)
+	if dims == nothing
+		ecount = .*(size(X)...)
+		I = isnan.(X)
+		if sum(I) == ecount
+			return NaN
+		else
+			return Statistics.var(X[.!I]; kw...)
+		end
+	else
+		ecount = .*(size(X)[vec(collect(dims))]...)
+		I = isnan.(X)
+		X[I] .= 0
+		sX = sum(X; dims=dims, kw...)
+		sX2 = sum(X .^ 2; dims=dims, kw...)
+		X[I] .= NaN
+		sI = sum(I; dims=dims, kw...)
+		sX[sI.==ecount] .= NaN
+		n = sum(I .== 0; dims=dims)
+		var = (sX2 - sX .^ 2 ./ n) ./ (n .- 1)
+		return var
+	end
+end
+
+function stdnan(X::AbstractArray; dims=nothing, kw...)
+	return sqrt.(varnan(X; dims=dims, kw...))
+end
+
 function rmsenan(t::Vector, o::Vector)
 	it = .!isnan.(t)
 	ot = .!isnan.(o)
