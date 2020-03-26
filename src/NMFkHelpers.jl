@@ -129,6 +129,7 @@ function varnan(X::AbstractArray; dims=nothing, kw...)
 		sX[sI.==ecount] .= NaN
 		n = sum(I .== 0; dims=dims)
 		var = (sX2 - sX .^ 2 ./ n) ./ (n .- 1)
+		var[var .< 0] .= 0
 		return var
 	end
 end
