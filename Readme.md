@@ -246,3 +246,13 @@ export http_proxy=http://proxyout.lanl.gov:8080
 export https_proxy=http://proxyout.lanl.gov:8080
 export no_proxy=.lanl.gov
 ```
+
+Proxies can be also set up directly in the Julia REPL as well:
+
+```julia
+ENV["ftp_proxy"] =  "http://proxyout.lanl.gov:8080"
+ENV["rsync_proxy"] = "http://proxyout.lanl.gov:8080"
+ENV["http_proxy"] = "http://proxyout.lanl.gov:8080"
+ENV["https_proxy"] = "http://proxyout.lanl.gov:8080"
+ENV["no_proxy"] = ".lanl.gov"
+```
