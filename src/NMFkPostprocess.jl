@@ -4,7 +4,7 @@ import PlotlyJS
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(nkrange, W, H, robustness, locations, attributes; clusterattributes::Bool=true, sizeW::Integer=0, lat=nothing, lon=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations")
+function clusterresults(nkrange, W, H, robustness, locations, attributes; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations")
 	for k = NMFk.getks(nkrange, robustness[nkrange])
 		@info("Number of signals: $k")
 
@@ -17,7 +17,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 				display(locations[ia[i,:]])
 			end
 		end
-		c = NMFk.letterassignements(NMFk.robustkmeans(H[k], k; resultdir=resultdir, casefilename=casefilenameH, load=true, save=true).assignments)
+		c = NMFk.letterassignements(NMFk.robustkmeans(H[k], k; resultdir=resultdir, casefilename=casefilenameH, load=loadassignements, save=true).assignments)
 		cs = sortperm(c)
 		cletters = sort(unique(c))
 		Hs = Matrix{Float64}(undef, k, k)
@@ -27,25 +27,33 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		smap = NMFk.finduniquesignalsbest(Hs)
 		cmap = Vector{Char}(undef, k)
 		cmap .= ' '
+		io = open("$resultdir/$(casefilenameH)-groups-$(k).txt", "w")
 		for (j, i) in enumerate(cletters)
 			@info "Signal $i(S$(smap[j])) (k-means clustering)"
+			write(io, "Signal $i(S$(smap[j])) (k-means clustering)\n")
 			display(locations[indexin(c, [i]) .== true])
+			for l in locations[indexin(c, [i]) .== true]
+				write(io, l)
+				write(io, '\n')
+			end
+			write(io, '\n')
 			cmap[smap[j]] = i
 		end
+		close(io)
 		is = sortperm(cmap)
 		NMFk.plotmatrix(permutedims(H[k]) ./ maximum(H[k]); filename="$figuredir/$(casefilenameH)-$(k).png", vsize=12Compose.inch, xticks=["S$i" for i=1:k], yticks=["$(locations[i]) $(c[i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix((permutedims(H[k]) ./ maximum(H[k]))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix(permutedims((H[k] ./ sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-sumrows-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color="black")
-		if lat != nothing && lon != nothing
-			p = PlotlyJS.plot(NMFk.plot_wells(lat, lon, c), Plotly.Layout(title="Clusters: $k"))
+		if lon != nothing && lat != nothing
+			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, c), Plotly.Layout(title="Clusters: $k"))
 			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
-			latlon = [lat lon]
+			lonlat= [lon lat]
 		else
-			latlon = Vector{Char}(undef, size(H[k], 2))
-			latlon .= ' '
+			lonlat = Vector{Char}(undef, size(H[k], 2))
+			lonlat .= ' '
 		end
-		DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [locations latlon permutedims(H[k] ./ maximum(H[k])) c], ',')
+		DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [locations lonlat permutedims(H[k] ./ maximum(H[k])) c], ',')
 
 		if clusterattributes
 			Wa = W[k]
@@ -69,7 +77,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 					display(attributes[ia[:,i]])
 				end
 			end
-			c = NMFk.letterassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename=casefilenameW, load=true, save=true).assignments)
+			c = NMFk.letterassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename=casefilenameW, load=loadassignements, save=true).assignments)
 			@assert cletters == sort(unique(c))
 			for (j, i) in enumerate(cletters)
 				Hs[j,:] .= vec(Statistics.mean(Wa[c .== i,is]; dims=1))
@@ -97,17 +105,25 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 				@warn "Attributes assigned to more than luster:"
 				display([attributes[cassgined .> 1] cassgined[cassgined .> 1]])
 			end
+			io = open("$resultdir/$(casefilenameW)-groups-$(k).txt", "w")
 			for i in cletters
 				@info "Signal $i (k-means clustering; remapped)"
+				write(io, "Signal $i (k-means clustering; remapped)\n")
 				display(attributes[indexin(cnew, [i]) .== true])
+				for a in attributes[indexin(cnew, [i]) .== true]
+					write(io, a)
+					write(io, '\n')
+				end
+				write(io, '\n')
 			end
+			close(io)
 			NMFk.plotmatrix(Wa ./ maximum(Wa); filename="$figuredir/$(casefilenameW)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(c)], colorkey=false)
 			ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
 			# snew2 = copy(snew)
 			# for i = 1:k
 			# 	snew2[snew .== "S$(i)"] .= "S$(ws[i])"
 			# end
-			NMFk.plotmatrix((Wa ./ maximum(Wa))[:,ws]; filename="$figuredir/$(casefilenameW)-s-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i])" for i=1:length(c)], colorkey=false)
+			NMFk.plotmatrix((Wa ./ maximum(Wa))[:,ws]; filename="$figuredir/$(casefilenameW)-signals-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i])" for i=1:length(c)], colorkey=false)
 			NMFk.plotmatrix((Wa ./ maximum(Wa))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
 			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
 			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
@@ -130,9 +146,9 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 				table2 = hcat(table2, map(i->attributesl[Xekm[:,i]], 1:length(locations)))
 				table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(locations)))
 			end
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-table_max.csv", [latlon table], ',')
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-table_$(cutoff_s).csv", [latlon table2], ';')
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-table_count_$(cutoff_s).csv", [latlon table3], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-table_max.csv", [lonlat table], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-table_$(cutoff_s).csv", [lonlat table2], ';')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k)-table_count_$(cutoff_s).csv", [lonlat table3], ',')
 			local table = attributesl
 			local table2 = attributesl
 			local table3 = attributesl
