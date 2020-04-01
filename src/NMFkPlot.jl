@@ -526,6 +526,19 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 	return s
 end
 
+function r2matrix(X::AbstractArray, Y::AbstractArray; kw...)
+	D = Array{Float64}(undef, size(X, 2), size(Y, 2))
+	r2 = Vector{Float64}(undef, size(X, 2))
+	for i = 1:size(Y, 2)
+		for j = 1:size(X, 2)
+			r2[j] = NMFk.r2(X[:,j], Y[:,i])
+		end
+		D[:,i] = r2
+		is = sortperm(r2; rev=true)
+	end
+	NMFk.plotmatrix(D; kw..., key_position=:none)
+end
+
 function plot_wells(wx, wy, c; hover=nothing)
 	if hover != nothing
 		@assert length(hover) == length(wx)
