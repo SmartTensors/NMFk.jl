@@ -526,14 +526,19 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 	return s
 end
 
-function r2matrix(X::AbstractArray, Y::AbstractArray; kw...)
+function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, kw...)
 	D = Array{Float64}(undef, size(X, 2), size(Y, 2))
 	for i = 1:size(Y, 2)
 		for j = 1:size(X, 2)
 			D[j,i] = NMFk.r2(X[:,j], Y[:,i])
 		end
 	end
-	NMFk.plotmatrix(D; kw..., key_position=:none)
+	if normalize == :rows
+		D ./= sum(D; dims=2)
+	else normalize == :cols
+		D ./= sum(D; dims=1)
+	end
+	NMFk.plotmatrix(NMFk.normalizematrix_total!(D)[1]; kw..., key_position=:none)
 end
 
 function plot_wells(wx, wy, c; hover=nothing)

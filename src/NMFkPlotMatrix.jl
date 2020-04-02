@@ -19,9 +19,17 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	n, m = size(Xp)
 	rect = checkrectbin(Xp)
 	if xticks != nothing
+		if size(X, 2) != length(xticks)
+			@warn "Number of x-axis ticks ($(length(xticks))) is inconsistent with the matrix size ($(size(X, 2)))"
+			return
+		end
 		gm = [gm..., Gadfly.Scale.x_discrete(labels=i->xticks[i]), Gadfly.Guide.xticks(label=true)]
 	end
 	if yticks != nothing
+		if size(X, 1) != length(yticks)
+			@warn "Number of y-axis ticks ($(length(yticks))) is inconsistent with the matrix size ($(size(X, 1)))"
+			return
+		end
 		gm = [gm..., Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]
 	end
 	cs = colorkey ? [Gadfly.Guide.ColorKey(title=key_tilte)] : []
