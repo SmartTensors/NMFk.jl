@@ -21,9 +21,15 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, load::Bool=false, kw...)
+function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=false, kw...) where {T}
 	if .*(size(X)...) == 0
 		error("Array has a zero dimension! size(X)=$(size(X))")
+	end
+	if loadonly
+		save = false
+		runflag = false
+	else
+		runflag = true
 	end
 	if load && casefilename == ""
 		@info("Loading requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
@@ -32,7 +38,6 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 		@info("Saving requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
 		casefilename = "nmfk"
 	end
-	runflag = true
 	if load && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if isfile(filename)
@@ -44,7 +49,11 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 				@warn("File $filename contains inconsistent data; runs will be executed!")
 			end
 		else
-			@info("File $filename is missing; runs will be executed!")
+			if loadonly
+				W = Array{T,2}(undef, 0, 0); H = Array{T,2}(undef, 0, 0); fitquality = Inf; robustness = -1; aic = -Inf;
+			else
+				@info("File $filename is missing; runs will be executed!")
+			end
 		end
 	end
 	if runflag
@@ -62,11 +71,16 @@ function execute(X::Union{AbstractMatrix,AbstractArray}, nk::Integer, nNMF::Inte
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadall::Bool=false, saveall::Bool=false, kw...) where {T, N}
+function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:nmf, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, loadall::Bool=false, saveall::Bool=false, kw...) where {T, N}
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
-	runflag = true
+	if loadonly
+		saveall = false
+		runflag = false
+	else
+		runflag = true
+	end
 	if loadall && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		if isfile(filename)
