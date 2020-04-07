@@ -11,7 +11,7 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Bool}(undef, 0); ratiofix=nothing, hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", dpi=imagedpi, kw...)
+function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Bool}(undef, 0); ratiofix=nothing, hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", colors=NMFk.colors, dpi=imagedpi, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -28,7 +28,7 @@ function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 		colp = Vector{Gadfly.Plot}(undef, 0)
 		for i = crange
 			i == j && continue
-			push!(colp, plotbi(X, label, mapping; code=true, col1=j, hsize=hsize, vsize=vsize, col2=i, kw...))
+			push!(colp, plotbi(X, label, mapping; code=true, col1=j, hsize=hsize, vsize=vsize, colors=colors, col2=i, kw...))
 		end
 		push!(rowp, Gadfly.hstack(colp...))
 		# if !quiet
@@ -57,7 +57,7 @@ function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Bool}(undef, 0); hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi)
+function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Bool}(undef, 0); hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
