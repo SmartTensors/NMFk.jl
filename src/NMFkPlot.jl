@@ -11,10 +11,18 @@ import StatsBase
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
-function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Bool}(undef, 0); ratiofix=nothing, hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", colors=NMFk.colors, dpi=imagedpi, kw...)
+function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Char}(undef, 0); ratiofix=nothing, hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", types=[], typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
+	if length(types) > 0
+		if typecolors == NMFk.colors
+			typecolors = Vector{String}(undef, length(types))
+			for (j, t) in enumerate(unique(types))
+				typecolors[types .== t] .= NMFk.colors[j]
+			end
+		end
+	end
 	if ratiofix == nothing
 		ratiofix = (1. + 1. / (c - 1))
 	end
@@ -28,7 +36,7 @@ function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 		colp = Vector{Gadfly.Plot}(undef, 0)
 		for i = crange
 			i == j && continue
-			push!(colp, plotbi(X, label, mapping; code=true, col1=j, hsize=hsize, vsize=vsize, colors=colors, col2=i, kw...))
+			push!(colp, plotbi(X, label, mapping; code=true, col1=j, col2=i, hsize=hsize, vsize=vsize, colors=typecolors, kw...))
 		end
 		push!(rowp, Gadfly.hstack(colp...))
 		# if !quiet
@@ -57,7 +65,7 @@ function plotbis(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Bool}(undef, 0); hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotline::Bool=false, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi)
+function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=Vector{Char}(undef, 0); hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotline::Bool=false, plotlabel::Bool=true, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -70,10 +78,11 @@ function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		xtitle = "$axisname $(mapping[col1])"
 		ytitle = "$axisname $(mapping[col2])"
 	end
+	pl = plotlabel ? [Gadfly.Geom.label] : []
 	for i = sortperm(m; rev=true)
 		ic = (i - 1) % ncolors + 1
 		plotline && push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity))))
-		push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label[i]], Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[ic])))))
+		push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label[i]], Gadfly.Geom.point, pl..., Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[ic])))))
 	end
 	push!(l, Gadfly.layer(x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(point_size=0Gadfly.pt)))
 	p = Gadfly.plot(l..., Gadfly.Theme(background_color=background_color), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)

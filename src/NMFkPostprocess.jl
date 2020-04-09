@@ -62,7 +62,8 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		NMFk.plotmatrix(permutedims(H[k]) ./ maximum(H[k]); filename="$figuredir/$(casefilenameH)-$(k).png", vsize=12Compose.inch, xticks=["S$i" for i=1:k], yticks=["$(locations[i]) $(c[i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix((permutedims(H[k]) ./ maximum(H[k]))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix(permutedims((H[k] ./ sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-sumrows-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
-		NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color="black", colors=locationcolor[cs])
+		NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color="black", types=c[cs])
+		length(locationtype) > 0 && NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-type-$(k).pdf", background_color="black", colors=locationcolor[cs])
 		if lon != nothing && lat != nothing
 			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, c), Plotly.Layout(title="Clusters: $k"))
 			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
@@ -146,7 +147,8 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
 			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
 			NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-sumrows-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
-			NMFk.plotbis(Wa[cs,is], attributes[cs], cmap; filename="$figuredir/$(casefilenameW)-biplots-$(k).pdf", background_color="black", colors=attributecolor)
+			NMFk.plotbis(Wa[cs,is], attributes[cs], cmap; filename="$figuredir/$(casefilenameW)-biplots-$(k).pdf", background_color="black", types=cnew[cs])
+			length(attributetype) > 0 && NMFk.plotbis(Wa[cs,is], attributes[cs], cmap; filename="$figuredir/$(casefilenameW)-biplots-type-$(k).pdf", background_color="black", colors=attributecolor[cs])
 			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k).csv", [attributes (Wa ./ maximum(Wa))	 c], ',')
 		end
 
