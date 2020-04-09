@@ -62,7 +62,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		NMFk.plotmatrix(permutedims(H[k]) ./ maximum(H[k]); filename="$figuredir/$(casefilenameH)-$(k).png", vsize=12Compose.inch, xticks=["S$i" for i=1:k], yticks=["$(locations[i]) $(c[i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix((permutedims(H[k]) ./ maximum(H[k]))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix(permutedims((H[k] ./ sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-sumrows-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
-		NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color="black", colors=locationcolor)
+		NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color="black", colors=locationcolor[cs])
 		if lon != nothing && lat != nothing
 			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, c), Plotly.Layout(title="Clusters: $k"))
 			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
