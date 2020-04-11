@@ -38,11 +38,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		c = NMFk.letterassignements(NMFk.robustkmeans(H[k], k; resultdir=resultdir, casefilename=casefilenameH, load=loadassignements, save=true).assignments)
 		cs = sortperm(c)
 		cletters = sort(unique(c))
-		Ms = Matrix{Float64}(undef, k, k)
-		for (j, i) in enumerate(cletters)
-			Ms[j,:] .= vec(Statistics.mean(H[k][:, c .== i]; dims=2))
-		end
-		smap = NMFk.finduniquesignalsbest(Ms)
+		smap = NMFk.getsignalassignments(H[k], c; cletters=cletters, dims=2)
 		cmap = Vector{Char}(undef, k)
 		cmap .= ' '
 		io = open("$resultdir/$(casefilenameH)-groups-$(k).txt", "w")
@@ -98,10 +94,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			end
 			c = NMFk.letterassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename=casefilenameW, load=loadassignements, save=true).assignments)
 			@assert cletters == sort(unique(c))
-			for (j, i) in enumerate(cletters)
-				Ms[j,:] .= vec(Statistics.mean(Wa[c .== i, is]; dims=1))
-			end
-			smap = NMFk.finduniquesignalsbest(Ms)
+			smap = NMFk.getsignalassignments(Wa[:,is], c; cletters=cletters, dims=1)
 			cassgined = zeros(Int64, length(attributes))
 			cnew = Vector{typeof(c[1])}(undef, length(c))
 			cnew .= ' '

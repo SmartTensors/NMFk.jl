@@ -153,7 +153,7 @@ function finduniquesignals(X::Matrix)
 	failed = false
 	while any(smap .== 0)
 		if all(Xc .== 0.)
-			@warn "Could not find a solution"
+			@warn "Procedure to find unique signals could not identify a solution ..."
 			failed = true
 			break
 		end
@@ -187,6 +187,21 @@ function finduniquesignalsbest(X::Matrix)
 		end
 	end
 	return smapbest
+end
+
+function getsignalassignments(X::Matrix, c::Vector; dims=1, cletters=nothing)
+	if cletters == nothing
+		cletters = sort(unique(c))
+	end
+	d = dims == 1 ? 2 : 1
+	k = size(X, d)
+	Ms = Matrix{Float64}(undef, k, k)
+	for (j, i) in enumerate(cletters)
+		# nt1 = ntuple(k->(k != dims ? j : Colon()), 2)
+		nt2 = ntuple(k->(k == dims ? c .== i : Colon()), 2)
+		Ms[j,:] .= vec(Statistics.mean(X[nt2...]; dims=dims))
+	end
+	return NMFk.finduniquesignalsbest(Ms)
 end
 
 function clustersolutions(factors::Vector{Matrix}, clusterWmatrix::Bool=false)
