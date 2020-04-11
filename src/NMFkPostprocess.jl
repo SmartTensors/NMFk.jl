@@ -4,24 +4,24 @@ import PlotlyJS
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(nkrange, W, H, robustness, locations, attributes; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", locationtype=[], attributetype=[], locationcolor=NMFk.colors, attributecolor=NMFk.colors)
-	if length(locationtype) > 0
-		if locationcolor == NMFk.colors
-			locationcolor = Vector{String}(undef, length(locationtype))
-			for (j, t) in enumerate(unique(locationtype))
-				locationcolor[locationtype .== t] .= NMFk.colors[j]
+function clusterresults(nkrange, W, H, robustness, locations, attributes; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", locationtypes=[], attributetypes=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color=nothing)
+	if length(locationtypes) > 0
+		if locationcolors == NMFk.colors
+			locationcolors = Vector{String}(undef, length(locationtypes))
+			for (j, t) in enumerate(unique(locationtypes))
+				locationcolors[locationtypes .== t] .= NMFk.colors[j]
 			end
 		end
-		locations .*= " " .* String.(locationtype)
+		locationnametype = locations .* " " .* String.(locationtypes)
 	end
-	if length(attributetype) > 0
-		if attributecolor == NMFk.colors
-			attributecolor = Vector{String}(undef, length(attributetype))
-			for (j, t) in enumerate(unique(attributetype))
+	if length(attributetypes) > 0
+		if attributecolors == NMFk.colors
+			attributecolors = Vector{String}(undef, length(attributetypes))
+			for (j, t) in enumerate(unique(attributetypes))
 				attributecolor[attributetype .== t] .= NMFk.colors[j]
 			end
 		end
-		attributes .*= " " .* String.(attributetype)
+		attributenametype = attributes .* " " .* String.(attributetypes)
 	end
 	for k = NMFk.getks(nkrange, robustness[nkrange])
 		@info("Number of signals: $k")
@@ -38,11 +38,11 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		c = NMFk.letterassignements(NMFk.robustkmeans(H[k], k; resultdir=resultdir, casefilename=casefilenameH, load=loadassignements, save=true).assignments)
 		cs = sortperm(c)
 		cletters = sort(unique(c))
-		Hs = Matrix{Float64}(undef, k, k)
+		Ms = Matrix{Float64}(undef, k, k)
 		for (j, i) in enumerate(cletters)
-			Hs[j,:] .= vec(Statistics.mean(H[k][:, c .== i]; dims=2))
+			Ms[j,:] .= vec(Statistics.mean(H[k][:, c .== i]; dims=2))
 		end
-		smap = NMFk.finduniquesignalsbest(Hs)
+		smap = NMFk.finduniquesignalsbest(Ms)
 		cmap = Vector{Char}(undef, k)
 		cmap .= ' '
 		io = open("$resultdir/$(casefilenameH)-groups-$(k).txt", "w")
@@ -61,9 +61,9 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		is = sortperm(cmap)
 		NMFk.plotmatrix(permutedims(H[k]) ./ maximum(H[k]); filename="$figuredir/$(casefilenameH)-$(k).png", vsize=12Compose.inch, xticks=["S$i" for i=1:k], yticks=["$(locations[i]) $(c[i])" for i=1:length(c)], colorkey=false)
 		NMFk.plotmatrix((permutedims(H[k]) ./ maximum(H[k]))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
-		NMFk.plotmatrix(permutedims((H[k] ./ sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-sumrows-$(k).png", xticks=cmap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
-		NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color="black", types=c[cs])
-		length(locationtype) > 0 && NMFk.plotbis(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-type-$(k).pdf", background_color="black", colors=locationcolor[cs])
+		NMFk.plotmatrix(permutedims((H[k] ./ sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-sumrows-$(k).png", xticks=cmap[is], yticks=["$(locationnametype[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
+		NMFk.biplots(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color=background_color, types=c[cs])
+		length(locationtypes) > 0 && NMFk.biplots(permutedims(H[k])[cs,is], locations[cs], cmap; filename="$figuredir/$(casefilenameH)-biplots-type-$(k).pdf", background_color=background_color, colors=locationcolors[cs])
 		if lon != nothing && lat != nothing
 			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, c), Plotly.Layout(title="Clusters: $k"))
 			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
@@ -99,9 +99,9 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			c = NMFk.letterassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename=casefilenameW, load=loadassignements, save=true).assignments)
 			@assert cletters == sort(unique(c))
 			for (j, i) in enumerate(cletters)
-				Hs[j,:] .= vec(Statistics.mean(Wa[c .== i,is]; dims=1))
+				Ms[j,:] .= vec(Statistics.mean(Wa[c .== i, is]; dims=1))
 			end
-			smap = NMFk.finduniquesignalsbest(Hs)
+			smap = NMFk.finduniquesignalsbest(Ms)
 			cassgined = zeros(Int64, length(attributes))
 			cnew = Vector{typeof(c[1])}(undef, length(c))
 			cnew .= ' '
@@ -110,7 +110,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 				icmap = smap[j]
 				cnew[c .== i] .= cletters[icmap]
 				snew[c .== i] .= "S$(smap[j])"
-				@info "Signal $i -> S$(smap[j]) -> $(cletters[smap[j]]) (k-means clustering)"
+				# @info "Signal $i -> S$(smap[j]) -> $(cletters[smap[j]]) (k-means clustering)"
 				imt = indexin(c, [i]) .== true
 				cassgined[imt] .+= 1
 				display(attributes[imt])
@@ -147,10 +147,14 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
 			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
 			NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-sumrows-$(k).png", xticks=cmap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
-			NMFk.plotbis(Wa[cs,is], attributes[cs], cmap; filename="$figuredir/$(casefilenameW)-biplots-$(k).pdf", background_color="black", types=cnew[cs])
-			length(attributetype) > 0 && NMFk.plotbis(Wa[cs,is], attributes[cs], cmap; filename="$figuredir/$(casefilenameW)-biplots-type-$(k).pdf", background_color="black", colors=attributecolor[cs])
+			NMFk.biplots(Wa[cs,is], attributes[cs], cmap; filename="$figuredir/$(casefilenameW)-biplots-$(k).pdf", background_color=background_color, types=cnew[cs])
+			length(attributetypes) > 0 && NMFk.biplots(Wa[cs,is], attributes[cs], cmap; filename="$figuredir/$(casefilenameW)-biplots-type-$(k).pdf", background_color=background_color, colors=attributecolors[cs])
 			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k).csv", [attributes (Wa ./ maximum(Wa))	 c], ',')
+
+			NMFk.biplots([Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))], [attributes; fill("", length(locations))], collect(1:k); filename="$figuredir/all-biplots-$(k).pdf", background_color=background_color, colors=[fill("gray", length(attributes)); locationcolors])
+			NMFk.biplots([(Wa ./ maximum(Wa))[:,is]; permutedims(H[k] ./ maximum(H[k]))[:,is]], [attributes; fill("", length(locations))], collect('A':'A'+k-1); filename="$figuredir/all-biplots-sorted-$(k).pdf", background_color=background_color, colors=[fill("gray", length(attributes)); locationcolors])
 		end
+
 
 		if cutoff_s > 0
 			attributesl = sizeW > 1 ? repeat(attributes; inner=sizeW) : attributes
