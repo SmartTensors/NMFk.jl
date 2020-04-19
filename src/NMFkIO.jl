@@ -18,7 +18,7 @@ function load(nk::Integer, nNMF::Integer=10, t::DataType=Float64; dim::Integer=2
 	end
 	if isfile(filename)
 		W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
-		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
+		println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
 		return W, H, fitquality, robustness, aic
 	else
 		@warn("File named $filename is missing!")

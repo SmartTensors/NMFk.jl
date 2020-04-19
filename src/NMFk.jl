@@ -13,9 +13,8 @@ The number of features is estimated automatically.
 module NMFk
 
 import Pkg
-using Printf
-using Distributed
-
+import Printf
+import Distributed
 import Random
 import Statistics
 import LinearAlgebra

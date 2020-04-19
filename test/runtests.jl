@@ -9,7 +9,7 @@ import LinearAlgebra
 function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
-	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-3), maxiter=5000, verbosity=0, tol=0.1, method=:ipopt)
+	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-1), maxiter=5000, verbosity=0, tol=0.0000001, method=:ipopt)
 	concs[idxnan] .= 0
 	predictedconcs = mixerestimate * bucketestimate
 	predictedconcs[idxnan] .= 0
@@ -78,7 +78,6 @@ function pureratiotest()
 		end
 		buckets = convert(Array{Float32, 2}, [0.001 1. .03 1.; .01 1. .0001 1.])
 		truedata = mixer * buckets
-		data = fill(NaN, size(truedata))
 		ratiocomponents = permutedims(Int[1 3; 2 4])
 		numberofratios = size(ratiocomponents, 1)
 		ratiomatrix = Array{Float32, 2}(undef, nummixtures, numberofratios)
@@ -87,6 +86,7 @@ function pureratiotest()
 				ratiomatrix[i, j] = truedata[i, ratiocomponents[j, 1]] / truedata[i, ratiocomponents[j, 2]]
 			end
 		end
+		data = fill(NaN, size(truedata))
 		runtest(convert(Array{Float32, 2}, data), buckets, ratiomatrix; conccomponents=Int[], ratiocomponents=ratiocomponents)
 	end
 end

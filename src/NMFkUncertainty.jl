@@ -33,7 +33,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 			@info("Uncertainty results stage #1:")
 		end
 		for i in 1:nreruns
-			println("Run: $(@sprintf("%5d", i)) Fit: $(@sprintf("%12.7g", fitquality[i])) Silhouette: $(@sprintf("%12.7g", robustness[i])) AIC: $(@sprintf("%12.7g", aic[i]))")
+			println("Run: $(@Printf.sprintf("%5d", i)) Fit: $(@Printf.sprintf("%12.7g", fitquality[i])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[i])) AIC: $(@Printf.sprintf("%12.7g", aic[i]))")
 		end
 	end
 	if window != size(X,1)
@@ -49,7 +49,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		if !quiet
 			@info("Uncertainty results stage #2:")
 			for i in 1:nreruns
-			println("Run: $(@sprintf("%5d", i)) Fit: $(@sprintf("%12.7g", fitquality[i])) Silhouette: $(@sprintf("%12.7g", robustness[i])) AIC: $(@sprintf("%12.7g", aic[i]))")
+			println("Run: $(@Printf.sprintf("%5d", i)) Fit: $(@Printf.sprintf("%12.7g", fitquality[i])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[i])) AIC: $(@Printf.sprintf("%12.7g", aic[i]))")
 			end
 		end
 	end

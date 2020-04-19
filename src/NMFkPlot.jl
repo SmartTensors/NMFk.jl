@@ -434,8 +434,8 @@ function setnewfilename(filename::AbstractString, frame::Integer=0; keyword::Abs
 	end
 end
 
-"Convert `@sprintf` macro into `sprintf` function"
-sprintf(args...) = eval(:@sprintf($(args...)))
+"Convert `@Printf.sprintf` macro into `sprintf` function"
+sprintf(args...) = eval(:@Printf.sprintf($(args...)))
 
 "Generate Sankey plots"
 function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::AbstractString; htmlfile::AbstractString="", pdffile::AbstractString="")

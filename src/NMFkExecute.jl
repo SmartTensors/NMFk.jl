@@ -1,3 +1,4 @@
+import Distributed
 import JLD
 
 "Execute NMFk analysis for a range of number of signals"
@@ -13,7 +14,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 	end
 	@info("Results")
 	for nk in nkrange
-		println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality[nk])) Silhouette: $(@sprintf("%12.7g", robustness[nk])) AIC: $(@sprintf("%12.7g", aic[nk]))")
+		println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality[nk])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[nk])) AIC: $(@Printf.sprintf("%12.7g", aic[nk]))")
 	end
 	kopt = getk(nkrange, robustness[nkrange])
 	@info("Optimal solution: $kopt features")
@@ -59,7 +60,7 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 	if runflag
 		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; resultdir=resultdir, casefilename=casefilename, kw...)
 	end
-	println("Signals: $(@sprintf("%2d", nk)) Fit: $(@sprintf("%12.7g", fitquality)) Silhouette: $(@sprintf("%12.7g", robustness)) AIC: $(@sprintf("%12.7g", aic))")
+	println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
 	if save && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if !isdir(resultdir)
@@ -90,7 +91,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		end
 	end
 	if runflag
-		if nprocs() > 1 && !serial
+		if Distributed.nprocs() > 1 && !serial
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
@@ -98,9 +99,9 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			if haskey(kw_dict, :seed)
 				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw_dict...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw_dict...)), 1:nNMF)
 			else
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, kw...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, kw...)), 1:nNMF)
 			end
 			WBig = Vector{Array}(undef, nNMF)
 			HBig = Vector{Matrix}(undef, nNMF)
@@ -308,7 +309,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		end
 	end
 	if runflag
-		if nprocs() > 1 && !serial
+		if Distributed.nprocs() > 1 && !serial
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
@@ -316,9 +317,9 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			if haskey(kw_dict, :seed)
 				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=kwseed+i, kw_dict...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, seed=kwseed+i, kw_dict...)), 1:nNMF)
 			else
-				r = pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
 			end
 			WBig = Vector{Matrix}(undef, nNMF)
 			HBig = Vector{Matrix}(undef, nNMF)
