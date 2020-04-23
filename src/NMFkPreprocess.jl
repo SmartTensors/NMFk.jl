@@ -27,6 +27,16 @@ function remap(v::AbstractMatrix{T}, mapping::Vector; func::Function=!isnothing)
 	return o
 end
 
+function slopes(v::AbstractVector)
+	s = similar(v)
+	s[1] = v[2] - v[1]
+	s[end] = v[end] - v[end-1]
+	for i = 2:length(v)-1
+		s[i] = (v[i+1] - v[i-1]) ./ 2
+	end
+	return s
+end
+
 function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
