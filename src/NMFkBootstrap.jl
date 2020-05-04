@@ -1,8 +1,6 @@
 import Distributions
+import DocumentFunction
 
-"""
-Randomize matrix by assigning a random vector to each column based on a multinomial distribution (with the original column vector as the mean)
-"""
 function bootstrapping(X::Array{Float64}, scaling::Number=1.0, epsilon::Number=sqrt(eps()))
 	N = deepcopy(X)
 	bootstrapping!(N, scaling, epsilon)
@@ -33,3 +31,15 @@ function bootstrapping!(X::Array{Int64})
 		X[:, i] = rand(v)
 	end
 end
+
+@doc """
+Randomize matrix by assigning a random vector to each column based on a multinomial distribution (with the original column vector as the mean)
+
+$(DocumentFunction.documentfunction(bootstrapping))
+""" bootstrapping
+
+@doc """
+Randomize matrix by assigning a random vector to each column based on a multinomial distribution (with the original column vector as the mean)
+
+$(DocumentFunction.documentfunction(bootstrapping!))
+""" bootstrapping!
