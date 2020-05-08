@@ -13,6 +13,8 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 			end
 		end
 		locationnametype = locations .* " " .* String.(locationtypes)
+	else
+		locationnametype = locations
 	end
 	if length(attributetypes) > 0
 		if attributecolors == NMFk.colors
@@ -24,9 +26,12 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		attributenametype = attributes .* " " .* String.(attributetypes)
 	end
 	for k = NMFk.getks(nkrange, robustness[nkrange])
+		@assert length(locations) == size(H[k], 2)
+		@assert length(attributes) == size(W[k], 1)
 		@info("Number of signals: $k")
 
 		@info("Locations (signals=$k)")
+		recursivemkdir(resultdir; filename=false)
 		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", H[k], ',')
 		if cutoff > 0
 			ia = (H[k] ./ maximum(H[k]; dims=2)) .> cutoff
