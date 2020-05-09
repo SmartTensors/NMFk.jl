@@ -41,6 +41,8 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+VegaDatasets = "0ae4a718-28b7-58ec-9efb-cded64d6d5b4"
+VegaLite = "112f6efa-9a02-5b7d-90c0-432ed331239a"s
 
 [compat]
 Clustering = "^0"
@@ -71,6 +73,8 @@ PyPlot = "^2"
 ReusableFunctions = "^0"
 StatsBase = "^0"
 Suppressor = "^0"
+VegaDatasets = "^2"
+VegaLite = "^2"
 julia = "^1.4"
 
 [extras]

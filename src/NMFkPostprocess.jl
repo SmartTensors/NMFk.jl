@@ -201,3 +201,12 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		end
 	end
 end
+
+function signalorder(X::AbstractArray, dim=1)
+	v = Vector{Int64}(undef, size(X, dim))
+	for i = 1:size(X, dim)
+		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
+		v[i] = findmax(X[nt...])[2]
+	end
+	sortperm(v), v
+end
