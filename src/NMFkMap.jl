@@ -44,6 +44,8 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=
 			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, reverse=true, domainMax=zmax, domainMin=zmin}}
 		)
 		!quiet && (display(p); println())
-		casefilename != "" && VegaLite.save(joinpath("figuredir", "$(casefilename)-$(lpad(k, 2, '0')).png"), p)
+		if casefilename != ""
+			VegaLite.save(joinpath("$(figuredir)", "$(casefilename)-$(lpad(k, 2, '0')).png"), p)
+		end
 	end
 end
