@@ -2,7 +2,7 @@ import VegaLite
 import VegaDatasets
 import DataFrames
 
-function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; dates=dates, kw...)
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; dates=nothing, kw...)
 	Wa, _, _ = NMFk.normalizematrix_col!(W)
 	Ha, _, _ = NMFk.normalizematrix_row!(H)
 	if dim == 1
