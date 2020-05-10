@@ -2,6 +2,26 @@ import VegaLite
 import VegaDatasets
 import DataFrames
 
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; dates=dates, kw...)
+	Wa, _, _ = NMFk.normalizematrix_col!(W)
+	Ha, _, _ = NMFk.normalizematrix_row!(H)
+	if dim == 1
+		odim = 2
+		so, si = NMFk.signalorder(Wa, odim)
+		if dates != nothing
+			dates=dates[si]
+		end
+		NMFk.plotmap(Ha, fips, dim, so; dates=dates, kw...)
+	else
+		odim = 1
+		so, si = NMFk.signalorder(Ha, odim)
+		if dates != nothing
+			dates=dates[si]
+		end
+		NMFk.plotmap(Wa, fips, dim, so; dates=dates, kw...)
+	end
+end
+
 function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=1:size(X, dim); us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="redyellowgreen", zmin=0, zmax=1)
 	recursivemkdir(figuredir; filename=false)
 	for (k, i) in enumerate(order)
