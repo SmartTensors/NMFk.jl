@@ -11,14 +11,22 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		if dates != nothing
 			dates=dates[si]
 		end
-		NMFk.plotmap(Ha, fips, dim, so; dates=dates, kw...)
+		signalid = similar(so)
+		for (i,j) in enumerate(so)
+			signalid[j] = i
+		end
+		NMFk.plotmap(Ha, fips, dim, so; signalid=signalid, dates=dates, kw...)
 	else
 		odim = 1
 		so, si = NMFk.signalorder(Ha, odim)
 		if dates != nothing
 			dates=dates[si]
 		end
-		NMFk.plotmap(Wa, fips, dim, so; dates=dates, kw...)
+		signalid = similar(so)
+		for (i,j) in enumerate(so)
+			signalid[j] = i
+		end
+		NMFk.plotmap(Wa, fips, dim, so; signalid=signalid, dates=dates, kw...)
 	end
 end
 
@@ -66,7 +74,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=
 				}
 			}],
 			projection={type=:albersUsa},
-			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, reverse=true, domainMax=zmax, domainMin=zmin}}
+			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, clamp=true, reverse=true, domain=[zmin, zmax], domainMax=zmax, domainMin=zmin}}
 		)
 		!quiet && (display(p); println())
 		if casefilename != ""
