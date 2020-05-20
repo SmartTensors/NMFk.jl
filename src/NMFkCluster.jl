@@ -128,7 +128,7 @@ function sortclustering(c; rev=true)
 	return Clustering.KmeansResult(c.centers[:,r], cassignments2, c.costs, c.counts[r], c.wcounts[r], c.totalcost, c.iterations, c.converged)
 end
 
-function letterassignements(c::Vector)
+function labelassignements(c::Vector)
 	t = unique(c)
 	nc = length(c)
 	nt = length(t)
@@ -148,10 +148,10 @@ end
 function finduniquesignals(X::Matrix)
 	k = size(X, 1)
 	@assert k == size(X, 2)
-	smap = zeros(Int64, k)
+	signalmap = zeros(Int64, k)
 	Xc = copy(X)
 	failed = false
-	while any(smap .== 0)
+	while any(signalmap .== 0)
 		if all(Xc .== 0.)
 			@warn "Procedure to find unique signals could not identify a solution ..."
 			failed = true
@@ -159,44 +159,44 @@ function finduniquesignals(X::Matrix)
 		end
 		rc = findmax(Xc)[2]
 		Xc[rc] = 0.
-		if smap[rc[1]] == 0 && !any(smap .== rc[2])
-			smap[rc[1]] = rc[2]
+		if signalmap[rc[1]] == 0 && !any(signalmap .== rc[2])
+			signalmap[rc[1]] = rc[2]
 		end
 	end
 	local o = 0
 	if !failed
 		for i = 1:k
-			o += X[i,smap[i]]
+			o += X[i,signalmap[i]]
 		end
 	end
-	return o, smap
+	return o, signalmap
 end
 
 function finduniquesignalsbest(X::Matrix)
-	o, smap = finduniquesignals(X)
+	o, signalmap = finduniquesignals(X)
 	k = size(X, 1)
 	obest = o
-	smapbest = smap
+	signalmapbest = signalmap
 	for i = 1:k
 		Xc = copy(X)
-		Xc[i, smap[i]] = 0.
-		o, smap = finduniquesignals(Xc)
+		Xc[i, signalmap[i]] = 0.
+		o, signalmap = finduniquesignals(Xc)
 		if o > obest
 			obest = o
-			smapbest = smap
+			signalmapbest = signalmap
 		end
 	end
-	return smapbest
+	return signalmapbest
 end
 
-function getsignalassignments(X::Matrix, c::Vector; dims=1, cletters=nothing)
-	if cletters == nothing
-		cletters = sort(unique(c))
+function getsignalassignments(X::Matrix, c::Vector; dims=1, clusterlabels=nothing)
+	if clusterlabels == nothing
+		clusterlabels = sort(unique(c))
 	end
 	d = dims == 1 ? 2 : 1
 	k = size(X, d)
 	Ms = Matrix{Float64}(undef, k, k)
-	for (j, i) in enumerate(cletters)
+	for (j, i) in enumerate(clusterlabels)
 		# nt1 = ntuple(k->(k != dims ? j : Colon()), 2)
 		nt2 = ntuple(k->(k == dims ? c .== i : Colon()), 2)
 		Ms[j,:] .= vec(Statistics.mean(X[nt2...]; dims=dims))

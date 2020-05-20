@@ -22,13 +22,18 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	end
 end
 
-function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=1:size(X, dim); us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="redyellowgreen", zmin=0, zmax=1)
+function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=1:size(X, dim); signalid=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="redyellowgreen", zmin=0, zmax=1)
 	recursivemkdir(figuredir; filename=false)
-	for (k, i) in enumerate(order)
+	for i in order
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
 		df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]], Z=[vec(X[nt...]); zeros(sum(.!goodcounties))])
+		if typeof(signalid[i]) <: Number
+			signalidtext = lpad(signalid[i], leadingzeros, '0')
+		else
+			signalidtext = signalid[i]
+		end
 		if title || (dates != nothing && titletext != "")
-			ttitle = "$(titletext) $(lpad(k, leadingzeros, '0'))"
+			ttitle = "$(titletext) $(signalidtext)"
 			if dates != nothing
 				ttitle *= ": $(datetext): $(dates[i])"
 			end
@@ -38,7 +43,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=
 			if dates != nothing
 				ltitle = "$(dates[i])"
 			else
-				ltitle = "$(titletext) $(lpad(k, leadingzeros, '0'))"
+				ltitle = "$(titletext) $(signalidtext)"
 			end
 		end
 		p = @VegaLite.vlplot(
@@ -65,7 +70,38 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=
 		)
 		!quiet && (display(p); println())
 		if casefilename != ""
-			VegaLite.save(joinpath("$(figuredir)", "$(casefilename)-$(lpad(k, 2, '0')).png"), p)
+			VegaLite.save(joinpath("$(figuredir)", "$(casefilename)-$(signalidtext).png"), p)
 		end
+	end
+end
+
+function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="category10", zmin=0, zmax=1)
+	recursivemkdir(figuredir; filename=false)
+	nc = length(unique(sort(X))) + 1
+	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]], Z=[X; zeros(sum(.!goodcounties))])
+	p = @VegaLite.vlplot(
+		:geoshape,
+		width=500, height=300,
+		data={
+			values=us10m,
+			format={
+				type=:topojson,
+				feature=:counties
+			}
+		},
+		transform=[{
+			lookup=:id,
+			from={
+				data=df,
+				key=:FIPS,
+				fields=["Z"]
+			}
+		}],
+		projection={type=:albersUsa},
+		color={title="", field="Z", type="ordinal", scale={scheme=vec("#" .*  Colors.hex.(parse.(Colors.Colorant, NMFk.colors), :RGB))[1:nc], reverse=true, domainMax=zmax, domainMin=zmin}}
+	)
+	!quiet && (display(p); println())
+	if casefilename != ""
+		VegaLite.save(joinpath("$(figuredir)", "$(casefilename).png"), p)
 	end
 end
