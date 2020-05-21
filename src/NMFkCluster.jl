@@ -128,7 +128,7 @@ function sortclustering(c; rev=true)
 	return Clustering.KmeansResult(c.centers[:,r], cassignments2, c.costs, c.counts[r], c.wcounts[r], c.totalcost, c.iterations, c.converged)
 end
 
-function labelassignements(c::Vector)
+function labelassignements(c::AbstractVector)
 	t = unique(c)
 	nc = length(c)
 	nt = length(t)
@@ -145,7 +145,7 @@ function labelassignements(c::Vector)
 	return cassignments
 end
 
-function finduniquesignals(X::Matrix)
+function finduniquesignals(X::AbstractMatrix)
 	k = size(X, 1)
 	@assert k == size(X, 2)
 	signalmap = zeros(Int64, k)
@@ -172,7 +172,7 @@ function finduniquesignals(X::Matrix)
 	return o, signalmap
 end
 
-function finduniquesignalsbest(X::Matrix)
+function finduniquesignalsbest(X::AbstractMatrix)
 	o, signalmap = finduniquesignals(X)
 	k = size(X, 1)
 	obest = o
@@ -189,7 +189,7 @@ function finduniquesignalsbest(X::Matrix)
 	return signalmapbest
 end
 
-function getsignalassignments(X::Matrix, c::Vector; dims=1, clusterlabels=nothing)
+function getsignalassignments(X::AbstractMatrix, c::Vector; dims=1, clusterlabels=nothing)
 	if clusterlabels == nothing
 		clusterlabels = sort(unique(c))
 	end
