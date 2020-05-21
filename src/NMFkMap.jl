@@ -74,7 +74,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=
 				}
 			}],
 			projection={type=:albersUsa},
-			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, clamp=true, reverse=true, domain=[zmin, zmax], domainMax=zmax, domainMin=zmin}}
+			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, clamp=true, reverse=true, domain=[zmin, zmax]}}
 		)
 		!quiet && (display(p); println())
 		if casefilename != ""
