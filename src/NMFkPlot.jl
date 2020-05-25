@@ -120,18 +120,23 @@ function histogram(data::Vector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine=1)
+function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine::Number=1)
 	ndata = length(data)
 	@assert length(data) == length(classes)
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
 	xaxis = xmap.(collect(newedges))
-	if closed == :left
-		xmina = xaxis[1:end-2]
-		xmaxa = xaxis[2:end-1]
+	if mergeedge
+		if closed == :left
+			xmina = xaxis[1:end-2]
+			xmaxa = xaxis[2:end-1]
+		else
+			xmina = xaxis[2:end-1]
+			xmaxa = xaxis[3:end]
+		end
 	else
-		xmina = xaxis[2:end-1]
-		xmaxa = xaxis[3:end]
+		xmina = xaxis[1:end-1]
+		xmaxa = xaxis[2:end]
 	end
 	xminl = xmin == nothing ? xmina[1] : min(xmina[1], xmin)
 	xmaxl = xmax == nothing ? xmaxa[end] : max( xmaxa[end], xmax)
@@ -148,16 +153,22 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
 		ymaxl = max(maximum(y), ymaxl)
-		if closed == :left
-			xmina = xaxis[1:end-2]
-			xmaxa = xaxis[2:end-1]
-			ya = y[1:end-1]
-			ya[end] += y[end]
+		if mergeedge
+			if closed == :left
+				xmina = xaxis[1:end-2]
+				xmaxa = xaxis[2:end-1]
+				ya = y[1:end-1]
+				ya[end] += y[end]
+			else
+				xmina = xaxis[2:end-1]
+				xmaxa = xaxis[3:end]
+				ya = y[2:end]
+				ya[1] += y[1]
+			end
 		else
-			xmina = xaxis[2:end-1]
-			xmaxa = xaxis[3:end]
-			ya = y[2:end]
-			ya[1] += y[1]
+				xmina = xaxis[1:end-1]
+				xmaxa = xaxis[2:end]
+				ya = y
 		end
 		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
 	end
