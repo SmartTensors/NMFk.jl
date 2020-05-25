@@ -126,8 +126,15 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
 	xaxis = xmap.(collect(newedges))
-	xminl = xmin == nothing ? minimum(xaxis) : min(minimum(xaxis), xmin)
-	xmaxl = xmax == nothing ? maximum(xaxis) : max(maximum(xaxis), xmax)
+	if closed == :left
+		xmina = xaxis[1:end-2]
+		xmaxa = xaxis[2:end-1]
+	else
+		xmina = xaxis[2:end-1]
+		xmaxa = xaxis[3:end]
+	end
+	xminl = xmin == nothing ? xmina[1] : min(xmina[1], xmin)
+	xmaxl = xmax == nothing ? xmaxa[end] : max( xmaxa[end], xmax)
 	l = []
 	suc = sort(unique(classes))
 	if !joined
@@ -141,9 +148,20 @@ function histogram(data::Vector, classes::Vector; joined::Bool=true, separate::B
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
 		ymaxl = max(maximum(y), ymaxl)
-		push!(l, Gadfly.layer(xmin=xaxis[1:end-1], xmax=xaxis[2:end], y=y, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
+		if closed == :left
+			xmina = xaxis[1:end-2]
+			xmaxa = xaxis[2:end-1]
+			ya = y[1:end-1]
+			ya[end] += y[end]
+		else
+			xmina = xaxis[2:end-1]
+			xmaxa = xaxis[3:end]
+			ya = y[2:end]
+			ya[1] += y[1]
+		end
+		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
 	end
-	ymax = ymax != nothing ? yman : ymaxl
+	ymax = ymax != nothing ? ymax : ymaxl
 	s = [Gadfly.Coord.Cartesian(xmin=xminl, xmax=xmaxl, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl), Gadfly.Guide.xticks(ticks=unique([xminl; collect(xaxis); xmaxl])), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
 	if xlabelmap != nothing
 		s = [s..., Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl, labels=xlabelmap)]
