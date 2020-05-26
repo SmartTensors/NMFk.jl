@@ -11,7 +11,7 @@ function normalize!(a; rev::Bool=false, amax = NMFk.maximumnan(a), amin = NMFk.m
 end
 
 "Denormalize"
-function denormalize!(a, amin, amax; rev::Bool=false)
+function denormalize!(a, amin, amax)
 	if all(amax .>= amin)
 		a = a .* (amax - amin) .+ amin
 	else
@@ -22,8 +22,16 @@ end
 
 "Normalize matrix (by columns)"
 function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false)
-	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
-	amin = permutedims(map(i->NMFk.minimumnan(a[:,i]), 1:size(a, 2)))
+	normalizematrix!(a, 2; rev=rev)
+end
+
+"Normalize matrix (by rows)"
+function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false)
+	normalizematrix!(a, 1; rev=rev)
+end
+
+function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false)
+	amin, amax = matrixminmax(a, dim)
 	dx = amax - amin
 	if length(dx) > 1
 		i0 = dx .== 0 # check for zeros
@@ -41,25 +49,14 @@ function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false)
 	end
 end
 
-"Normalize matrix (by rows)"
-function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false)
-	amax = map(i->NMFk.maximumnan(a[i,:]), 1:size(a, 1))
-	amin = map(i->NMFk.minimumnan(a[i,:]), 1:size(a, 1))
-	dx = amax - amin
-	if length(dx) > 1
-		i0 = dx .== 0 # check for zeros
-		amin[i0] .= 0
-		dx[i0] .= amax[i0]
-		i0 = dx .== 0 # check for zeros again
-		dx[i0] .= 1
+function matrixminmax(a::AbstractMatrix, dim::Integer)
+	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	if dim == 2
+		amax = permutedims(amax)
+		amin = permutedims(amin)
 	end
-	if rev
-		a = (amax .- a) ./ dx
-		return a, amax, amin
-	else
-		a = (a .- amin) ./ dx
-		return a, amin, amax
-	end
+	return amin, amax
 end
 
 "Denormalize matrix"
@@ -77,7 +74,7 @@ function denormalizematrix_row!(a::AbstractMatrix, amin::Vector, amax::Vector)
 	if all(amax .>= amin)
 		a = a .* (amax - amin) + repeat(amin; outer=[1, size(a, 2)])
 	else
-		a = repeat(amin; outer=[1, size(a, 1),]) + a .* (amax - amin)
+		a = repeat(amin; outer=[1, size(a, 1)]) + a .* (amax - amin)
 	end
 	return a
 end
