@@ -530,10 +530,9 @@ end
 function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NMFk.quiet, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{AbstractArray{Int, 1},AbstractArray{Int, 2}}=Array{Int}(undef, 0, 0), deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), deltaindices::AbstractArray{Int, 1}=Array{Int}(undef, 0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::T=convert(T, 1), weightinverse::Bool=false, transpose::Bool=false, mixture::Symbol=:null, rescalematrices::Bool=true, method::Symbol=:nmf, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false, bootstrap::Bool=false, kw...) where {T}
 	if scale
 		if transpose
-			Xn = permutedims(Xn)
-			Xn, Xmax = NMFk.scalematrix!(X)
+			Xn, Xmax = NMFk.scalematrix_row!(permutedims(X))
 		else
-			Xn, Xmax = NMFk.scalematrix!(X)
+			Xn, Xmax = NMFk.scalematrix_row!(X)
 		end
 	else
 		if transpose

@@ -26,9 +26,9 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 	nans = isnan.(concentrations)
 	concweights[nans] .= 0
 	if normalize
-		concentrations, cmin, cmax = normalizematrix!(concentrations)
+		concentrations, cmin, cmax = normalizematrix_row!(concentrations)
 	elseif scale
-		concentrations, cmax = scalematrix!(concentrations)
+		concentrations, cmax = scalematrix_row!(concentrations)
 	end
 	if sizeof(ratios) == 0
 		concentrations[nans] .= 0
@@ -219,7 +219,7 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 		ratios[ratios.==0] .= NaN32
 	end
 	if normalize
-		bucketval = denormalizematrix!(bucketval, mixerval, cmin, cmax)
+		bucketval = denormalizematrix_col!(bucketval, mixerval, cmin, cmax)
 	elseif scale
 		bucketval = descalematrix!(bucketval, cmax)
 	end
@@ -252,11 +252,11 @@ function mixmatchdeltas(concentrations_in::Matrix{T}, deltas_in::Matrix{T}, delt
 	deltas[nans] .= 0
 	deltasweights[nans] .= 0
 	if normalize
-		concentrations, cmax = scalematrix!(concentrations)
-		deltas, dmin, dmax = normalizematrix!(deltas)
+		concentrations, cmax, cmin = normalizematrix_row!(concentrations)
+		deltas, dmin, dmax = normalizematrix_row!(deltas)
 	elseif scale
-		concentrations, cmax = scalematrix!(concentrations)
-		deltas, dmax = scalematrix!(deltas)
+		concentrations, cmax = scalematrix_row!(concentrations)
+		deltas, dmax = scalematrix_row!(deltas)
 	end
 	if sizeof(Winit) == 0
 		if random
@@ -365,8 +365,8 @@ function mixmatchdeltas(concentrations_in::Matrix{T}, deltas_in::Matrix{T}, delt
 	!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 	fitquality = ofbest - regularizationweight * sum(log.(1. .+ bucketval).^2) / numbuckets - regularizationweight * sum(log.(1. .+ abs.(bucketdeltasval)).^2) / numbuckets
 	if normalize
-		bucketval = descalematrix!(bucketval, cmax)
-		bucketdeltasval = denormalizematrix!(bucketdeltasval, mixerval, dmin, dmax)
+		bucketval = denormalizematrix_cool!(bucketval, cmin, cmax)
+		bucketdeltasval = denormalizematrix_col!(bucketdeltasval, mixerval, dmin, dmax)
 	elseif scale
 		bucketval = descalematrix!(bucketval, cmax)
 		bucketdeltasval = descalematrix!(bucketdeltasval, dmax)

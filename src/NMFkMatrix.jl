@@ -20,10 +20,6 @@ function denormalize!(a, amin, amax; rev::Bool=false)
 	return a
 end
 
-function normalizematrix!(a...; kw...)
-	normalizematrix_col!(a...; kw...)
-end
-
 "Normalize matrix (by columns)"
 function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false)
 	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
@@ -67,11 +63,6 @@ function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false)
 end
 
 "Denormalize matrix"
-function denormalizematrix!(a...)
-	denormalizematrix_col!(a...)
-end
-
-"Denormalize matrix"
 function denormalizematrix_col!(a::AbstractMatrix, amin::Vector, amax::Vector)
 	if all(amax .>= amin)
 		a = a .* (amax - amin) + repeat(amin; outer=[size(a, 1), 1])
@@ -91,15 +82,8 @@ function denormalizematrix_row!(a::AbstractMatrix, amin::Vector, amax::Vector)
 	return a
 end
 
-"Scale matrix (by rows)"
-function scalematrix!(a::AbstractMatrix)
-	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
-	a ./= amax
-	return a, amax
-end
-
 "Scale array"
-function scalearray!(a::Array)
+function scalearray!(a::AbstractArray)
 	amax = vec(maximumnan(a; dims=(1,3)))
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
@@ -109,14 +93,8 @@ function scalearray!(a::Array)
 	return a, amax
 end
 
-"Descale matrix (by rows)"
-function descalematrix!(a::AbstractMatrix, amax::AbstractMatrix)
-	a .*= amax
-	return a
-end
-
-"Descale matrix (by rows)"
-function descalearray!(a::AbstractMatrix, amax::Vector)
+"Descale array"
+function descalearray!(a::AbstractArray, amax::Vector)
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			a[:, i, :] .*= amax[i]
@@ -125,9 +103,22 @@ function descalearray!(a::AbstractMatrix, amax::Vector)
 	return a
 end
 
+"Scale matrix (by rows)"
+function scalematrix_row!(a::AbstractMatrix)
+	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
+	a ./= amax
+	return a, amax
+end
+
 "Scale matrix (by columns)"
 function scalematrix_col!(a::AbstractMatrix)
 	amax = maximum(abs(a); dims=2)
 	a = a ./ amax
 	return a, amax
+end
+
+"Descale matrix (by rows)"
+function descalematrix!(a::AbstractMatrix, amax::AbstractMatrix)
+	a .*= amax
+	return a
 end

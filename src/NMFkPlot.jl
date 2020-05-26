@@ -586,7 +586,7 @@ function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, k
 	else normalize == :cols
 		D ./= sum(D; dims=1)
 	end
-	NMFk.plotmatrix(NMFk.normalizematrix_total!(D)[1]; kw..., key_position=:none)
+	NMFk.plotmatrix(NMFk.normalize!(D)[1]; kw..., key_position=:none)
 end
 
 function plot_wells(wx, wy, c; hover=nothing)
