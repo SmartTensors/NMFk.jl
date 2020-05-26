@@ -109,7 +109,7 @@ end
 
 "Scale matrix (by columns)"
 function scalematrix_col!(a::AbstractMatrix)
-	amax = maximum(abs(a); dims=2)
+	amax = map(i->NMFk.maximumnan(a[i,:]), 1:size(a, 1))
 	a = a ./ amax
 	return a, amax
 end
