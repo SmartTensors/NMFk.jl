@@ -124,7 +124,31 @@ NMFk.functions(NMFk, "get")
 
 "Checks if package is available"
 function ispkgavailable(modulename::String)
-	haskey(Pkg.installed(), modulename)
+	return pkginstalled(modulename)
+end
+
+function pkginstalled(modulename::String)
+	found = false
+	deps = Pkg.dependencies()
+	for (uuid, dep) in deps
+		dep.is_direct_dep || continue
+		dep.version === nothing && continue
+		if dep.name == modulename
+			found = true
+			break
+		end
+	end
+	return found
+end
+function pkginstalled()
+	deps = Pkg.dependencies()
+	installs = Dict{String, VersionNumber}()
+	for (uuid, dep) in deps
+		dep.is_direct_dep || continue
+		dep.version === nothing && continue
+		installs[dep.name] = dep.version
+	end
+	return installs
 end
 
 "Print error message"
