@@ -38,23 +38,24 @@ function robustkmeans(X::AbstractMatrix, krange::AbstractRange{Int}, repeats::In
 	best_mean_silhouettes = 0
 	kbest = krange[1]
 	local cbest = nothing
-	local best_sc = nothing
+	local silhouettesbest = nothing
 	for k in krange
 		if k >= size(X, 2)
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
-		c_new, mean_silhouettes, sc = robustkmeans(X, k, repeats; kw...)
-		@info("$k: OF: $(c_new.totalcost) Mean Silhouette: $(mean_silhouettes) Worst Silhouette: $(minimum(sc)) Cluster Silhouettes: $(sc)")
+		c, silhouettes = robustkmeans(X, k, repeats; kw...)
+		mean_silhouettes = Statistics.mean(silhouettes)
+		@info("$k: OF: $(c.totalcost) Mean Silhouette: $(mean_silhouettes) Worst Silhouette: $(minimum(silhouettes)) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettes[c.assignments .== i]), unique(c.assignments)))")
 		if best_mean_silhouettes < mean_silhouettes
 			best_mean_silhouettes = mean_silhouettes
-			best_totalcost = c_new.totalcost
-			cbest = deepcopy(c_new)
-			best_sc = copy(sc)
+			best_totalcost = c.totalcost
+			cbest = deepcopy(c)
+			silhouettesbest = deepcopy(silhouettes)
 			kbest = k
 		end
 	end
-	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(best_sc)) Silhouettes: $(best_sc)")
+	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(silhouettesbest)) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettesbest[cbest.assignments .== i]), unique(cbest.assignments)))")
 	return cbest
 end
 
@@ -72,21 +73,19 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 	local c = nothing
 	local best_totalcost = Inf
 	local best_mean_silhouettes = Inf
-	best_mean_cluster_silhouettes = Vector{Float64}(undef, k)
+	local best_silhouettes = []
 	for i = 1:repeats
 		local c_new
 		@Suppressor.suppress begin
 			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		end
-		Xd = Distances.pairwise(Distances.CosineDist(), X; dims=2)
+		Xd = Distances.pairwise(distance, X; dims=2)
 		silhouettes = Clustering.silhouettes(c_new, Xd)
 		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost
 			best_mean_silhouettes = Statistics.mean(silhouettes)
-			for i in unique(c_new.assignments)
-				best_mean_cluster_silhouettes[i] = Statistics.mean(silhouettes[c_new.assignments.==i])
-			end
+			best_silhouettes = silhouettes
 		end
 	end
 	sc = sortclustering(c)
@@ -98,7 +97,7 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 		JLD.save(filename, "assignments", sc)
 		@info("Robust k-means analysis results are saved in file $(filename)!")
 	end
-	return sc
+	return sc, best_silhouettes
 end
 
 function sortclustering(c; rev=true)
