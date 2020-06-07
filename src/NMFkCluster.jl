@@ -29,7 +29,7 @@ function remap2count(assignments)
 	return map(mfunc, assignments)
 end
 
-function robustkmeans(X::AbstractMatrix, krange::AbstractRange{Int}, repeats::Int=1000; kw...)
+function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Vector{Int64}}, repeats::Int=1000; kw...)
 	if krange[1] >= size(X, 2)
 		@info("Cannot be computed (min range is greater than or equal to size(X,2); $krange[1] >= $(size(X, 2)))")
 		return nothing
@@ -55,7 +55,7 @@ function robustkmeans(X::AbstractMatrix, krange::AbstractRange{Int}, repeats::In
 			kbest = k
 		end
 	end
-	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(silhouettesbest)) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettesbest[cbest.assignments .== i]), unique(cbest.assignments)))")
+	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(silhouettesbest)) Silhouettes: $(map(i->Statistics.mean(silhouettesbest[cbest.assignments .== i]), unique(cbest.assignments)))")
 	return cbest
 end
 
