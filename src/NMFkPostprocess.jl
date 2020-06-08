@@ -211,9 +211,9 @@ function signalorder(X::AbstractArray, dim=1)
 	sortperm(v), v
 end
 
-function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractString=".", loadassignements::Bool=true, Wclusterlabelsasefilename::AbstractString="Wmatrix", Hclusterlabelsasefilename::AbstractString="Hmatrix")
+function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractString=".", loadassignements::Bool=true, Wclusterlabelcasefilename::AbstractString="Wmatrix", Hclusterlabelcasefilename::AbstractString="Hmatrix")
 	k = size(H, 1)
-	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k; resultdir=resultdir, casefilename=Hclusterlabelsasefilename, load=loadassignements, save=true).assignments)
+	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k; resultdir=resultdir, casefilename=Hclusterlabelcasefilename, load=loadassignements, save=true).assignments)
 	Hcs = sortperm(Hclusterlabels)
 	clusterlabels = sort(unique(Hclusterlabels))
 	Hsignalmap = NMFk.getsignalassignments(H, Hclusterlabels; clusterlabels=clusterlabels, dims=2)
@@ -222,7 +222,7 @@ function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractSt
 	for (j, i) in enumerate(clusterlabels)
 		Hclustermap[Hsignalmap[j]] = i
 	end
-	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k; resultdir=resultdir, casefilename=Wclusterlabelsasefilename, load=loadassignements, save=true).assignments)
+	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true).assignments)
 	@assert clusterlabels == sort(unique(Wclusterlabels))
 	Wsignalmap = NMFk.getsignalassignments(W[:,Hsignalmap], Wclusterlabels; clusterlabels=clusterlabels, dims=1)
 	Wclusterlabelsnew = Vector{typeof(Wclusterlabels[1])}(undef, length(Wclusterlabels))
