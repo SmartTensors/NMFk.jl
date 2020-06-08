@@ -46,7 +46,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Vector
 		end
 		c, silhouettes = robustkmeans(X, k, repeats; kw...)
 		mean_silhouettes = Statistics.mean(silhouettes)
-		@info("$k: OF: $(c.totalcost) Mean Silhouette: $(mean_silhouettes) Worst Silhouette: $(minimum(silhouettes)) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettes[c.assignments .== i]), unique(c.assignments)))")
+		@info("$k: OF: $(c.totalcost) Mean Silhouette: $(mean_silhouettes) Worst Silhouette: $(minimum(silhouettes)) Cluster Count: $(map(i->sum(c.assignments .== i), unique(c.assignments))) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettes[c.assignments .== i]), unique(c.assignments)))")
 		if best_mean_silhouettes < mean_silhouettes
 			best_mean_silhouettes = mean_silhouettes
 			best_totalcost = c.totalcost
@@ -55,7 +55,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Vector
 			kbest = k
 		end
 	end
-	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(silhouettesbest)) Silhouettes: $(map(i->Statistics.mean(silhouettesbest[cbest.assignments .== i]), unique(cbest.assignments)))")
+	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(silhouettesbest)) Cluster Count: $(map(i->sum(cbest.assignments .== i), unique(cbest.assignments))) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettesbest[cbest.assignments .== i]), unique(cbest.assignments)))")
 	return cbest
 end
 
