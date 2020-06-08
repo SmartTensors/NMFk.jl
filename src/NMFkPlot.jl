@@ -249,9 +249,22 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 	return nothing
 end
 
-function plotscatter(x::AbstractVector, y::AbstractVector; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
+function plotscatter(x::AbstractVector, y::AbstractVector, color=[], size=nothing; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", line::Bool=true, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], point_size=2Gadfly.pt, keytitle="", dpi=imagedpi)
 	m = [minimumnan([x y]), maximumnan([x y])]
-	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, Gadfly.Theme(highlight_width=0Gadfly.pt,default_color="red")), Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="gray")), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
+	if size == nothing
+		size = repeat([point_size], length(x))
+	end
+	if length(color) > 0
+		palette = Gadfly.parse_colorant(colors)
+		colormap = function(nc)
+						palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
+					end
+		cm = [Gadfly.Scale.color_continuous(minvalue=nothing, maxvalue=nothing, colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Guide.ColorKey(title=keytitle)]
+	else
+		cm = []
+	end
+	one2oneline = line ? [Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt, default_color="gray"))] : []
+	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, color=color, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color="red", point_size=point_size)), one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., cm...)
 	if !quiet
 		gw = Compose.default_graphic_width
 		gh = Compose.default_graphic_height
