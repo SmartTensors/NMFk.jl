@@ -120,12 +120,21 @@ function histogram(data::Vector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, refine::Number=1)
+function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
-	@assert length(data) == length(classes)
-	histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
-	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
+	@assert ndata == length(classes)
+	if edges == nothing
+		histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
+	else
+		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
+	end
+	if typeof(histall.edges[1].step) <: Integer
+		newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
+	else
+		newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
+	end
 	xaxis = xmap.(collect(newedges))
+	dx = xaxis[2] - xaxis[1]
 	if mergeedge
 		if closed == :left
 			xmina = xaxis[1:end-2]
@@ -148,8 +157,8 @@ function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::
 	local ymaxl = 0
 	ccount = Vector{Int64}(undef, length(suc))
 	for (j, ct) in enumerate(suc)
-		i = findall((in)(ct), classes)
-		ccount[j] = length(i)
+		i = classes .== ct
+		ccount[j] = sum(i)
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
 		ymaxl = max(maximum(y), ymaxl)
@@ -170,16 +179,16 @@ function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::
 				xmaxa = xaxis[2:end]
 				ya = y
 		end
-		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ct]), opacity))))
+		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
 	ymax = ymax != nothing ? ymax : ymaxl
-	s = [Gadfly.Coord.Cartesian(xmin=xminl, xmax=xmaxl, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl), Gadfly.Guide.xticks(ticks=unique([xminl; collect(xaxis); xmaxl])), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
+	s = [Gadfly.Coord.Cartesian(xmin=xminl, xmax=xmaxl, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl), Gadfly.Guide.xticks(ticks=collect(xminl:dx:xmaxl)), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
 	if xlabelmap != nothing
 		s = [s..., Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl, labels=xlabelmap)]
 	end
 	m = []
 	if joined
-		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i in suc]))
+		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i in 1:length(suc)]))
 		!quiet && (display(f); println())
 	else
 		for (i, g) in enumerate(l)
