@@ -231,7 +231,7 @@ function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::
 	return nothing
 end
 
-function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
+function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
 	nfeatures = length(unique(sort(df[!, :Attribute])))
 	loopcolors = nfeatures + 1 > ncolors ? true : false
 	if loopcolors
@@ -258,8 +258,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 	return nothing
 end
 
-function plotscatter(x::AbstractVector, y::AbstractVector, color=[], size=nothing; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="Truth", ytitle::String="Prediction", line::Bool=true, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], point_size=2Gadfly.pt, keytitle="", dpi=imagedpi)
-	m = [minimumnan([x y]), maximumnan([x y])]
+function plotscatter(x::AbstractVector, y::AbstractVector, color=[], size=nothing; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], point_size=2Gadfly.pt, keytitle="", polygon=nothing, pointcolor="red", linecolor="gray", linewidth::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
 	if size == nothing
 		size = repeat([point_size], length(x))
 	end
@@ -272,8 +271,22 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color=[], size=nothin
 	else
 		cm = []
 	end
-	one2oneline = line ? [Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt, default_color="gray"))] : []
-	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, color=color, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color="red", point_size=point_size)), one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., cm...)
+	if polygon != nothing
+		xmin = xmin != nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
+		xmax = xmax != nothing ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
+		ymin = ymin != nothing ? min(minimumnan(polygon[:,2]), ymin) : minimumnan(polygon[:,2])
+		ymax = ymax != nothing ? max(maximumnan(polygon[:,2]), ymax) : maximumnan(polygon[:,2])
+		pm = [Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=linewidth, default_color=linecolor))]
+	else
+		pm = []
+	end
+	if line
+		m = [minimumnan([x y]), maximumnan([x y])]
+		one2oneline = [Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=linewidth * 2, default_color=linecolor))]
+	else
+		one2oneline = []
+	end
+	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, color=color, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=pointcolor, point_size=point_size)), pm...,one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., cm...)
 	if !quiet
 		gw = Compose.default_graphic_width
 		gh = Compose.default_graphic_height
