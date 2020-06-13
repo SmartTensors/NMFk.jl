@@ -78,12 +78,13 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		end
 		dx = sx / m
 		dy = sy / n
-		xs = (xs .- 1) ./ m * sx .+ xmatrixmin
-		ys = (-1 .- ys) ./ n * sy .+ ymatrixmax
+		xs = xs ./ m * sx .+ xmatrixmin
+		ys = -ys ./ n * sy .+ ymatrixmax
 		xmin = xmatrixmin + dx / 2
 		xmax = xmatrixmax + dx / 2
 		ymin = ymatrixmin + dy / 2
 		ymax = ymatrixmax + dy / 2
+		# @show xmin, xmax, ymin, ymax
 		if polygon != nothing
 			xmin = min(xplot[1], xmin)
 			xmax = max(xplot[2], xmax)
