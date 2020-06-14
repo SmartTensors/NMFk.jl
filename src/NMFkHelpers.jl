@@ -42,7 +42,7 @@ function maximumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if dims == nothing
 		i = func.(X)
 		v = X[.!i]
-		m = length(v) > 1 ? maximum(v; kw...) : NaN
+		m = length(v) > 0 ? maximum(v; kw...) : NaN
 	else
 		i = func.(X)
 		X[i] .= 0
@@ -56,7 +56,7 @@ function minimumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if dims == nothing
 		i = func.(X)
 		v = X[.!i]
-		m = length(v) > 1 ? minimum(v; kw...) : NaN
+		m = length(v) > 0 ? minimum(v; kw...) : NaN
 	else
 		i = func.(X)
 		X[i] .= Inf
