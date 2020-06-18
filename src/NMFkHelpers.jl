@@ -87,6 +87,28 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
+function cumsumnan(X::AbstractArray; dims=nothing, kw...)
+	if dims == nothing
+		ecount = .*(size(X)...)
+		I = isnan.(X)
+		if sum(I) == ecount
+			return NaN
+		else
+			X[I] .= 0
+			sX = cumsum(X; kw...)
+			X[I] .= NaN
+			return sX
+		end
+	else
+		ecount = .*(size(X)[vec(collect(dims))]...)
+		I = isnan.(X)
+		X[I] .= 0
+		sX = cumsum(X; dims=dims, kw...)
+		X[I] .= NaN
+		return sX
+	end
+end
+
 function meannan(X::AbstractArray; dims=nothing, kw...)
 	if dims == nothing
 		ecount = .*(size(X)...)
@@ -256,7 +278,7 @@ function checkcols(x::AbstractMatrix; quiet::Bool=false)
 	return inans, izeros, ineg
 end
 
-function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Function=maximum) where {T, N}
+function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Function=meannan) where {T, N}
 	if windowsize == 0
 		return A
 	end
