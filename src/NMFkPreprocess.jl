@@ -68,6 +68,10 @@ function processdata(M::AbstractMatrix, type::DataType=Float32)
 	return M
 end
 
+function griddata(x::AbstractVector, y::AbstractVector, z::AbstractVector; kw...)
+	return griddata(x, y, reshape(z, (length(z), 1)))
+end
+
 function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type::DataType=Float32, xrev::Bool=false, xnbins=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=nothing, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=nothing, granulate::Bool=true)
 	z = processdata(z, type)
 	@assert length(x) == length(y)
