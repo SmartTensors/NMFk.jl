@@ -1,4 +1,14 @@
 "Normalize"
+function normalize!(a::AbstractArray; rev::Bool=false, amax = NMFk.maximumnan(a), amin = NMFk.minimumnan(a))
+	dx = amax - amin
+	if rev
+		a = (amax .- a) ./ dx
+		return a, amax, amin
+	else
+		a = (a .- amin) ./ dx
+		return a, amin, amax
+	end
+end
 function normalize!(a; rev::Bool=false, amax = NMFk.maximumnan(a), amin = NMFk.minimumnan(a))
 	dx = amax - amin
 	if rev
@@ -80,21 +90,23 @@ function denormalizematrix_row!(a::AbstractMatrix, amin::Vector, amax::Vector)
 end
 
 "Scale array"
-function scalearray!(a::AbstractArray)
-	amax = vec(maximumnan(a; dims=(1,3)))
+function scalearray!(a::AbstractArray{T,N}; dims=(1,2)) where {T,N}
+	amax = vec(maximumnan(a; dims=dims))
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
-			a[:, i, :] ./= amax[i]
+			nt = ntuple(k->(k in dims ? Colon() : i), N)
+			a[nt...] ./= amax[i]
 		end
 	end
 	return a, amax
 end
 
 "Descale array"
-function descalearray!(a::AbstractArray, amax::Vector)
+function descalearray!(a::AbstractArray{T,N}, amax::Vector; dims=(1,2)) where {T,N}
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
-			a[:, i, :] .*= amax[i]
+			nt = ntuple(k->(k in dims ? Colon() : i), N)
+			a[nt...] .*= amax[i]
 		end
 	end
 	return a
