@@ -1,6 +1,107 @@
 import Dates
 import DataFrames
 
+function indicize(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing, granulate::Bool=true)
+	if stepvalue != nothing
+		if granulate
+			@info("Initial: $minvalue $maxvalue")
+		end
+		if typeof(minvalue) <: Dates.DateTime
+			if granulate
+				maxvalue = ceil(maxvalue, stepvalue)
+				minvalue = floor(minvalue, stepvalue)
+			end
+			nbins = convert(Int, (maxvalue - minvalue) / convert(Dates.Millisecond, stepvalue))
+		elseif typeof(minvalue) <: Dates.Date
+			if granulate
+				maxvalue = ceil(maxvalue, stepvalue)
+				minvalue = floor(minvalue, stepvalue)
+			end
+			nbins = -1
+			date = minvalue
+			while date <= maxvalue
+				date += stepvalue
+				nbins += 1
+			end
+		else
+			if granulate
+				maxvalue = ceil(maxvalue / stepvalue) * stepvalue
+				minvalue = floor(minvalue / stepvalue) * stepvalue
+			end
+			nbins = convert(Int, ceil((maxvalue - minvalue) / float(stepvalue)))
+		end
+		if granulate
+			@info("Granulated: $minvalue $maxvalue")
+		end
+	end
+	iv = convert(Vector{Int64}, ceil.((v .- minvalue) ./ (maxvalue - minvalue) .* nbins))
+	i0 = iv .== 0
+	if sum(i0) == 1
+		iv[i0] .= 1
+	elseif sum(i0) > 1
+		iv .+= 1
+	end
+	us = unique(sort(iv))
+	nb = collect(1:nbins)
+	for k in unique(sort([us; nb]))
+		m = iv .== k
+		s = sum(m)
+		if s == 0
+			@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " "))")
+		else
+			@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " ")) range $(minimum(v[m])) $(maximum(v[m]))")
+		end
+	end
+	if length(us) != nbins
+		@warn "There are empty bins ($(length(us)) vs $(nbins))"
+	end
+	if rev == true
+		iv = (nbins + 1) .- iv
+	end
+	return iv, minvalue, maxvalue
+end
+
+function processdata(M::AbstractMatrix, type::DataType=Float32)
+	M[M .== ""] .= NaN
+	M[ismissing.(M)] .= NaN
+	M = convert.(type, M)
+	return M
+end
+
+function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing, granulate::Bool=true)
+end
+
+function bincoordinates(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing)
+	if stepvalue != nothing
+		if typeof(minvalue) <: Dates.DateTime
+			maxvalue = ceil(maxvalue, stepvalue)
+			minvalue = floor(minvalue, stepvalue)
+			nbins = convert(Int, (maxvalue - minvalue) / convert(Dates.Millisecond, stepvalue))
+		elseif typeof(minvalue) <: Dates.Date
+			maxvalue = ceil(maxvalue, stepvalue)
+			minvalue = floor(minvalue, stepvalue)
+			nbins = convert(Int, (maxvalue - minvalue) / Core.eval(Main, Meta.parse(stepvalue))(1))
+		else
+			granularity = -convert(Int, ceil(log10(stepvalue)))
+			maxvalue = ceil(maxvalue, granularity)
+			minvalue = floor(minvalue, granularity)
+			nbins = convert(Int, ceil.((maxvalue - minvalue) / float(stepvalue)))
+		end
+	end
+	if typeof(minvalue) <: Dates.DateTime || typeof(minvalue) <: Dates.Date
+		stepv = (maxvalue - minvalue) / float(nbins)
+		halfstepv = stepv / float(2)
+		vs = collect(Base.range(minvalue + halfstepv, maxvalue - halfstepv; step=stepv))
+	else
+		halfstepv = (maxvalue - minvalue) / (2 * nbins)
+		vs = collect(Base.range(minvalue + halfstepv, maxvalue - halfstepv; length=nbins))
+	end
+	if rev == true
+		vs = reverse(vs)
+	end
+	return vs
+end
+
 function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing) where {T}
 	o = Vector{T}(undef, length(mapping))
 	o .= NaN

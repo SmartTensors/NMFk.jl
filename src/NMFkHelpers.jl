@@ -25,7 +25,7 @@ function r2(x::Vector, y::Vector)
 	(sum((x .- Statistics.mean(x)) .* (y .- Statistics.mean(y)))/sqrt(sum((x .- Statistics.mean(x)).^2 .* sum((y .- Statistics.mean(y)).^2))))^2
 end
 
-function findfirst(v::Vector, func::Function=i->i > 0; zerod::Bool=true, funczerod::Function=isnan)
+function findfirst(v::AbstractVector, func::Function=i->i > 0; zerod::Bool=true, funczerod::Function=isnan)
 	if zerod
 		i = funczerod.(v)
 		v[i] .= 0
