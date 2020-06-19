@@ -68,7 +68,24 @@ function processdata(M::AbstractMatrix, type::DataType=Float32)
 	return M
 end
 
-function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing, granulate::Bool=true)
+function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type::DataType=Float32, xrev::Bool=false, xnbins=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=nothing, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=nothing, granulate::Bool=true)
+	z = processdata(z, type)
+	@assert length(x) == length(y)
+	@assert length(x) == size(z, 1)
+	ix, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate)
+	iy, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate)
+	T = Array{type}(undef, maximum(ix), maximum(iy), size(z, 2))
+	C = Array{Int32}(undef, maximum(ix), maximum(iy), size(z, 2))
+	T .= 0
+	C .= 0
+	for i = 1:size(z, 2)
+		for j = 1:length(ix)
+			T[ix[j], iy[j], i] += z[j,i]
+			C[ix[j], iy[j], i] += 1
+		end
+	end
+	T ./= C
+	return T
 end
 
 function bincoordinates(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing)
