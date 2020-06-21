@@ -43,10 +43,10 @@ function getisotopedelta(concentration_isotope::Union{Number,Vector,Matrix}, del
 end
 
 "Compute deltas of mixtures (`compute_contributions` requires external normalization)"
-function computedeltas(mixer::Matrix, buckets::Matrix, bucketdeltas::Matrix, deltaindices::Vector; compute_contributions::Bool=false)
+function computedeltas(mixer::Matrix, buckets::Matrix, bucketdeltas::Matrix{T}, deltaindices::Vector; compute_contributions::Bool=false) where {T}
 	numwells = size(mixer, 1)
 	numdeltas = length(deltaindices)
-	deltas = Array{Float64}(undef, numwells, numdeltas)
+	deltas = Array{T}(undef, numwells, numdeltas)
 	for i = 1:numwells
 		for j = 1:numdeltas
 			v = vec(mixer[i, :]) .* vec(buckets[:, deltaindices[j]])

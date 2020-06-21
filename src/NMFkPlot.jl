@@ -129,7 +129,7 @@ function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::
 	else
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
 	end
-	if typeof(histall.edges[1].step) <: Integer
+	if typeof(histall.edges[1].step) <: Integer || typeof(histall.edges[1].step) <: AbstractFloat
 		newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
 	else
 		newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]

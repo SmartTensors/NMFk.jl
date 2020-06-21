@@ -5,6 +5,7 @@ function finalize(Wa::Vector, idx::Matrix)
 	nNMF = length(Wa)
 	nk, nP = size(Wa[1]) # number of observation points (samples)
 	nT = nk * nNMF # total number of signals to cluster
+	type = typeof(Wa[1][1,1])
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if nk > 1
@@ -12,9 +13,9 @@ function finalize(Wa::Vector, idx::Matrix)
 		silhouettes = Clustering.silhouettes(idx_r, WaDist)
 	end
 
-	clustersilhouettes = Vector{Float64}(undef, nk)
-	W = Array{Float64}(undef, nk, nP)
-	Wvar = Array{Float64}(undef, nk, nP)
+	clustersilhouettes = Vector{type}(undef, nk)
+	W = Array{type}(undef, nk, nP)
+	Wvar = Array{type}(undef, nk, nP)
 	for k = 1:nk
 		if nk > 1
 			idxk = findall((in)(k), idx_r)
@@ -36,6 +37,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=fals
 	nP = size(Wa[1], 1) # number of observation points (samples)
 	nk, nC = size(Ha[1]) # number of signals / number of observations for each point (components/transients),
 	nT = nk * nNMF # total number of signals to cluster
+	type = typeof(Ha[1][1,1])
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if clusterWmatrix
@@ -52,11 +54,11 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=fals
 		HaDist[inanh] .= NaN
 	end
 	silhouettes[isnan.(silhouettes)] .= 0
-	clustersilhouettes = Array{Float64}(undef, nk, 1)
-	W = Array{Float64}(undef, nP, nk)
-	H = Array{Float64}(undef, nk, nC)
-	Wvar = Array{Float64}(undef, nP, nk)
-	Hvar = Array{Float64}(undef, nk, nC)
+	clustersilhouettes = Array{type}(undef, nk, 1)
+	W = Array{type}(undef, nP, nk)
+	H = Array{type}(undef, nk, nC)
+	Wvar = Array{type}(undef, nP, nk)
+	Hvar = Array{type}(undef, nk, nC)
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
 		clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])
@@ -73,7 +75,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=fals
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
-function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterWmatrix::Bool=false)
+function finalize(Wa::Matrix{T}, Ha::Matrix{T}, nNMF::Integer, idx::Matrix, clusterWmatrix::Bool=false) where {T}
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
 	nT = size(Ha, 1) # total number of signals to cluster
@@ -87,11 +89,11 @@ function finalize(Wa::Matrix, Ha::Matrix, nNMF::Integer, idx::Matrix, clusterWma
 		HaDist = Distances.pairwise(Distances.CosineDist(), Ha; dims=1)
 		silhouettes = reshape(Clustering.silhouettes(idx_r, HaDist), nk, nNMF)
 	end
-	clustersilhouettes = Array{Float64}(undef, nk, 1)
-	W = Array{Float64}(undef, nP, nk)
-	H = Array{Float64}(undef, nk, nC)
-	Wvar = Array{Float64}(undef, nP, nk)
-	Hvar = Array{Float64}(undef, nk, nC)
+	clustersilhouettes = Array{T}(undef, nk, 1)
+	W = Array{T}(undef, nP, nk)
+	H = Array{T}(undef, nk, nC)
+	Wvar = Array{T}(undef, nP, nk)
+	Hvar = Array{T}(undef, nk, nC)
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
 		clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])

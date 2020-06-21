@@ -1,18 +1,32 @@
-function load(nkrange::AbstractRange{Int}, nNMF::Integer=10, dim::Integer=2, t::DataType=Float64; kw...)
+function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	maxsources = maximum(collect(nkrange))
+	aicl = NaN
+	i = 0
+	local Wl, Hl, fitqualityl, robustnessl, aicl
+	while isnan(aicl)
+		i += 1
+		Wl, Hl, fitqualityl, robustnessl, aicl = NMFk.load(nkrange[i], nNMF; kw...)
+	end
+	dim = ndims(Wl)
+	t = typeof(Hl[1,1])
 	W = Array{Array{t, dim}}(undef, maxsources)
 	H = Array{Array{t, 2}}(undef, maxsources)
 	fitquality = Array{t}(undef, maxsources)
 	robustness = Array{t}(undef, maxsources)
 	aic = Array{t}(undef, maxsources)
-	for numsources in nkrange
-		W[numsources], H[numsources], fitquality[numsources], robustness[numsources], aic[numsources] = NMFk.load(numsources, nNMF, t; dim=dim, kw...)
+	k = nkrange[i]
+	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
+	for k = 1:i-1
+		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{t, dim}(undef, [0 for i=1:dim]...), Array{t, 2}(undef, 0, 0), NaN, NaN, NaN
+	end
+	for k in nkrange
+		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=t, dim=dim, kw...)
 	end
 	kopt = getk(nkrange, robustness[nkrange])
 	@info("Optimal solution: $kopt features")
 	return W, H, fitquality, robustness, aic, kopt
 end
-function load(nk::Integer, nNMF::Integer=10, t::DataType=Float64; dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
+function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end

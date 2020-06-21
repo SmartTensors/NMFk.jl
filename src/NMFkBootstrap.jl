@@ -1,13 +1,13 @@
 import Distributions
 import DocumentFunction
 
-function bootstrapping(X::Array{Float64}, scaling::Number=1.0, epsilon::Number=sqrt(eps()))
+function bootstrapping(X::Array{T}, scaling::Number=1.0, epsilon::Number=sqrt(eps())) where {T}
 	N = deepcopy(X)
 	bootstrapping!(N, scaling, epsilon)
 	return N
 end
 
-function bootstrapping!(X::Array{Float64}, scaling::Number=1.0, epsilon::Number=sqrt(eps()))
+function bootstrapping!(X::Array{T}, scaling::Number=1.0, epsilon::Number=sqrt(eps())) where {T}
 	for i in 1:size(X, 2)
 		v = convert(Array{Int64}, round.(X[:, i] .* scaling))
 		n = sum(v)

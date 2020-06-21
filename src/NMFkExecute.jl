@@ -103,17 +103,17 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			else
 				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, kw...)), 1:nNMF)
 			end
-			WBig = Vector{Array}(undef, nNMF)
-			HBig = Vector{Matrix}(undef, nNMF)
+			WBig = Vector{Array{T}}(undef, nNMF)
+			HBig = Vector{Matrix{T}}(undef, nNMF)
 			for i in 1:nNMF
 				WBig[i] = r[i][1]
 				HBig[i] = r[i][2]
 			end
 			objvalue = map(i->convert(T, r[i][3]), 1:nNMF)
 		else
-			WBig = Vector{Array}(undef, nNMF)
-			HBig = Vector{Matrix}(undef, nNMF)
-			objvalue = Array{Float64}(undef, nNMF)
+			WBig = Vector{Array{T}}(undef, nNMF)
+			HBig = Vector{Matrix{T}}(undef, nNMF)
+			objvalue = Array{T}(undef, nNMF)
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
@@ -321,17 +321,17 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			else
 				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, kw...)), 1:nNMF)
 			end
-			WBig = Vector{Matrix}(undef, nNMF)
-			HBig = Vector{Matrix}(undef, nNMF)
+			WBig = Vector{Matrix{T}}(undef, nNMF)
+			HBig = Vector{Matrix{T}}(undef, nNMF)
 			for i in 1:nNMF
 				WBig[i] = r[i][1]
 				HBig[i] = r[i][2]
 			end
 			objvalue = map(i->convert(T, r[i][3]), 1:nNMF)
 		else
-			WBig = Vector{Matrix}(undef, nNMF)
-			HBig = Vector{Matrix}(undef, nNMF)
-			objvalue = Array{Float64}(undef, nNMF)
+			WBig = Vector{Matrix{T}}(undef, nNMF)
+			HBig = Vector{Matrix{T}}(undef, nNMF)
+			objvalue = Array{T}(undef, nNMF)
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
