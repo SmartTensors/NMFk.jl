@@ -58,11 +58,12 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=
 	if rev == true
 		iv = (nbins + 1) .- iv
 	end
-	return iv, minvalue, maxvalue
+	return iv, nbins, minvalue, maxvalue
 end
 
-function processdata(M::AbstractMatrix, type::DataType=Float32)
+function processdata(M::AbstractMatrix, type::DataType=Float32; nanstring="NaN")
 	M[M .== ""] .= NaN
+	M[M .== nanstring] .= NaN
 	M[ismissing.(M)] .= NaN
 	M = convert.(type, M)
 	return M
@@ -76,10 +77,10 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type:
 	z = processdata(z, type)
 	@assert length(x) == length(y)
 	@assert length(x) == size(z, 1)
-	ix, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate)
-	iy, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate)
-	T = Array{type}(undef, maximum(ix), maximum(iy), size(z, 2))
-	C = Array{Int32}(undef, maximum(ix), maximum(iy), size(z, 2))
+	ix, xbins, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate)
+	iy, ybins, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate)
+	T = Array{type}(undef, xbins, ybins, size(z, 2))
+	C = Array{Int32}(undef, xbins, ybins, size(z, 2))
 	T .= 0
 	C .= 0
 	for i = 1:size(z, 2)
