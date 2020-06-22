@@ -203,7 +203,7 @@ function getsignalassignments(X::AbstractMatrix{T}, c::Vector; dims=1, clusterla
 	return NMFk.finduniquesignalsbest(Ms)
 end
 
-function clustersolutions(factors::Vector{Matrix{T}}, clusterWmatrix::Bool=false) where {T}
+function clustersolutions(factors::Vector, clusterWmatrix::Bool=false)
 	if !clusterWmatrix
 		factors = [permutedims(f) for f in factors]
 	end
@@ -241,7 +241,7 @@ function clustersolutions(factors::Vector{Matrix{T}}, clusterWmatrix::Bool=false
 	# by definition, the columns of the first solution belong to their own cluster.
 	clusterLabels[:, 1] = [i for i in 1:k]
 
-	clusterDistances = Matrix{T}(undef, k, k)
+	clusterDistances = Matrix{typeof(factors[1][1])}(undef, k, k)
 	for trial in 2:numTrials
 		W = factors[trial]
 		# clusterDistances[a, b] = c --> dist(W[:,a], centSeeds[:,b]) = c
