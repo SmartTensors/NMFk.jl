@@ -62,9 +62,9 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=
 end
 
 function processdata(M::AbstractArray, type::DataType=Float32; nanstring="NaN")
+	M[ismissing.(M)] .= NaN
 	M[M .== ""] .= NaN
 	M[M .== nanstring] .= NaN
-	M[ismissing.(M)] .= NaN
 	M = convert.(type, M)
 	return M
 end

@@ -22,7 +22,13 @@ toupper(x::String, i=1) = x[1:i-1] * uppercase(x[i:i]) * x[i+1:end]
 function r2(x::Vector, y::Vector)
 	# rho = Statistics.cov(x, y) / (Statistics.std(x) * Statistics.std(y))
 	# r2 = (1 - sum((x .- y).^2) / sum((x .- Statistics.mean(x)).^2))
-	(sum((x .- Statistics.mean(x)) .* (y .- Statistics.mean(y)))/sqrt(sum((x .- Statistics.mean(x)).^2 .* sum((y .- Statistics.mean(y)).^2))))^2
+	ix = .!isnan.(x)
+	iy = .!isnan.(y)
+	ii = ix .& iy
+	mx = x[ii] .- Statistics.mean(x[ii])
+	my = y[ii] .- Statistics.mean(y[ii])
+	r2 = (sum(mx .* my) / sqrt(sum((mx .^ 2) * sum(my .^ 2))))^2
+	return r2
 end
 
 function findfirst(v::AbstractVector, func::Function=i->i > 0; zerod::Bool=true, funczerod::Function=isnan)

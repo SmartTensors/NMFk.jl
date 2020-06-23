@@ -614,15 +614,19 @@ function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, k
 	D = Array{Float64}(undef, size(X, 2), size(Y, 2))
 	for i = 1:size(Y, 2)
 		for j = 1:size(X, 2)
-			D[j,i] = NMFk.r2(X[:,j], Y[:,i])
+			r2 = NMFk.r2(X[:,j], Y[:,i])
+			D[j,i] = ismissing(r2) ? NaN : r2
 		end
 	end
 	if normalize == :rows
 		D ./= sum(D; dims=2)
-	else normalize == :cols
+	elseif normalize == :cols
 		D ./= sum(D; dims=1)
+	else normalize == :all
+		D = NMFk.normalize!(D)[1]
 	end
-	NMFk.plotmatrix(NMFk.normalize!(D)[1]; kw..., key_position=:none)
+	display(NMFk.plotmatrix(D; kw..., key_position=:none))
+	return D
 end
 
 function plot_wells(wx, wy, c; hover=nothing)
