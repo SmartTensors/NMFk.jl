@@ -61,7 +61,7 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=
 	return iv, nbins, minvalue, maxvalue
 end
 
-function processdata(M::AbstractMatrix, type::DataType=Float32; nanstring="NaN")
+function processdata(M::AbstractArray, type::DataType=Float32; nanstring="NaN")
 	M[M .== ""] .= NaN
 	M[M .== nanstring] .= NaN
 	M[ismissing.(M)] .= NaN
