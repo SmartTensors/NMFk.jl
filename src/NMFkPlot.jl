@@ -12,17 +12,38 @@ import Measures
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
 
+function typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
+	ncolors=length(colors)
+	ut = unique(types)
+	c = length(ut)
+	typecolors = Vector{String}(undef, length(types))
+	if c <= ncolors
+		for (j, t) in enumerate(ut)
+			typecolors[types .== t] .= NMFk.colors[j]
+		end
+	else
+		@warn "Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c))!"
+		typecolors .= "gray"
+	end
+	return typecolors
+end
+
 function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", types=[], typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, background_color=nothing, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
 	if length(types) > 0
-		if typecolors == NMFk.colors
-			typecolors = Vector{String}(undef, length(types))
-			for (j, t) in enumerate(unique(types))
-				typecolors[types .== t] .= NMFk.colors[j]
-			end
+		typecolors = NMFk.typecolors(types, colors)
+	end
+	if typecolors == NMFk.colors
+		if c <= ncolors
+			typecolors = NMFk.colors[1:c]
+			ncolors = c
+		else
+			@warn "Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c))!"
 		end
+	else
+		@assert length(typecolors) == r || length(typecolors) == c
 	end
 	if length(mapping) > 0
 		@assert length(mapping) == c
@@ -63,7 +84,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotlayers::Bool=true, plotline::Bool=false, plotlabel::Bool=true, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi)
+function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotlayers::Bool=true, plotline::Bool=false, plotlabel::Bool=true, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -74,9 +95,14 @@ function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		ytitle = "$axisname $(mapping[col2])"
 	end
 	if plotlayers
-		m = sum.(x.^2 .+ y.^2)
+		if sortmag
+			m = sum.(x.^2 .+ y.^2)
+			irange = sortperm(m; rev=true)
+		else
+			irange = 1:length(x)
+		end
 		l = Vector{Vector{Gadfly.Layer}}(undef, 0)
-		for i = sortperm(m; rev=true)
+		for i in irange
 			ic = (i - 1) % ncolors + 1
 			plotline && push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity))))
 			if plotlabel
@@ -94,7 +120,11 @@ function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 					end
 		# p = Gadfly.plot([fill(0, length(x)) x y], x=Gadfly.Col.value(1,2), y=Gadfly.Col.value(1,3), color=colindex, group=colindex, Gadfly.Geom.line, Gadfly.Scale.color_discrete(colormap))
 		dfw = DataFrames.DataFrame(x=x, y=y, label=label)
-		p = Gadfly.plot(dfw, x=:x, y=:y, label=:label, color=:label, Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1))
+		if plotlabel
+			p = Gadfly.plot(dfw, x=:x, y=:y, label=:label, color=:label, Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1))
+		else
+			p = Gadfly.plot(dfw, x=:x, y=:y, color=:label, Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point, Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1))
+		end
 		# p = Gadfly.plot([x y label], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), label=Gadfly.Col.value(3), color=Gadfly.Col.value(3), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1))
 	end
 	if code

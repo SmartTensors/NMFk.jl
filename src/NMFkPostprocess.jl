@@ -4,7 +4,7 @@ import PlotlyJS
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(nkrange, W, H, robustness, locations, attributes; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", locationtypes=[], attributetypes=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W)
+function clusterresults(nkrange, W, H, robustness, locations, attributes; krange=NMFk.getks(nkrange, robustness[nkrange]), clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", locationtypes=[], attributetypes=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W)
 	if length(locationtypes) > 0
 		if locationcolors == NMFk.colors
 			locationcolors = Vector{String}(undef, length(locationtypes))
@@ -25,7 +25,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 		end
 		attributenametype = attributes .* " " .* String.(attributetypes)
 	end
-	for k = NMFk.getks(nkrange, robustness[nkrange])
+	for k in krange
 		@assert length(locations) == size(H[k], 2)
 		@assert length(attributes) == size(W[k], 1)
 		@info("Number of signals: $k")
@@ -152,14 +152,42 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; cluste
 
 			if biplotlabel == :W
 				biplotlabels = [attributes; fill("", length(locations))]
+				biplotlabel = true
 			elseif biplotlabel == :WH
 				biplotlabels = [attributes; locations]
-			else
+				biplotlabel = true
+			elseif biplotlabel == :H
 				biplotlabels = [fill("", length(attributes)); locations]
+				biplotlabel = true
+			elseif biplotlabel == :none
+				biplotlabels = [fill("", length(attributes)); fill("", length(locations))]
+				biplotlabel = false
 			end
-			NMFk.biplots([Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))], biplotlabels, collect(1:k); filename="$figuredir/all-biplots-$(k).pdf", background_color=background_color, colors=[fill("gray", length(attributes)); locationcolors], plotlabel=plotlabelW)
-			NMFk.biplots([(Wa ./ maximum(Wa))[:,is]; permutedims(H[k] ./ maximum(H[k]))[:,is]], biplotlabels, clustermap[is]; filename="$figuredir/all-biplots-sorted-$(k).pdf", background_color=background_color, colors=[fill("gray", length(attributes)); locationcolors], plotlabel=plotlabelW)
-		end
+			if biplotcolor == :W
+				biplotcolors = [typecolors(cnew, attributecolors); fill("gray", length(locations))]
+			elseif biplotcolor == :WH
+				biplotlabels = [typecolors(cnew, attributecolors); typecolors(c, locationcolors)]
+			elseif biplotcolor == :H
+				biplotcolors = [fill("gray", length(attributes)); typecolors(c, locationcolors)]
+			elseif biplotcolor == :none
+				biplotcolors = [fill("blue", length(attributes)); fill("red", length(locations))]
+			end
+			NMFk.biplots([Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))], biplotlabels, collect(1:k); filename="$figuredir/all-biplots-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabel, sortmag=false)
+		# 	if biplotcolor == :W
+		# 		M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
+		# 		biplotcolors = [typecolors(cnew, attributecolors); fill("gray", length(locations))]
+		# 	elseif biplotcolor == :WH
+		# 		M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
+		# 		biplotcolors = [typecolors(cnew, attributecolors); typecolors(c, locationcolors)]
+		# 	elseif biplotcolor == :H
+		# 		M = [(Wa ./ maximum(Wa)); permutedims(H[k] ./ maximum(H[k]))][:,is]
+		# 		biplotcolors = [fill("gray", length(attributes)); typecolors(c, locationcolors)]
+		# 	else
+		# 		M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
+		# 		biplotcolors = [fill("blue", length(attributes)); fill("red", length(locations))]
+		# 	end
+		# 	NMFk.biplots(M, biplotlabels, clustermap[is]; filename="$figuredir/all-biplots-sorted-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabel, sortmag=false)
+		# end
 
 		if cutoff_s > 0
 			attributesl = sizeW > 1 ? repeat(attributes; inner=sizeW) : attributes
