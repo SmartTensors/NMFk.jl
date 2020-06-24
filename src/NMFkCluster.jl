@@ -63,9 +63,9 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 	if load && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$k-$repeats.jld")
 		if isfile(filename)
-			sc = JLD.load(filename, "assignments")
+			sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
 			@info("Robust k-means analysis results are loaded from file $(filename)!")
-			return sc
+			return sc, best_silhouettes
 		else
 			@warn("File $filename does not exist! Robust k-means analysis will be executed ...")
 		end
@@ -94,7 +94,7 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 		if !isdir(resultdir)
 			recursivemkdir(resultdir; filename=false)
 		end
-		JLD.save(filename, "assignments", sc)
+		JLD.save(filename, "assignments", sc, "best_silhouettes", best_silhouettes)
 		@info("Robust k-means analysis results are saved in file $(filename)!")
 	end
 	return sc, best_silhouettes

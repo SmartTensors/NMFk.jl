@@ -95,24 +95,24 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 	return window_k
 end
 
-function getk(nkrange::Union{AbstractRange{T1},Vector{T1}}, robustness::Vector{T2}) where {T1 <: Integer, T2 <: Number}
+function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.25) where {T1 <: Integer, T2 <: Number}
 	@assert length(nkrange) == length(robustness)
 	if length(nkrange) == 1
 		k = nkrange[1]
 	else
-		kn = findlast(i->i > 0.25, robustness)
+		kn = findlast(i->i > cutoff, robustness)
 		kn = (kn == nothing) ? findmax(robustness)[2] : kn
 		k = nkrange[kn]
 	end
 	return k
 end
 
-function getks(nkrange::Union{AbstractRange{T1},Vector{T1}}, robustness::Vector{T2}) where {T1 <: Integer, T2 <: Number}
+function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.25) where {T1 <: Integer, T2 <: Number}
 	@assert length(nkrange) == length(robustness)
 	if length(nkrange) == 1
 		k = [nkrange[1]]
 	else
-		kn = findall(i->i > 0.25, robustness)
+		kn = findall(i->i > cutoff, robustness)
 		if (length(kn) == 0)
 			k = [nkrange[findmax(robustness)[2]]]
 		else
@@ -120,4 +120,23 @@ function getks(nkrange::Union{AbstractRange{T1},Vector{T1}}, robustness::Vector{
 		end
 	end
 	return k
+end
+
+function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25) where {T1 <: Integer, T2 <: AbstractArray}
+	@assert length(nkrange) == length(F)
+	if length(nkrange) == 1
+		kn = [nkrange[1]]
+	else
+		kn = Vector{Int64}(undef, 0)
+		for (i, k) in enumerate(nkrange)
+			if size(F[i], 1) == k
+				M = F[i] ./ maximum(F[i]; dims=2)
+				any(M[:,map] .> cutoff) && push!(kn, k)
+			elseif size(F[i], 2) == k
+				M = F[i] ./ maximum(F[i]; dims=1)
+				any(M[map,:] .> cutoff) && push!(kn, k)
+			end
+		end
+	end
+	return kn
 end

@@ -19,7 +19,7 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	for k = 1:i-1
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{t, dim}(undef, [0 for i=1:dim]...), Array{t, 2}(undef, 0, 0), NaN, NaN, NaN
 	end
-	for k in nkrange
+	for k in nkrange[i+1:end]
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=t, dim=dim, kw...)
 	end
 	kopt = getk(nkrange, robustness[nkrange])
