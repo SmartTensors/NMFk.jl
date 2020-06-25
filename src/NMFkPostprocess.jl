@@ -152,16 +152,16 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 
 			if biplotlabel == :W
 				biplotlabels = [attributes; fill("", length(locations))]
-				biplotlabel = true
+				biplotlabelflag = true
 			elseif biplotlabel == :WH
 				biplotlabels = [attributes; locations]
-				biplotlabel = true
+				biplotlabelflag = true
 			elseif biplotlabel == :H
 				biplotlabels = [fill("", length(attributes)); locations]
-				biplotlabel = true
+				biplotlabelflag = true
 			elseif biplotlabel == :none
 				biplotlabels = [fill("", length(attributes)); fill("", length(locations))]
-				biplotlabel = false
+				biplotlabelflag = false
 			end
 			if biplotcolor == :W
 				biplotcolors = [typecolors(cnew, attributecolors); fill("gray", length(locations))]
@@ -172,7 +172,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 			elseif biplotcolor == :none
 				biplotcolors = [fill("blue", length(attributes)); fill("red", length(locations))]
 			end
-			NMFk.biplots([Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))], biplotlabels, collect(1:k); filename="$figuredir/all-biplots-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabel, sortmag=false)
+			NMFk.biplots([Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))], biplotlabels, collect(1:k); filename="$figuredir/all-biplots-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabelflag, sortmag=false)
 		# 	if biplotcolor == :W
 		# 		M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
 		# 		biplotcolors = [typecolors(cnew, attributecolors); fill("gray", length(locations))]
@@ -187,7 +187,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 		# 		biplotcolors = [fill("blue", length(attributes)); fill("red", length(locations))]
 		# 	end
 		# 	NMFk.biplots(M, biplotlabels, clustermap[is]; filename="$figuredir/all-biplots-sorted-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabel, sortmag=false)
-		# end
+		end
 
 		if cutoff_s > 0
 			attributesl = sizeW > 1 ? repeat(attributes; inner=sizeW) : attributes
