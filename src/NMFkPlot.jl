@@ -652,7 +652,7 @@ function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, k
 		D ./= sum(D; dims=2)
 	elseif normalize == :cols
 		D ./= sum(D; dims=1)
-	else normalize == :all
+	elseif normalize == :all
 		D = NMFk.normalize!(D)[1]
 	end
 	display(NMFk.plotmatrix(D; kw..., key_position=:none))
