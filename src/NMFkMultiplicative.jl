@@ -1,6 +1,6 @@
 import DistributedArrays
 
-function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, normalizevector::Vector{T}=Vector{T}(undef, 0)) where {T}
+function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, normalizevector::Vector{T}=Vector{T}(undef, 0)) where {T}
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative!")
 	end
@@ -62,7 +62,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 		!Wfixed && (W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2)))
 		X[inan] = (W * H)[inan]
 		if mod(iters, 10) == 0
-			objvalue = sum(((X - W * H)[.!inan]).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
+			objvalue = sum((((X - W * H) .* weight)[.!inan]).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 			if objvalue < tol
 				!quiet && println("Converged by tolerance: number of iterations $(iters) $(objvalue)")
 				break
@@ -113,7 +113,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet,
 	end
 	X[izero] .= 0
 	X[inan] .= NaN
-	objvalue = sum(((X - W * H)[.!inan]).^2)
+	objvalue = sum((((X - W * H) .* weight)[.!inan]).^2)
 	return W, H, objvalue
 end
 
