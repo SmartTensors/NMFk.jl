@@ -40,18 +40,18 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 				display(locations[ia[i,:]])
 			end
 		end
-		c = NMFk.labelassignements(NMFk.robustkmeans(H[k], k; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true)[1].assignments)
-		cs = sortperm(c)
-		clusterlabels = sort(unique(c))
-		signalmap = NMFk.getsignalassignments(H[k], c; clusterlabels=clusterlabels, dims=2)
+		ch = NMFk.labelassignements(NMFk.robustkmeans(H[k], k; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true)[1].assignments)
+		cs = sortperm(ch)
+		clusterlabels = sort(unique(ch))
+		signalmap = NMFk.getsignalassignments(H[k], ch; clusterlabels=clusterlabels, dims=2)
 		clustermap = Vector{Char}(undef, k)
 		clustermap .= ' '
 		io = open("$resultdir/$(casefilenameH)-groups-$(k).txt", "w")
 		for (j, i) in enumerate(clusterlabels)
 			@info "Signal $i (S$(signalmap[j])) (k-means clustering)"
 			write(io, "Signal $i (S$(signalmap[j])) (k-means clustering)\n")
-			display(locations[indexin(c, [i]) .== true])
-			for l in locations[indexin(c, [i]) .== true]
+			display(locations[indexin(ch, [i]) .== true])
+			for l in locations[indexin(ch, [i]) .== true]
 				write(io, l)
 				write(io, '\n')
 			end
@@ -61,20 +61,20 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 		close(io)
 		is = signalmap
 		@assert is == sortperm(clustermap)
-		NMFk.plotmatrix(permutedims(H[k] ./ maximum(H[k]; dims=2)); filename="$figuredir/$(casefilenameH)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(locations[i]) $(c[i])" for i=1:length(c)], colorkey=false)
-		NMFk.plotmatrix((permutedims(H[k] ./ maximum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-$(k).png", xticks=clustermap[is], yticks=["$(locations[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false, quiet=false)
-		NMFk.plotmatrix(permutedims((H[k] ./ sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-sumrows-$(k).png", xticks=clustermap[is], yticks=["$(locationnametype[cs][i]) $(c[cs][i])" for i=1:length(c)], colorkey=false)
-		NMFk.biplots(permutedims(H[k])[cs,is] ./ maximum(H[k]), locations[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color=background_color, types=c[cs], plotlabel=plotlabelH)
+		NMFk.plotmatrix(permutedims(H[k] ./ maximum(H[k]; dims=2)); filename="$figuredir/$(casefilenameH)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(locations[i]) $(ch[i])" for i=1:length(ch)], colorkey=false)
+		NMFk.plotmatrix((permutedims(H[k] ./ maximum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-$(k).png", xticks=clustermap[is], yticks=["$(locations[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false, quiet=false)
+		NMFk.plotmatrix(permutedims((H[k] ./ sum(H[k]; dims=2)))[cs,is]; filename="$figuredir/$(casefilenameH)-sorted-sumrows-$(k).png", xticks=clustermap[is], yticks=["$(locationnametype[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false)
+		NMFk.biplots(permutedims(H[k])[cs,is] ./ maximum(H[k]), locations[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color=background_color, types=ch[cs], plotlabel=plotlabelH)
 		length(locationtypes) > 0 && NMFk.biplots(permutedims(H[k])[cs,is]./ maximum(H[k]), locations[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-type-$(k).pdf", background_color=background_color, colors=locationcolors[cs], plotlabel=plotlabelH)
 		if lon != nothing && lat != nothing
-			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, c), Plotly.Layout(title="Clusters: $k"))
+			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, ch), Plotly.Layout(title="Clusters: $k"))
 			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
 			lonlat= [lon lat]
 		end
 		if lon != nothing && lat != nothing
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [locations lonlat permutedims(H[k] ./ maximum(H[k]; dims=2)) c], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [locations lonlat permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
 		else
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [locations permutedims(H[k] ./ maximum(H[k]; dims=2)) c], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [locations permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
 		end
 		if clusterattributes
 			Wa = W[k]
@@ -98,19 +98,19 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 					display(attributes[ia[:,i]])
 				end
 			end
-			c = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true)[1].assignments)
-			@assert clusterlabels == sort(unique(c))
-			signalmap = NMFk.getsignalassignments(Wa[:,is], c; clusterlabels=clusterlabels, dims=1)
+			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true)[1].assignments)
+			@assert clusterlabels == sort(unique(cw))
+			signalmap = NMFk.getsignalassignments(Wa[:,is], cw; clusterlabels=clusterlabels, dims=1)
 			cassgined = zeros(Int64, length(attributes))
-			cnew = Vector{typeof(c[1])}(undef, length(c))
+			cnew = Vector{typeof(cw[1])}(undef, length(cw))
 			cnew .= ' '
-			snew = Vector{String}(undef, length(c))
+			snew = Vector{String}(undef, length(cw))
 			for (j, i) in enumerate(clusterlabels)
 				iclustermap = signalmap[j]
-				cnew[c .== i] .= clusterlabels[iclustermap]
-				snew[c .== i] .= "S$(signalmap[j])"
+				cnew[cw .== i] .= clusterlabels[iclustermap]
+				snew[cw .== i] .= "S$(signalmap[j])"
 				# @info "Signal $i -> S$(signalmap[j]) -> $(clusterlabels[signalmap[j]]) (k-means clustering)"
-				imt = indexin(c, [i]) .== true
+				imt = indexin(cw, [i]) .== true
 				cassgined[imt] .+= 1
 				display(attributes[imt])
 			end
@@ -135,20 +135,20 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 				write(io, '\n')
 			end
 			close(io)
-			NMFk.plotmatrix(Wa ./ maximum(Wa); filename="$figuredir/$(casefilenameW)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(c)], colorkey=false)
+			NMFk.plotmatrix(Wa ./ maximum(Wa); filename="$figuredir/$(casefilenameW)-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(cw[i])" for i=1:length(cw)], colorkey=false)
 			ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
 			# snew2 = copy(snew)
 			# for i = 1:k
 			# 	snew2[snew .== "S$(i)"] .= "S$(ws[i])"
 			# end
-			NMFk.plotmatrix((Wa ./ maximum(Wa; dims=1))[:,ws]; filename="$figuredir/$(casefilenameW)-signals-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i])" for i=1:length(c)], colorkey=false)
-			NMFk.plotmatrix((Wa ./ maximum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=clustermap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false, quiet=false)
-			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(c[i])" for i=1:length(cols)], colorkey=false)
-			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(c[cs][i])" for i=1:length(cols)], colorkey=false)
-			NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-sumrows-$(k).png", xticks=clustermap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(c)], colorkey=false)
+			NMFk.plotmatrix((Wa ./ maximum(Wa; dims=1))[:,ws]; filename="$figuredir/$(casefilenameW)-signals-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i])" for i=1:length(cw)], colorkey=false)
+			NMFk.plotmatrix((Wa ./ maximum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-$(k).png", xticks=clustermap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(cw)], colorkey=false, quiet=false)
+			# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(casefilenameW)-sum-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[i]) $(cw[i])" for i=1:length(cols)], colorkey=false)
+			# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(casefilenameW)-sum2-$(k).png", xticks=["S$i" for i=1:k], yticks=["$(attributes[cs][i]) $(cw[cs][i])" for i=1:length(cols)], colorkey=false)
+			NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,is]; filename="$figuredir/$(casefilenameW)-sorted-sumrows-$(k).png", xticks=clustermap[is], yticks=["$(attributes[cs][i]) $(cnew[cs][i])" for i=1:length(cw)], colorkey=false)
 			NMFk.biplots(Wa[cs,is] ./ maximum(Wa), attributes[cs], clustermap[is]; filename="$figuredir/$(casefilenameW)-biplots-$(k).pdf", background_color=background_color, types=cnew[cs], plotlabel=plotlabelW)
 			length(attributetypes) > 0 && NMFk.biplots(Wa[cs,is] ./ maximum(Wa), attributes[cs], clustermap[is]; filename="$figuredir/$(casefilenameW)-biplots-type-$(k).pdf", background_color=background_color, colors=attributecolors[cs], plotlabel=plotlabelW)
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k).csv", [attributes (Wa ./ maximum(Wa; dims=1))	 c], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k).csv", [attributes (Wa ./ maximum(Wa; dims=1))	 cw], ',')
 
 			if biplotlabel == :W
 				biplotlabels = [attributes; fill("", length(locations))]
@@ -164,29 +164,33 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 				biplotlabelflag = false
 			end
 			if biplotcolor == :W
+				M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))]
 				biplotcolors = [typecolors(cnew, attributecolors); fill("gray", length(locations))]
 			elseif biplotcolor == :WH
-				biplotlabels = [typecolors(cnew, attributecolors); typecolors(c, locationcolors)]
+				M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))]
+				biplotlabels = [typecolors(cnew, attributecolors); typecolors(ch, locationcolors[length(cnew)+1:end])]
 			elseif biplotcolor == :H
-				biplotcolors = [fill("gray", length(attributes)); typecolors(c, locationcolors)]
+				M = [permutedims(H[k] ./ maximum(H[k])); Wa ./ maximum(Wa)]
+				biplotcolors = [typecolors(ch, locationcolors); fill("gray", length(attributes))]
 			elseif biplotcolor == :none
+				M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))]
 				biplotcolors = [fill("blue", length(attributes)); fill("red", length(locations))]
 			end
-			NMFk.biplots([Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))], biplotlabels, collect(1:k); filename="$figuredir/all-biplots-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabelflag, sortmag=false)
-		# 	if biplotcolor == :W
-		# 		M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
-		# 		biplotcolors = [typecolors(cnew, attributecolors); fill("gray", length(locations))]
-		# 	elseif biplotcolor == :WH
-		# 		M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
-		# 		biplotcolors = [typecolors(cnew, attributecolors); typecolors(c, locationcolors)]
-		# 	elseif biplotcolor == :H
-		# 		M = [(Wa ./ maximum(Wa)); permutedims(H[k] ./ maximum(H[k]))][:,is]
-		# 		biplotcolors = [fill("gray", length(attributes)); typecolors(c, locationcolors)]
-		# 	else
-		# 		M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
-		# 		biplotcolors = [fill("blue", length(attributes)); fill("red", length(locations))]
-		# 	end
-		# 	NMFk.biplots(M, biplotlabels, clustermap[is]; filename="$figuredir/all-biplots-sorted-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabel, sortmag=false)
+			NMFk.biplots(M, biplotlabels, collect(1:k); filename="$figuredir/all-biplots-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabelflag, sortmag=false)
+			# if biplotcolor == :W
+			# 	M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
+			# 	biplotcolors = [typecolors(cnew, attributecolors); fill("gray", length(locations))]
+			# elseif biplotcolor == :WH
+			# 	M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
+			# 	biplotlabels = [typecolors(cnew, attributecolors); typecolors(ch, locationcolors[length(cnew)+1:end])]
+			# elseif biplotcolor == :H
+			# 	M = [permutedims(H[k] ./ maximum(H[k])); Wa ./ maximum(Wa)][:,is]
+			# 	biplotcolors = [typecolors(ch, locationcolors); fill("gray", length(attributes))]
+			# elseif biplotcolor == :none
+			# 	M = [Wa ./ maximum(Wa); permutedims(H[k] ./ maximum(H[k]))][:,is]
+			# 	biplotcolors = [fill("blue", length(attributes)); fill("red", length(locations))]
+			# end
+			# NMFk.biplots(M, biplotlabels, clustermap[is]; filename="$figuredir/all-biplots-sorted-$(k).pdf", background_color=background_color, colors=biplotcolors, plotlabel=biplotlabelflag, sortmag=false)
 		end
 
 		if cutoff_s > 0

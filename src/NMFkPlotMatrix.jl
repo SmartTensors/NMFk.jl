@@ -3,6 +3,18 @@ import Measures
 import Colors
 import Compose
 
+function replace(str::String, old_news::Pair...)
+	out::String, mapping::Dict{Char,Any} = "", Dict(old_news)
+	for c in str
+		if c in keys(mapping)
+			out *= mapping[c]
+		else
+			out *= c
+		end
+	end
+	return out
+end
+
 function plotmatrix(X::AbstractVector; kw...)
 	plotmatrix(convert(Array{Float64,2}, permutedims(X)); kw...)
 end
@@ -33,6 +45,9 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			@warn "Number of y-axis ticks ($(length(yticks))) is inconsistent with the matrix size ($(size(X, 1)))"
 			return
 		end
+		# if typeof(yticks[1]) <: AbstractString
+		# 	yticks = replace.(yticks, "&" => "&amp;", "(%)" => "")
+		# end
 		gm = [gm..., Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]
 	end
 	cs = colorkey ? [Gadfly.Guide.ColorKey(title=key_tilte)] : []
