@@ -19,11 +19,11 @@ end
 
 toupper(x::String, i=1) = x[1:i-1] * uppercase(x[i:i]) * x[i+1:end]
 
-function r2(x::Vector, y::Vector)
+function r2(x::AbstractVector, y::AbstractVector)
 	# rho = Statistics.cov(x, y) / (Statistics.std(x) * Statistics.std(y))
 	# r2 = (1 - sum((x .- y).^2) / sum((x .- Statistics.mean(x)).^2))
-	ix = .!isnan.(x)
-	iy = .!isnan.(y)
+	ix = .!isnan.(x) .* .!isinf.(x)
+	iy = .!isnan.(y) .* .!isinf.(y)
 	ii = ix .& iy
 	mx = x[ii] .- Statistics.mean(x[ii])
 	my = y[ii] .- Statistics.mean(y[ii])
