@@ -2,9 +2,11 @@ import Gadfly
 import Measures
 import Colors
 import Compose
+import Base.replace
 
-function replace(str::String, old_news::Pair...)
-	out::String, mapping::Dict{Char,Any} = "", Dict(old_news)
+function replace(str::String, old_new::Pair...)
+	mapping::Dict{Char,Any} = Dict(old_new)
+	out = ""
 	for c in str
 		if c in keys(mapping)
 			out *= mapping[c]
@@ -38,6 +40,9 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			@warn "Number of x-axis ticks ($(length(xticks))) is inconsistent with the matrix size ($(size(X, 2)))"
 			return
 		end
+		if typeof(xticks[1]) <: AbstractString
+			xticks = replace.(xticks, '&' => "&amp;", '%' => "")
+		end
 		gm = [gm..., Gadfly.Scale.x_discrete(labels=i->xticks[i]), Gadfly.Guide.xticks(label=true)]
 	end
 	if yticks != nothing
@@ -45,9 +50,9 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			@warn "Number of y-axis ticks ($(length(yticks))) is inconsistent with the matrix size ($(size(X, 1)))"
 			return
 		end
-		# if typeof(yticks[1]) <: AbstractString
-		# 	yticks = replace.(yticks, "&" => "&amp;", "(%)" => "")
-		# end
+		if typeof(yticks[1]) <: AbstractString
+			yticks = replace.(yticks, '&' => "&amp;", '%' => "")
+		end
 		gm = [gm..., Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]
 	end
 	cs = colorkey ? [Gadfly.Guide.ColorKey(title=key_tilte)] : []
