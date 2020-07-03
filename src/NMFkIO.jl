@@ -3,12 +3,12 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	aicl = NaN
 	i = 0
 	local Wl, Hl, fitqualityl, robustnessl, aicl
-	while isnan(aicl)
+	while isnan(aicl) && i < length(nkrange)
 		i += 1
 		Wl, Hl, fitqualityl, robustnessl, aicl = NMFk.load(nkrange[i], nNMF; kw...)
 	end
 	dim = ndims(Wl)
-	t = typeof(Hl[1,1])
+	t = eltype(Wl)
 	W = Array{Array{t, dim}}(undef, maxsources)
 	H = Array{Array{t, 2}}(undef, maxsources)
 	fitquality = Array{t}(undef, maxsources)
@@ -16,14 +16,14 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	aic = Array{t}(undef, maxsources)
 	k = nkrange[i]
 	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
-	for k = 1:i-1
+	for k = 1:nkrange[i]
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{t, dim}(undef, [0 for i=1:dim]...), Array{t, 2}(undef, 0, 0), NaN, NaN, NaN
 	end
 	for k in nkrange[i+1:end]
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=t, dim=dim, kw...)
 	end
 	kopt = getk(nkrange, robustness[nkrange])
-	@info("Optimal solution: $kopt features")
+	i < length(nkrange) && @info("Optimal solution: $kopt features")
 	return W, H, fitquality, robustness, aic, kopt
 end
 function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
@@ -36,7 +36,7 @@ function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Intege
 		return W, H, fitquality, robustness, aic
 	else
 		@warn("File named $filename is missing!")
-		return Array{t, dim}(undef, [0 for i=1:dim]...), Array{t, 2}(undef, 0, 0), NaN, NaN, NaN
+		return Array{type, dim}(undef, [0 for i=1:dim]...), Array{type, 2}(undef, 0, 0), NaN, NaN, NaN
 	end
 end
 

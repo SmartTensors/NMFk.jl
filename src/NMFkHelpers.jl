@@ -398,3 +398,13 @@ function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMat
 	end
 	return vflip
 end
+
+import Base.replace
+
+function replace(str::String, old_new::Pair...)
+	mapping = Dict(old_new)
+	for k in keys(mapping)
+		str = Base.replace(str, Pair(k, mapping[k]))
+	end
+	return str
+end

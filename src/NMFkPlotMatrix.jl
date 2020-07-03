@@ -2,20 +2,6 @@ import Gadfly
 import Measures
 import Colors
 import Compose
-import Base.replace
-
-function replace(str::String, old_new::Pair...)
-	mapping::Dict{Char,Any} = Dict(old_new)
-	out = ""
-	for c in str
-		if c in keys(mapping)
-			out *= mapping[c]
-		else
-			out *= c
-		end
-	end
-	return out
-end
 
 function plotmatrix(X::AbstractVector; kw...)
 	plotmatrix(convert(Array{Float64,2}, permutedims(X)); kw...)
