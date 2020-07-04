@@ -27,7 +27,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 	end
 	for k in krange
 		@assert length(locations) == size(H[k], 2)
-		@assert length(attributes) == size(W[k], 1)
+		sizeW == 1 && (@assert length(attributes) == size(W[k], 1))
 		@info("Number of signals: $k")
 
 		@info("$(uppercasefirst(casefilenameH)) (signals=$k)")
@@ -81,7 +81,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 			Wa = W[k]
 			if sizeW > 1
 				na = convert(Int64, size(W[k], 1) / sizeW)
-				Wa = Matrix{typeof(W[k][1,1])}(undef, na, size(W[k], 2))
+				Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
 				i1 = 1
 				i2 = sizeW
 				for i = 1:na
@@ -90,6 +90,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 					i2 += sizeW
  				end
 			end
+			@assert length(attributes) == size(Wa, 1)
 			@info("$(uppercasefirst(casefilenameW)) (signals=$k)")
 			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", Wa, ',')
 			if cutoff > 0
