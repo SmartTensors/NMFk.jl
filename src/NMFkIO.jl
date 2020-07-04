@@ -1,3 +1,5 @@
+import JLD
+
 function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	maxsignals = maximum(collect(nkrange))
 	aicl = NaN
@@ -8,19 +10,21 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 		Wl, Hl, fitqualityl, robustnessl, aicl = NMFk.load(nkrange[i], nNMF; kw...)
 	end
 	dim = ndims(Wl)
-	t = eltype(Wl)
-	W = Array{Array{t, dim}}(undef, maxsignals)
-	H = Array{Array{t, 2}}(undef, maxsignals)
-	fitquality = Array{t}(undef, maxsignals)
-	robustness = Array{t}(undef, maxsignals)
-	aic = Array{t}(undef, maxsignals)
+	type = eltype(Wl)
+	W = Array{Array{type, dim}}(undef, maxsignals)
+	H = Array{Array{type, 2}}(undef, maxsignals)
+	fitquality = Array{type}(undef, maxsignals)
+	robustness = Array{type}(undef, maxsignals)
+	aic = Array{type}(undef, maxsignals)
 	k = nkrange[i]
 	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
-	for k = 1:nkrange[i]
-		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{t, dim}(undef, [0 for i=1:dim]...), Array{t, 2}(undef, 0, 0), NaN, NaN, NaN
+	for k = 1:i
+		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{type, dim}(undef, [0 for i=1:dim]...), Array{type, 2}(undef, 0, 0), NaN, NaN, NaN
 	end
+	k = nkrange[i]
+	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
 	for k in nkrange[i+1:end]
-		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=t, dim=dim, kw...)
+		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=type, dim=dim, kw...)
 	end
 	kopt = getk(nkrange, robustness[nkrange])
 	i < length(nkrange) && @info("Optimal solution: $kopt features")
