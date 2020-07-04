@@ -61,11 +61,15 @@ end
 
 function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000, tol=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false)
 	if load && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$k-$repeats.jld")
+		filename = joinpath(resultdir, "$casefilename-$(join(size(X), '_'))-$repeats.jld")
 		if isfile(filename)
 			sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
 			@info("Robust k-means analysis results are loaded from file $(filename)!")
-			return sc, best_silhouettes
+			if length(best_silhouettes) == size(X, 2)
+				return sc, best_silhouettes
+			else
+				@warn("File $filename does not contain correct information! Robust k-means analysis will be executed ...")
+			end
 		else
 			@warn("File $filename does not exist! Robust k-means analysis will be executed ...")
 		end
@@ -90,7 +94,7 @@ function robustkmeans(X::AbstractMatrix, k::Int, repeats::Int=1000; maxiter=1000
 	end
 	sc = sortclustering(c)
 	if save && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$k-$repeats.jld")
+		filename = joinpath(resultdir, "$casefilename-$(join(size(X), '_'))-$repeats.jld")
 		if !isdir(resultdir)
 			recursivemkdir(resultdir; filename=false)
 		end

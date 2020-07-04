@@ -408,3 +408,7 @@ function replace(str::String, old_new::Pair...)
 	end
 	return str
 end
+
+function stringfix(str::String)
+	replace(str, '&' => "&amp;", '(' => "[", ')' => "]", '<' => "≤", '–' => "-")
+end

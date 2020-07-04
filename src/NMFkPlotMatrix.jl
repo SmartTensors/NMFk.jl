@@ -27,7 +27,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			return
 		end
 		if typeof(xticks[1]) <: AbstractString
-			xticks = replace.(xticks, '&' => "&amp;", '(' => "[", ')' => "]", '<' => "≤", '–' => "-")
+			xticks = stringfix.(xticks)
 		end
 		gm = [gm..., Gadfly.Scale.x_discrete(labels=i->xticks[i]), Gadfly.Guide.xticks(label=true)]
 	end
@@ -37,7 +37,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			return
 		end
 		if typeof(yticks[1]) <: AbstractString
-			yticks = replace.(yticks, '&' => "&amp;", '(' => "[", ')' => "]", '<' => "≤", '–' => "-")
+			yticks = stringfix.(yticks)
 		end
 		gm = [gm..., Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]
 	end
