@@ -1,5 +1,5 @@
 function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
-	maxsources = maximum(collect(nkrange))
+	maxsignals = maximum(collect(nkrange))
 	aicl = NaN
 	i = 0
 	local Wl, Hl, fitqualityl, robustnessl, aicl
@@ -9,11 +9,11 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	end
 	dim = ndims(Wl)
 	t = eltype(Wl)
-	W = Array{Array{t, dim}}(undef, maxsources)
-	H = Array{Array{t, 2}}(undef, maxsources)
-	fitquality = Array{t}(undef, maxsources)
-	robustness = Array{t}(undef, maxsources)
-	aic = Array{t}(undef, maxsources)
+	W = Array{Array{t, dim}}(undef, maxsignals)
+	H = Array{Array{t, 2}}(undef, maxsignals)
+	fitquality = Array{t}(undef, maxsignals)
+	robustness = Array{t}(undef, maxsignals)
+	aic = Array{t}(undef, maxsignals)
 	k = nkrange[i]
 	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
 	for k = 1:nkrange[i]
