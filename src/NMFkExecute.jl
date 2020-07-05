@@ -565,11 +565,11 @@ function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NM
 	elseif method == :nmf
 		W, H = NMF.randinit(Xn, nk)
 		if algorithm == :multdiv
-			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
+			nmf_result = NMF.solve!(NMF.MultUpdate{eltype(X)}(obj=:mse, maxiter=maxiter, tol=tol), Xn, W, H)
 		elseif algorithm == :multmse
-			nmf_result = NMF.solve!(NMF.MultUpdate{typeof(X[1,1])}(obj=:div, maxiter=maxiter, tol=tol), Xn, W, H)
+			nmf_result = NMF.solve!(NMF.MultUpdate{eltype(X)}(obj=:div, maxiter=maxiter, tol=tol), Xn, W, H)
 		elseif algorithm == :alspgrad
-			nmf_result = NMF.solve!(NMF.ALSPGrad{typeof(X[1,1])}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
+			nmf_result = NMF.solve!(NMF.ALSPGrad{eltype(X)}(maxiter=maxiter, tol=tol, tolg=tol*100), Xn, W, H)
 		end
 		!quiet && println("NMF Converged: " * string(nmf_result.converged))
 		W = nmf_result.W

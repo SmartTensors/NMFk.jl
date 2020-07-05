@@ -26,7 +26,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			@warn "Number of x-axis ticks ($(length(xticks))) is inconsistent with the matrix size ($(size(X, 2)))"
 			return
 		end
-		if typeof(xticks[1]) <: AbstractString
+		if eltype(xticks) <: AbstractString
 			xticks = stringfix.(xticks)
 		end
 		gm = [gm..., Gadfly.Scale.x_discrete(labels=i->xticks[i]), Gadfly.Guide.xticks(label=true)]
@@ -36,7 +36,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			@warn "Number of y-axis ticks ($(length(yticks))) is inconsistent with the matrix size ($(size(X, 1)))"
 			return
 		end
-		if typeof(yticks[1]) <: AbstractString
+		if eltype(yticks) <: AbstractString
 			yticks = stringfix.(yticks)
 		end
 		gm = [gm..., Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]

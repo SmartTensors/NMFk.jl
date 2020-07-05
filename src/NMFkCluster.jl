@@ -245,7 +245,7 @@ function clustersolutions(factors::Vector, clusterWmatrix::Bool=false)
 	# by definition, the columns of the first solution belong to their own cluster.
 	clusterLabels[:, 1] = [i for i in 1:k]
 
-	clusterDistances = Matrix{typeof(factors[1][1])}(undef, k, k)
+	clusterDistances = Matrix{eltype(factors[1])}(undef, k, k)
 	for trial in 2:numTrials
 		W = factors[trial]
 		# clusterDistances[a, b] = c --> dist(W[:,a], centSeeds[:,b]) = c

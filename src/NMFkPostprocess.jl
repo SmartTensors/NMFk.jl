@@ -78,10 +78,10 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [locations permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
 		end
 		if clusterattributes
-			Wa = W[k]
 			if sizeW > 1
 				na = convert(Int64, size(W[k], 1) / sizeW)
 				Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
+				@assert length(attributes) == size(Wa, 1)
 				i1 = 1
 				i2 = sizeW
 				for i = 1:na
@@ -89,8 +89,9 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 					i1 += sizeW
 					i2 += sizeW
  				end
+			else
+				Wa = W[k]
 			end
-			@assert length(attributes) == size(Wa, 1)
 			@info("$(uppercasefirst(casefilenameW)) (signals=$k)")
 			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", Wa, ',')
 			if cutoff > 0
@@ -104,7 +105,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 			@assert clusterlabels == sort(unique(cw))
 			signalmap = NMFk.getsignalassignments(Wa[:,is], cw; clusterlabels=clusterlabels, dims=1)
 			cassgined = zeros(Int64, length(attributes))
-			cnew = Vector{typeof(cw[1])}(undef, length(cw))
+			cnew = Vector{eltype(cw)}(undef, length(cw))
 			cnew .= ' '
 			snew = Vector{String}(undef, length(cw))
 			for (j, i) in enumerate(clusterlabels)
@@ -260,7 +261,7 @@ function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractSt
 	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true)[1].assignments)
 	@assert clusterlabels == sort(unique(Wclusterlabels))
 	Wsignalmap = NMFk.getsignalassignments(W[:,Hsignalmap], Wclusterlabels; clusterlabels=clusterlabels, dims=1)
-	Wclusterlabelsnew = Vector{typeof(Wclusterlabels[1])}(undef, length(Wclusterlabels))
+	Wclusterlabelsnew = Vector{eltype(Wclusterlabels)}(undef, length(Wclusterlabels))
 	Wclusterlabelsnew .= ' '
 	Wsignalmapnew = Vector{String}(undef, length(Wclusterlabels))
 	for (j, i) in enumerate(clusterlabels)

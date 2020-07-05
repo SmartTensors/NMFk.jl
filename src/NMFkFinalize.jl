@@ -5,7 +5,7 @@ function finalize(Wa::Vector, idx::Matrix)
 	nNMF = length(Wa)
 	nk, nP = size(Wa[1]) # number of observation points (samples)
 	nT = nk * nNMF # total number of signals to cluster
-	type = typeof(Wa[1][1,1])
+	type = eltype(Wa[1])
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if nk > 1
@@ -37,7 +37,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=fals
 	nP = size(Wa[1], 1) # number of observation points (samples)
 	nk, nC = size(Ha[1]) # number of signals / number of observations for each point (components/transients),
 	nT = nk * nNMF # total number of signals to cluster
-	type = typeof(Ha[1][1,1])
+	type = eltype(Ha[1])
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if clusterWmatrix
