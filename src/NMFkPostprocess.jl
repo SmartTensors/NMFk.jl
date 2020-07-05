@@ -4,7 +4,7 @@ import PlotlyJS
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(nkrange, W, H, robustness, locations, attributes; krange=NMFk.getks(nkrange, robustness[nkrange]), clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", locationtypes=[], attributetypes=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W)
+function clusterresults(nkrange, W, H, robustness, locations, attributes; krange=NMFk.getks(nkrange, robustness[nkrange]), clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, hover=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", locationtypes=[], attributetypes=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W)
 	if length(locationtypes) > 0
 		if locationcolors == NMFk.colors
 			locationcolors = Vector{String}(undef, length(locationtypes))
@@ -68,7 +68,7 @@ function clusterresults(nkrange, W, H, robustness, locations, attributes; krange
 		NMFk.biplots(permutedims(H[k])[cs,is] ./ maximum(H[k]), locations[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color=background_color, types=ch[cs], plotlabel=plotlabelH)
 		length(locationtypes) > 0 && NMFk.biplots(permutedims(H[k])[cs,is]./ maximum(H[k]), locations[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-type-$(k).pdf", background_color=background_color, colors=locationcolors[cs], plotlabel=plotlabelH)
 		if lon != nothing && lat != nothing
-			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, ch), Plotly.Layout(title="Clusters: $k"))
+			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, ch; hover=hover), Plotly.Layout(title="Clusters: $k"))
 			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
 			lonlat= [lon lat]
 		end
