@@ -669,9 +669,9 @@ function plot_wells(wx, wy, c; hover=nothing)
 	for (j, i) in enumerate(sort(unique(c)))
 		ic = c .== i
 		if hover != nothing
-			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], hovertext=hover[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
+			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], hovertext=hover[ic], hoverinfo="text", mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=6))
 		else
-			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
+			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=6))
 		end
 		push!(wells, well_p)
 	end
