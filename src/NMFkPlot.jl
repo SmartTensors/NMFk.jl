@@ -1,7 +1,5 @@
 import PyPlot
 import Gadfly
-import Plotly
-import PlotlyJS
 import Compose
 import Images
 import Colors
@@ -75,11 +73,9 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 		Compose.set_default_graphic_size(gw, gh)
 	end
 	if filename != ""
-		if !isdir(figuredir)
-			mkdir(figuredir)
-		end
-		recursivemkdir(filename)
-		plotfileformat(p, joinpath(figuredir, filename), hsize * (c-1), vsize * (c-1); dpi=dpi)
+		j = joinpath(figuredir, filename)
+		recursivemkdir(j)
+		plotfileformat(p, j, hsize * (c-1), vsize * (c-1); dpi=dpi)
 	end
 	return nothing
 end
@@ -138,11 +134,8 @@ function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		Compose.set_default_graphic_size(gw, gh)
 	end
 	if filename != ""
-		if !isdir(figuredir)
-			mkdir(figuredir)
-		end
-		recursivemkdir(filename)
-		plotfileformat(p, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+		j = joinpath(figuredir, filename)
+		plotfileformat(p, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing
 end
@@ -245,10 +238,8 @@ function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::
 		end
 	end
 	if filename != ""
-		if !isdir(figuredir)
-			mkdir(figuredir)
-		end
-		recursivemkdir(filename)
+		j = joinpath(figuredir, filename)
+		recursivemkdir(j)
 		if separate && length(m) > 1
 			vsize /= length(suc)
 			fp = splitext(filename)
@@ -256,7 +247,7 @@ function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::
 				plotfileformat(p, joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize; dpi=dpi)
 			end
 		else
-			plotfileformat(f, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+			plotfileformat(f, j, hsize, vsize; dpi=dpi)
 		end
 	end
 	return nothing
@@ -280,11 +271,9 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 		Compose.set_default_graphic_size(gw, gh)
 	end
 	if filename != ""
-		if !isdir(figuredir)
-			mkdir(figuredir)
-		end
-		recursivemkdir(filename)
-		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+		j = joinpath(figuredir, filename)
+		recursivemkdir(j)
+		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing
 end
@@ -326,11 +315,9 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color=[], size=nothin
 		Compose.set_default_graphic_size(gw, gh)
 	end
 	if filename != ""
-		if !isdir(figuredir)
-			mkdir(figuredir)
-		end
-		recursivemkdir(filename)
-		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+		j = joinpath(figuredir, filename)
+		recursivemkdir(j)
+		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing
 end
@@ -350,11 +337,9 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
 	!quiet && (display(ff); println())
 	if filename != ""
-		if !isdir(figuredir)
-			mkdir(figuredir)
-		end
-		recursivemkdir(filename)
-		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+		j = joinpath(figuredir, filename)
+		recursivemkdir(j)
+		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return ff
 end
@@ -385,11 +370,9 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 	ff = Gadfly.plot(pl..., Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(ymin=ymin, ymax=ymax), tc..., tx..., gm...)
 	!quiet && (display(ff); println())
 	if filename != ""
-		if !isdir(figuredir)
-			mkdir(figuredir)
-		end
-		recursivemkdir(filename)
-		plotfileformat(ff, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+		j = joinpath(figuredir, filename)
+		recursivemkdir(j)
+		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return ff
 end
@@ -657,120 +640,6 @@ function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, k
 	end
 	display(NMFk.plotmatrix(D; kw..., key_position=:none))
 	return D
-end
-
-function plot_wells(wx, wy, c; hover=nothing)
-	if hover != nothing
-		@assert length(hover) == length(wx)
-	end
-	@assert length(wx) == length(wy)
-	@assert length(wx) == length(c)
-	wells = []
-	for (j, i) in enumerate(sort(unique(c)))
-		ic = c .== i
-		if hover != nothing
-			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], hovertext=hover[ic], hoverinfo="text", mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=6))
-		else
-			well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=6))
-		end
-		push!(wells, well_p)
-	end
-	return convert(Array{typeof(wells[1])}, wells)
-end
-
-function plot_wells(wx, wy, wz, c; hover=nothing)
-	if hover != nothing
-		@assert length(hover) == length(wx)
-	end
-	@assert length(wx) == length(wy)
-	@assert length(wx) == length(wz)
-	@assert length(wx) == length(c)
-	wells = []
-	for (j, i) in enumerate(sort(unique(c)))
-		ic = c .== i
-		if hover != nothing
-			well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], hovertext=hover[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
-		else
-			well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6))
-		end
-		push!(wells, well_p)
-	end
-	return convert(Array{typeof(wells[1])}, wells)
-end
-
-function plot_heel_toe_bad(heel_x, heel_y, toe_x, toe_y, c; hover=nothing)
-	wells = []
-	for (j, i) in enumerate(sort(unique(c)))
-		ic = c .== i
-		hx = heel_x[ic]
-		hy = heel_y[ic]
-		tx = toe_x[ic]
-		ty = toe_y[ic]
-		for k = 1:length(hx)
-			well_trace = PlotlyJS.scatter(;x=[hx[k], tx[k]], y=[ty[k], ty[k]], mode="lines+markers", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]), transform=Plotly.attr(type="groupby", groups=fill(i, length(hx)), styles=Plotly.attr(target="$i $(sum(ic))")), color=NMFk.colors[j])
-			push!(wells, well_trace)
-		end
-	end
-	return convert(Array{typeof(wells[1])}, wells)
-end
-
-function plot_heel_toe(heel_x, heel_y, toe_x, toe_y, c; hover=nothing)
-	if hover != nothing
-		@assert length(hover) == length(heel_x)
-	end
-	@assert length(heel_x) == length(heel_y)
-	@assert length(heel_x) == length(toe_x)
-	@assert length(heel_x) == length(toe_y)
-	@assert length(heel_x) == length(c)
-	traces = []
-	for (j,i) in enumerate(sort(unique(c)))
-		ic = c .== i
-		hx = heel_x[ic]
-		hy = heel_y[ic]
-		tx = toe_x[ic]
-		ty = toe_y[ic]
-		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
-		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
-		if hover != nothing
-			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
-			well_trace = PlotlyJS.scatter(;x=x, y=y, hovertext=h, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
-		else
-			well_trace = PlotlyJS.scatter(;x=x, y=y, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
-		end
-		push!(traces, well_trace)
-	end
-	return convert(Array{typeof(traces[1])}, traces)
-end
-
-function plot_heel_toe(heel_x, heel_y, heel_z, toe_x, toe_y, toe_z, c; hover=nothing)
-	if hover != nothing
-		@assert length(hover) == length(heel_x)
-	end
-	@assert length(heel_x) == length(heel_y)
-	@assert length(heel_x) == length(toe_x)
-	@assert length(heel_x) == length(toe_y)
-	@assert length(heel_x) == length(c)
-	traces = []
-	for (j,i) in enumerate(sort(unique(c)))
-		ic = c .== i
-		hx = heel_x[ic]
-		hy = heel_y[ic]
-		hz = heel_z[ic]
-		tx = toe_x[ic]
-		ty = toe_y[ic]
-		tz = toe_z[ic]
-		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
-		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
-		z = vec(hcat([[hz[i] tz[i] NaN] for i = 1:length(hz)]...))
-		if hover != nothing
-			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
-			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, hovertext=h, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
-		else
-			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
-		end
-		push!(traces, well_trace)
-	end
-	return convert(Array{typeof(traces[1])}, traces)
 end
 
 """

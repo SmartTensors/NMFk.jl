@@ -95,9 +95,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	sc = sortclustering(c)
 	if save && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
-		if !isdir(resultdir)
-			recursivemkdir(resultdir; filename=false)
-		end
+		recursivemkdir(filename)
 		JLD.save(filename, "assignments", sc, "best_silhouettes", best_silhouettes)
 		@info("Robust k-means analysis results are saved in file $(filename)!")
 	end

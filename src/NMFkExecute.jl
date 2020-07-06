@@ -63,9 +63,7 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 	println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
 	if save && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
-		if !isdir(resultdir)
-			recursivemkdir(resultdir; filename=false)
-		end
+		recursivemkdir(filename)
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	end
 	return W, H, fitquality, robustness, aic

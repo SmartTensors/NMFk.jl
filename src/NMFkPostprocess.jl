@@ -68,8 +68,7 @@ function clusterresults(nkrange, W, H, robustness, Hnames, Wnames; krange=NMFk.g
 		NMFk.biplots(permutedims(H[k])[cs,is] ./ maximum(H[k]), Hnames[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color=background_color, types=ch[cs], plotlabel=plotlabelH)
 		length(Htypes) > 0 && NMFk.biplots(permutedims(H[k])[cs,is]./ maximum(H[k]), Hnames[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-type-$(k).pdf", background_color=background_color, colors=locationcolors[cs], plotlabel=plotlabelH)
 		if lon != nothing && lat != nothing && length(lon) == length(ch)
-			p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, ch; hover=hover), Plotly.Layout(title="Clusters: $k", hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
-			PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
+			NMFk.plot_wells("clusters-$(k).html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Clusters: $k")
 			lonlat= [lon lat]
 			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [Hnames lonlat permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
 		else
@@ -151,8 +150,7 @@ function clusterresults(nkrange, W, H, robustness, Hnames, Wnames; krange=NMFk.g
 			NMFk.biplots(Wa[cs,is] ./ maximum(Wa), Wnames[cs], clustermap[is]; filename="$figuredir/$(casefilenameW)-biplots-$(k).pdf", background_color=background_color, types=cnew[cs], plotlabel=plotlabelW)
 			length(Wtypes) > 0 && NMFk.biplots(Wa[cs,is] ./ maximum(Wa), Wnames[cs], clustermap[is]; filename="$figuredir/$(casefilenameW)-biplots-type-$(k).pdf", background_color=background_color, colors=attributecolors[cs], plotlabel=plotlabelW)
 			if lon != nothing && lat != nothing && length(lon) == length(cw)
-				p = PlotlyJS.plot(NMFk.plot_wells(lon, lat, cw; hover=hover), Plotly.Layout(title="Clusters: $k", hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
-				PlotlyJS.savehtml(p, "$figuredir/clusters-$(k).html", :remote)
+				NMFk.plot_wells("clusters-$(k).html", lon, lat, cw; figuredir=figuredir, hover=hover, title="Clusters: $k")
 				lonlat= [lon lat]
 				DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [Wnames lonlat (Wa ./ maximum(Wa; dims=1)) cw], ',')
 			else
