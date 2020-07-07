@@ -29,7 +29,7 @@ function remap2count(assignments)
 	return map(mfunc, assignments)
 end
 
-function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Vector{Int64}}, repeats::Int=1000; kw...)
+function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},AbstractVector{Int64}}, repeats::Int=1000; kw...)
 	if krange[1] >= size(X, 2)
 		@info("Cannot be computed (min range is greater than or equal to size(X,2); $krange[1] >= $(size(X, 2)))")
 		return nothing

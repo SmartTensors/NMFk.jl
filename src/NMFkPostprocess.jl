@@ -4,7 +4,7 @@ import PlotlyJS
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(nkrange, W, H, robustness, Hnames, Wnames; krange=NMFk.getks(nkrange, robustness[nkrange]), clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, hover=nothing, cutoff::Number=0, cutoff_s::Number=0, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", Htypes=[], Wtypes=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W)
+function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}}, W::AbstractMatrix, H::AbstractMatrix, Wnames::AbstractVector, Hnames::AbstractVector; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, hover=nothing, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W, cutoff::Number=0, cutoff_s::Number=0)
 	if length(Htypes) > 0
 		if locationcolors == NMFk.colors
 			locationcolors = Vector{String}(undef, length(Htypes))
