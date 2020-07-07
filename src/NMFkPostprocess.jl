@@ -4,7 +4,11 @@ import PlotlyJS
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}}, W::AbstractMatrix, H::AbstractMatrix, Wnames::AbstractVector, Hnames::AbstractVector; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, hover=nothing, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W, cutoff::Number=0, cutoff_s::Number=0)
+function clusterresults(nkrange::Union{AbstractRange{Int},AbstractVector{Int64}}, W::AbstractVector, H::AbstractVector, robustness::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; kw...)
+	clusterresults(NMFk.getks(nkrange, robustness[nkrange]), W, H, Hnames, Wnames)
+end
+
+function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, lon=nothing, lat=nothing, hover=nothing, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W, cutoff::Number=0, cutoff_s::Number=0)
 	if length(Htypes) > 0
 		if locationcolors == NMFk.colors
 			locationcolors = Vector{String}(undef, length(Htypes))
@@ -68,6 +72,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}},
 		NMFk.biplots(permutedims(H[k])[cs,is] ./ maximum(H[k]), Hnames[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-$(k).pdf", background_color=background_color, types=ch[cs], plotlabel=plotlabelH)
 		length(Htypes) > 0 && NMFk.biplots(permutedims(H[k])[cs,is]./ maximum(H[k]), Hnames[cs], clustermap[is]; filename="$figuredir/$(casefilenameH)-biplots-type-$(k).pdf", background_color=background_color, colors=locationcolors[cs], plotlabel=plotlabelH)
 		if lon != nothing && lat != nothing && length(lon) == length(ch)
+			@show ch
 			NMFk.plot_wells("clusters-$(k).html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Clusters: $k")
 			lonlat= [lon lat]
 			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [Hnames lonlat permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
