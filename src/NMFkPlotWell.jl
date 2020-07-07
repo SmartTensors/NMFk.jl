@@ -1,8 +1,13 @@
 import Plotly
 import PlotlyJS
 
-function plot_wells(filename::AbstractString, v...; figuredir::AbstractString=".", title::AbstractString="", k...)
-	p = PlotlyJS.plot(NMFk.plot_wells(v...; k...), Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+function plot_wells(filename::AbstractString, v...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, k...)
+	if plotly == nothing
+		p = PlotlyJS.plot(NMFk.plot_wells(v...; k...), Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+	else
+		p = PlotlyJS.plot(plotly, Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+		p = Plotly.addtraces(p, NMFk.plot_wells(v...; k...)...)
+	end
 	j = joinpath(figuredir, filename)
 	recursivemkdir(j)
 	PlotlyJS.savehtml(p, j, :remote)
