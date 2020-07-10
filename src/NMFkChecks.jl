@@ -15,7 +15,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			ix = X[nt...]
 			if i == 1
-				println("Dimension $(d): slice: $(length(ix))")
+				println("Dimension $(d): slice: $(size(ix))")
 			end
 			firstentry = Base.findfirst(funcfirst.(ix))
 			# @show nt
