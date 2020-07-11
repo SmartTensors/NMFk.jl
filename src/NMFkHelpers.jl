@@ -113,6 +113,8 @@ function cumsumnan(X::AbstractArray; dims=nothing, kw...)
 		X[I] .= 0
 		sX = cumsum(X; dims=dims, kw...)
 		X[I] .= NaN
+		sI = sum(I; dims=dims, kw...)
+		sX[sI.==ecount] .= NaN
 		return sX
 	end
 end
