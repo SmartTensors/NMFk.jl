@@ -69,6 +69,37 @@ function matrixminmax(a::AbstractMatrix, dim::Integer)
 	return amin, amax
 end
 
+function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false)
+	amin, amax = arrayminmax(a, dim)
+	dx = amax .- amin
+	if length(dx) > 1
+		i0 = dx .== 0 # check for zeros
+		amin[i0] .= 0
+		dx[i0] .= amax[i0]
+		i0 = dx .== 0 # check for zeros again
+		dx[i0] .= 1
+	end
+	if rev
+		for i = 1:size(a, dim)
+			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
+			a[nt...] .= (amax[i] .- a[nt...]) ./ dx[i]
+		end
+		return a, amax, amin
+	else
+		for i = 1:size(a, dim)
+			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
+			a[nt...] .= (a[nt...] .- amin[i]) ./ dx[i]
+		end
+		return a, amin, amax
+	end
+end
+
+function arrayminmax(a::AbstractArray, dim::Integer)
+	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	return amin, amax
+end
+
 "Denormalize matrix"
 function denormalizematrix_col!(a::AbstractMatrix, amin::Vector, amax::Vector)
 	if all(amax .>= amin)
