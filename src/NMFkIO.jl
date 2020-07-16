@@ -30,13 +30,13 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	i < length(nkrange) && @info("Optimal solution: $kopt features")
 	return W, H, fitquality, robustness, aic, kopt
 end
-function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
+function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false)
 	if casefilename != "" && filename == ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
 	if isfile(filename)
 		W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
-		println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
+		!quiet && println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
 		return W, H, fitquality, robustness, aic
 	else
 		@warn("File named $filename is missing!")
