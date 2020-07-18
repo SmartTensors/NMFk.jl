@@ -199,7 +199,7 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 	end
 	X[izero] .= 0
 	X[inan] .= NaN
-	objvalue = sum(((X - W * H)).^2)
+	objvalue = sum((X - W * H).^2)
 	return W, H, objvalue
 end
 
