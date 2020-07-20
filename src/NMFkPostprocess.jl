@@ -36,7 +36,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}},
 
 		@info("$(uppercasefirst(casefilenameH)) (signals=$k)")
 		recursivemkdir(resultdir; filename=false)
-		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", H[k], ',')
+		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Hnames permutedims(H[k])], ',')
 		if cutoff > 0
 			ia = (H[k] ./ maximum(H[k]; dims=2)) .> cutoff
 			for i in 1:k
@@ -75,9 +75,9 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}},
 			@show ch
 			NMFk.plot_wells("clusters-$(k).html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Clusters: $k")
 			lonlat= [lon lat]
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [Hnames lonlat permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames lonlat permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
 		else
-			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [Hnames permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
+			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames permutedims(H[k] ./ maximum(H[k]; dims=2)) ch], ',')
 		end
 		if clusterattributes
 			if sizeW > 1
@@ -95,7 +95,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}},
 				Wa = W[k]
 			end
 			@info("$(uppercasefirst(casefilenameW)) (signals=$k)")
-			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", Wa, ',')
+			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Wnames Wa], ',')
 			if cutoff > 0
 				ia = (Wa ./ maximum(Wa; dims=1)) .> cutoff
 				for i in 1:k
@@ -157,11 +157,10 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64}},
 			if lon != nothing && lat != nothing && length(lon) == length(cw)
 				NMFk.plot_wells("clusters-$(k).html", lon, lat, cw; figuredir=figuredir, hover=hover, title="Clusters: $k")
 				lonlat= [lon lat]
-				DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [Wnames lonlat (Wa ./ maximum(Wa; dims=1)) cw], ',')
+				DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Wnames lonlat (Wa ./ maximum(Wa; dims=1)) cw], ',')
 			else
-				DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k).csv", [Wnames (Wa ./ maximum(Wa; dims=1)) cw], ',')
+				DelimitedFiles.writedlm("$resultdir/$(casefilenameW)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Cluster"];  Wnames (Wa ./ maximum(Wa; dims=1)) cw], ',')
 			end
-
 			if biplotlabel == :W
 				biplotlabels = [Wnames; fill("", length(Hnames))]
 				biplotlabelflag = true
