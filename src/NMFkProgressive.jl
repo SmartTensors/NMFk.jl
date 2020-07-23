@@ -97,6 +97,9 @@ end
 
 function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.25) where {T1 <: Integer, T2 <: Number}
 	@assert length(nkrange) == length(robustness)
+	if all(isnan.(robustness))
+		return 0
+	end
 	if length(nkrange) == 1
 		k = nkrange[1]
 	else
@@ -109,6 +112,9 @@ end
 
 function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.25) where {T1 <: Integer, T2 <: Number}
 	@assert length(nkrange) == length(robustness)
+	if all(isnan.(robustness))
+		return []
+	end
 	if length(nkrange) == 1
 		k = [nkrange[1]]
 	else
@@ -116,7 +122,7 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 		if (length(kn) == 0)
 			k = [nkrange[findmax(robustness)[2]]]
 		else
-			k = nkrange[kn]
+			k = [nkrange[kn]]
 		end
 	end
 	return k
@@ -124,6 +130,9 @@ end
 
 function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25) where {T1 <: Integer, T2 <: AbstractArray}
 	@assert length(nkrange) == length(F)
+	if all(isnan.(robustness))
+		return []
+	end
 	if length(nkrange) == 1
 		kn = [nkrange[1]]
 	else
