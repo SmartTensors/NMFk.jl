@@ -120,9 +120,9 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 	else
 		kn = findall(i->i > cutoff, robustness)
 		if (length(kn) == 0)
-			k = [nkrange[findmax(robustness)[2]]]
+			k = nkrange[findmax(robustness)[2]]
 		else
-			k = [nkrange[kn]]
+			k = nkrange[kn]
 		end
 	end
 	return k
