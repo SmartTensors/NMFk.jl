@@ -1,32 +1,32 @@
 import VegaLite
 import VegaDatasets
 import DataFrames
+import Mads
 
 function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; dates=nothing, kw...)
 	Wa, _, _ = NMFk.normalizematrix_col!(W)
 	Ha, _, _ = NMFk.normalizematrix_row!(H)
+	# Mads.plotseries(Wa; xaxis=dates)
 	if dim == 1
 		odim = 2
 		so, si = NMFk.signalorder(Wa, odim)
-		if dates != nothing
-			dates=dates[si]
-		end
+		Mads.plotseries(W[:,so] ./ maximum(W); xaxis=dates, name="Wave")
+		ndates = dates != nothing ? dates[si] : dates
 		signalid = similar(so)
 		for (i,j) in enumerate(so)
 			signalid[j] = i
 		end
-		NMFk.plotmap(Ha, fips, dim, so; signalid=signalid, dates=dates, kw...)
+		NMFk.plotmap(Ha, fips, dim, so; signalid=signalid, dates=ndates, kw...)
 	else
 		odim = 1
 		so, si = NMFk.signalorder(Ha, odim)
-		if dates != nothing
-			dates=dates[si]
-		end
+		Mads.plotseries(W[:,so] ./ maximum(W); xaxis=dates, name="Wave")
+		ndates = dates != nothing ? dates[si] : dates
 		signalid = similar(so)
 		for (i,j) in enumerate(so)
 			signalid[j] = i
 		end
-		NMFk.plotmap(Wa, fips, dim, so; signalid=signalid, dates=dates, kw...)
+		NMFk.plotmap(Wa, fips, dim, so; signalid=signalid, dates=ndates, kw...)
 	end
 end
 
