@@ -104,7 +104,12 @@ function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::
 		k = nkrange[1]
 	else
 		kn = findlast(i->i > cutoff, robustness)
-		kn = (kn == nothing) ? findmax(robustness)[2] : kn
+		if kn == nothing
+			inan = isnan.(robustness)
+			robustness[inan] .= -Inf
+			kn = findmax(robustness)[2]
+			robustness[inan] .= NaN
+		end
 		k = nkrange[kn]
 	end
 	return k
@@ -120,7 +125,10 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 	else
 		kn = findall(i->i > cutoff, robustness)
 		if (length(kn) == 0)
+			inan = isnan.(robustness)
+			robustness[inan] .= -Inf
 			k = nkrange[findmax(robustness)[2]]
+			robustness[inan] .= NaN
 		else
 			k = nkrange[kn]
 		end
