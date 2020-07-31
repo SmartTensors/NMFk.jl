@@ -287,6 +287,5 @@ function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractSt
 		Wclusterlabelsnew[Wclusterlabels .== i] .= clusterlabels[iclustermap]
 		Wsignalmapnew[Wclusterlabels .== i] .= "S$(Wsignalmap[j])"
 	end
-	Wcs = sortperm(Wclusterlabelsnew)
 	return Wclusterlabelsnew, Wsignalmapnew, Hclusterlabels, Hclustermap, Hsignalmap
 end

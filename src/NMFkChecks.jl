@@ -73,10 +73,11 @@ checkarray_count(X::Array, func; kw...) = checkarrayentries(X, func; ecount=true
 
 function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=false, ecount::Bool=false) where {T, N}
 	local flag = true
+	return_selected_indeces = Vector{Vector{Int64}}(undef, N)
 	for d = 1:N
 		@info("Dimension $(d) ...")
-		selected_indeces = Array{Int64}(undef, 0)
-		ecount && (acount = Array{Int64}(undef, 0))
+		selected_indeces = Vector{Int64}(undef, 0)
+		ecount && (acount = Vector{Int64}(undef, 0))
 		for i = 1:size(X, d)
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			c = sum(func.(X[nt...]))
@@ -109,6 +110,7 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; good::Bool=fal
 				end
 			end
 		end
+		return_selected_indeces[d] = selected_indeces
 	end
-	return flag
+	return return_selected_indeces
 end
