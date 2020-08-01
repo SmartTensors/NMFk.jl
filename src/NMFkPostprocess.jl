@@ -279,19 +279,21 @@ function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractSt
 	Hsignalmap = NMFk.getsignalassignments(H, Hclusterlabels; clusterlabels=clusterlabels, dims=2)
 	Hclustermap = Vector{Char}(undef, k)
 	Hclustermap .= ' '
+	Hsignals = Vector{String}(undef, length(Hclusterlabels))
 	for (j, i) in enumerate(clusterlabels)
 		Hclustermap[Hsignalmap[j]] = i
+		Hsignals[Hclusterlabels .== i] .= "S$(Hsignalmap[j])"
 	end
 	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true)[1].assignments)
 	@assert clusterlabels == sort(unique(Wclusterlabels))
 	Wsignalmap = NMFk.getsignalassignments(W[:,Hsignalmap], Wclusterlabels; clusterlabels=clusterlabels, dims=1)
 	Wclusterlabelsnew = Vector{eltype(Wclusterlabels)}(undef, length(Wclusterlabels))
 	Wclusterlabelsnew .= ' '
-	Wsignalmapnew = Vector{String}(undef, length(Wclusterlabels))
+	Wsignals = Vector{String}(undef, length(Wclusterlabels))
 	for (j, i) in enumerate(clusterlabels)
 		iclustermap = Wsignalmap[j]
 		Wclusterlabelsnew[Wclusterlabels .== i] .= clusterlabels[iclustermap]
-		Wsignalmapnew[Wclusterlabels .== i] .= "S$(Wsignalmap[j])"
+		Wsignals[Wclusterlabels .== i] .= "S$(Wsignalmap[j])"
 	end
-	return Wclusterlabelsnew, Wsignalmapnew, Hclusterlabels, Hclustermap, Hsignalmap
+	return Wclusterlabelsnew, Wsignals, Hclusterlabels, Hsignals
 end
