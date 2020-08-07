@@ -170,7 +170,7 @@ function stdnan(X::AbstractArray; dims=nothing, kw...)
 	return sqrt.(varnan(X; dims=dims, kw...))
 end
 
-function rmsenan(t::Vector, o::Vector)
+function rmsenan(t::AbstractVector, o::AbstractVector)
 	it = .!isnan.(t)
 	ot = .!isnan.(o)
 	ii = it .& ot
