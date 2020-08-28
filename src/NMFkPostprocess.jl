@@ -19,7 +19,7 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; clusterattributes::Bool=true, loadassignements::Bool=true, sizeW::Integer=0, sizeH::Integer=0, mapW::AbstractVector=[], mapH::AbstractVector=[], lon=nothing, lat=nothing, hover=nothing, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, plottimeseries::Symbol=:none, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W, cutoff::Number=0, cutoff_s::Number=0, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt)
+function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; clusterattributes::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], lon=nothing, lat=nothing, hover=nothing, figuredir::AbstractString=".", resultdir::AbstractString=".", casefilenameW::AbstractString="attributes", casefilenameH::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], locationcolors=NMFk.colors, attributecolors=NMFk.colors, background_color="black", plotlabelH::Bool=true, plotlabelW::Bool=true, plottimeseries::Symbol=:none, biplotlabel::Symbol=:W, biplotcolor::Symbol=:W, cutoff::Number=0, cutoff_s::Number=0, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt)
 	if length(Htypes) > 0
 		if locationcolors == NMFk.colors
 			locationcolors = Vector{String}(undef, length(Htypes))
@@ -46,24 +46,24 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		@info("$(uppercasefirst(casefilenameH)) (signals=$k)")
 		recursivemkdir(resultdir; filename=false)
 
-		if sizeH > 1
-			na = convert(Int64, size(H[k], 2) / sizeH)
+		if Hsize > 1
+			na = convert(Int64, size(H[k], 2) / Hsize)
 			Wa = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
 			@assert length(Hnames) == na
 			i1 = 1
-			i2 = sizeH
+			i2 = Hsize
 			for i = 1:na
 				Ha[:,i] = sum(H[k][:,i1:i2]; dims=2)
-				i1 += sizeH
-				i2 += sizeH
+				i1 += Hsize
+				i2 += Hsize
 				end
-			elseif length(mapH) > 0
-				mu = unique(mapH)
+			elseif length(Hmap) > 0
+				mu = unique(Hmap)
 				na = length(mu)
 				@assert length(Hnames) == na
 				Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
 				for (i, m) in enumerate(mu)
-					Ha[:,i] = sum(H[k][:, mapH .== m]; dims=2)
+					Ha[:,i] = sum(H[k][:, Hmap .== m]; dims=2)
 				end
 		else
 			Ha = H[k]
@@ -116,24 +116,24 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames permutedims(Ha ./ maximum(Ha; dims=2)) ch], ',')
 		end
 		if clusterattributes
-			if sizeW > 1
-				na = convert(Int64, size(W[k], 1) / sizeW)
+			if Wsize > 1
+				na = convert(Int64, size(W[k], 1) / Wsize)
 				Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
 				@assert length(Wnames) == na
 				i1 = 1
-				i2 = sizeW
+				i2 = Wsize
 				for i = 1:na
 					Wa[i,:] = sum(W[k][i1:i2,:]; dims=1)
-					i1 += sizeW
-					i2 += sizeW
+					i1 += Wsize
+					i2 += Wsize
  				end
- 			elseif length(mapW) > 0
- 				mu = unique(mapW)
+ 			elseif length(Wmap) > 0
+ 				mu = unique(Ws)
  				na = length(mu)
  				@assert length(Wnames) == na
  				Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
  				for (i, m) in enumerate(mu)
- 					Wa[i,:] = sum(W[k][mapW .== m,:]; dims=1)
+ 					Wa[i,:] = sum(W[k][Wmap .== m,:]; dims=1)
  				end
 			else
 				Wa = W[k]
@@ -253,7 +253,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		end
 
 		if cutoff_s > 0
-			attributesl = sizeW > 1 ? repeat(Wnames; inner=sizeW) : Wnames
+			attributesl = Wsize > 1 ? repeat(Wnames; inner=Wsize) : Wnames
 			Xe = W[k] * Ha
 			local table = Hnames
 			local table2 = Hnames
