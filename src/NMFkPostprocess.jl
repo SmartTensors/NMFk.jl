@@ -109,7 +109,6 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			Mads.plotseries(permutedims(Ha ./ maximum(Ha; dims=2)), "$figuredir/$(casefilenameH)-timeseries.png"; xaxis=Hnames)
 		end
 		if lon != nothing && lat != nothing && length(lon) == length(ch)
-			@show ch
 			NMFk.plot_wells("clusters-$(k).html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Clusters: $k")
 			lonlat= [lon lat]
 			DelimitedFiles.writedlm("$resultdir/$(casefilenameH)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames lonlat permutedims(Ha ./ maximum(Ha; dims=2)) ch], ',')
