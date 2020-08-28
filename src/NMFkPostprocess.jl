@@ -60,15 +60,15 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				Ha[:,i] = sum(H[k][:,i1:i2]; dims=2)
 				i1 += Hsize
 				i2 += Hsize
-				end
-			elseif length(Hmap) > 0
-				mu = unique(Hmap)
-				na = length(mu)
-				@assert length(Hnames) == na
-				Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
-				for (i, m) in enumerate(mu)
-					Ha[:,i] = sum(H[k][:, Hmap .== m]; dims=2)
-				end
+			end
+		elseif length(Hmap) > 0
+			mu = unique(Hmap)
+			na = length(mu)
+			@assert length(Hnames) == na
+			Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
+			for (i, m) in enumerate(mu)
+				Ha[:,i] = sum(H[k][:, Hmap .== m]; dims=2)
+			end
 		else
 			Ha = H[k]
 			@assert length(Hnames) == size(Ha, 2)
