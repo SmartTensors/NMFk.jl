@@ -6,6 +6,41 @@ function plot_feature_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) robustness[nkrange]], "$(figuredir)/$(casefilename).png"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], names=["Fit", "Robustness"])
 end
 
+function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVector=[], order::Function=i->sortperm(i; rev=true), select::Function=v->findlast(i->i>0.95, v))
+	local Xm
+	if size(X, 1) == length(Xnames)
+		Xm = X ./ maximum(X; dims=1)
+	elseif size(X, 2) == length(Xnames)
+		Xm = permutedims(X ./ maximum(X; dims=2))
+	elseif size(X, 1) == length(Xmap)
+		mu = unique(Xmap)
+		na = length(mu)
+		@assert length(Xnames) == na
+		Xa = Matrix{eltype(X)}(undef, size(X, 2), na)
+		for (i, m) in enumerate(mu)
+			Xa[i,:] = sum(X[:, Xmap .== m]; dims=1)
+		end
+		Xm = Xa ./ maximum(Xa; dims=1)
+	elseif size(X, 2) == length(Xmap)
+		mu = unique(Xmap)
+		na = length(mu)
+		@assert length(Xnames) == na
+		Xa = Matrix{eltype(X)}(undef, size(X, 1), na)
+		for (i, m) in enumerate(mu)
+			Xa[:,i] = sum(X[:, Xmap .== m]; dims=2)
+		end
+		Xm = permutedims(Xa ./ maximum(Xa; dims=2))
+	else
+		@error("Dimensions do not match!")
+	end
+	for i = 1:size(X, 1)
+		@info "Signature $i"
+		is = order(Xm[:,i])
+		il = select(Xm[:,i][is])
+		display([Xnames[is] Xm[:,i][is]][1:il,:])
+	end
+end
+
 function clusterresults(nkrange::Union{AbstractRange{Int},AbstractVector{Int64}}, W::AbstractVector, H::AbstractVector, robustness::AbstractVector, Hnames::AbstractVector, Wnames::AbstractVector; kw...)
 	krange = NMFk.getks(nkrange, robustness[nkrange])
 	if length(krange) == 0
