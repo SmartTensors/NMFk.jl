@@ -97,6 +97,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				i2 += Hsize
 			end
 		elseif length(Hmap) > 0
+			@assert length(Hmap) == size(H[k], 2)
 			mu = unique(Hmap)
 			na = length(mu)
 			@assert length(Hnames) == na
@@ -167,6 +168,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 					i2 += Wsize
  				end
  			elseif length(Wmap) > 0
+ 				@assert length(Wmap) == size(W[k], 1)
  				mu = unique(Ws)
  				na = length(mu)
  				@assert length(Wnames) == na
