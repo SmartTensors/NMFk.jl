@@ -79,6 +79,10 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		end
 		Wnametype = Wnames .* " " .* String.(Wtypes)
 	end
+	if lon != nothing && lat != nothing
+		@assert length(lon) == length(lat)
+		plotmap = 0
+	end
 	for k in krange
 		@info("Number of signals: $k")
 
@@ -148,10 +152,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		if plottimeseries == :H
 			Mads.plotseries(permutedims(Ha ./ maximum(Ha; dims=2)), "$figuredir/$(Hcasefilename)-timeseries.png"; xaxis=Hnames)
 		end
-		if lon != nothing && lat != nothing && length(lon) == length(ch)
-			NMFk.plot_wells("clusters-$(k).html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Clusters: $k")
-			lonlat= [lon lat]
-			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames lonlat permutedims(Ha ./ maximum(Ha; dims=2)) ch], ',')
+		if lon != nothing && lat != nothing
+			if length(lon) != length(ch)
+				plotmap = 1
+			else
+				NMFk.plot_wells("clusters-$(k).html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Clusters: $k")
+				lonlat= [lon lat]
+				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames lonlat permutedims(Ha ./ maximum(Ha; dims=2)) ch], ',')
+			end
 		else
 			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames permutedims(Ha ./ maximum(Ha; dims=2)) ch], ',')
 		end
@@ -243,10 +251,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			if plottimeseries == :W
 				Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-timeseries.png"; xaxis=Wnames)
 			end
-			if lon != nothing && lat != nothing && length(lon) == length(cw)
-				NMFk.plot_wells("clusters-$(k).html", lon, lat, cw; figuredir=figuredir, hover=hover, title="Clusters: $k")
-				lonlat= [lon lat]
-				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Wnames lonlat (Wa ./ maximum(Wa; dims=1)) cw], ',')
+			if lon != nothing && lat != nothing
+				if length(lon) != length(cw)
+					(plotmap == 1) && @warn("Coordinate data does not match the number of either W matrix rows or H matrix columns!")
+				else
+					NMFk.plot_wells("clusters-$(k).html", lon, lat, cw; figuredir=figuredir, hover=hover, title="Clusters: $k")
+					lonlat= [lon lat]
+					DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Wnames lonlat (Wa ./ maximum(Wa; dims=1)) cw], ',')
+				end
 			else
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Cluster"];  Wnames (Wa ./ maximum(Wa; dims=1)) cw], ',')
 			end
