@@ -4,12 +4,16 @@ import DataFrames
 import Mads
 
 function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; dates=nothing, kw...)
+	@assert size(W, 2) == size(H, 1)
 	Wa, _, _ = NMFk.normalizematrix_col!(W)
 	Ha, _, _ = NMFk.normalizematrix_row!(H)
 	# Mads.plotseries(Wa; xaxis=dates)
 	if dim == 1
 		odim = 2
 		so, si = NMFk.signalorder(Wa, odim)
+		if dates != nothing
+			@assert length(dates) == size(W, 1)
+		end
 		Mads.plotseries(W[:,so] ./ maximum(W); xaxis=dates, name="Wave")
 		ndates = dates != nothing ? dates[si] : dates
 		signalid = similar(so)
@@ -20,7 +24,10 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	else
 		odim = 1
 		so, si = NMFk.signalorder(Ha, odim)
-		Mads.plotseries(W[:,so] ./ maximum(W); xaxis=dates, name="Wave")
+		if dates != nothing
+			@assert length(dates) == size(H, 2)
+		end
+		Mads.plotseries(H[so,:] ./ maximum(H); xaxis=dates, name="Wave")
 		ndates = dates != nothing ? dates[si] : dates
 		signalid = similar(so)
 		for (i,j) in enumerate(so)
@@ -31,6 +38,8 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 end
 
 function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=1:size(X, dim); signalid=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="redyellowgreen", zmin=0, zmax=1)
+	odim = dim == 1 ? 2 : 1
+	@assert size(X, odim) == length(fips[goodcounties])
 	recursivemkdir(figuredir; filename=false)
 	for i in order
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
@@ -85,6 +94,7 @@ end
 
 function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="category10", zmin=0, zmax=1)
 	recursivemkdir(figuredir; filename=false)
+	@assert length(X) == length(fips)
 	nc = length(unique(sort(X))) + 1
 	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]], Z=[X; zeros(sum(.!goodcounties))])
 	p = @VegaLite.vlplot(
