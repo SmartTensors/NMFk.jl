@@ -164,12 +164,31 @@ function scalearray!(a::AbstractArray{T,N}; dims=(1,2)) where {T,N}
 	end
 	return a, amax
 end
+function scalearray!(a::AbstractArray{T,N}, dim::Integer) where {T,N}
+	_, amax = matrixminmax(a, dim)
+	for i = 1:length(amax)
+		if amax[i] != 0 && !isnan(amax[i])
+			nt = ntuple(k->(k == dim ? (i:i) : Colon()), N)
+			a[nt...] ./= amax[i]
+		end
+	end
+	return a, amax
+end
 
 "Descale array"
-function descalearray!(a::AbstractArray{T,N}, amax; dims=(1,2)) where {T,N}
+function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector; dims=(1,2)) where {T,N}
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			nt = ntuple(k->(k in dims ? Colon() : i), N)
+			a[nt...] .*= amax[i]
+		end
+	end
+	return a
+end
+function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector, dim::Integer) where {T,N}
+	for i = 1:length(amax)
+		if amax[i] != 0 && !isnan(amax[i])
+			nt = ntuple(k->(k == dim ? (i:i) : Colon()), N)
 			a[nt...] .*= amax[i]
 		end
 	end
