@@ -226,6 +226,12 @@ git config --global url."git@gitlab.com:".insteadOf https://gitlab.com/
 git config --global url."git@github.com:".insteadOf https://github.com/
 ```
 
+To resolve "Private key location for 'git@github.com'" julia message, execute: 
+
+```
+ssh-add .ssh/id_rsa
+```
+
 Julia uses git and curl to install packages. Set proxies:
 
 ```
