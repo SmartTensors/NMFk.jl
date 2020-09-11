@@ -3,37 +3,42 @@ import VegaDatasets
 import DataFrames
 import Mads
 
-function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; dates=nothing, kw...)
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename="", figuredir=".", dates=nothing, plotseriesonly::Bool=false, name::String="Wave peak", kw...)
 	@assert size(W, 2) == size(H, 1)
 	Wa, _, _ = NMFk.normalizematrix_col!(W)
 	Ha, _, _ = NMFk.normalizematrix_row!(H)
+	recursivemkdir(figuredir; filename=false)
 	# Mads.plotseries(Wa; xaxis=dates)
 	if dim == 1
 		odim = 2
 		so, si = NMFk.signalorder(Wa, odim)
 		if dates != nothing
 			@assert length(dates) == size(W, 1)
+			ndates = dates[si]
+		else
+			ndates = dates
 		end
-		Mads.plotseries(W[:,so] ./ maximum(W); xaxis=dates, name="Wave")
-		ndates = dates != nothing ? dates[si] : dates
 		signalid = similar(so)
-		for (i,j) in enumerate(so)
+		for (i, j) in enumerate(so)
 			signalid[j] = i
 		end
-		NMFk.plotmap(Ha, fips, dim, so; signalid=signalid, dates=ndates, kw...)
+		Mads.plotseries(W[:,so] ./ maximum(W), joinpath(figuredir, casefilename * "-waves.png"); xaxis=dates, names=["$name $(ndates[i])" for i in 1:length(ndates)])
+		!plotseriesonly && NMFk.plotmap(Ha, fips, dim, so; signalid=signalid, dates=ndates, casefilename=casefilename, figuredir=figuredir, kw...)
 	else
 		odim = 1
 		so, si = NMFk.signalorder(Ha, odim)
 		if dates != nothing
 			@assert length(dates) == size(H, 2)
+			ndates = dates[si]
+		else
+			ndates = dates
 		end
-		Mads.plotseries(H[so,:] ./ maximum(H); xaxis=dates, name="Wave")
-		ndates = dates != nothing ? dates[si] : dates
 		signalid = similar(so)
-		for (i,j) in enumerate(so)
+		for (i, j) in enumerate(so)
 			signalid[j] = i
 		end
-		NMFk.plotmap(Wa, fips, dim, so; signalid=signalid, dates=ndates, kw...)
+		Mads.plotseries(H[so,:] ./ maximum(H), joinpath(figuredir, casefilename * "-waves.png"); xaxis=dates, names=["$name $(ndates[i])" for i in 1:length(ndates)])
+		!plotseriesonly && NMFk.plotmap(Wa, fips, dim, so; signalid=signalid, dates=ndates, casefilename=casefilename, figuredir=figuredir, kw...)
 	end
 end
 
