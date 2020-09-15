@@ -315,8 +315,8 @@ function nanmask!(X::Array, mask::Union{Nothing,Number})
 	return nothing
 end
 
-function nanmask!(X::Array, mask::BitArray{N}, dim) where {N}
-	if length(size(mask)) == length(size(X))
+function nanmask!(X::Array{T, N}, mask::BitArray{M}, dim::Integer) where {T, N, M}
+	if N == M
 		X[mask] .= NaN
 	else
 		X[remask(mask, size(X, dim))] .= NaN
@@ -324,13 +324,22 @@ function nanmask!(X::Array, mask::BitArray{N}, dim) where {N}
 	return nothing
 end
 
-function nanmask!(X::Array, mask::BitArray{N}) where {N}
-	msize = vec(collect(size(mask)))
-	xsize = vec(collect(size(X)))
-	if length(msize) == length(xsize)
+function nanmask!(X::Array{T, N}, mask::BitArray{M}) where {T, N, M}
+	if N == M
 		X[mask] .= NaN
 	else
-		X[remask(mask, xsize[3:end])] .= NaN
+		msize = collect(size(mask))
+		xsize = collect(size(X))
+		ii = indexin(msize, xsize)
+		imask = Vector{Int32}(undef, 0)
+		for i = 1:N
+			if i in ii
+				continue
+			else
+				push!(imask, i)
+			end
+		end
+		X[remask(mask, xsize[imask])] .= NaN
 	end
 	return nothing
 end
@@ -343,7 +352,7 @@ function remask(sm, repeats::Tuple)
 	return reshape(repeat(sm, 1, *(repeats...)), (size(sm)..., repeats...))
 end
 
-function remask(sm, repeats::Vector{Int64})
+function remask(sm, repeats::Union{Vector{Int64},Vector{Int32}})
 	return reshape(repeat(sm, 1, *(repeats...)), (size(sm)..., repeats...))
 end
 
