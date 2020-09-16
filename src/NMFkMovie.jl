@@ -22,6 +22,7 @@ function makemovie(; movieformat="mp4", movieopacity::Bool=false, moviedir::Stri
 		cleanup && run(`find $moviedir -name $prefix-$(keyword)"*".$imgformat -delete`)
 		imgformat = "jpg"
 	end
+	stop_duration = vspeed / 25
 	# c = `ffmpeg -i $p-$(keyword)%06d.png -vcodec png -pix_fmt rgba -f mp4 -filter:v "setpts=$vspeed*PTS" -y $p.mp4`
 	if movieformat == "avi"
 		c = `ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -vcodec png -filter:v "setpts=$vspeed*PTS" -y $p.avi`
@@ -30,14 +31,14 @@ function makemovie(; movieformat="mp4", movieopacity::Bool=false, moviedir::Stri
 	elseif movieformat == "gif"
 		c = `ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -f gif -filter:v "setpts=$vspeed*PTS" -y $p.gif`
 	elseif movieformat == "mp4"
-		s = "ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -filter:v scale=\"trunc(iw/2)*2:trunc(ih/2)*2,setpts=$vspeed*PTS\" -c:v libx264 -profile:v high -pix_fmt yuv420p -g 30 -r 30 -y $p.mp4"
+		s = "ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -filter:v scale=\"trunc(iw/2)*2:trunc(ih/2)*2,setpts=$vspeed*PTS,tpad=stop_mode=clone:stop_duration=$stop_duration\" -c:v libx264 -profile:v high -pix_fmt yuv420p -g 30 -r 30 -y $p.mp4"
 		c = `bash -l -c "$s"`
 	else
 		@warn("Unknown movie format $movieformat; mp4 will be used!")
 		movieformat = "mp4"
 		# c = `ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -vf scale="trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -profile:v high -pix_fmt yuv420p -g 30 -r 30 -filter:v "setpts=$vspeed*PTS" -y $p.mp4`
 		# c = `ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -vf scale="trunc(iw/2)*2:trunc(ih/2)*2,setpts=$vspeed*PTS" -c:v libx264 -profile:v high -pix_fmt yuv420p -g 30 -r 30 -y $p.mp4`
-		s = "ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -filter:v scale=\"trunc(iw/2)*2:trunc(ih/2)*2,setpts=$vspeed*PTS\" -c:v libx264 -profile:v high -pix_fmt yuv420p -g 30 -r 30 -y $p.mp4"
+		s = "ffmpeg -i $p-$(keyword)%0$(numberofdigits)d.$imgformat -filter:v scale=\"trunc(iw/2)*2:trunc(ih/2)*2,setpts=$vspeed*PTS,tpad=stop_mode=clone:stop_duration=$stop_duration\" -c:v libx264 -profile:v high -pix_fmt yuv420p -g 30 -r 30 -y $p.mp4"
 		c = `bash -l -c "$s"`
 	end
 	if quiet
@@ -49,17 +50,25 @@ function makemovie(; movieformat="mp4", movieopacity::Bool=false, moviedir::Stri
 	return "$p.$movieformat"
 end
 
-function moviehstack(movies...; vspeed::Number=1.0, newname="results"=>"all")
+function stackmovie(movies...; dir::Symbol=:h, vspeed::Number=1.0, newname="results"=>"all")
 	nm = length(movies)
-	moviesall = nothing
+	movieall = nothing
 	for m = 1:nm
 		if occursin(newname[1], movies[m])
-			moviesall = replace(movies[m], newname)
+			movieall = replace(movies[m], newname)
 			break
 		end
 	end
-	recursivemkdir(moviesall; filename=true)
-	if moviesall != nothing
+	if movieall != nothing
+		recursivemkdir(movieall; filename=true)
+		if dir == :h
+			stack = "hstack"
+		elseif dir == :v
+			stack = "vstack"
+		else
+			@warn("Unknown direction! `dir` can be :h or :v only!")
+			return
+		end
 		c = "ffmpeg"
 		v = ""
 		z = ""
@@ -68,37 +77,18 @@ function moviehstack(movies...; vspeed::Number=1.0, newname="results"=>"all")
 			v *= "[$(m-1):v]setpts=$(vspeed)*PTS[v$m];"
 			z *= "[v$m]"
 		end
-		c *= " -filter_complex \"$(v) $(z)hstack=inputs=$(nm)[v]\" -map \"[v]\" $(moviesall) -y"
+		c *= " -filter_complex \"$(v) $(z)$(stack)=inputs=$(nm)[v]\" -map \"[v]\" $(movieall) -y"
 		run(`bash -l -c "$c"`)
-		return moviesall
+		return movieall
 	else
 		@warn("Movie filenames cannot be renamed $(newname)!")
 	end
 end
 
-function movievstack(movies...; vspeed::Number=1.0, newname="results"=>"all")
-	nm = length(movies)
-	moviesall = nothing
-	for m = 1:nm
-		if occursin(newname[1], movies[m])
-			moviesall = replace(movies[m], newname)
-			break
-		end
-	end
-	recursivemkdir(moviesall; filename=true)
-	if moviesall != nothing
-		c = "ffmpeg"
-		v = ""
-		z = ""
-		for m = 1:nm
-			c *= " -i $(movies[m])"
-			v *= "[$(m-1):v]setpts=$(vspeed)*PTS[v$m];"
-			z *= "[v$m]"
-		end
-		c *= " -filter_complex \"$(v) $(z)vstack=inputs=$(nm)[v]\" -map \"[v]\" $(moviesall) -y"
-		run(`bash -l -c "$c"`)
-		return moviesall
-	else
-		@warn("Movie filenames cannot be renamed $(newname)!")
-	end
+function moviehstack(movies...; kw...)
+	stackmovie(movies; kw..., dir=:v)
+end
+
+function movievstack(movies...; kw...)
+	stackmovie(movies; kw..., dir=:h)
 end
