@@ -34,9 +34,9 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	plotseries && Mads.plotseries(S[nt...] ./ maximum(S), joinpath(figuredir, casefilename * "-waves.png"); xaxis=dates, names=["$name $(ndates[i])" for i in 1:length(ndates)])
 	plotpeaks && NMFk.plotmap(Fa, fips, dim, so; signalid=si, dates=ndates, figuredir=figuredir, casefilename=casefilename, movie=movie, quiet=!movie, kw...)
 	if plottransients
-		for k in so
+		for (i, k) in enumerate(so)
 			Xe = dim == 1 ? W[:,k:k] * H[k:k,:] : permutedims(W[:,k:k] * H[k:k,:])
-			NMFk.plotmap(Xe, fips, 1; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(k)", datetext="S$(k) ", movie=movie, quiet=!movie, kw...)
+			NMFk.plotmap(Xe, fips, 1; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
 		end
 	end
 end
