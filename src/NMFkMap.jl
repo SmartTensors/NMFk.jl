@@ -3,7 +3,7 @@ import VegaDatasets
 import DataFrames
 import Mads
 
-function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename="", figuredir=".", dates=nothing, plotseriesonly::Bool=false, name::String="Wave peak", kw...)
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::String="", figuredir::String=".", dates=nothing, plotseriesonly::Bool=false, name::String="Wave peak", kw...)
 	@assert size(W, 2) == size(H, 1)
 	Wa, _, _ = NMFk.normalizematrix_col!(W)
 	Ha, _, _ = NMFk.normalizematrix_row!(H)
@@ -42,7 +42,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	end
 end
 
-function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=1:size(X, dim); signalid=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="redyellowgreen", zmin=0, zmax=1)
+function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=1:size(X, dim); signalid=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename::String="", figuredir::String=".", title::Bool=false, datetext::String="Date", titletext::String="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(order)))), scheme::String="redyellowgreen", zmin::Number=0, zmax::Number=1, quiet::Bool=false, movie::Bool=false, vspeed::Number=1.0)
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
 	recursivemkdir(figuredir; filename=false)
@@ -95,9 +95,12 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order=
 			VegaLite.save(joinpath("$(figuredir)", "$(casefilename)-$(signalidtext).png"), p)
 		end
 	end
+	if casefilename != "" && movie
+		makemovie(; moviedir=figuredir, prefix=casefilename, keyword="", numberofdigits=leadingzeros, cleanup=false, vspeed=vspeed)
+	end
 end
 
-function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename="", figuredir=".", title::Bool=false, datetext="Date", titletext="", leadingzeros=2, quiet::Bool=false, scheme="category10", zmin=0, zmax=1)
+function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dataset("us-10m"), goodcounties=trues(length(fips)), dates=nothing, casefilename::String="", figuredir::String=".", title::Bool=false, datetext::String="Date", titletext::String="", leadingzeros::Integer=2, quiet::Bool=false, scheme::String="category10", zmin::Number=0, zmax::Number=1)
 	recursivemkdir(figuredir; filename=false)
 	@assert length(X) == length(fips)
 	nc = length(unique(sort(X))) + 1
