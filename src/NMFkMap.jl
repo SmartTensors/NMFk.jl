@@ -19,44 +19,38 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		S = H
 		Fa = Wa
 	end
-	so, si = NMFk.signalorder(Ma, odim)
-	nt = dim == 1 ? (Colon(),so) : (so,Colon())
+	signalorder, signalpeakindex = NMFk.signalorder(Ma, odim)
+	nt = dim == 1 ? (Colon(),signalorder) : (signalorder,Colon())
 	if dates != nothing
 		@assert length(dates) == size(Ma, 1)
-		ndates = dates[si]
+		ndates = dates[signalpeakindex]
 	else
 		ndates = dates
 	end
-	# signalid = similar(so)
-	# for (i, j) in enumerate(so)
-	# 	signalid[j] = i
-	# end
-	plotseries && Mads.plotseries(S[nt...] ./ maximum(S), joinpath(figuredir, casefilename * "-waves.png"); xaxis=dates, names=["$name $(ndates[i])" for i in 1:length(ndates)])
-	plotpeaks && NMFk.plotmap(Fa, fips, dim, so; signalid=si, dates=ndates, figuredir=figuredir, casefilename=casefilename, movie=movie, quiet=!movie, kw...)
+	plotseries && Mads.plotseries(S[nt...] ./ maximum(S), joinpath(figuredir, casefilename * "-waves.png"); xaxis=dates, names=["$name $(ndates[i])" for i in signalorder])
+	plotpeaks && NMFk.plotmap(Fa, fips, dim, signalorder; dates=ndates, figuredir=figuredir, casefilename=casefilename, movie=movie, quiet=!movie, kw...)
 	if plottransients
-		for (i, k) in enumerate(so)
+		for (i, k) in enumerate(order)
+			p = signalpeakindex[k]
 			Xe = dim == 1 ? W[:,k:k] * H[k:k,:] : permutedims(W[:,k:k] * H[k:k,:])
-			NMFk.plotmap(Xe, fips, 1; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
+			NMFk.plotmap(Xe[p:p,:], fips; dates=[ndates[k]], figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
 		end
 	end
 end
 
-function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order::AbstractVector=1:size(X, dim); signalid::AbstractVector=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::String="", figuredir::String=".", title::Bool=false, datetext::String="", titletext::String="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(order)))), scheme::String="redyellowgreen", zmin::Number=0, zmax::Number=1, quiet::Bool=false, movie::Bool=false, vspeed::Number=1.0)
+function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order::AbstractVector=1:size(X, dim); signalid::AbstractVector=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::String="", figuredir::String=".", title::Bool=false, datetext::String="", titletext::String="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(order)))), scheme::String="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, vspeed::Number=1.0)
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
+	@assert length(order) == length(signalid)
 	if dates != nothing
 		@assert size(X, dim) == length(dates)
 	end
 	recursivemkdir(figuredir; filename=false)
 	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]])
-	for i in order
-		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
+	for (i, k) in enumerate(order)
+		nt = ntuple(j->(j == dim ? k : Colon()), ndims(X))
 		df[!, :Z] = [vec(X[nt...]); zeros(sum(.!goodcounties))]
-		if typeof(signalid[i]) <: Number
-			signalidtext = lpad(signalid[i], leadingzeros, '0')
-		else
-			signalidtext = signalid[i]
-		end
+		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], leadingzeros, '0') : signalid[i]
 		if title || (dates != nothing && titletext != "")
 			ttitle = "$(titletext) $(signalidtext)"
 			if dates != nothing
@@ -91,7 +85,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order:
 				}
 			}],
 			projection={type=:albersUsa},
-			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, clamp=true, reverse=true, domain=[zmin, zmax]}}
+			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, clamp=true, reverse=true, domain=[zmin, zmax]}, legend={format=zformat}}
 		)
 		!quiet && (display(p); println())
 		if casefilename != ""
