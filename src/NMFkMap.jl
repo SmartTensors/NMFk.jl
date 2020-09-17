@@ -30,24 +30,25 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	plotseries && Mads.plotseries(S[nt...] ./ maximum(S), joinpath(figuredir, casefilename * "-waves.png"); xaxis=dates, names=["$name $(ndates[i])" for i in signalorder])
 	plotpeaks && NMFk.plotmap(Fa, fips, dim, signalorder; dates=ndates, figuredir=figuredir, casefilename=casefilename, movie=movie, quiet=!movie, kw...)
 	if plottransients
-		for (i, k) in enumerate(order)
-			p = signalpeakindex[k]
+		for (i, k) in enumerate(signalorder)
 			Xe = dim == 1 ? W[:,k:k] * H[k:k,:] : permutedims(W[:,k:k] * H[k:k,:])
-			NMFk.plotmap(Xe[p:p,:], fips; dates=[ndates[k]], figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
+			# p = signalpeakindex[k]
+			# NMFk.plotmap(Xe[p:p,:], fips; dates=[ndates[k]], figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
+			NMFk.plotmap(Xe, fips; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
 		end
 	end
 end
 
-function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, order::AbstractVector=1:size(X, dim); signalid::AbstractVector=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::String="", figuredir::String=".", title::Bool=false, datetext::String="", titletext::String="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(order)))), scheme::String="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, vspeed::Number=1.0)
+function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signalorder::AbstractVector=1:size(X, dim); signalid::AbstractVector=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::String="", figuredir::String=".", title::Bool=false, datetext::String="", titletext::String="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(signalorder)))), scheme::String="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, vspeed::Number=1.0)
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
-	@assert length(order) == length(signalid)
+	@assert length(signalorder) == length(signalid)
 	if dates != nothing
 		@assert size(X, dim) == length(dates)
 	end
 	recursivemkdir(figuredir; filename=false)
 	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]])
-	for (i, k) in enumerate(order)
+	for (i, k) in enumerate(signalorder)
 		nt = ntuple(j->(j == dim ? k : Colon()), ndims(X))
 		df[!, :Z] = [vec(X[nt...]); zeros(sum(.!goodcounties))]
 		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], leadingzeros, '0') : signalid[i]
