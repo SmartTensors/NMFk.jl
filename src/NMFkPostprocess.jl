@@ -6,7 +6,7 @@ function plot_feature_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) robustness[nkrange]], "$(figuredir)/$(casefilename).png"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], names=["Fit", "Robustness"])
 end
 
-function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVector=[], order::Function=i->sortperm(i; rev=true), select::Function=v->findlast(i->i>0.95, v))
+function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVector=[], order::Function=i->sortperm(i; rev=true), filter_vals::Function=v->findlast(i->i>0.95, v), filter_names=v->occursin.(r".", v))
 	local Xm
 	if size(X, 1) == length(Xnames)
 		Xm = X ./ maximum(X; dims=1)
@@ -37,8 +37,9 @@ function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::Abstrac
 	for i = 1:size(X, 1)
 		@info "Signature $i"
 		is = order(Xm[:,i])
-		il = select(Xm[:,i][is])
-		display([Xnames[is] Xm[:,i][is]][1:il,:])
+		ivl = filter_vals(Xm[:,i][is])
+		inm = filter_names(Xnames[is][1:ivl])
+		display([Xnames[is] Xm[:,i][is]][1:ivl,:][inm,:])
 	end
 end
 

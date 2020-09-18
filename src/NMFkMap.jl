@@ -3,7 +3,7 @@ import VegaDatasets
 import DataFrames
 import Mads
 
-function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::String="", figuredir::String=".", moviedir::String=".", dates=nothing, plotseries::Bool=true, plotseriesonly::Bool=false, plotpeaks::Bool=!plotseriesonly, plottransients::Bool=!plotseriesonly, movie::Bool=false, name::String="Wave peak", kw...)
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::String="", figuredir::String=".", moviedir::String=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize=12Compose.inch, vsize=3Compose.inch, dpi::Integer=150, name::String="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
 	@assert size(W, 2) == size(H, 1)
 	Wa, _, _ = NMFk.normalizematrix_col!(W)
 	Ha, _, _ = NMFk.normalizematrix_row!(H)
@@ -27,14 +27,27 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	else
 		ndates = dates
 	end
-	plotseries && Mads.plotseries(S[nt...] ./ maximum(S), joinpath(figuredir, casefilename * "-waves.png"); xaxis=dates, names=["$name $(ndates[i])" for i in signalorder])
-	plotpeaks && NMFk.plotmap(Fa, fips, dim, signalorder; dates=ndates, figuredir=figuredir, casefilename=casefilename, movie=movie, quiet=!movie, kw...)
+	if plotseries
+		fn = casefilename == "" ? "" : joinpath(figuredir, casefilename * "-waves.png")
+		Mads.plotseries(S[nt...] ./ maximum(S), fn; xaxis=dates, names=["$name $(ndates[i])" for i in signalorder])
+		if movie && casefilename != ""
+			c = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorder)], code=true, quiet=true)
+			progressbar = NMFk.make_progressbar_2d(c)
+			for i = 1:length(dates)
+				p = progressbar(i, true, 1, dates[1])
+				!quiet && (@info dates[i]; display(p))
+				Gadfly.draw(Gadfly.PNG(joinpath(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize, dpi=dpi), p)
+			end
+			makemovie(; moviedir=moviedir, prefix=casefilename * "-progressbar", keyword="", numberofdigits=6, cleanup=cleanup, vspeed=vspeed)
+		end
+	end
+	plotpeaks && NMFk.plotmap(Fa, fips, dim, signalorder; dates=ndates, figuredir=figuredir, casefilename=casefilename, movie=movie, quiet=!movie, cleanup=cleanup, vspeed=vspeed, kw...)
 	if plottransients
 		for (i, k) in enumerate(signalorder)
 			Xe = dim == 1 ? W[:,k:k] * H[k:k,:] : permutedims(W[:,k:k] * H[k:k,:])
 			# p = signalpeakindex[k]
 			# NMFk.plotmap(Xe[p:p,:], fips; dates=[ndates[k]], figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
-			NMFk.plotmap(Xe, fips; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
+			NMFk.plotmap(Xe, fips; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, cleanup=cleanup, vspeed=vspeed, kw...)
 		end
 	end
 end
