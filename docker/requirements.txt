@@ -1,0 +1,24 @@
+-f https://download.pytorch.org/whl/torch_stable.html
+cython==0.29.14
+descarteslabs[complete]==1.5.0
+Fiona==1.8.13
+GDAL==3.0.4 # Must stay in sync with version in Dockerfile
+geopandas==0.6.2
+h5py==2.10.0
+Keras==2.3.1
+networkx==2.4
+numpy==1.18.1
+pandas==0.25.3
+Pillow==7.0.0
+psutil==5.6.7
+pyproj==2.4.2.post1
+rasterio==1.1.2
+requests==2.22.0
+scikit-image==0.16.2
+scikit-learn==0.22.1
+scipy==1.4.1
+Shapely==1.6.4.post2
+tensorflow==2.3.0
+torch==1.4.0+cpu
+torchvision==0.5.0+cpu
+xarray==0.14.1
