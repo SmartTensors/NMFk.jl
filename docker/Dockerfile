@@ -42,3 +42,6 @@ RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.5/julia-1.5.2-linux-
 RUN tar xvzf julia-1.5.2-linux-x86_64.tar.gz
 RUN rm -f julia-1.5.2-linux-x86_64.tar.gz
 RUN ln -sf /opt/src/julia-1.5.2/bin/julia /usr/bin
+
+COPY setup.jl /opt/src/setup.jl
+RUN julia -e 'include("/opt/src/setup.jl")'
