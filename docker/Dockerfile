@@ -1,8 +1,7 @@
-LABEL maintainer="monty velimir.vesselinov@gmail.com"
-
 FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND noninteractive
+LABEL maintainer="monty velimir.vesselinov@gmail.com"
 
 RUN mkdir -p /opt/src
 WORKDIR /opt/src
