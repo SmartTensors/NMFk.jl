@@ -1,7 +1,45 @@
 import Dates
 import DataFrames
+import Statistics
 
-function indicize(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing, granulate::Bool=true)
+function log10s(v::AbstractVector)
+	iz = v .<= 0
+	m = minimumnan(v[.!iz])
+	vm = copy(v)
+	v[iz] .= NaN
+	vm = log10.(v)
+	vm[iz] .= m - 1
+	return vm
+end
+
+function datanalytics(v::AbstractVector)
+	ig = .!isnan.(v)
+	vn = v[ig]
+	@show sum(ig)
+	NMFk.histogram(vn)
+	return minimum(vn), maximum(vn), Statistics.std(vn), sum(ig)
+end
+
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, log::Bool=false) where T
+	@assert length(names) == size(a, dims)
+	min = Vector{T}(undef, length(names))
+	max = Vector{T}(undef, length(names))
+	std = Vector{T}(undef, length(names))
+	c = Vector{Int64}(undef, length(names))
+	for (i, n) in enumerate(names)
+		@info n
+		nt = ntuple(k->(k == dims ? i : Colon()), ndims(a))
+		v = log ? log10s(vec(a[nt...])) : vec(a[nt...])
+		min[i], max[i], std[i], c[i] = datanalytics(v)
+		@info "$n, $(min[i]), $(max[i]), $(std[i]), $(c[i])"
+		println()
+	end
+	for (i, n) in enumerate(names)
+		println("$n $(min[i]) $(max[i]) $(std[i]) $(c[i])")
+	end
+end
+
+function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true)
 	if stepvalue != nothing
 		if granulate
 			@info("Initial: $minvalue $maxvalue")
@@ -61,7 +99,7 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=
 	return iv, nbins, minvalue, maxvalue
 end
 
-function processdata(M::AbstractArray, type::DataType=Float32; nanstring="NaN")
+function processdata(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN")
 	M[ismissing.(M)] .= NaN
 	M[M .== ""] .= NaN
 	M[M .== nanstring] .= NaN
@@ -73,7 +111,7 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractVector; kw...
 	return griddata(x, y, reshape(z, (length(z), 1)))
 end
 
-function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type::DataType=Float32, xrev::Bool=false, xnbins=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=nothing, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=nothing, granulate::Bool=true)
+function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type::DataType=Float32, xrev::Bool=false, xnbins::Integer=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=nothing, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=nothing, granulate::Bool=true)
 	z = processdata(z, type)
 	@assert length(x) == length(y)
 	@assert length(x) == size(z, 1)

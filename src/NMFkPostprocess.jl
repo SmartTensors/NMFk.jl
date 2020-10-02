@@ -305,7 +305,6 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				NMFk.biplots(Wa ./ maximum(Wa), Wnames, collect(1:k); filename="$figuredir/$(Wcasefilename)-biplots-$(k)-original.$(biplotformat)", background_color=background_color, types=cnew, plotlabel=Wplotlabel)
 				NMFk.biplots(Wa[cs,hsignalmap] ./ maximum(Wa), Wnames[cs], clustermap[hsignalmap]; filename="$figuredir/$(Wcasefilename)-biplots-$(k).$(biplotformat)", background_color=background_color, types=cnew[cs], plotlabel=Wplotlabel)
 				length(Wtypes) > 0 && NMFk.biplots(Wa[cs,hsignalmap] ./ maximum(Wa), Wnames[cs], clustermap[hsignalmap]; filename="$figuredir/$(Wcasefilename)-biplots-type-$(k).$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wplotlabel)
-				@show "d"
 			end
 			if createbiplots
 				if biplotlabel == :W
