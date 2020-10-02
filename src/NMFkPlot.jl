@@ -58,7 +58,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 			if i < j
 				push!(colp, Compose.compose(Compose.context(0, 0, 1Compose.w, 1Compose.h), Compose.fill(background_color), Compose.rectangle(0, 0, 1Compose.w, 1Compose.h)))
 			else
-				push!(colp, plotbi(X ./ maximumnan(X), label, mapping; code=true, col1=c1, col2=c2, hsize=hsize, vsize=vsize, colors=typecolors, background_color=background_color, kw...))
+				push!(colp, biplot(X ./ maximumnan(X), label, mapping; code=true, col1=c1, col2=c2, hsize=hsize, vsize=vsize, colors=typecolors, background_color=background_color, kw...))
 				f = true
 			end
 		end
@@ -80,7 +80,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotlayers::Bool=true, plotline::Bool=false, plotlabel::Bool=true, figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true)
+function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:layers, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -90,7 +90,7 @@ function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		xtitle = "$axisname $(mapping[col1])"
 		ytitle = "$axisname $(mapping[col2])"
 	end
-	if plotlayers
+	if plotmethod == :layers && r < 10000 # Gadfly fails if more than 10000 samples
 		if sortmag
 			m = sum.(x.^2 .+ y.^2)
 			irange = sortperm(m; rev=true)
@@ -109,20 +109,30 @@ function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		end
 		push!(l, Gadfly.layer(x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(point_size=0Gadfly.pt)))
 		p = Gadfly.plot(l..., Gadfly.Theme(background_color=background_color), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
+	elseif plotmethod == :frame # very slow
+		palette = Gadfly.parse_colorant(colors)
+		colormap = function(nc)
+						palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
+					end
+		dfw = DataFrames.DataFrame(x=x, y=y, label=label)
+		if plotlabel
+			p = Gadfly.plot(dfw, x=:x, y=:y, label=:label, color=:label, Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point(), Gadfly.Geom.label(), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1), gm...)
+		else
+			p = Gadfly.plot(dfw, x=:x, y=:y, color=:label, Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point(), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1), gm...)
+		end
 	else
 		palette = Gadfly.parse_colorant(colors)
 		colormap = function(nc)
 						palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
 					end
-		# p = Gadfly.plot([fill(0, length(x)) x y], x=Gadfly.Col.value(1,2), y=Gadfly.Col.value(1,3), color=colindex, group=colindex, Gadfly.Geom.line, Gadfly.Scale.color_discrete(colormap))
-		dfw = DataFrames.DataFrame(x=x, y=y, label=label)
 		if plotlabel
-			p = Gadfly.plot(dfw, x=:x, y=:y, label=:label, color=:label, Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point, Gadfly.Geom.label, Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1))
+			p = Gadfly.plot([x y label], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), label=Gadfly.Col.value(3), color=Gadfly.Col.value(3), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1), gm...)
 		else
-			p = Gadfly.plot(dfw, x=:x, y=:y, color=:label, Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point, Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1))
+			p = Gadfly.plot([x y label], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), color=Gadfly.Col.value(3), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point(), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1), gm...)
 		end
-		# p = Gadfly.plot([x y label], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), label=Gadfly.Col.value(3), color=Gadfly.Col.value(3), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1))
+
 	end
+	# display(p); println()
 	if code
 		return p
 	end
@@ -135,12 +145,14 @@ function plotbi(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	end
 	if filename != ""
 		j = joinpath(figuredir, filename)
+		recursivemkdir(j)
 		plotfileformat(p, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing
 end
 
-function histogram(data::Vector; kw...)
+function histogram(datain::Vector; kw...)
+	data = datain[.!isnan.(datain)]
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
