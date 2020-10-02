@@ -31,17 +31,36 @@ function denormalize!(a, amin, amax)
 end
 
 "Normalize matrix (by columns)"
-function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false)
-	normalizematrix!(a, 2; rev=rev)
+function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false, log::Bool=false)
+	normalizematrix!(a, 2; rev=rev, log=log)
 end
 
 "Normalize matrix (by rows)"
-function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false)
-	normalizematrix!(a, 1; rev=rev)
+function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false, log::Bool=false)
+	normalizematrix!(a, 1; rev=rev, log=log)
 end
 
-function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false)
-	amin, amax = matrixminmax(a, dim)
+function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false)
+	local amin, amax
+	if log
+		iz = a .<= 0
+		if sum(iz) > 0
+			a[iz] .= NaN
+			a = log10.(a)
+			amin, amax = matrixminmax(a, dim)
+			for (i, m) in enumerate(amin)
+				nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
+				av = view(a,nt...)
+				av[vec(iz[nt...])] .= m - 1
+			end
+			amin, amax = matrixminmax(a, dim)
+		else
+			a = log10.(a)
+			amin, amax = matrixminmax(a, dim)
+		end
+	else
+		amin, amax = matrixminmax(a, dim)
+	end
 	dx = amax - amin
 	if length(dx) > 1
 		i0 = dx .== 0 # check for zeros
