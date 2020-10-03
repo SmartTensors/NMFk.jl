@@ -158,6 +158,10 @@ end
 
 function histogram(data::AbstractVector, classes::Vector; mergeedge::Bool=true, joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
+	if ndata <= 1
+		@warn("Data input is too short to compute histogram (length of data = $ndata)!")
+		return
+	end
 	@assert ndata == length(classes)
 	if edges == nothing
 		histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
@@ -171,17 +175,22 @@ function histogram(data::AbstractVector, classes::Vector; mergeedge::Bool=true, 
 	end
 	xaxis = xmap.(collect(newedges))
 	dx = xaxis[2] - xaxis[1]
-	if mergeedge
-		if closed == :left
-			xmina = xaxis[1:end-2]
-			xmaxa = xaxis[2:end-1]
+	if length(xaxis) > 2
+		if mergeedge
+			if closed == :left
+				xmina = xaxis[1:end-2]
+				xmaxa = xaxis[2:end-1]
+			else
+				xmina = xaxis[2:end-1]
+				xmaxa = xaxis[3:end]
+			end
 		else
-			xmina = xaxis[2:end-1]
-			xmaxa = xaxis[3:end]
+			xmina = [xaxis[1]]
+			xmaxa = [xaxis[end]]
 		end
 	else
-		xmina = xaxis[1:end-1]
-		xmaxa = xaxis[2:end]
+		xmina = xaxis
+		xmaxa = xaxis
 	end
 	xminl = xmin == nothing ? xmina[1] : min(xmina[1], xmin)
 	xmaxl = xmax == nothing ? xmaxa[end] : max( xmaxa[end], xmax)
@@ -197,24 +206,30 @@ function histogram(data::AbstractVector, classes::Vector; mergeedge::Bool=true, 
 		ccount[j] = sum(i)
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
-		ymaxl = max(maximum(y), ymaxl)
-		if mergeedge
-			if closed == :left
-				xmina = xaxis[1:end-2]
-				xmaxa = xaxis[2:end-1]
-				ya = y[1:end-1]
-				ya[end] += y[end]
+		if length(xaxis) > 2
+			if mergeedge
+				if closed == :left
+					xmina = xaxis[1:end-2]
+					xmaxa = xaxis[2:end-1]
+					ya = y[1:end-1]
+					ya[end] += y[end]
+				else
+					xmina = xaxis[2:end-1]
+					xmaxa = xaxis[3:end]
+					ya = y[2:end]
+					ya[1] += y[1]
+				end
 			else
-				xmina = xaxis[2:end-1]
-				xmaxa = xaxis[3:end]
-				ya = y[2:end]
-				ya[1] += y[1]
+					xmina = xaxis[1:end-1]
+					xmaxa = xaxis[2:end]
+					ya = y
 			end
 		else
-				xmina = xaxis[1:end-1]
-				xmaxa = xaxis[2:end]
-				ya = y
+			xmina = [xaxis[1]]
+			xmaxa = [xaxis[end]]
+			ya = y
 		end
+		ymaxl = max(maximum(ya), ymaxl)
 		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
 	ymax = ymax != nothing ? ymax : ymaxl

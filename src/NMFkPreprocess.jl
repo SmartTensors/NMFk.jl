@@ -12,14 +12,20 @@ function log10s(v::AbstractVector)
 	return vm
 end
 
-function datanalytics(v::AbstractVector)
+function datanalytics(v::AbstractVector; kw...)
 	ig = .!isnan.(v)
 	vn = v[ig]
-	NMFk.histogram(vn)
+	NMFk.histogram(vn; kw...)
 	return minimum(vn), maximum(vn), Statistics.std(vn), sum(ig)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, log::Bool=false, logv::AbstractVector=fill(log, length(names))) where T
+function datanalytics(a::AbstractMatrix; dims::Integer=1, kw...)
+	name = dims == 1 ? "Row" : "Column"
+	names = ["$name $i" for i = 1:size(a, dims)]
+	datanalytics(a, names, dims=dims, kw...)
+end
+
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, log::Bool=false, logv::AbstractVector=fill(log, length(names)), kw...) where T
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	min = Vector{T}(undef, length(names))
@@ -35,7 +41,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			@info n
 			v = vec(a[nt...])
 		end
-		min[i], max[i], std[i], c[i] = datanalytics(v)
+		min[i], max[i], std[i], c[i] = datanalytics(v; kw...)
 		@info "$n, $(min[i]), $(max[i]), $(std[i]), $(c[i])"
 		println()
 	end
