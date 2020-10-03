@@ -15,21 +15,26 @@ end
 function datanalytics(v::AbstractVector)
 	ig = .!isnan.(v)
 	vn = v[ig]
-	@show sum(ig)
 	NMFk.histogram(vn)
 	return minimum(vn), maximum(vn), Statistics.std(vn), sum(ig)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, log::Bool=false) where T
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, log::Bool=false, logv::AbstractVector=fill(log, length(names))) where T
+	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	min = Vector{T}(undef, length(names))
 	max = Vector{T}(undef, length(names))
 	std = Vector{T}(undef, length(names))
 	c = Vector{Int64}(undef, length(names))
 	for (i, n) in enumerate(names)
-		@info n
 		nt = ntuple(k->(k == dims ? i : Colon()), ndims(a))
-		v = log ? log10s(vec(a[nt...])) : vec(a[nt...])
+		if logv[i]
+			@info("$n: log10-transformed")
+			v = log10s(vec(a[nt...]))
+		else
+			@info n
+			v = vec(a[nt...])
+		end
 		min[i], max[i], std[i], c[i] = datanalytics(v)
 		@info "$n, $(min[i]), $(max[i]), $(std[i]), $(c[i])"
 		println()

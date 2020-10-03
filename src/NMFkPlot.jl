@@ -151,12 +151,12 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	return nothing
 end
 
-function histogram(datain::Vector; kw...)
+function histogram(datain::AbstractVector; kw...)
 	data = datain[.!isnan.(datain)]
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::Vector, classes::Vector; mergeedge::Bool=true, joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
+function histogram(data::AbstractVector, classes::Vector; mergeedge::Bool=true, joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
 	@assert ndata == length(classes)
 	if edges == nothing

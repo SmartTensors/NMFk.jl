@@ -31,39 +31,38 @@ function denormalize!(a, amin, amax)
 end
 
 "Normalize matrix (by columns)"
-function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false, log::Bool=false)
-	normalizematrix!(a, 2; rev=rev, log=log)
+function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, 2)))
+	normalizematrix!(a, 2; rev=rev, log=log, logv=logv)
 end
 
 "Normalize matrix (by rows)"
-function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false, log::Bool=false)
-	normalizematrix!(a, 1; rev=rev, log=log)
+function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, 1)))
+	normalizematrix!(a, 1; rev=rev, log=log, logv=logv)
 end
 
-function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false)
-	local amin, amax
-	if log
-		iz = a .<= 0
-		if sum(iz) > 0
-			a[iz] .= NaN
-			a = log10.(a)
-			amin, amax = matrixminmax(a, dim)
-			for (i, m) in enumerate(amin)
-				nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
-				av = view(a,nt...)
-				av[vec(iz[nt...])] .= m - 1
-			end
-			amin, amax = matrixminmax(a, dim)
-		else
-			a = log10.(a)
-			amin, amax = matrixminmax(a, dim)
+function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)))
+	amin, amax = matrixminmax(a, dim)
+	for (i, m) in enumerate(amin)
+		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
+		av = view(a, nt...)
+		if logv[i]
+			iz = av .<= 0
+			NMFk.histogram(av)
+			av[iz] .= NaN
+			av .= log10.(av)
+			av[iz] .= m - 1
+			NMFk.histogram(av)
 		end
-	else
-		amin, amax = matrixminmax(a, dim)
 	end
+	amin, amax = matrixminmax(a, dim)
 	dx = amax - amin
+	for (i, m) in enumerate(amin)
+		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
+		av = view(a, nt...)
+		NMFk.histogram(av)
+	end
 	if length(dx) > 1
-		i0 = dx .== 0 # check for zeros
+		i0 = dx .== 0
 		amin[i0] .= 0
 		dx[i0] .= amax[i0]
 		i0 = dx .== 0 # check for zeros again
@@ -74,6 +73,11 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 		return a, amax, amin
 	else
 		a = (a .- amin) ./ dx
+		for (i, m) in enumerate(amin)
+			nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
+			av = view(a, nt...)
+			NMFk.histogram(av)
+		end
 		return a, amin, amax
 	end
 end
