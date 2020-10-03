@@ -47,20 +47,13 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 		av = view(a, nt...)
 		if logv[i]
 			iz = av .<= 0
-			NMFk.histogram(av)
 			av[iz] .= NaN
 			av .= log10.(av)
 			av[iz] .= m - 1
-			NMFk.histogram(av)
 		end
 	end
 	amin, amax = matrixminmax(a, dim)
 	dx = amax - amin
-	for (i, m) in enumerate(amin)
-		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
-		av = view(a, nt...)
-		NMFk.histogram(av)
-	end
 	if length(dx) > 1
 		i0 = dx .== 0
 		amin[i0] .= 0
@@ -73,11 +66,6 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 		return a, amax, amin
 	else
 		a = (a .- amin) ./ dx
-		for (i, m) in enumerate(amin)
-			nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
-			av = view(a, nt...)
-			NMFk.histogram(av)
-		end
 		return a, amin, amax
 	end
 end
