@@ -156,34 +156,34 @@ function histogram(datain::AbstractVector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::AbstractVector, classes::Vector; mergeedge::Bool=true, joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
+function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
 	if ndata <= 1
 		@warn("Data input is too short to compute histogram (length of data = $ndata)!")
 		return
 	end
 	@assert ndata == length(classes)
+	maxd = maximumnan(data)
+	mind = minimumnan(data)
 	if edges == nothing
 		histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	else
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
 	end
-	if typeof(histall.edges[1].step) <: Integer || typeof(histall.edges[1].step) <: AbstractFloat
-		newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
-	else
-		newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
-	end
-	xaxis = xmap.(collect(newedges))
+	# if typeof(histall.edges[1].step) <: Integer || typeof(histall.edges[1].step) <: AbstractFloat
+	# 	newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
+	# else
+	# 	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
+	# end
+	xaxis = xmap.(collect(histall.edges...))
 	dx = xaxis[2] - xaxis[1]
 	if length(xaxis) > 2
-		if mergeedge
-			if closed == :left
-				xmina = xaxis[1:end-2]
-				xmaxa = xaxis[2:end-1]
-			else
-				xmina = xaxis[2:end-1]
-				xmaxa = xaxis[3:end]
-			end
+		if closed == :left && maxd == xaxis[end-1]
+			xmina = xaxis[1:end-2]
+			xmaxa = xaxis[2:end-1]
+		elseif closed == :right &&  mind == xaxis[2]
+			xmina = xaxis[2:end-1]
+			xmaxa = xaxis[3:end]
 		else
 			xmina = [xaxis[1]]
 			xmaxa = [xaxis[end]]
@@ -193,36 +193,35 @@ function histogram(data::AbstractVector, classes::Vector; mergeedge::Bool=true, 
 		xmaxa = xaxis
 	end
 	xminl = xmin == nothing ? xmina[1] : min(xmina[1], xmin)
-	xmaxl = xmax == nothing ? xmaxa[end] : max( xmaxa[end], xmax)
-	l = []
-	suc = sort(unique(classes))
+	xmaxl = xmax == nothing ? xmaxa[end] : max(xmaxa[end], xmax)
 	if !joined
 		opacity = 0.6
 	end
-	local ymaxl = 0
+	l = []
+	suc = sort(unique(classes))
 	ccount = Vector{Int64}(undef, length(suc))
+	local ymaxl = 0
 	for (j, ct) in enumerate(suc)
 		i = classes .== ct
 		ccount[j] = sum(i)
-		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
+		hist = StatsBase.fit(StatsBase.Histogram, data[i], xaxis; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
 		if length(xaxis) > 2
-			if mergeedge
-				if closed == :left
-					xmina = xaxis[1:end-2]
-					xmaxa = xaxis[2:end-1]
-					ya = y[1:end-1]
-					ya[end] += y[end]
-				else
-					xmina = xaxis[2:end-1]
-					xmaxa = xaxis[3:end]
-					ya = y[2:end]
-					ya[1] += y[1]
-				end
+			if closed == :left && maxd == xaxis[end-1]
+				xmina = xaxis[1:end-2]
+				xmaxa = xaxis[2:end-1]
+				ya = y[1:end-1]
+				ya[end] += y[end]
+			elseif closed == :right &&  mind == xaxis[2]
+				@show "a"
+				xmina = xaxis[2:end-1]
+				xmaxa = xaxis[3:end]
+				ya = y[2:end]
+				ya[1] += y[1]
 			else
-					xmina = xaxis[1:end-1]
-					xmaxa = xaxis[2:end]
-					ya = y
+				xmina = xaxis[1:end-1]
+				xmaxa = xaxis[2:end]
+				ya = y
 			end
 		else
 			xmina = [xaxis[1]]
