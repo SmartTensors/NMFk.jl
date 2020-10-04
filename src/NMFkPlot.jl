@@ -156,7 +156,7 @@ function histogram(datain::AbstractVector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
 end
 
-function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
+function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
 	if ndata <= 1
 		@warn("Data input is too short to compute histogram (length of data = $ndata)!")
@@ -175,18 +175,19 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 	# else
 	# 	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]
 	# end
-	xaxis = xmap.(collect(histall.edges...))
+	newedges = collect(histall.edges...)
+	xaxis = xmap.(newedges)
 	dx = xaxis[2] - xaxis[1]
 	if length(xaxis) > 2
 		if closed == :left && maxd == xaxis[end-1]
 			xmina = xaxis[1:end-2]
 			xmaxa = xaxis[2:end-1]
-		elseif closed == :right &&  mind == xaxis[2]
+		elseif closed == :right && mind == xaxis[2]
 			xmina = xaxis[2:end-1]
 			xmaxa = xaxis[3:end]
 		else
-			xmina = [xaxis[1]]
-			xmaxa = [xaxis[end]]
+			xmina = xaxis[1:end-1]
+			xmaxa = xaxis[2:end]
 		end
 	else
 		xmina = xaxis
@@ -194,9 +195,6 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 	end
 	xminl = xmin == nothing ? xmina[1] : min(xmina[1], xmin)
 	xmaxl = xmax == nothing ? xmaxa[end] : max(xmaxa[end], xmax)
-	if !joined
-		opacity = 0.6
-	end
 	l = []
 	suc = sort(unique(classes))
 	ccount = Vector{Int64}(undef, length(suc))
@@ -204,28 +202,19 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 	for (j, ct) in enumerate(suc)
 		i = classes .== ct
 		ccount[j] = sum(i)
-		hist = StatsBase.fit(StatsBase.Histogram, data[i], xaxis; closed=closed)
+		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
 		if length(xaxis) > 2
 			if closed == :left && maxd == xaxis[end-1]
-				xmina = xaxis[1:end-2]
-				xmaxa = xaxis[2:end-1]
 				ya = y[1:end-1]
 				ya[end] += y[end]
 			elseif closed == :right &&  mind == xaxis[2]
-				@show "a"
-				xmina = xaxis[2:end-1]
-				xmaxa = xaxis[3:end]
 				ya = y[2:end]
 				ya[1] += y[1]
 			else
-				xmina = xaxis[1:end-1]
-				xmaxa = xaxis[2:end]
 				ya = y
 			end
 		else
-			xmina = [xaxis[1]]
-			xmaxa = [xaxis[end]]
 			ya = y
 		end
 		ymaxl = max(maximum(ya), ymaxl)
@@ -239,15 +228,10 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 	m = []
 	if joined
 		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i in 1:length(suc)]))
-		!quiet && (display(f); println())
 	else
 		for (i, g) in enumerate(l)
 			if title != ""
-				if length(l) > 1
-					mt = [Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")]
-				else
-					mt = [Gadfly.Guide.title(title)]
-				end
+				mt = length(l) > 1 ? [Gadfly.Guide.title(title * " Type $(suc[i]) : $(ccount[i])")] : [Gadfly.Guide.title(title)]
 			else
 				mt = []
 			end
@@ -255,13 +239,13 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		end
 		f = Gadfly.vstack(m...)
 		vsize *= length(suc)
-		if !quiet
-			gw = Compose.default_graphic_width
-			gh = Compose.default_graphic_height
-			Compose.set_default_graphic_size(gw, gh * length(suc))
-			display(f); println()
-			Compose.set_default_graphic_size(gw, gh)
-		end
+	end
+	if !quiet
+		gw = Compose.default_graphic_width
+		gh = Compose.default_graphic_height
+		Compose.set_default_graphic_size(gw, gh * length(suc))
+		display(f); println()
+		Compose.set_default_graphic_size(gw, gh)
 	end
 	if filename != ""
 		j = joinpath(figuredir, filename)
