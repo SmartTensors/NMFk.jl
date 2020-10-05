@@ -48,10 +48,11 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 		av = view(a, nt...)
 		if logv[i]
 			iz = av .<= 0
-			av[iz] .= NaN
+			siz = sum(iz)
+			siz > 0 && (av[iz] .= NaN)
 			av .= log10.(av)
-			av[iz] .= minimumnan(av) - 1
-			if sum(iz) > 0
+			if siz > 0
+				av[iz] .= minimumnan(av) - 1
 				zflag[i] = true
 			end
 		end
