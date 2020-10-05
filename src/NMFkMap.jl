@@ -41,7 +41,9 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 			makemovie(; moviedir=moviedir, prefix=casefilename * "-progressbar", keyword="", numberofdigits=6, cleanup=cleanup, vspeed=vspeed)
 		end
 	end
-	plotpeaks && NMFk.plotmap(Fa, fips, dim, signalorder; dates=ndates, figuredir=figuredir, casefilename=casefilename, movie=movie, quiet=!movie, cleanup=cleanup, vspeed=vspeed, kw...)
+	if plotpeaks
+		NMFk.plotmap(Fa, fips, dim, signalorder; dates=ndates, figuredir=figuredir, casefilename=casefilename, quiet=quiet, kw...)
+	end
 	if plottransients
 		for (i, k) in enumerate(signalorder)
 			Xe = dim == 1 ? W[:,k:k] * H[k:k,:] : permutedims(W[:,k:k] * H[k:k,:])
@@ -68,13 +70,13 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 		if title || (dates != nothing && titletext != "")
 			ttitle = "$(titletext) $(signalidtext)"
 			if dates != nothing
-				ttitle *= ": $(datetext): $(dates[i])"
+				ttitle *= ": $(datetext): $(dates[k])"
 			end
 			ltitle = ""
 		else
 			ttitle = nothing
 			if dates != nothing
-				ltitle =  datetext .* "$(dates[i])"
+				ltitle =  datetext .* "$(dates[k])"
 			else
 				ltitle = "$(titletext) $(signalidtext)"
 			end
