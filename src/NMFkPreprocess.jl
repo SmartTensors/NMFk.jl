@@ -2,13 +2,16 @@ import Dates
 import DataFrames
 import Statistics
 
-function log10s(v::AbstractVector)
+function log10s(v::AbstractVector; offset::Number=1)
 	iz = v .<= 0
-	m = minimumnan(v[.!iz])
+	siz = sum(iz)
 	vm = copy(v)
-	v[iz] .= NaN
-	vm = log10.(v)
-	vm[iz] .= m - 1
+	siz > 0 && (vm[iz] .= NaN)
+	vm .= log10.(vm)
+	if siz > 0
+		m = minimumnan(vm[.!iz])
+		vm[iz] .= m - offset
+	end
 	return vm
 end
 

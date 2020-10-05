@@ -40,7 +40,7 @@ function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false, log::Bool=fals
 	normalizematrix!(a, 1; rev=rev, log=log, logv=logv)
 end
 
-function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)))
+function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
 	amin, amax = matrixminmax(a, dim)
 	zflag = falses(length(amin))
 	for (i, m) in enumerate(amin)
@@ -52,7 +52,7 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 			siz > 0 && (av[iz] .= NaN)
 			av .= log10.(av)
 			if siz > 0
-				av[iz] .= minimumnan(av) - 1
+				av[iz] .= minimumnan(av) - offset
 				zflag[i] = true
 			end
 		end
