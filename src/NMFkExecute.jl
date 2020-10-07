@@ -138,7 +138,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	Wbest = copy(WBig[bestIdx])
 	Hbest = copy(HBig[bestIdx])
 	Xe = NMFk.mixmatchcompute(X, Wbest, Hbest)
-	println()
+	!veryquiet && println()
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
 		idxrat = vec([trues(ccc); falses(nNMF-ccc)])
@@ -354,7 +354,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	!quiet && println("Worst objective function = $(objvalue[idxsort[end]])")
 	Wbest = copy(WBig[bestIdx])
 	Hbest = copy(HBig[bestIdx])
-	println()
+	!veryquiet && println()
 	if acceptratio < 1
 		ccc = convert(Int, (ceil(nNMF * acceptratio)))
 		idxrat = vec([trues(ccc); falses(nNMF-ccc)])
@@ -404,7 +404,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		println("NMF solutions removed based on various criteria: $(sum(idxsol)) out of $(nNMF) solutions remain")
 		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(Statistics.mean(objvalue)) std $(Statistics.std(objvalue)) (ALL)")
 	end
-	println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
+	!veryquiet && println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
 	for i in 1:nNMF
 		of = ssqrnan((X - WBig[i] * HBig[i]) .* weight)
 		if abs(of - objvalue[i]) / of > 1e-4
