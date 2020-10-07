@@ -22,7 +22,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=false, kw...) where {T}
+function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=false, veryquiet::Bool=false, kw...) where {T}
 	if .*(size(X)...) == 0
 		error("Array has a zero dimension! size(X)=$(size(X))")
 	end
@@ -58,9 +58,9 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 		end
 	end
 	if runflag
-		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; resultdir=resultdir, casefilename=casefilename, kw...)
+		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; veryquiet=veryquiet, resultdir=resultdir, casefilename=casefilename, kw...)
 	end
-	println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
+	!veryquiet && println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
 	if save && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
 		recursivemkdir(filename)
@@ -70,7 +70,7 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, serial::Bool=false, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, loadall::Bool=false, saveall::Bool=false, kw...) where {T, N}
+function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, veryquiet::Bool=false, best::Bool=true, serial::Bool=false, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, loadall::Bool=false, saveall::Bool=false, kw...) where {T, N}
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	indexnan = isnan.(X)
@@ -168,11 +168,11 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	idxsol = idxrat .& idxcut .& idxnan
 	if sum(idxsol) < nNMF
 		@warn("NMF solutions removed based on acceptance criteria: $(sum(idxsol)) out of $(nNMF) solutions remain")
-		println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(Statistics.mean(objvalue)) std $(Statistics.std(objvalue)) (ALL)")
+		!veryquiet && println("OF: min $(minimum(objvalue)) max $(maximum(objvalue)) mean $(Statistics.mean(objvalue)) std $(Statistics.std(objvalue)) (ALL)")
 	end
 	minsilhouette = -1
 	if sum(idxnan) > 0
-		println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
+		!veryquiet && println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
 		if nk > 1
 			clusterWmatrix = false
 			clusterassignments, M = NMFk.clustersolutions(HBig[idxsort][idxsol], clusterWmatrix)
@@ -225,7 +225,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximumnan(E), " Min error = ", minimumnan(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, weight=1, kw...) where {T}
+function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, veryquiet::Bool=false, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, weight=1, kw...) where {T}
 	@assert typeof(weight) <: Number || length(weight) == size(X, 1) || size(weight, 2) == size(X, 2) || size(weight) == size(X)
 	kw_dict = Dict()
 	for (key, value) in kw
@@ -413,10 +413,12 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	Xe = Wbest * Hbest
 	fn = normnan(X .- Xe)
-	println("Worst correlation by columns: $(minimumnan(map(i->cornan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
-	println("Worst correlation by rows: $(minimumnan(map(i->cornan(X[:, i], Xe[:, i]), 1:size(X, 2))))")
-	println("Worst norm by columns: $(maximumnan(map(i->(normnan(X[i, :] - Xe[i, :]) / fn), 1:size(X, 1))))")
-	println("Worst norm by rows: $(maximumnan(map(i->(normnan(X[:, i] - Xe[:, i]) / fn), 1:size(X, 2))))")
+	if !veryquiet
+		println("Worst correlation by columns: $(minimumnan(map(i->cornan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
+		println("Worst correlation by rows: $(minimumnan(map(i->cornan(X[:, i], Xe[:, i]), 1:size(X, 2))))")
+		println("Worst norm by columns: $(maximumnan(map(i->(normnan(X[i, :] - Xe[i, :]) / fn), 1:size(X, 1))))")
+		println("Worst norm by rows: $(maximumnan(map(i->(normnan(X[:, i] - Xe[:, i]) / fn), 1:size(X, 2))))")
+	end
 	minsilhouette = 1
 	if nk > 1
 		if clusterWmatrix
