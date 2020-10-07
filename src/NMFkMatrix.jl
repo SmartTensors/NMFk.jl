@@ -31,13 +31,19 @@ function denormalize!(a, amin, amax)
 end
 
 "Normalize matrix (by columns)"
-function normalizematrix_col!(a::AbstractMatrix; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, 2)))
-	normalizematrix!(a, 2; rev=rev, log=log, logv=logv)
+function normalizematrix_col(a::AbstractMatrix; kw...)
+	normalizematrix!(copy(a), 2; kw...)
+end
+function normalizematrix_col!(a::AbstractMatrix; kw...)
+	normalizematrix!(a, 2; kw...)
 end
 
 "Normalize matrix (by rows)"
-function normalizematrix_row!(a::AbstractMatrix; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, 1)))
-	normalizematrix!(a, 1; rev=rev, log=log, logv=logv)
+function normalizematrix_row(a::AbstractMatrix; kw...)
+	normalizematrix!(copy(a), 1; kw...)
+end
+function normalizematrix_row!(a::AbstractMatrix; kw...)
+	normalizematrix!(a, 1; kw...)
 end
 
 function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
@@ -117,6 +123,9 @@ function arrayminmax(a::AbstractArray, dim::Integer)
 end
 
 "Denormalize matrix"
+function denormalizematrix_col(a::AbstractMatrix, at...; kw...)
+	denormalizematrix_col!(copy(a), at...; kw...)
+end
 function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractMatrix, amax::AbstractMatrix; log::Bool=false, logv::AbstractVector=fill(log, size(a, 2)), zflag::AbstractVector=falses(size(a, 2)))
 	if all(amax .>= amin)
 		a .= a .* (amax - amin) + repeat(amin; outer=[size(a, 1), 1])
@@ -135,6 +144,9 @@ function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractMatrix, amax::A
 end
 
 "Denormalize matrix"
+function denormalizematrix_row(a::AbstractMatrix, at...; kw...)
+	denormalizematrix_row!(copy(a), at...; kw...)
+end
 function denormalizematrix_row!(a::AbstractMatrix, amin::AbstractVector, amax::AbstractVector; log::Bool=false, logv::AbstractVector=fill(log, size(a, 1)), zflag::AbstractVector=falses(size(a, 2)))
 	if all(amax .>= amin)
 		a .= a .* (amax - amin) + repeat(amin; outer=[1, size(a, 2)])
