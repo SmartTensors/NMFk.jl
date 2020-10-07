@@ -80,7 +80,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=false)
+function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -153,13 +153,13 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		end
 		dfw2 = DataFrames.DataFrame(x=x[inext][iorder2], y=y[inext][iorder2], label=label[inext][iorder2], color=cv[inext][iorder2])
 		if plotlabel
-			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, label=:label, color=:color, Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true),  Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
+			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, label=:label, color=:color, Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true),  Gadfly.Theme(point_size=point_size_label, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		else
-			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
+			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		end
 		if inext != Colon()
 			dfw1 = DataFrames.DataFrame(x=x[inl][iorder1], y=y[inl][iorder1], label=label[inl][iorder1], color=cv[inl][iorder1])
-			push!(l, Gadfly.layer(dfw1, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
+			push!(l, Gadfly.layer(dfw1, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 			palette = Gadfly.parse_colorant(vcat(colors[inext][iorder2], colors[inl][iorder1]))
 		else
 			palette = ncolors == length(x) ? Gadfly.parse_colorant(colors[inext][iorder2]) : Gadfly.parse_colorant(colors)
