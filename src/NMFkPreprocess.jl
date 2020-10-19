@@ -116,11 +116,15 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), 
 	return iv, nbins, minvalue, maxvalue
 end
 
-function processdata(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN")
+function processdata(M::AbstractArray, at...; kw...)
+	processdata!(copy(M),  at...; kw...)
+end
+
+function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN")
 	M[ismissing.(M)] .= NaN
 	M[M .== ""] .= NaN
 	M[M .== nanstring] .= NaN
-	M = convert.(type, M)
+	M .= convert.(type, M)
 	return M
 end
 
