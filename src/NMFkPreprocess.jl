@@ -117,7 +117,7 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), 
 end
 
 function processdata(M::AbstractArray, at...; kw...)
-	processdata!(copy(M),  at...; kw...)
+	processdata!(copy(M), at...; kw...)
 end
 
 function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN")
