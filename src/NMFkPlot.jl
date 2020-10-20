@@ -338,35 +338,41 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 	return nothing
 end
 
-function plotscatter(x::AbstractVector, y::AbstractVector, color=[], size=nothing; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], point_size=2Gadfly.pt, keytitle="", polygon=nothing, pointcolor="red", linecolor="gray", linewidth::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
-	if size == nothing
-		size = repeat([point_size], length(x))
-	end
-	if length(color) > 0
-		palette = Gadfly.parse_colorant(colors)
-		colormap = function(nc)
-						palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
-					end
-		cm = [Gadfly.Scale.color_continuous(minvalue=nothing, maxvalue=nothing, colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Guide.ColorKey(title=keytitle)]
-	else
-		cm = []
-	end
+function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
 	if polygon != nothing
 		xmin = xmin != nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
 		xmax = xmax != nothing ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
 		ymin = ymin != nothing ? min(minimumnan(polygon[:,2]), ymin) : minimumnan(polygon[:,2])
 		ymax = ymax != nothing ? max(maximumnan(polygon[:,2]), ymax) : maximumnan(polygon[:,2])
-		pm = [Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=linewidth, default_color=linecolor))]
+		pm = [Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=line_width, default_color=line_color))]
 	else
 		pm = []
 	end
 	if line
 		m = [minimumnan([x y]), maximumnan([x y])]
-		one2oneline = [Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=linewidth * 2, default_color=linecolor))]
+		one2oneline = [Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(line_width=line_width * 2, default_color=line_color))]
 	else
 		one2oneline = []
 	end
-	ff = Gadfly.plot(Gadfly.layer(x=x, y=y, color=color, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=pointcolor, point_size=point_size)), pm...,one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., cm...)
+	if length(size) == 0
+		size = repeat([point_size], length(x))
+	else
+		@assert length(size) == length(x)
+	end
+	if length(color) > 0
+		@assert length(color) == length(x)
+		if length(unique(sort(color))) == length(color) && eltype(color) <: Number
+			ff = Gadfly.plot(Gadfly.layer(x=x, y=y, color=color, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=nothing, maxvalue=nothing, colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
+		else
+			palette = Gadfly.parse_colorant(colors)
+			colormap = function(nc)
+							palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
+						end
+			ff = Gadfly.plot(Gadfly.layer(x=x, y=y, color=color, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_discrete(colormap), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
+		end
+	else
+		ff = Gadfly.plot(Gadfly.layer(x=x, y=y, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Theme(key_position=key_position), gm...)
+	end
 	if !quiet
 		gw = Compose.default_graphic_width
 		gh = Compose.default_graphic_height
@@ -437,7 +443,7 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 	return ff
 end
 
-function plotmatrix(A::Matrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixelsize::Number; linewidth::Number=2, alpha::Number=1)
+function plotmatrix(A::Matrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixelsize::Number; line_width::Number=2, alpha::Number=1)
 	w = pixelsize * size(A, 2)
 	h = pixelsize * size(A, 1)
 	ax = fig.add_axes([x0, y0, w, h], frameon=false)
@@ -450,12 +456,12 @@ function plotmatrix(A::Matrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixel
 	xr = w + gap
 	yl = 0 - gap
 	yr = h + gap
-	ax.plot([xl, xl], [yl, yr], "k", linewidth=linewidth)
-	ax.plot([xl, .5 * pixelsize], [yl, yl], "k", linewidth=linewidth)
-	ax.plot([xl, .5 * pixelsize], [yr, yr], "k", linewidth=linewidth)
-	ax.plot([xr, xr], [yl, yr], "k", linewidth=linewidth)
-	ax.plot([xr, w - .5 * pixelsize], [yl, yl], "k", linewidth=linewidth)
-	ax.plot([xr, w - .5 * pixelsize], [yr, yr], "k", linewidth=linewidth)
+	ax.plot([xl, xl], [yl, yr], "k", line_width=line_width)
+	ax.plot([xl, .5 * pixelsize], [yl, yl], "k", line_width=line_width)
+	ax.plot([xl, .5 * pixelsize], [yr, yr], "k", line_width=line_width)
+	ax.plot([xr, xr], [yl, yr], "k", line_width=line_width)
+	ax.plot([xr, w - .5 * pixelsize], [yl, yl], "k", line_width=line_width)
+	ax.plot([xr, w - .5 * pixelsize], [yr, yr], "k", line_width=line_width)
 	return ax, w, h
 end
 
