@@ -122,11 +122,15 @@ function processdata(M::AbstractArray, at...; kw...)
 	processdata!(copy(M), at...; kw...)
 end
 
-function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN")
+function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN", negative::Bool=true)
 	M[ismissing.(M)] .= NaN
 	M[M .== ""] .= NaN
 	M[M .== nanstring] .= NaN
+	if !negative
+		M[M .< 0] .= 0
+	end
 	M .= convert.(type, M)
+	M = convert(Array{type}, M)
 	return M
 end
 
