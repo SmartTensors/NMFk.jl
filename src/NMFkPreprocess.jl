@@ -150,10 +150,13 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type:
 	C .= 0
 	for i = 1:size(z, 2)
 		for j = 1:length(ix)
-			T[ix[j], iy[j], i] += zn[j, i]
-			C[ix[j], iy[j], i] += 1
+			if !isnan(zn[j, i])
+				T[ix[j], iy[j], i] += zn[j, i]
+				C[ix[j], iy[j], i] += 1
+			end
 		end
 	end
+	@info("Maximum number of data overlaps $(maximum(C))")
 	T ./= C
 	return T
 end
