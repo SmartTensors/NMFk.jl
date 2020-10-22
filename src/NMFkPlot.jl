@@ -201,9 +201,16 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	return nothing
 end
 
+function histogram(data::AbstractMatrix; kw...)
+	for c = 1:size(data, 2)
+		@info "Column $c:"
+		histogram(data[:,c]; kw...)
+	end
+end
+
 function histogram(datain::AbstractVector; kw...)
 	data = datain[.!isnan.(datain)]
-	histogram(data, ones(Int8, length(data)); kw..., opacity=0.6, joined=false)
+	histogram(data, ones(Int8, length(data)); kw..., joined=false)
 end
 
 function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
