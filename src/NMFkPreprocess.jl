@@ -135,7 +135,7 @@ function processdata!(M::AbstractArray; nanstring::AbstractString="NaN", negativ
 end
 
 function griddata(x::AbstractVector, y::AbstractVector, z::AbstractVector; kw...)
-	return griddata(x, y, reshape(z, (length(z), 1)))
+	return griddata(x, y, reshape(z, (length(z), 1)); kw...)
 end
 
 function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type::DataType=eltype(z), xrev::Bool=false, xnbins::Integer=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=nothing, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=nothing, granulate::Bool=true)
