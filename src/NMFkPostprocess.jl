@@ -43,6 +43,12 @@ function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::Abstrac
 	end
 end
 
+function clusterresults(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString="results-nmfk", casefilename::AbstractString="nmfk-chemln", keyword::AbstractString="", kw...)
+	W, H, fit, silhouette, aic, kopt = NMFk.load(nkrange, nruns; resultdir=resultdir, casefilename=casefilename)
+	suffix = keyword == "" ? "-$(nruns)" : "-$(keyword)-$(nruns)"
+	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange]), W, H, Wnames, Hnames; resultdir="results-nmfk-$(suffix)", figuredir="figures-nmfk-$(suffix)", kw...)
+end
+
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
