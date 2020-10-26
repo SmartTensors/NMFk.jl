@@ -56,9 +56,9 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	end
 end
 
-function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true)
+function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)
 	if stepvalue != nothing
-		if granulate
+		if granulate && !quiet
 			@info("Initial: $minvalue $maxvalue")
 		end
 		if typeof(minvalue) <: Dates.DateTime
@@ -85,7 +85,7 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), 
 			end
 			nbins = convert(Int, ceil((maxvalue - minvalue) / float(stepvalue)))
 		end
-		if granulate
+		if granulate && !quiet
 			@info("Granulated: $minvalue $maxvalue")
 		end
 	end
@@ -96,19 +96,21 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), 
 	elseif sum(i0) > 1
 		iv .+= 1
 	end
-	us = unique(sort(iv))
-	nb = collect(1:nbins)
-	for k in unique(sort([us; nb]))
-		m = iv .== k
-		s = sum(m)
-		if s == 0
-			@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " "))")
-		else
-			@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " ")) range $(minimum(v[m])) $(maximum(v[m]))")
+	if !quiet
+		us = unique(sort(iv))
+		nb = collect(1:nbins)
+		for k in unique(sort([us; nb]))
+			m = iv .== k
+			s = sum(m)
+			if s == 0
+				@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " "))")
+			else
+				@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " ")) range $(minimum(v[m])) $(maximum(v[m]))")
+			end
 		end
-	end
-	if length(us) != nbins
-		@warn "There are empty bins ($(length(us)) vs $(nbins))"
+		if length(us) != nbins
+			@warn "There are empty bins ($(length(us)) vs $(nbins))"
+		end
 	end
 	if rev == true
 		iv = (nbins + 1) .- iv
@@ -138,12 +140,12 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractVector; kw...
 	return griddata(x, y, reshape(z, (length(z), 1)); kw...)
 end
 
-function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type::DataType=eltype(z), xrev::Bool=false, xnbins::Integer=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=nothing, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=nothing, granulate::Bool=true)
+function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type::DataType=eltype(z), xrev::Bool=false, xnbins::Integer=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=nothing, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=nothing, granulate::Bool=true, quiet::Bool=true)
 	@assert length(x) == length(y)
 	@assert length(x) == size(z, 1)
 	zn = processdata(z, type)
-	ix, xbins, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate)
-	iy, ybins, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate)
+	ix, xbins, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate, quiet=quiet)
+	iy, ybins, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate, quiet=quiet)
 	T = Array{type}(undef, xbins, ybins, size(z, 2))
 	C = Array{Int32}(undef, xbins, ybins, size(z, 2))
 	T .= 0
