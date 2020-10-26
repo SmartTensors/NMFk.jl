@@ -43,16 +43,14 @@ function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::Abstrac
 	end
 end
 
-function clusterresults(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString="results-nmfk", casefilename::AbstractString="nmfk-chemln", keyword::AbstractString="", kw...)
-	W, H, fit, silhouette, aic, kopt = NMFk.load(nkrange, nruns; resultdir=resultdir, casefilename=casefilename)
-	suffix = keyword == "" ? "-$(nruns)" : "-$(keyword)-$(nruns)"
-	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange]), W, H, Wnames, Hnames; resultdir="results-nmfk-$(suffix)", figuredir="figures-nmfk-$(suffix)", kw...)
+function clusterresults(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; kw...)
+	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange]), nkrange, W, H, Wnames, Hnames; kw...)
 end
 
-function clusterresults(krange::Union{AbstractVector{Int64},Integer}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString="results-nmfk", casefilename::AbstractString="nmfk-chemln", keyword::AbstractString="", kw...)
+function clusterresults(krange::Union{AbstractVector{Int64},Integer}, nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", keyword::AbstractString="", kw...)
 	W, H, fit, silhouette, aic, kopt = NMFk.load(nkrange, nruns; resultdir=resultdir, casefilename=casefilename)
-	suffix = keyword == "" ? "-$(nruns)" : "-$(keyword)-$(nruns)"
-	NMFk.clusterresults(krange, W, H, Wnames, Hnames; resultdir="results-nmfk-$(suffix)", figuredir="figures-nmfk-$(suffix)", kw...)
+	suffix = "$(casefilename)-$(nruns)"
+	NMFk.clusterresults(krange, W, H, Wnames, Hnames; resultdir="results-$(suffix)", figuredir="figures-$(suffix)", kw...)
 end
 
 """
