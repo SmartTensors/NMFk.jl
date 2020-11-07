@@ -330,11 +330,11 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, recordlength::I
 		iwell = df[!, dfapi] .== w
 		attr = df[!, dfattr][iwell]
 		innattr = .!isnan.(attr)
-		sumattr = sum(attr[innattr])
 		welldates = df[!, dfdate][iwell][innattr]
 		isortedwelldates = sortperm(welldates)
 		iwelldates = indexin(welldates[isortedwelldates], dates)
 		iwelldates3 = .!isnothing.(iwelldates)
+		sumattr = sum(attr[innattr][isortedwelldates][iwelldates3])
 		if checkzero && sumattr > 0
 			iattrfirst = Base.findfirst(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
 			iattrlast = findlast(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
@@ -367,11 +367,15 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, recordlength::I
 			@info("Original  total production: $(sumattr)")
 			@info("Processed total production: $(NMFk.sumnan(matrix[:, i]))")
 			@show sum(matrix[:, i] .> 0)
-
-			@show attr[innattr][isortedwelldates]
 			@show matrix[iwelldates2, i]
 
+			@show sum(attr[innattr][isortedwelldates] .> 0)
+			@show length(attr[innattr][isortedwelldates][iwelldates3])
+			@show attr[innattr][isortedwelldates][iwelldates3]
+
+			@show length(iwelldates2)
 			@show iwelldates2
+			@show length(welldates[isortedwelldates][iwelldates3])
 			@show welldates[isortedwelldates][iwelldates3]
 			@show iattrfirst:iattrlast
 
