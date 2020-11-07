@@ -282,26 +282,29 @@ end
 """
 Extract a matrix from a dataframe
 """
-function df2matrix(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol, dfdate::Symbol, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}; checkzero::Bool=true)
+function df2matrix(df::DataFrames.DataFrame, id::Vector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
 	nw = length(id)
 	matrix = Array{Float32}(undef, length(dates), nw)
 	matrix .= NaN32
 	fwells = falses(nw)
-	global k = 0
+	local k = 0
 	for (i, w) in enumerate(id)
-		iwell = findall((in)(w), df[!, :API])
+		iwell = df[!, dfapi] .== w
 		attr = df[!, dfattr][iwell]
 		innattr = .!isnan.(attr)
 		welldates = df[!, dfdate][iwell][innattr]
 		iwelldates = indexin(welldates, dates)
 		iwelldates3 = .!isnothing.(iwelldates)
-		if sum(iwelldates3) != 0 && (checkzero==false || sum(attr[innattr][iwelldates3]) > 0)
+		if sum(iwelldates3) != 0 && (checkzero == false || sum(attr[innattr][iwelldates3]) > 0)
 			fwells[i] = true
-			global k += 1
+			k += 1
+			!addup && (c = zeros(length(attr[innattr][iwelldates3])))
 			matrix[iwelldates[iwelldates3], k] .= 0
 			for (a, b) in enumerate(attr[innattr][iwelldates3])
 				matrix[iwelldates[iwelldates3][a], k] += b
+				!addup && (c[a] += 1)
 			end
+			!addup && (matrix[iwelldates[iwelldates3], k] ./= c)
 		end
 	end
 	return matrix, fwells
@@ -310,49 +313,79 @@ end
 """
 Extract a time shifted matrix from a dataframe
 """
-function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dfattr::Symbol, dfdate::Symbol, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}; checkzero::Bool=true)
+function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; kw...)
+	matrix, startdates, enddates = df2matrix_shifted(df, id, length(dates), dates, dfattr, dfdate, dfapi; kw...)
+	recordlength = findlast(i->!isnan(i), NMFk.sumnan(matrix; dims=2))[1]
+	matrixn = Array{Float32}(undef, recordlength, size(matrix, 2))
+	matrixn .= matrix[1:recordlength, :]
+	return matrixn, startdates, enddates
+end
+function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, recordlength::Integer, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
 	nw = length(id)
-	matrix = Array{Float32}(undef, length(dates), nw)
+	matrix = Array{Float32}(undef, recordlength, nw)
 	matrix .= NaN32
 	startdates = Array{Dates.Date}(undef, nw)
 	enddates = Array{Dates.Date}(undef, nw)
 	for (i, w) in enumerate(id)
-		iwell = findall((in)(w), df[!, :API])
+		iwell = df[!, dfapi] .== w
 		attr = df[!, dfattr][iwell]
 		innattr = .!isnan.(attr)
+		sumattr = sum(attr[innattr])
 		welldates = df[!, dfdate][iwell][innattr]
 		isortedwelldates = sortperm(welldates)
 		iwelldates = indexin(welldates[isortedwelldates], dates)
 		iwelldates3 = .!isnothing.(iwelldates)
-		if checkzero
+		if checkzero && sumattr > 0
 			iattrfirst = Base.findfirst(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
 			iattrlast = findlast(i->i>0, attr[innattr][isortedwelldates][iwelldates3])
 		else
-			iattrfirst = Base.findfirst(i->i>=0, attr[innattr][isortedwelldates][iwelldates3])
-			iattrlast = findlast(i->i>=0, attr[innattr][isortedwelldates][iwelldates3])
+			if sumattr == 0
+				@warn("Well $w: zero total ($(string(dfattr))) production!")
+			end
+			iattrfirst = Base.findfirst(i->!isnan(i), attr[innattr][isortedwelldates][iwelldates3])
+			iattrlast = findlast(i->!isnan(i), attr[innattr][isortedwelldates][iwelldates3])
 		end
 		startdates[i] = welldates[isortedwelldates][iwelldates3][iattrfirst]
 		enddates[i] = welldates[isortedwelldates][iwelldates3][iattrlast]
-		iwelldates2 = iwelldates[iwelldates3][iattrfirst:end] .- iwelldates[iwelldates3][iattrfirst] .+ 1
+		iwelldates2 = iwelldates[iwelldates3][iattrfirst:iattrlast] .- iwelldates[iwelldates3][iattrfirst] .+ 1
 		matrix[iwelldates2, i] .= 0
-		for (a, b) in enumerate(iattrfirst:length(attr[innattr][isortedwelldates][iwelldates3]))
+		!addup && (c = zeros(length(iattrfirst:iattrlast)))
+		for (a, b) in enumerate(iattrfirst:iattrlast)
 			matrix[iwelldates2[a], i] += attr[innattr][isortedwelldates][b]
+			!addup && (c[a] += 1)
 		end
-		if checkzero==true && (NMFk.sumnan(matrix[:, i]) == 0 || sum(matrix[:, i]) == NaN32)
-			@show i
-			@show w
-			@show attr
-			@show welldates
-			@show iattrfirst iattrlast
-			@show attr[innattr][isortedwelldates][iwelldates3][iattrfirst]
-			@show welldates[isortedwelldates][iwelldates3]
-			@show welldates[isortedwelldates][iwelldates3][iattrfirst]
-			@show enddates[i]
-			@show attr[innattr]
-			@show attr[innattr][isortedwelldates][iwelldates3]
-			@show attr[innattr][isortedwelldates][iwelldates3][iattrfirst:end]
+		!addup && (matrix[iwelldates2, i] ./= c)
+		de = length(iwelldates2) - length(unique(iwelldates2))
+		er = abs(NMFk.sumnan(matrix[:, i]) - sumattr) ./ sumattr > eps(Float32)
+		if de > 0 && er
+			@info("Well $w: $(de) duplicate production entries")
+			@info("Original  total production: $(sumattr)")
+			@info("Processed total production: $(NMFk.sumnan(matrix[:, i]))")
+		end
+		if (addup || de == 0) && er
+			@warn("Well $w (column $i): something is potentially wrong!")
+			@info("Original  total production: $(sumattr)")
+			@info("Processed total production: $(NMFk.sumnan(matrix[:, i]))")
+			@show sum(matrix[:, i] .> 0)
+
+			@show attr[innattr][isortedwelldates]
 			@show matrix[iwelldates2, i]
-			error("Something went wrong")
+
+			@show iwelldates2
+			@show welldates[isortedwelldates][iwelldates3]
+			@show iattrfirst:iattrlast
+
+			# matrix[iwelldates2, i] .= 0
+			# for (a, b) in enumerate(iattrfirst:iattrlast)
+			# 	@show (a, b)
+			# 	@show welldates[isortedwelldates][iwelldates3][a]
+			# 	@show iwelldates2[a]
+			# 	@show attr[innattr][isortedwelldates][b]
+			# 	matrix[iwelldates2[a], i] += attr[innattr][isortedwelldates][b]
+			# 	@show matrix[iwelldates2[a], i]
+			# end
+			# @show NMFk.sumnan(matrix[:, i])
+			# @show sum(matrix[:, i] .> 0)
 		end
 	end
 	return matrix, startdates, enddates
