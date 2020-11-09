@@ -36,6 +36,8 @@ RUN apt-get update -y \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& pip install --ignore-installed -r requirements.txt \
 	&& rm -rf ~/.cache/pip \
+	&& python3 -m pip install --user Julia \
+	&& python3 -m pip install --user matplotlib \
 	&& wget https://julialang-s3.julialang.org/bin/linux/x64/1.5/julia-1.5.2-linux-x86_64.tar.gz \
 	&& tar xvzf julia-1.5.2-linux-x86_64.tar.gz \
 	&& rm -f julia-1.5.2-linux-x86_64.tar.gz \
