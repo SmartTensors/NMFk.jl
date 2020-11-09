@@ -313,14 +313,14 @@ end
 """
 Extract a time shifted matrix from a dataframe
 """
-function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; kw...)
+function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; kw...)
 	matrix, startdates, enddates = df2matrix_shifted(df, id, length(dates), dates, dfattr, dfdate, dfapi; kw...)
 	recordlength = findlast(i->!isnan(i), NMFk.sumnan(matrix; dims=2))[1]
 	matrixn = Array{Float32}(undef, recordlength, size(matrix, 2))
 	matrixn .= matrix[1:recordlength, :]
 	return matrixn, startdates, enddates
 end
-function df2matrix_shifted(df::DataFrames.DataFrame, id::Vector, recordlength::Integer, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
+function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, recordlength::Integer, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
 	nw = length(id)
 	matrix = Array{Float32}(undef, recordlength, nw)
 	matrix .= NaN32
