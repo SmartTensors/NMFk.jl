@@ -44,7 +44,15 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			@info n
 			v = vec(a[nt...])
 		end
-		filename = casefilename == "" ? "" : casefilename * "-$(n).png"
+		if casefilename == ""
+			filename = ""
+		else
+			if splitdir(casefilename)[end] == ""
+				filename = casefilename * "histogram-$(n).png"
+			else
+				filename = ccasefilename * "-$(n).png"
+			end
+		end
 		min[i], max[i], std[i], c[i] = datanalytics(v; filename=filename, kw...)
 		@info "$n, $(min[i]), $(max[i]), $(std[i]), $(c[i])"
 		println()
