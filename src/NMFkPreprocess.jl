@@ -54,11 +54,11 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			end
 		end
 		min[i], max[i], std[i], c[i] = datanalytics(v; filename=filename, kw...)
-		@info "$n, $(min[i]), $(max[i]), $(std[i]), $(c[i])"
+		@info "$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Count $(c[i])"
 		println()
 	end
 	@info "Attributes"
-	println("Name Min Max StdDev Count (non-NaN's")
+	println("Name Min Max StdDev Count (non-NaN's)")
 	for (i, n) in enumerate(names)
 		println("$n $(min[i]) $(max[i]) $(std[i]) $(c[i])")
 	end
