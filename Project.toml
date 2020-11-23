@@ -1,7 +1,7 @@
 name = "NMFk"
 uuid = "e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8"
 authors = ["Velimir V Vesselinov (monty) <velimir.vesselinov@gmail.com>"]
-version = "1.1.5"
+version = "1.1.6"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
@@ -50,7 +50,7 @@ Clustering = "0.14, 0.15"
 Colors = "0.12, 0.13"
 Compose = "0.8, 0.9"
 Conda = "1"
-DataFrames = "0.20, 0.21"
+DataFrames = "0.20, 0.21, 0.22"
 Distances = "0.8, 0.9, 0.10"
 DistributedArrays = "0.6, 0.7"
 Distributions =  "0.23, 0.24, 0.25"
