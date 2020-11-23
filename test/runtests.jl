@@ -148,21 +148,21 @@ X = [a a*10 b b*5 a+b*2]
 @Test.test isapprox(He[2,4] / He[2,3], 5; rtol=1e-3)
 @Test.test isapprox(He[1,4] / He[1,3], 5; rtol=1e-3)
 
-# @info("NMFk: nlopt: 2 sources, 5 sensors, 20 transients")
-# Random.seed!(2015)
-# a = rand(20)
-# b = rand(20)
-# W = [a b]
-# H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
-# X = W * H
-# X = [a a*10 b b*5 a+b*2]
-# @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-6, tol=1e-19)
-# @Test.test isapprox(p, 0, atol=1e-3)
-# @Test.test isapprox(s, 1, rtol=1e-1)
-# @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
-# @Test.test isapprox(He[2,2] / He[2,1], 10, rtol=1e-3)
-# @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
-# @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
+@info("NMFk: nlopt: 2 sources, 5 sensors, 20 transients")
+Random.seed!(2015)
+a = rand(20)
+b = rand(20)
+W = [a b]
+H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
+X = W * H
+X = [a a*10 b b*5 a+b*2]
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-6, tol=1e-19)
+@Test.test isapprox(p, 0, atol=1e-3)
+@Test.test isapprox(s, 1, rtol=1e-1)
+@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+@Test.test isapprox(He[2,2] / He[2,1], 10, rtol=1e-3)
+@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: ipopt: 2 sources, 5 sensors, 21 transients")
 Random.seed!(2015)
@@ -177,18 +177,18 @@ X = [a a*10 b b*5 a+b*2]
 @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
 @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
-# @info("NMFk: nlopt: 2 sources, 5 sensors, 100 transients")
-# Random.seed!(2015)
-# a = exp.(-(0:.5:10))*100
-# b = 100 .+ sin.(0:20)*10
-# X = [a a*10 b b*5 a+b*2]
-# @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
-# @Test.test isapprox(p, 0, atol=1e-3)
-# @Test.test isapprox(s, 1, rtol=1e-1)
-# @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
-# @Test.test isapprox(He[1,3] / He[2,3], 3, rtol=0.9)
-# @Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
-# @Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
+@info("NMFk: nlopt: 2 sources, 5 sensors, 100 transients")
+Random.seed!(2015)
+a = exp.(-(0:.5:10))*100
+b = 100 .+ sin.(0:20)*10
+X = [a a*10 b b*5 a+b*2]
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
+@Test.test isapprox(p, 0, atol=1e-3)
+@Test.test isapprox(s, 1, rtol=1e-1)
+@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+@Test.test isapprox(He[1,3] / He[2,3], 3, rtol=0.9)
+@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: 3 sources, 5 sensors, 15 transients")
 Random.seed!(2015)
