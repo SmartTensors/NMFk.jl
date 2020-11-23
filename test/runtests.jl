@@ -198,8 +198,8 @@ c = rand(15)
 X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 @info("NMFk: ipopt ...")
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:ipopt)
-# @info("NMFk: nlopt ...")
-# @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:nlopt)
+@info("NMFk: nlopt ...")
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:nlopt)
 @info("NMFk: simple ...")
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:simple)
 @info("NMFk: nmf ...")
@@ -218,7 +218,7 @@ inan = rand(50, 7) .> .8
 X[inan] .= NaN
 @Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; method=:simple)
 
-@info("NMFk: concentrantions/delta tests ...")
+@info("NMFk: concentrations/delta tests ...")
 a0 = Float64[[20,10,1] [5,1,1]]
 b = NMFk.getisotopeconcentration(a0, [0.001,0.002], [[100,10,1] [500,50,5]])
 a = NMFk.getisotopedelta(b, [0.001,0.002], [[100,10,1] [500,50,5]])
