@@ -262,3 +262,14 @@ ENV["http_proxy"] = "http://proxyout.lanl.gov:8080"
 ENV["https_proxy"] = "http://proxyout.lanl.gov:8080"
 ENV["no_proxy"] = ".lanl.gov"
 ```
+
+
+Do disable proxies, type these commands in the Julia REPL:
+
+```julia
+ENV["ftp_proxy"] =  ""
+ENV["rsync_proxy"] = ""
+ENV["http_proxy"] = ""
+ENV["https_proxy"] = ""
+ENV["no_proxy"] = ""
+```
