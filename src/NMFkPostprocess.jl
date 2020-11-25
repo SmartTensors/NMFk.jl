@@ -292,11 +292,11 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
 				NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				# @show ["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cw)]
-				NMFk.plotmatrix(Wm[:,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Wnames[i]) $(cnew[i])" for i=1:length(cw)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
-				NMFk.plotmatrix(Wm[cs,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cw)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
+				NMFk.plotmatrix(Wm[:,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Wnames[i]) $(cnew[i])" for i=1:length(cnew)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
+				NMFk.plotmatrix(Wm[cs,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cnew)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
 				# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
-				NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
+				NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cnew)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				if plottimeseries == :W
 					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames)
 				end
