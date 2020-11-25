@@ -275,17 +275,17 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			# end
 			dumpcsv = true
 			if lon != nothing && lat != nothing
-				if length(lon) != length(cw)
+				if length(lon) != length(cnew)
 					(plotmap == 1) && @warn("Coordinate data does not match the number of either W matrix rows or H matrix columns!")
 				else
-					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cw; figuredir=figuredir, hover=hover, title="Signals: $k")
+					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 					lonlat = [lon lat]
-					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Signal"]; Wnames lonlat Wm cw], ',')
+					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Signal"]; Wnames lonlat Wm cnew], ',')
 					dumpcsv = false
 				end
 			end
 			if dumpcsv
-				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"];  Wnames Wm cw], ',')
+				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"];  Wnames Wm cnew], ',')
 			end
 			if createplots
 				NMFk.plotmatrix(Wm; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
