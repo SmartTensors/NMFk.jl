@@ -89,6 +89,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 	else
 		Hnametypes = Hnames
 	end
+	Hnamesmaxlength = max(length.(Hnames)...)
 	if length(Wtypes) > 0
 		if Wcolors == NMFk.colors
 			Wcolors = Vector{String}(undef, length(Wtypes))
@@ -100,6 +101,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 	else
 		Wnametypes = Wnames
 	end
+	Wnamesmaxlength = max(length.(Wnames)...)
 	if lon != nothing && lat != nothing
 		@assert length(lon) == length(lat)
 		plotmap = 0
@@ -153,14 +155,13 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		io = open("$resultdir/$(Hcasefilename)-$(k)-groups.txt", "w")
 		for (j, i) in enumerate(clusterlabels)
 			@info "Signal $i (S$(hsignalmap[j])) (k-means clustering)"
-			write(io, "Signal $i (S$(hsignalmap[j])) (k-means clustering)\n")
+			write(io, "Signal $i (S$(hsignalmap[j]))\n")
 			ii = indexin(ch, [i]) .== true
 			is = sortperm(Hm[ii,hsignalmap[j]]; rev=true)
 			d = [Hnames[ii] Hm[ii,hsignalmap[j]]][is,:]
 			display(d)
-			for l in d
-				write(io, l)
-				write(io, '\n')
+			for i = 1:size(d, 1)
+				write(io, "$(rpad(d[i,1], Hnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
 			end
 			write(io, '\n')
 			clustermap[hsignalmap[j]] = i
@@ -257,14 +258,13 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			io = open("$resultdir/$(Wcasefilename)-$(k)-groups.txt", "w")
 			for (j, i) in enumerate(clusterlabels)
 				@info "Signal $i (S$(wsignalmap[j]); k-means clustering; remapped)"
-				write(io, "Signal $i (k-means clustering; remapped)\n")
+				write(io, "Signal $i\n")
 				ii = indexin(cnew, [i]) .== true
 				is = sortperm(Wm[ii,wsignalmap[j]]; rev=true)
 				d = [Wnames[ii] Wm[ii,wsignalmap[j]]][is,:]
 				display(d)
-				for l in d
-					write(io, l)
-					write(io, '\n')
+				for i = 1:size(d, 1)
+					write(io, "$(rpad(d[i,1], Wnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
 				end
 				write(io, '\n')
 			end
