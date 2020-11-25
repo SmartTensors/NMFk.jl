@@ -21,8 +21,7 @@ function welcome()
 	println("$(d1) |_|   \\_| $(d2)|_|    |_| $(d3)|_|       $(d4)|_| \\_\\$(tx)")
 	println("")
 	println("NMFk performs unsupervised machine learning based on matrix decomposition coupled with sparsity and nonnegativity constraints.")
-	println("NMFk methodology allows for automatic identification of the optimal number of features (signals) present in two-dimensional data arrays (matrices).")
-	println("The number of features is estimated automatically.")
+	println("NMFk provides automatic identification of the optimal number of signals (features) present in two-dimensional data arrays (matrices).")
 end
 
 function functions(re::Regex; stdout::Bool=false, quiet::Bool=false)

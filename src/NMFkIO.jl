@@ -27,7 +27,7 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=type, dim=dim, kw...)
 	end
 	kopt = getk(nkrange, robustness[nkrange])
-	i < length(nkrange) && @info("Optimal solution: $kopt features")
+	i < length(nkrange) && @info("Optimal solution: $kopt signals")
 	return W, H, fitquality, robustness, aic, kopt
 end
 function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false)

@@ -2,9 +2,11 @@ import DelimitedFiles
 import PlotlyJS
 import Mads
 
-function plot_feature_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="feature_selection", title::AbstractString="", plotformat="png")
+function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", plotformat="png")
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) robustness[nkrange]], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], names=["Fit", "Robustness"])
 end
+
+plot_feature_selecton = plot_signal_selecton
 
 function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVector=[], order::Function=i->sortperm(i; rev=true), filter_vals::Function=v->findlast(i->i>0.95, v), filter_names=v->occursin.(r".", v))
 	local Xm
@@ -170,14 +172,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			if length(lon) != length(ch)
 				plotmap = 1
 			else
-				NMFk.plot_wells("clusters-$(k).html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Clusters: $k")
+				NMFk.plot_wells("$(Hcasefilename)-$(k)-map.html", lon, lat, ch; figuredir=figuredir, hover=hover, title="Signals: $k")
 				lonlat = [lon lat]
-				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames lonlat Hm ch], ',')
+				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Signal"]; Hnames lonlat Hm ch], ',')
 				dumpcsv = false
 			end
 		end
 		if dumpcsv
-			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Hnames Hm ch], ',')
+			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"]; Hnames Hm ch], ',')
 		end
 		if createplots
 			NMFk.plotmatrix(Hm; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Hnames[i]) $(ch[i])" for i=1:length(ch)], colorkey=false, minor_label_font_size=Hmatrix_font_size)
@@ -276,14 +278,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				if length(lon) != length(cw)
 					(plotmap == 1) && @warn("Coordinate data does not match the number of either W matrix rows or H matrix columns!")
 				else
-					NMFk.plot_wells("clusters-$(k).html", lon, lat, cw; figuredir=figuredir, hover=hover, title="Clusters: $k")
+					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cw; figuredir=figuredir, hover=hover, title="Signals: $k")
 					lonlat = [lon lat]
-					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Cluster"]; Wnames lonlat Wm cw], ',')
+					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Signal"]; Wnames lonlat Wm cw], ',')
 					dumpcsv = false
 				end
 			end
 			if dumpcsv
-				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Cluster"];  Wnames Wm cw], ',')
+				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"];  Wnames Wm cw], ',')
 			end
 			if createplots
 				NMFk.plotmatrix(Wm; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)

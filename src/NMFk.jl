@@ -6,9 +6,7 @@ NMFk.jl: Nonnegative Matrix Factorization + k-means clustering
 
 NMFk performs unsupervised machine learning based on matrix decomposition coupled with sparsity and nonnegativity constraints.
 
-NMFk methodology allows for automatic identification of the optimal number of features (signals) present in two-dimensional data arrays (matrices).
-
-The number of features is estimated automatically.
+NMFk provides automatic identification of the optimal number of signals (features) present in two-dimensional data arrays (matrices).
 """
 module NMFk
 

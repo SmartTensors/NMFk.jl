@@ -17,7 +17,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 		println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality[nk])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[nk])) AIC: $(@Printf.sprintf("%12.7g", aic[nk]))")
 	end
 	kopt = getk(nkrange, robustness[nkrange])
-	@info("Optimal solution: $kopt features")
+	@info("Optimal solution: $kopt signals")
 	return W, H, fitquality, robustness, aic, kopt
 end
 

@@ -16,7 +16,7 @@ function progressive(X::Matrix{T}, windowsize::Int64, nkrange::AbstractRange{Int
 	if windowsize < size(X, 1)
 		robustness = Array{T}(undef, 0)
 		for k in nkrange
-			@info("NMFk #2: $(casefilename) Window $windowsize Features $k")
+			@info("NMFk #2: $(casefilename) Window $windowsize Signals $k")
 			_, _, _, r, _ = NMFk.execute(X, k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, casefilename="$(casefilename)_$(windowsize)_all", load=load, kw...)
 			push!(robustness, r)
 		end
@@ -40,10 +40,10 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, window_k::Vector{I
 	# @show map(i->sum(.!isnan.(X[:, i])), 1:size(X, 2))
 	for (i, ws) in enumerate(windowsize)
 		k = window_k[i]
-		@info("NMFk #1: $(casefilename) Window $ws Features $k")
+		@info("NMFk #1: $(casefilename) Window $ws Signals $k")
 		W, H, fitquality, robustness, aic = NMFk.execute(X[1:ws,:], k, nNMF1; casefilename="$(casefilename)_$(ws)", load=load, kw...)
 		if ws < size(X, 1)
-			@info("NMFk #2: $(casefilename) Window $ws Features $k")
+			@info("NMFk #2: $(casefilename) Window $ws Signals $k")
 			NMFk.execute(X, k, nNMF2; Hinit=convert.(T, H), Hfixed=true, casefilename="$(casefilename)_$(ws)_all", load=load, kw...)
 		end
 	end
@@ -159,7 +159,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 		dk = [i for i=2:dk[1]]
 		ds = repeat(ds, length(dk))
 
-		@info("Optimal number of features: $dk Training window sizes: $ds")
+		@info("Optimal number of signals: $dk Training window sizes: $ds")
 
 		Mads.mkdir("$(figuredirresults)-$(problem)")
 		for j = 1:length(ds)

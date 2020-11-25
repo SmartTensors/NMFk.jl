@@ -321,12 +321,12 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 end
 
 function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
-	nfeatures = length(unique(sort(df[!, :Attribute])))
-	loopcolors = nfeatures + 1 > ncolors ? true : false
+	nsignals = length(unique(sort(df[!, :Attribute])))
+	loopcolors = nsignals + 1 > ncolors ? true : false
 	if loopcolors
 		tc = []
 	else
-		tc = [Gadfly.Scale.color_discrete_manual(colors[2:nfeatures+1]...)]
+		tc = [Gadfly.Scale.color_discrete_manual(colors[2:nsignals+1]...)]
 	end
 	# label="Well", Gadfly.Geom.point, Gadfly.Geom.label,
 	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red", discrete_highlight_color=c->nothing)), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
@@ -399,16 +399,16 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 end
 
 function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", gm=[], dpi=imagedpi)
-	nfeatures = length(V)
-	@assert nfeatures == length(A)
-	loopcolors = nfeatures + 1 > ncolors ? true : false
+	nsignals = length(V)
+	@assert nsignals == length(A)
+	loopcolors = nsignals + 1 > ncolors ? true : false
 	df = DataFrames.DataFrame()
 	df[!, :Values] = V[end:-1:1]
 	df[!, :Attributes] = A[end:-1:1]
 	if loopcolors
 		tc = []
 	else
-		tc = [Gadfly.Scale.color_discrete_manual(colors[nfeatures+1:-1:2]...)]
+		tc = [Gadfly.Scale.color_discrete_manual(colors[nsignals+1:-1:2]...)]
 	end
 	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
 	!quiet && (display(ff); println())
@@ -424,13 +424,13 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 	msize = size(M)
 	ndimensons = length(msize)
 	@assert dim >= 1 && dim <= ndimensons
-	nfeatures = msize[dim]
-	loopcolors = nfeatures > ncolors ? true : false
+	nsignals = msize[dim]
+	loopcolors = nsignals > ncolors ? true : false
 	nx = dim == 1 ? msize[2] : msize[1]
 	xvalues = timescale ? vec(collect(1/nx:1/nx:1)) : vec(collect(1:nx))
-	componentnames = map(i->"T$i", 1:nfeatures)
-	pl = Vector{Any}(undef, nfeatures)
-	for i = 1:nfeatures
+	componentnames = map(i->"T$i", 1:nsignals)
+	pl = Vector{Any}(undef, nsignals)
+	for i = 1:nsignals
 		cc = loopcolors ? parse(Colors.Colorant, colors[(i-1)%ncolors+1]) : parse(Colors.Colorant, colors[i])
 		if dim == 2
 			pl[i] = Gadfly.layer(x=xvalues, y=M[:, order[i]], Gadfly.Geom.line(), Gadfly.Theme(line_width=2Gadfly.pt, default_color=cc))
@@ -439,7 +439,7 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 		end
 	end
 	tx = timescale ? [] : [Gadfly.Coord.Cartesian(xmin=minimum(xvalues), xmax=maximum(xvalues))]
-	tc = loopcolors ? [] : [Gadfly.Guide.manual_color_key("", componentnames, colors[1:nfeatures])]
+	tc = loopcolors ? [] : [Gadfly.Guide.manual_color_key("", componentnames, colors[1:nsignals])]
 	if code
 		return [pl..., Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(ymin=ymin, ymax=ymax), tc..., tx..., gm...]
 	end
