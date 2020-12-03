@@ -50,10 +50,10 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			if splitdir(casefilename)[end] == ""
 				filename = casefilename * "histogram-$(n).png"
 			else
-				filename = ccasefilename * "-$(n).png"
+				filename = casefilename * "-$(n).png"
 			end
 		end
-		min[i], max[i], std[i], c[i] = datanalytics(v; filename=filename, kw...)
+		min[i], max[i], std[i], c[i] = datanalytics(v; filename=filename, kw..., title=n)
 		@info "$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Count $(c[i])"
 		println()
 	end
