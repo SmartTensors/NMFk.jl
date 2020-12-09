@@ -187,7 +187,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			NMFk.plotmatrix(Hm[:,hsignalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Hnames[i]) $(ch[i])" for i=1:length(ch)], colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
 			NMFk.plotmatrix(Hm[cs,hsignalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Hnames[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
 			NMFk.plotmatrix(permutedims((Ha ./ sum(Ha; dims=2)))[cs,hsignalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Hnametypes[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false, minor_label_font_size=Hmatrix_font_size)
-			if plottimeseries == :H
+			if plottimeseries == :H || plottimeseries == :WH
 				Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames)
 			end
 		end
@@ -297,7 +297,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clustermap[hsignalmap], yticks=["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cnew)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
-				if plottimeseries == :W
+				if plottimeseries == :W || plottimeseries == :WH
 					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames)
 				end
 			end

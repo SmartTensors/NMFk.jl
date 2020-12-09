@@ -65,13 +65,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 		f && push!(rowp, Gadfly.hstack(colp...))
 	end
 	p = Gadfly.vstack(rowp...)
-	if !quiet
-		gw = Compose.default_graphic_width
-		gh = Compose.default_graphic_height
-		Compose.set_default_graphic_size(gw * (c-1), gw * (c-1))
-		display(p); println()
-		Compose.set_default_graphic_size(gw, gh)
-	end
+	!quiet && Mads.display(p; gw=hsize * (c-1), gh=vsize * (c-1), gwo=100Compose.mm * (c-1), gho=100Compose.mm * (c-1))
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
@@ -182,16 +176,11 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		end
 
 	end
-	# display(p); println()
 	if code
 		return p
 	end
 	if !quiet
-		gw = Compose.default_graphic_width
-		gh = Compose.default_graphic_height
-		Compose.set_default_graphic_size(gw, gw)
-		display(p); println()
-		Compose.set_default_graphic_size(gw, gh)
+		Mads.display(p; gw=hsize, gh=vsize)
 	end
 	if filename != ""
 		j = joinpath(figuredir, filename)
@@ -297,13 +286,7 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		f = Gadfly.vstack(m...)
 		vsize *= length(suc)
 	end
-	if !quiet
-		gw = Compose.default_graphic_width
-		gh = Compose.default_graphic_height
-		Compose.set_default_graphic_size(gw, gh * length(suc))
-		display(f); println()
-		Compose.set_default_graphic_size(gw, gh)
-	end
+	!quiet && Mads.display(f; gw=hsize, gh=vsize * length(suc))
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
@@ -311,7 +294,8 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 			vsize /= length(suc)
 			fp = splitext(filename)
 			for (i, p) in enumerate(m)
-				plotfileformat(p, joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize; dpi=dpi)
+				plotfileformat(p, joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize / length(suc); dpi=dpi)
+				!quiet && Mads.display(p; gw=hsize, gh=vsize / length(suc))
 			end
 		else
 			plotfileformat(f, j, hsize, vsize; dpi=dpi)
@@ -330,13 +314,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 	end
 	# label="Well", Gadfly.Geom.point, Gadfly.Geom.label,
 	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red", discrete_highlight_color=c->nothing)), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
-	if !quiet
-		gw = Compose.default_graphic_width
-		gh = Compose.default_graphic_height
-		Compose.set_default_graphic_size(gw, gw)
-		display(ff); println()
-		Compose.set_default_graphic_size(gw, gh)
-	end
+	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
@@ -383,13 +361,7 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	else
 		ff = Gadfly.plot(Gadfly.layer(x=x, y=y, size=size, Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Theme(key_position=key_position), gm...)
 	end
-	if !quiet
-		gw = Compose.default_graphic_width
-		gh = Compose.default_graphic_height
-		Compose.set_default_graphic_size(gw, gw)
-		display(ff); println()
-		Compose.set_default_graphic_size(gw, gh)
-	end
+	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
@@ -411,7 +383,7 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 		tc = [Gadfly.Scale.color_discrete_manual(colors[nsignals+1:-1:2]...)]
 	end
 	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
-	!quiet && (display(ff); println())
+	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
@@ -444,7 +416,7 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 		return [pl..., Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(ymin=ymin, ymax=ymax), tc..., tx..., gm...]
 	end
 	ff = Gadfly.plot(pl..., Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(ymin=ymin, ymax=ymax), tc..., tx..., gm...)
-	!quiet && (display(ff); println())
+	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
@@ -714,7 +686,7 @@ function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, k
 	elseif normalize == :all
 		D = NMFk.normalize!(D)[1]
 	end
-	display(NMFk.plotmatrix(D; kw..., key_position=:none))
+	NMFk.plotmatrix(D; kw..., key_position=:none, quiet=false)
 	return D
 end
 
@@ -745,6 +717,13 @@ function setplotfileformat(filename::String, format::String="PNG")
 end
 
 function plotfileformat(p, filename::String, hsize, vsize; dpi=imagedpi)
+	if vsize > 20Compose.inch
+		hsize /= vsize / 20
+		vsize = 20Compose.inch
+	elseif hsize > 20Compose.inch
+		vsize /= hsize / 20
+		hsize = 20Compose.inch
+	end
 	filename, format = setplotfileformat(filename)
 	if format == :SVG
 		Gadfly.draw(Gadfly.eval(format)(filename, hsize, vsize), p)

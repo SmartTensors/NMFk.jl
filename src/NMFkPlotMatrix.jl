@@ -19,6 +19,13 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	nanmask!(Xp, mask)
 	ys, xs, vs = Gadfly._findnz(x->!isnan(x), Xp)
 	n, m = size(Xp)
+	# ratio = n / m
+	# @show ratio
+	# if ratio > 1
+	# 	hsize = hsize / ratio + 3Compose.inch
+	# else
+	# 	vsize = vsize * ratio + 3Compose.inch
+	# end
 	rect = checkrectbin(Xp)
 	if xmatrix != nothing && ymatrix != nothing
 		rectbin = false
@@ -164,7 +171,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		end
 	end
 	p = Gadfly.plot(c...)
-	!quiet && (display(p); println())
+	!quiet && Mads.display(p; gw=hsize, gh=vsize)
 	if filename != ""
 		plotfileformat(p, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
 		if flatten
