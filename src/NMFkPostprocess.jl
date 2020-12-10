@@ -2,8 +2,9 @@ import DelimitedFiles
 import PlotlyJS
 import Mads
 
-function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", plotformat="png")
-	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) robustness[nkrange]], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], names=["Fit", "Robustness"])
+function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", plotformat::AbstractString="png", normalize_robustness::Bool=true)
+	r = normalize_robustness ? robustness[nkrange] ./ maximumnan(robustness[nkrange]) : robustness[nkrange]
+	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], names=["Fit", "Robustness"])
 end
 
 plot_feature_selecton = plot_signal_selecton
