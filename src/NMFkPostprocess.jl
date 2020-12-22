@@ -2,6 +2,30 @@ import DelimitedFiles
 import PlotlyJS
 import Mads
 
+function signal_importance(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector)
+	signal_order = Array{Array{Int64}}(undef, maximum(krange))
+	for k = 1:maximum(krange)
+		signal_order[k] = Array{Int64}(undef, 0)
+	end
+	for k in krange
+		@info("Number of signals: $k")
+		signal_order[k] = signal_importance(W[k], H[k])
+	end
+	return signal_order
+end
+
+function signal_importance(W::AbstractMatrix, H::AbstractMatrix)
+	k = size(W, 2)
+	@assert k == size(H, 1)
+	signal_sum = Array{eltype(W)}(undef, k)
+	for i = 1:k
+		signal_sum[i] = sum(W[:,i:i] * H[i:i,:])
+	end
+	signal_order = sortperm(signal_sum; rev=true)
+	println("Signal importance (high->low): $signal_order")
+	return signal_order
+end
+
 function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, kw...)
 	r = normalize_robustness ? robustness[nkrange] ./ maximumnan(robustness[nkrange]) : robustness[nkrange]
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], xtitle=xtitle, ytitle=ytitle, names=["Fit", "Robustness"], kw...)
@@ -9,7 +33,7 @@ end
 
 plot_feature_selecton = plot_signal_selecton
 
-function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVector=[], order::Function=i->sortperm(i; rev=true), filter_vals::Function=v->findlast(i->i>0.95, v), filter_names=v->occursin.(r".", v))
+function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVector=[], order::Function=i->sortperm(i; rev=true), filter_vals::Function=v->findlast(i->i>0.95, v), filter_names=v->occursin.(r".", v))
 	local Xm
 	if size(X, 1) == length(Xnames)
 		Xm = X ./ maximum(X; dims=1)
@@ -38,7 +62,7 @@ function showsignatures(X::AbstractMatrix, Xnames::AbstractVector; Xmap::Abstrac
 		return
 	end
 	for i = 1:size(X, 1)
-		@info "Signature $i"
+		@info "Signal $i"
 		is = order(Xm[:,i])
 		ivl = filter_vals(Xm[:,i][is])
 		inm = filter_names(Xnames[is][1:ivl])
