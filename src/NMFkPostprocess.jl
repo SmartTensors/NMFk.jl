@@ -2,9 +2,9 @@ import DelimitedFiles
 import PlotlyJS
 import Mads
 
-function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", plotformat::AbstractString="png", normalize_robustness::Bool=true)
+function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, kw...)
 	r = normalize_robustness ? robustness[nkrange] ./ maximumnan(robustness[nkrange]) : robustness[nkrange]
-	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], names=["Fit", "Robustness"])
+	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], xtitle=xtitle, ytitle=ytitle, names=["Fit", "Robustness"], kw...)
 end
 
 plot_feature_selecton = plot_signal_selecton
@@ -153,6 +153,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		clustermap = Vector{Char}(undef, k)
 		clustermap .= ' '
 		Hm = permutedims(Ha ./ maximum(Ha; dims=2))
+		Hm[Hm .< eps(eltype(Ha))] .= 0
 		io = open("$resultdir/$(Hcasefilename)-$(k)-groups.txt", "w")
 		for (j, i) in enumerate(clusterlabels)
 			@info "Signal $i (S$(hsignalmap[j])) (k-means clustering)"
@@ -239,6 +240,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			cnew .= ' '
 			snew = Vector{String}(undef, length(cw))
 			Wm = Wa ./ maximum(Wa; dims=1)
+			Wm[Wm .< eps(eltype(Wa))] .= 0
 			for (j, i) in enumerate(clusterlabels)
 				iclustermap = wsignalmap[j]
 				cnew[cw .== i] .= clusterlabels[iclustermap]
