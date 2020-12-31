@@ -23,7 +23,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; h
 	@assert length(wx) == length(wy)
 	@assert length(wx) == length(c)
 	wells = []
-	for (j, i) in enumerate(sort(unique(c)))
+	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		l = label == nothing ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
 		h = hover == nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
@@ -41,7 +41,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, 
 	@assert length(wx) == length(wz)
 	@assert length(wx) == length(c)
 	wells = []
-	for (j, i) in enumerate(sort(unique(c)))
+	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		h = hover == nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
 		well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
@@ -52,7 +52,7 @@ end
 
 function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, c::AbstractVector; hover=nothing)
 	wells = []
-	for (j, i) in enumerate(sort(unique(c)))
+	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		hx = heel_x[ic]
 		hy = heel_y[ic]
@@ -75,7 +75,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 	@assert length(heel_x) == length(toe_y)
 	@assert length(heel_x) == length(c)
 	traces = []
-	for (j,i) in enumerate(sort(unique(c)))
+	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		hx = heel_x[ic]
 		hy = heel_y[ic]
@@ -103,7 +103,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::A
 	@assert length(heel_x) == length(toe_y)
 	@assert length(heel_x) == length(c)
 	traces = []
-	for (j,i) in enumerate(sort(unique(c)))
+	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		hx = heel_x[ic]
 		hy = heel_y[ic]

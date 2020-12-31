@@ -65,7 +65,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 		f && push!(rowp, Gadfly.hstack(colp...))
 	end
 	p = Gadfly.vstack(rowp...)
-	!quiet && Mads.display(p; gw=hsize * (c-1), gh=vsize * (c-1), gwo=100Compose.mm * (c-1), gho=100Compose.mm * (c-1))
+	!quiet && Mads.display(p; gwo=hsize * (c-1), gho=vsize * (c-1), gw=100Compose.mm * (c-1), gh=100Compose.mm * (c-1))
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
