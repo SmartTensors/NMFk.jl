@@ -258,6 +258,10 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				end
 			end
 			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true)[1].assignments)
+			for (j, i) in enumerate(clusterlabels)
+				ii = indexin(cw, [i]) .== true
+				@info "Signal $i Count $(sum(ii))"
+			end
 			@assert clusterlabels == sort(unique(cw))
 			wsignalmap = NMFk.getsignalassignments(Wa, cw; clusterlabels=clusterlabels, dims=1)
 			cassgined = zeros(Int64, length(Wnames))
@@ -265,16 +269,24 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			cnew .= ' '
 			# snew = Vector{String}(undef, length(cw))
 			for (j, i) in enumerate(clusterlabels)
-				cnew[cw .== i] .= clusterlabels[wsignalmap[j]]
-				# snew[cw .== i] .= "S$(wsignalmap[j])"
-				ii = indexin(cw, [i]) .== true
-				cassgined[ii] .+= 1
-				@info "Signal $i -> H_S$(hsignalmap[j]) -> W_S$(wsignalmap[j]) -> $(clusterlabels[wsignalmap[j]]) Count $(sum(ii)) (remapped k-means clustering)"
+				ii = indexin(cw, [clusterlabels[wsignalmap[j]]]) .== true
+				@info "Signal $i -> H_S$(hsignalmap[j]) -> W_S$(wsignalmap[j]) -> $(clusterlabels[wsignalmap[j]]) Count: $(sum(ii)) (remapped k-means clustering)"
 
 			end
+			hwmap = indexin(hsignalmap, wsignalmap)
+			# whmap = indexin(wsignalmap, hsignalmap)
+			# @show hwmap
+			# @show whmap
+			# @show hsignalmap
+			# @show wsignalmap
+			for (j, i) in enumerate(clusterlabels)
+				ii = indexin(cw, [clusterlabels[hwmap[j]]]) .== true
+				cnew[ii] .= i
+				cassgined[ii] .+= 1
+				@info "Signal $(clusterlabels[hwmap[j]]) -> $(i) Count: $(sum(ii))"
+		end
 			# @info hsignalmap, clusterlabels
 			# @info wsignalmap, clusterlabels[wsignalmap]
-			cs = sortperm(cnew)
 			if any(cassgined .== 0)
 				@warn "$(uppercasefirst(Wcasefilename)) not assigned to any cluster:"
 				display(Wnames[cassgined .== 0])
@@ -319,6 +331,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			if dumpcsv
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"];  Wnames Wm cnew], ',')
 			end
+			cs = sortperm(cnew)
 			if createplots
 				NMFk.plotmatrix(Wm; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
