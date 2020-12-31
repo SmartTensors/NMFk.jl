@@ -272,8 +272,8 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				@info "Signal $i -> H_S$(hsignalmap[j]) -> W_S$(wsignalmap[j]) -> $(clusterlabels[wsignalmap[j]]) Count $(sum(ii)) (remapped k-means clustering)"
 
 			end
-			@info hsignalmap, clusterlabels
-			@info wsignalmap, clusterlabels[wsignalmap]
+			# @info hsignalmap, clusterlabels
+			# @info wsignalmap, clusterlabels[wsignalmap]
 			cs = sortperm(cnew)
 			if any(cassgined .== 0)
 				@warn "$(uppercasefirst(Wcasefilename)) not assigned to any cluster:"
