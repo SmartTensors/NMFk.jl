@@ -278,10 +278,12 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			if any(cassgined .== 0)
 				@warn "$(uppercasefirst(Wcasefilename)) not assigned to any cluster:"
 				display(Wnames[cassgined .== 0])
+				@error "Something is wrong!"
 			end
 			if any(cassgined .> 1)
-				@warn "$(uppercasefirst(Wcasefilename)) assigned to more than luster:"
+				@warn "$(uppercasefirst(Wcasefilename)) assigned to more than cluster:"
 				display([Wnames[cassgined .> 1] cassgined[cassgined .> 1]])
+				@error "Something is wrong!"
 			end
 			Wm = Wa ./ maximum(Wa; dims=1)
 			Wm[Wm .< eps(eltype(Wa))] .= 0
