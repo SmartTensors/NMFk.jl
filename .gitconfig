@@ -6,9 +6,9 @@
 	precomposeunicode = true
 	logallrefupdates = true
 [remote "origin"]
+	url = https://github.com/TensorDecompositions/NMFk.jl.git
 	url = https://github.com/SmartTensors/NMFk.jl
 	url = https://gitlab.com/smarttensors/NMFk.jl
-	url = https://github.com/TensorDecompositions/NMFk.jl.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 [branch "master"]
 	remote = origin

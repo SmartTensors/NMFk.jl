@@ -83,7 +83,9 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; clusterattributes::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wplotlabel::Bool=!(length(Wnames) > 100), Hplotlabel::Bool=!(length(Hnames) > 100), plottimeseries::Symbol=:none, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
+function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; ordersignal::Symbol=:count, clusterattributes::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector{Int64}=collect(1:length(Wnames)), Horder::AbstractVector{Int64}=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wplotlabel::Bool=!(length(Wnames) > 100), Hplotlabel::Bool=!(length(Hnames) > 100), plottimeseries::Symbol=:none, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
+	@assert length(Wnames) == length(Worder)
+	@assert length(Hnames) == length(Horder)
 	if length(Wnames) > 100 && length(Hnames) > 100
 		biplotlabel = :none
 	elseif length(Wnames) > 100
@@ -110,9 +112,9 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				Hcolors[Htypes .== t] .= NMFk.colors[j]
 			end
 		end
-		Hnametypes = Hnames .* " " .* String.(Htypes)
+		Hnametypes = (Hnames .* " " .* String.(Htypes))[Horder]
 	else
-		Hnametypes = Hnames
+		Hnametypes = Hnames[Horder]
 	end
 	Hnamesmaxlength = max(length.(Hnames)...)
 	if length(Wtypes) > 0
@@ -122,11 +124,13 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				Wcolors[attributetype .== t] .= NMFk.colors[j]
 			end
 		end
-		Wnametypes = Wnames .* " " .* String.(Wtypes)
+		Wnametypes = (Wnames .* " " .* String.(Wtypes))[Worder]
 	else
-		Wnametypes = Wnames
+		Wnametypes = Wnames[Worder]
 	end
 	Wnamesmaxlength = max(length.(Wnames)...)
+	Wnames = Wnames[Worder]
+	Hnames = Hnames[Horder]
 	if lon != nothing && lat != nothing
 		@assert length(lon) == length(lat)
 		plotmap = 0
@@ -141,7 +145,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 
 		if Hsize > 1
 			na = convert(Int64, size(H[k], 2) / Hsize)
-			Wa = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
+			Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
 			@assert length(Hnames) == na
 			i1 = 1
 			i2 = Hsize
@@ -150,6 +154,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				i1 += Hsize
 				i2 += Hsize
 			end
+			Ha = Ha[:,Horder]
 		elseif length(Hmap) > 0
 			@assert length(Hmap) == size(H[k], 2)
 			mu = unique(Hmap)
@@ -159,9 +164,10 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			for (i, m) in enumerate(mu)
 				Ha[:,i] = sum(H[k][:, Hmap .== m]; dims=2)
 			end
+			Ha = Ha[:,Horder]
 		else
-			Ha = H[k]
-			@assert length(Hnames) == size(Ha, 2)
+			@assert length(Hnames) == size(H[k], 2)
+			Ha = H[k][:,Horder]
 		end
 
 		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Hnames permutedims(Ha)], ',')
@@ -238,6 +244,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 					i1 += Wsize
 					i2 += Wsize
  				end
+ 				Wa = Wa[Worder,:]
  			elseif length(Wmap) > 0
  				@assert length(Wmap) == size(W[k], 1)
  				mu = unique(Ws)
@@ -247,9 +254,10 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
  				for (i, m) in enumerate(mu)
  					Wa[i,:] = sum(W[k][Wmap .== m,:]; dims=1)
  				end
+ 				Wa = Wa[Worder,:]
 			else
-				Wa = W[k]
-				@assert length(Wnames) == size(Wa, 1)
+				@assert length(Wnames) == size(W[k], 1)
+				Wa = W[k][Worder,:]
 			end
 			@info("$(uppercasefirst(Wcasefilename)) (signals=$k)")
 			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Wnames Wa], ',')
