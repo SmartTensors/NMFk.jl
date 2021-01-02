@@ -137,8 +137,11 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 	end
 	Wclusters = Vector{Vector{Char}}(undef, length(krange))
 	Hclusters = Vector{Vector{Char}}(undef, length(krange))
+	Sorder = Vector{Vector{Int64}}(undef, length(krange))
 	for (ki, k) in enumerate(krange)
 		@info("Number of signals: $k")
+
+		isignalmap = signal_importance(W[k], H[k])
 
 		@info("$(uppercasefirst(Hcasefilename)) (signals=$k)")
 		recursivemkdir(resultdir; filename=false)
@@ -169,6 +172,8 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			@assert length(Hnames) == size(H[k], 2)
 			Ha = H[k][:,Horder]
 		end
+		Hm = permutedims(Ha ./ maximum(Ha; dims=2))
+		Hm[Hm .< eps(eltype(Ha))] .= 0
 
 		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Hnames permutedims(Ha)], ',')
 		if cutoff > 0
@@ -178,31 +183,57 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				display(Hnames[ia[i,:]])
 			end
 		end
+
 		ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true)[1].assignments)
 		Hclusters[ki] = ch
 		clusterlabels = sort(unique(ch))
 		hsignalmap = NMFk.getsignalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
+		if ordersignal == :importance
+			signalmap = isignalmap
+		else
+			signalmap = hsignalmap
+		end
+		Sorder[ki] = signalmap
+		signalhmap = indexin(signalmap, hsignalmap)
+		cassgined = zeros(Int64, length(Hnames))
+		chnew = Vector{eltype(ch)}(undef, length(ch))
+		chnew .= ' '
+		for (j, i) in enumerate(clusterlabels)
+			ii = indexin(ch, [clusterlabels[signalhmap[j]]]) .== true
+			chnew[ii] .= i
+			cassgined[ii] .+= 1
+			@info "Signal $(clusterlabels[signalhmap[j]]) -> $(i) Count: $(sum(ii))"
+		end
+		if any(cassgined .== 0)
+			@warn "$(uppercasefirst(Hcasefilename)) not assigned to any cluster:"
+			display(Hnames[cassgined .== 0])
+			@error "Something is wrong!"
+		end
+		if any(cassgined .> 1)
+			@warn "$(uppercasefirst(Hcasefilename)) assigned to more than cluster:"
+			display([Hnames[cassgined .> 1] cassgined[cassgined .> 1]])
+			@error "Something is wrong!"
+		end
+		Hclusters[ki] = chnew
 		clustermap = Vector{Char}(undef, k)
 		clustermap .= ' '
-		Hm = permutedims(Ha ./ maximum(Ha; dims=2))
-		Hm[Hm .< eps(eltype(Ha))] .= 0
 		io = open("$resultdir/$(Hcasefilename)-$(k)-groups.txt", "w")
 		for (j, i) in enumerate(clusterlabels)
-			@info "Signal $i (S$(hsignalmap[j])) (k-means clustering)"
-			write(io, "Signal $i (S$(hsignalmap[j]))\n")
+			@info "Signal $i (S$(signalmap[j])) (k-means clustering)"
+			write(io, "Signal $i (S$(signalmap[j]))\n")
 			ii = indexin(ch, [i]) .== true
-			is = sortperm(Hm[ii,hsignalmap[j]]; rev=true)
-			d = [Hnames[ii] Hm[ii,hsignalmap[j]]][is,:]
+			is = sortperm(Hm[ii,signalmap[j]]; rev=true)
+			d = [Hnames[ii] Hm[ii,signalmap[j]]][is,:]
 			display(d)
 			for i = 1:size(d, 1)
 				write(io, "$(rpad(d[i,1], Hnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
 			end
 			write(io, '\n')
-			clustermap[hsignalmap[j]] = i
+			clustermap[signalmap[j]] = i
 		end
 		close(io)
-		@assert hsignalmap == sortperm(clustermap)
-		@assert clustermap[hsignalmap] == clusterlabels
+		@assert signalmap == sortperm(clustermap)
+		@assert clustermap[signalmap] == clusterlabels
 		dumpcsv = true
 		if lon != nothing && lat != nothing
 			if length(lon) != length(ch)
@@ -220,17 +251,17 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		cs = sortperm(ch)
 		if createplots
 			NMFk.plotmatrix(Hm; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Hnames[i]) $(ch[i])" for i=1:length(ch)], colorkey=false, minor_label_font_size=Hmatrix_font_size)
-			NMFk.plotmatrix(Hm[:,hsignalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Hnames[i]) $(ch[i])" for i=1:length(ch)], colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
-			NMFk.plotmatrix(Hm[cs,hsignalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Hnames[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
-			# NMFk.plotmatrix(permutedims((Ha ./ sum(Ha; dims=2)))[cs,hsignalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Hnametypes[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false, minor_label_font_size=Hmatrix_font_size)
+			NMFk.plotmatrix(Hm[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Hnames[i]) $(ch[i])" for i=1:length(ch)], colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
+			NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Hnames[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
+			# NMFk.plotmatrix(permutedims((Ha ./ sum(Ha; dims=2)))[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Hnametypes[cs][i]) $(ch[cs][i])" for i=1:length(ch)], colorkey=false, minor_label_font_size=Hmatrix_font_size)
 			if plottimeseries == :H || plottimeseries == :WH
 				Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames)
 			end
 		end
 		if createbiplots
 			NMFk.biplots(permutedims(Ha) ./ maximum(Ha), Hnames, collect(1:k); filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=ch, plotlabel=Hplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
-			NMFk.biplots(permutedims(Ha)[cs,hsignalmap] ./ maximum(Ha), Hnames[cs], clusterlabels; filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=ch[cs], plotlabel=Hplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
-			length(Htypes) > 0 && NMFk.biplots(permutedims(Ha)[cs,hsignalmap]./ maximum(Ha), Hnames[cs], clusterlabels; filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
+			NMFk.biplots(permutedims(Ha)[cs,signalmap] ./ maximum(Ha), Hnames[cs], clusterlabels; filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=ch[cs], plotlabel=Hplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
+			length(Htypes) > 0 && NMFk.biplots(permutedims(Ha)[cs,signalmap]./ maximum(Ha), Hnames[cs], clusterlabels; filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
 		end
 		if clusterattributes
 			if Wsize > 1
@@ -259,6 +290,9 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				@assert length(Wnames) == size(W[k], 1)
 				Wa = W[k][Worder,:]
 			end
+			Wm = Wa ./ maximum(Wa; dims=1)
+			Wm[Wm .< eps(eltype(Wa))] .= 0
+
 			@info("$(uppercasefirst(Wcasefilename)) (signals=$k)")
 			DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Wnames Wa], ',')
 			if cutoff > 0
@@ -275,20 +309,15 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				ii = indexin(cw, [i]) .== true
 				@info "Signal $i (S$(wsignalmap[j])) Count: $(sum(ii))"
 			end
-			hwmap = indexin(hsignalmap, wsignalmap)
-			# whmap = indexin(wsignalmap, hsignalmap)
-			# @show hwmap
-			# @show whmap
-			# @show hsignalmap
-			# @show wsignalmap
+			signalwmap = indexin(signalmap, wsignalmap)
 			cassgined = zeros(Int64, length(Wnames))
-			cnew = Vector{eltype(cw)}(undef, length(cw))
-			cnew .= ' '
+			cwnew = Vector{eltype(cw)}(undef, length(cw))
+			cwnew .= ' '
 			for (j, i) in enumerate(clusterlabels)
-				ii = indexin(cw, [clusterlabels[hwmap[j]]]) .== true
-				cnew[ii] .= i
+				ii = indexin(cw, [clusterlabels[signalwmap[j]]]) .== true
+				cwnew[ii] .= i
 				cassgined[ii] .+= 1
-				@info "Signal $(clusterlabels[hwmap[j]]) -> $(i) Count: $(sum(ii))"
+				@info "Signal $(clusterlabels[signalwmap[j]]) -> $(i) Count: $(sum(ii))"
 			end
 			if any(cassgined .== 0)
 				@warn "$(uppercasefirst(Wcasefilename)) not assigned to any cluster:"
@@ -300,16 +329,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				display([Wnames[cassgined .> 1] cassgined[cassgined .> 1]])
 				@error "Something is wrong!"
 			end
-			Wclusters[ki] = cnew
-			Wm = Wa ./ maximum(Wa; dims=1)
-			Wm[Wm .< eps(eltype(Wa))] .= 0
+			Wclusters[ki] = cwnew
 			io = open("$resultdir/$(Wcasefilename)-$(k)-groups.txt", "w")
 			for (j, i) in enumerate(clusterlabels)
 				@info "Signal $i (remapped k-means clustering)"
 				write(io, "Signal $i\n")
-				ii = indexin(cnew, [i]) .== true
-				is = sortperm(Wm[ii,hsignalmap[j]]; rev=true)
-				d = [Wnames[ii] Wm[ii,hsignalmap[j]]][is,:]
+				ii = indexin(cwnew, [i]) .== true
+				is = sortperm(Wm[ii,signalmap[j]]; rev=true)
+				d = [Wnames[ii] Wm[ii,signalmap[j]]][is,:]
 				display(d)
 				for i = 1:size(d, 1)
 					write(io, "$(rpad(d[i,1], Wnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
@@ -323,19 +350,19 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			# end
 			dumpcsv = true
 			if lon != nothing && lat != nothing
-				if length(lon) != length(cnew)
+				if length(lon) != length(cwnew)
 					(plotmap == 1) && @warn("Coordinate data does not match the number of either W matrix rows or H matrix columns!")
 				else
-					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cnew; figuredir=figuredir, hover=hover, title="Signals: $k")
+					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 					lonlat = [lon lat]
-					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Signal"]; Wnames lonlat Wm cnew], ',')
+					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(map(i->"S$i", 1:k)) "Signal"]; Wnames lonlat Wm cwnew], ',')
 					dumpcsv = false
 				end
 			end
 			if dumpcsv
-				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"];  Wnames Wm cnew], ',')
+				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"];  Wnames Wm cwnew], ',')
 			end
-			cs = sortperm(cnew)
+			cs = sortperm(cwnew)
 			if createplots
 				NMFk.plotmatrix(Wm; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				# sorted by Wa magnitude
@@ -343,20 +370,20 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				cws = sortperm(cw)
 				NMFk.plotmatrix(Wm[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cws][i]) $(cw[cws][i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
-				# @show ["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cw)]
-				NMFk.plotmatrix(Wm[:,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[i]) $(cnew[i])" for i=1:length(cnew)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
-				NMFk.plotmatrix(Wm[cs,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cnew)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
+				# @show ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cw)]
+				NMFk.plotmatrix(Wm[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[i]) $(cwnew[i])" for i=1:length(cwnew)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
+				NMFk.plotmatrix(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
 				# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
-				# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,hsignalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cnew[cs][i])" for i=1:length(cnew)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
+				# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				if plottimeseries == :W || plottimeseries == :WH
 					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames)
 				end
 			end
 			if createbiplots
-				NMFk.biplots(Wa ./ maximum(Wa), Wnames, collect(1:k); filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cnew, plotlabel=Wplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
-				NMFk.biplots(Wa[cs,hsignalmap] ./ maximum(Wa), Wnames[cs], clusterlabels; filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cnew[cs], plotlabel=Wplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
-				length(Wtypes) > 0 && NMFk.biplots(Wa[cs,hsignalmap] ./ maximum(Wa), Wnames[cs], clusterlabels; filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
+				NMFk.biplots(Wa ./ maximum(Wa), Wnames, collect(1:k); filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
+				NMFk.biplots(Wa[cs,signalmap] ./ maximum(Wa), Wnames[cs], clusterlabels; filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
+				length(Wtypes) > 0 && NMFk.biplots(Wa[cs,signalmap] ./ maximum(Wa), Wnames[cs], clusterlabels; filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
 			end
 			if createbiplots
 				if biplotlabel == :W
@@ -374,10 +401,10 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				end
 				if biplotcolor == :W
 					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
-					biplotcolors = [typecolors(cnew, Wcolors); fill("gray", length(Hnames))]
+					biplotcolors = [typecolors(cwnew, Wcolors); fill("gray", length(Hnames))]
 				elseif biplotcolor == :WH
 					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
-					biplotcolors = [typecolors(cnew, Wcolors); typecolors(ch, Hcolors[k+1:end])]
+					biplotcolors = [typecolors(cwnew, Wcolors); typecolors(ch, Hcolors[k+1:end])]
 				elseif biplotcolor == :H
 					M = [permutedims(Ha ./ maximum(Ha)); Wa ./ maximum(Wa)]
 					biplotcolors = [typecolors(ch, Hcolors); fill("gray", length(Wnames))]
@@ -387,13 +414,13 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				end
 				NMFk.biplots(M, biplotlabels, collect(1:k); filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
 				if biplotcolor == :W
-					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,hsignalmap]
+					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,signalmap]
 				elseif biplotcolor == :WH
-					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,hsignalmap]
+					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,signalmap]
 				elseif biplotcolor == :H
-					M = [permutedims(Ha ./ maximum(Ha)); Wa ./ maximum(Wa)][:,hsignalmap]
+					M = [permutedims(Ha ./ maximum(Ha)); Wa ./ maximum(Wa)][:,signalmap]
 				elseif biplotcolor == :none
-					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,hsignalmap]
+					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,signalmap]
 				end
 				NMFk.biplots(M, biplotlabels, clusterlabels; filename="$figuredir/all-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label)
 			end
@@ -438,7 +465,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k)-table_count_$(cutoff_s).csv", table3, ',')
 		end
 	end
-	return Wclusters, Hclusters
+	return Sorder, Wclusters, Hclusters
 end
 
 function signalorder(X::AbstractArray, dim=1)
