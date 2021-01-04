@@ -143,6 +143,7 @@ function labelassignements(c::AbstractVector)
 	for a in t
 		cassignments[c .== a] .= types[a]
 	end
+	@assert types == sort(unique(cassignments))
 	return cassignments
 end
 
