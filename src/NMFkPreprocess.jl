@@ -15,11 +15,16 @@ function log10s(v::AbstractVector; offset::Number=1)
 	return vm
 end
 
-function datanalytics(v::AbstractVector; kw...)
+function datanalytics(v::AbstractVector; plothistogram::Bool=true, kw...)
 	ig = .!isnan.(v)
 	vn = v[ig]
-	NMFk.histogram(vn; kw...)
-	return minimum(vn), maximum(vn), Statistics.std(vn), sum(ig)
+	if length(vn) > 0
+		plothistogram && NMFk.histogram(vn; kw...)
+		return minimum(vn), maximum(vn), Statistics.std(vn), sum(ig)
+	else
+		plothistogram && @warn("No data!")
+		return -Inf, Inf, Inf, 0
+	end
 end
 
 function datanalytics(a::AbstractMatrix; dims::Integer=1, kw...)
@@ -28,7 +33,7 @@ function datanalytics(a::AbstractMatrix; dims::Integer=1, kw...)
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where T
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, quiet::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where T
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	min = Vector{T}(undef, length(names))
@@ -38,10 +43,10 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	for (i, n) in enumerate(names)
 		nt = ntuple(k->(k == dims ? i : Colon()), ndims(a))
 		if logv[i]
-			@info("$n: log10-transformed")
+			!quiet && @info("$n: log10-transformed")
 			v = log10s(vec(a[nt...]))
 		else
-			@info n
+			!quiet && @info n
 			v = vec(a[nt...])
 		end
 		if casefilename == ""
@@ -54,14 +59,16 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			end
 		end
 		min[i], max[i], std[i], c[i] = datanalytics(v; filename=filename, kw..., title=n)
-		@info "$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Count $(c[i])"
-		println()
+		!quiet && println("$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Count $(c[i])")
 	end
-	@info "Attributes"
-	println("Name Min Max StdDev Count (non-NaN's)")
-	for (i, n) in enumerate(names)
-		println("$n $(min[i]) $(max[i]) $(std[i]) $(c[i])")
+	if !quiet
+		@info "Attributes"
+		println("Name Min Max StdDev Count (non-NaN's)")
+		for (i, n) in enumerate(names)
+			println("$n $(min[i]) $(max[i]) $(std[i]) $(c[i])")
+		end
 	end
+	return min, max, std, c
 end
 
 function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)

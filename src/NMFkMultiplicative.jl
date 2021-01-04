@@ -14,7 +14,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 	X[izero] .= 1e-32
 	inan = isnan.(X)
 	if Hfixed || Wfixed
-		X[inan] .= 1e-32 # In some cases this case be ZEROO; but sometimes it fails
+		X[inan] .= 1e-32 # This can be ZERO; but sometimes, it fails
 	else
 		X[inan] .= 1e-32
 	end
