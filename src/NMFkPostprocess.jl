@@ -522,3 +522,13 @@ function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractSt
 	end
 	return Wclusterlabelsnew, Wsignals, Hclusterlabels, Hsignals
 end
+
+function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, locationclusters::AbstractVector; dims::Integer=2, plothistogram::Bool=false, quiet::Bool=true)
+	for c in unique(sort(locationclusters))
+		i = locationclusters .== c
+		@info "Location cluster: $c"
+		min, max, std, count = NMFk.datanalytics(X[i,:], attributes; dims=dims, plothistogram=plothistogram, quiet=quiet)
+		@info "Missing attribute measurements:"
+		display(attributes[count.==0])
+	end
+end
