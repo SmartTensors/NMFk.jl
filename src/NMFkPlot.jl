@@ -717,7 +717,10 @@ function setplotfileformat(filename::String, format::String="PNG")
 end
 
 function plotfileformat(p, filename::String, hsize, vsize; dpi=imagedpi)
-	if vsize > 20Compose.inch
+	if vsize > 20Compose.inch && hsize > 20Compose.inch
+		hsize = 20Compose.inch
+		vsize = 20Compose.inch
+	elseif vsize > 20Compose.inch
 		hsize /= vsize / 20
 		vsize = 20Compose.inch
 	elseif hsize > 20Compose.inch
