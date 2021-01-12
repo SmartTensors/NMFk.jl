@@ -105,7 +105,7 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 	return window_k
 end
 
-function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, df::DataFrames.DataFrame, df_header::DataFrames.DataFrame, api::AbstractVector; nNMF::Integer=100, loading::Bool=true, problem::AbstractString="gaswellshor", figuredirdata::AbstractString="figures-data-eagleford", resultdir::AbstractString="results-nmfk-eagleford", figuredirresults::AbstractString="figures-nmfk-eagleford", scale::Bool=false, normalize::Bool=true)
+function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, df::DataFrames.DataFrame, df_header::DataFrames.DataFrame, api::AbstractVector; nNMF::Integer=100, load::Bool=true, problem::AbstractString="gaswellshor", figuredirdata::AbstractString="figures-data-eagleford", resultdir::AbstractString="results-nmfk-eagleford", figuredirresults::AbstractString="figures-nmfk-eagleford", scale::Bool=false, normalize::Bool=true, kw...)
 	@assert length(syears) == length(eyears)
 
 	for (qq, y) in enumerate(syears)
@@ -116,7 +116,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 
 		gas_data, existing_wells = NMFk.df2matrix(df, api, dates, :WellGas)
 		nw = sum(existing_wells)
-		Mads.plotseries(gas_data, "$(figuredirdata)-$(problem)/gas_$(period).png"; xaxis=dates)
+		Mads.plotseries(gas_data, "$(figuredirdata)-$(problem)/data_$(period).png"; xaxis=dates)
 
 		@info "$(period): Number of wells $nw"
 
@@ -137,7 +137,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 		@info("Training start date: $(minimum(startdates_train))")
 		@info("Training end   date: $(minimum(startdates_train))")
 
-		Mads.plotseries(gas_train, "$(figuredirdata)-$(problem)/gas-shifted-$(period).png"; xmax=size(gas_train, 1))
+		Mads.plotseries(gas_train, "$(figuredirdata)-$(problem)/data-shifted-$(period).png"; xmax=size(gas_train, 1))
 
 		gas_pred, startdates_pred, enddates_pred = NMFk.df2matrix_shifted(df, api[existing_wells], dates_pred, :WellGas)
 		@info("Prediction matrix size: $(size(gas_pred))")
@@ -146,7 +146,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 
 		@assert startdates_train == startdates_pred
 
-		Mads.plotseries(gas_pred, "$(figuredirdata)-$(problem)/gas-shifted-$(period)-all.png"; xmax=size(gas_pred, 1))
+		Mads.plotseries(gas_pred, "$(figuredirdata)-$(problem)/data-shifted-$(period)-all.png"; xmax=size(gas_pred, 1))
 
 		train_window = size(gas_train, 1)
 		pred_window = size(gas_pred, 1) - size(gas_train, 1)
@@ -154,7 +154,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 		ds = [train_window]
 		@info("Training window: $train_window")
 		@info("Prediction window: $(pred_window)")
-		dk = NMFk.progressive(gas_train, ds, 2:5, nNMF; resultdir="$(resultdir)-$(problem)", casefilename="gas_$(period)", method=:simple, load=loading, scale=scale, normalize=normalize)
+		dk = NMFk.progressive(gas_train, ds, 2:5, nNMF; resultdir="$(resultdir)-$(problem)", casefilename="gas_$(period)", method=:simple, load=load, scale=scale, normalize=normalize, kw...)
 
 		dk = [i for i=2:dk[1]]
 		ds = repeat(ds, length(dk))
@@ -169,7 +169,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 				Wall, Hall, fitquality, robustness, aic = NMFk.load(dk[j], nNMF; resultdir="$(resultdir)-$(problem)", casefilename="gas_$(period)_$(ds[j])")
 			end
 
-			Mads.plotseries(Wall, "$(figuredirresults)-$(problem)/gas-signals-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png"; title="", ymin=0.0)
+			Mads.plotseries(Wall, "$(figuredirresults)-$(problem)/data-signals-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png"; title="", ymin=0.0)
 			Oall = Wall * Hall
 			if sum(Oall) == 0
 				@warn("Something is wrong!")
@@ -211,7 +211,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 						ending =  abs(perror) > 50 ? "-bad" : ""
 						# ending = ""
 						gm = [Gadfly.layer(xintercept=[Dates.Date(y - 1, 12, 1)], Gadfly.Geom.vline(color=["darkgray"], size=[4Gadfly.pt]))]
-						Mads.plotseries([Oall[1:p,i] gas_pred[1:p,i]], "$(figuredirresults)-$(problem)$(ending)/gas-prediction-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)-well-$s.png"; title="Well $(s) : $(period_pred)",  names=["Prediction $(round(pred; sigdigits=3))", "Truth $(round(truth; sigdigits=3))"], colors=["blue", "red"], ymin=0.0, xmin=startdates_train[i], xmax=startdates_train[i] + Dates.Month(p-1), xaxis=collect(startdates_train[i]:Dates.Month(1):startdates_train[i] + Dates.Month(p-1)), gm=gm, quiet=true, dpi=100)
+						Mads.plotseries([Oall[1:p,i] gas_pred[1:p,i]], "$(figuredirresults)-$(problem)$(ending)/data-prediction-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)-well-$s.png"; title="Well $(s) : $(period_pred)",  names=["Prediction $(round(pred; sigdigits=3))", "Truth $(round(truth; sigdigits=3))"], colors=["blue", "red"], ymin=0.0, xmin=startdates_train[i], xmax=startdates_train[i] + Dates.Month(p-1), xaxis=collect(startdates_train[i]:Dates.Month(1):startdates_train[i] + Dates.Month(p-1)), gm=gm, quiet=true, dpi=100)
 					end
 				end
 			end
@@ -219,7 +219,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 			r2a = NMFk.r2(gas_ta, gas_pa)
 			@info("Window $period: Training size $(ds[j]) Truth size: $(length(gas_t)) Prediction size: $(length(gas_p)) R2 (pred): $r2 R2 (all) $r2a")
 
-			if loading && isfile("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2")
+			if load && isfile("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2")
 				c_gas = FileIO.load("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas")
 			else
 				c_gas = NMFk.labelassignements(NMFk.robustkmeans(Hall, dk[j])[1].assignments)
@@ -227,12 +227,12 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 			end
 
 			p = PlotlyJS.plot(NMFk.plot_wells(well_x, well_y, c_gas; hover=hovertext), Plotly.Layout(title="Gas $(period): $(dk[j]) types"))
-			PlotlyJS.savehtml(p, "$(figuredirresults)-$(problem)/gas-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).html", :remote)
+			PlotlyJS.savehtml(p, "$(figuredirresults)-$(problem)/data-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).html", :remote)
 
 			for ct in sort(unique(c_gas))
 				i = c_gas .== ct
 				@info "Type $(ct) wells: $(sum(i))"
-				Mads.plotseries(gas_train[:, i], "$(figuredirresults)-$(problem)/gas-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)_type_$(ct).png")
+				Mads.plotseries(gas_train[:, i], "$(figuredirresults)-$(problem)/data-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)_type_$(ct).png")
 			end
 
 			for ct in sort(unique(c_gas))
@@ -246,13 +246,13 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 				display(NMFk.bincount(df_header[!, :Orientation][findall((in)(api[existing_wells][i]), df_header[!, :API])]; cutoff=1))
 			end
 
-			NMFk.histogram(log10.(rate_ta), c_gas; title="Gas", xtitle="Gas Monthly Rate", ytitle="Count", filename="$(figuredirresults)-$(problem)/gas-histogram-volume-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", proportion=false, joined=false, separate=true, xlabelmap=i->"10<sup>$i</sup>", refine=2)
+			NMFk.histogram(log10.(rate_ta), c_gas; title="Gas", xtitle="Gas Monthly Rate", ytitle="Count", filename="$(figuredirresults)-$(problem)/data-histogram-volume-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", proportion=false, joined=false, separate=true, xlabelmap=i->"10<sup>$i</sup>", refine=2)
 			sd = map(i->length(startdate:Dates.Month(1):i), startdates_train)
-			NMFk.histogram(sd, c_gas; title="", xtitle="", ytitle="Count", filename="$(figuredirresults)-$(problem)/gas-histogram-startdate-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", proportion=false, joined=false, separate=true, xmap=i->Dates.epochms2datetime(Dates.datetime2epochms(Dates.DateTime(startdate + Dates.Month(floor(i))))), refine=2)
+			NMFk.histogram(sd, c_gas; title="", xtitle="", ytitle="Count", filename="$(figuredirresults)-$(problem)/data-histogram-startdate-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", proportion=false, joined=false, separate=true, xmap=i->Dates.epochms2datetime(Dates.datetime2epochms(Dates.DateTime(startdate + Dates.Month(floor(i))))), refine=2)
 
 			if length(gas_p) > 0
-				NMFk.plotscatter(gas_ta, gas_pa; filename="$(figuredirresults)-$(problem)/gas-scatter-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)_all.png", title="Gas $(period_pred): Window $(ds[j]) months r2=$(round(r2a; sigdigits=3)) count=$(length(gas_ta))", xtitle="Truth", ytitle="Prediction", line=true)
-				NMFk.plotscatter(gas_t, gas_p; filename="$(figuredirresults)-$(problem)/gas-scatter-$(stepsize)-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", title="Gas $(period_pred): Window $(ds[j]) months r2=$(round(r2; sigdigits=3)) count=$(length(gas_t))", xtitle="Truth", ytitle="Prediction", line=true)
+				NMFk.plotscatter(gas_ta, gas_pa; filename="$(figuredirresults)-$(problem)/data-scatter-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)_all.png", title="Gas $(period_pred): Window $(ds[j]) months r2=$(round(r2a; sigdigits=3)) count=$(length(gas_ta))", xtitle="Truth", ytitle="Prediction", line=true)
+				NMFk.plotscatter(gas_t, gas_p; filename="$(figuredirresults)-$(problem)/data-scatter-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", title="Gas $(period_pred): Window $(ds[j]) months r2=$(round(r2; sigdigits=3)) count=$(length(gas_t))", xtitle="Truth", ytitle="Prediction", line=true)
 			else
 				@warn("No data!")
 				@warn("Something went wrong")

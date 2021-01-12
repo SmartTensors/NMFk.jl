@@ -181,7 +181,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 				@info("Cluster assignments:")
 				display(clusterassignments)
 				@info("Cluster centroids:")
-				display(M)
+				display(clustercentroids)
 			end
 			ci = clusterassignments[:, 1]
 			for (i, c) in enumerate(ci)
@@ -210,7 +210,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		end
 		if saveall && casefilename != ""
 			filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
-			JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
+			JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
 		end
 	end
 	if best
@@ -424,15 +424,15 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	minsilhouette = 1
 	if nk > 1
 		if clusterWmatrix
-			clusterassignments, M = NMFk.clustersolutions(WBig[idxsort][idxsol], clusterWmatrix)
+			clusterassignments, clustercentroids = NMFk.clustersolutions(WBig[idxsort][idxsol], clusterWmatrix)
 		else
-			clusterassignments, M = NMFk.clustersolutions(HBig[idxsort][idxsol], clusterWmatrix)
+			clusterassignments, clustercentroids = NMFk.clustersolutions(HBig[idxsort][idxsol], clusterWmatrix)
 		end
 		if !quiet
 			@info("Cluster assignments:")
 			display(clusterassignments)
 			@info("Cluster centroids:")
-			display(M)
+			display(clustercentroids)
 		end
 		ci = clusterassignments[:, 1]
 		for (i, c) in enumerate(ci)
@@ -455,7 +455,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	if saveall && casefilename != ""
 		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
-		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue)
+		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
 	end
 	if best
 		Wa = Wbest

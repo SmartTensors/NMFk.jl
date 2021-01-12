@@ -297,7 +297,7 @@ function clustersolutions(factors::Vector, clusterWmatrix::Bool=false)
 	if !clusterWmatrix
 		factors = [permutedims(f) for f in factors]
 	end
-		return clusterLabels, permutedims(newClusterCenters)
+	return clusterLabels, permutedims(newClusterCenters)
 end
 
 "Cluster NMFk solutions"
