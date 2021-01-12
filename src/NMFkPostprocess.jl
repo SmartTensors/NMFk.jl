@@ -86,6 +86,8 @@ cutoff::Number = .9, cutoff_s::Number = 0.95
 function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; ordersignal::Symbol=:Hcount, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wplotlabel::Bool=!(length(Wnames) > 100), Hplotlabel::Bool=!(length(Hnames) > 100), plottimeseries::Symbol=:none, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
 	@assert length(Wnames) == length(Worder)
 	@assert length(Hnames) == length(Horder)
+	@assert any(Worder .== nothing) == false
+	@assert any(Horder .== nothing) == false
 	if length(Wnames) > 100 && length(Hnames) > 100
 		biplotlabel = :none
 	elseif length(Wnames) > 100
