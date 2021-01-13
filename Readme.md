@@ -1,4 +1,4 @@
-NMFk: Nonnegative Matrix Factorization using k-means clustering
+NMFk: Nonnegative Matrix Factorization + k-means clustering and physics constraints
 ================
 
 <div style="text-align: left">
@@ -7,7 +7,7 @@ NMFk: Nonnegative Matrix Factorization using k-means clustering
 
 **NMFk** is a novel unsupervised machine learning methodology which allows for automatic identification of the optimal number of features (signals) present in the data when NMF (Nonnegative Matrix Factorization) analyses are performed.
 Classical NMF approaches do not allow for automatic estimation of the number of features.
-**NMFk** estimates the number of features `k` through k-means clustering coupled with regularization constraints.
+**NMFk** estimates the number of features `k` through k-means clustering coupled with regularization constraints (physical, mathematical, etc.).
 
 **NMFk** can be applied to perform:
 
@@ -17,7 +17,7 @@ Classical NMF approaches do not allow for automatic estimation of the number of 
 - Image recognition
 - Separation of (physics) processes
 - Discovery of unknown dependencies and phenomena
-- Development reduced-order/surrogate models
+- Development of reduced-order/surrogate models
 - Identification of dependencies between model inputs and outputs
 - Guiding development of physics models representing the ML analyzed data
 - Data classification
@@ -29,7 +29,19 @@ Classical NMF approaches do not allow for automatic estimation of the number of 
 The parallelization allows for utilization of multi-core / multi-processor environments.
 GPU and TPU accelerations are also available through existing Julia packages.
 
+**NMFk** provides advanced tools for visualization, pre- and post-processing.
+These tools substantially facilitate utilization of the package in various real-world applications. 
+
 **NMFk** methodology and applications are discussed in the the papers and presentations listed below.
+
+**NMFk** is demonstrated with a series of examples and test problems provided here.
+
+**NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.github.io](https://smarttensors.github.io)).
+
+<div style="text-align: left">
+    <img src="logo/SmartTensorsNewSmall.png" alt="nmfk" width=25%  max-width=125px;/>
+</div>
+
 
 ### Installation
 
@@ -53,7 +65,7 @@ Docker
 docker run --interactive --tty montyvesselinov/tensors
 ```
 
-The docker image provides access to all **TensorDecomposition** packages.
+The docker image provides access to all **SmartTensors** packages ([smarttensors.github.io](https://smarttensors.github.io)).
 
 ### Testing
 
@@ -199,7 +211,7 @@ Presentations are also available at [slideshare.net](https://www.slideshare.net/
 
 ### Extra information
 
-For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [tensordecompositions.github.io],(https://tensordecompositions.github.io), and [tensors.lanl.gov](http://tensors.lanl.gov)
+For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [smarttensors.github.io](https://smarttensors.github.io), and [tensors.lanl.gov](http://tensors.lanl.gov)
 
 Installation behind a firewall
 ------------------------------
@@ -263,8 +275,7 @@ ENV["https_proxy"] = "http://proxyout.lanl.gov:8080"
 ENV["no_proxy"] = ".lanl.gov"
 ```
 
-
-Do disable proxies, type these commands in the Julia REPL:
+To disable proxies, type these commands in the Julia REPL:
 
 ```julia
 ENV["ftp_proxy"] =  ""
