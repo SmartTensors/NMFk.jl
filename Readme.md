@@ -39,7 +39,7 @@ These tools substantially facilitate utilization of the package in various real-
 **NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.github.io](https://smarttensors.github.io)).
 
 <div style="text-align: left">
-    <img src="logo/SmartTensorsNewSmall.png" alt="nmfk" width=25%  max-width=125px;/>
+    <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
 </div>
 
 
