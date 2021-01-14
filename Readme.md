@@ -126,6 +126,10 @@ The code returns the `fitquality` and `robustness`; they can appied to represent
 NMFk.plot_signal_selecton(2:5, fitquality, robustness)
 ```
 
+<div style="text-align: left">
+    <img src="images/signal_selection.png" alt="signal_selection" width=25%  max-width=200px;/>
+</div>
+
 The code also returns estimates of matrices `W` and `H`.
 
 It can be easily verified that estimated `We[kopt]` and `He[kopt]` are scaled versions of the original `W` and `H` matrices.
