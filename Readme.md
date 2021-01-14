@@ -16,12 +16,13 @@ Classical NMF approaches do not allow for automatic estimation of the number of 
 - Blind source separation (**BSS**)
 - Detection of disruptions / anomalies
 - Image recognition
+- Text mining
+- Data classification
 - Separation of (physics) processes
 - Discovery of unknown dependencies and phenomena
 - Development of reduced-order/surrogate models
 - Identification of dependencies between model inputs and outputs
 - Guiding development of physics models representing the ML analyzed data
-- Data classification
 - Blind predictions
 - Optimization of data acquisition (optimal experimental design)
 - Labeling of datasets for supervised ML analyses
@@ -106,7 +107,7 @@ import NMFk
 We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
 ```
 
-The execution will produce something like this:
+The execution will produce output like this:
 
 ```
 [ Info: Results
@@ -119,8 +120,15 @@ Signals:  5 Fit: 2.598571e-05 Silhouette:   -0.6757581 AIC:    -915.6589
 
 The code returns the estimated optimal number of signals `kopt` which in this case as expected is equal to 3.
 
+The code returns the `fitquality` and `robustness`; they can appied to represent how the solutions change with the increase of `k`:
+
+```julia
+NMFk.plot_signal_selecton(2:5, fitquality, robustness)
+```
+
 The code also returns estimates of matrices `W` and `H`.
-It can be easily verified that `We[kopt]` and `He[kopt]` are scaled versions of the original `W` and `H` matrices.
+
+It can be easily verified that estimated `We[kopt]` and `He[kopt]` are scaled versions of the original `W` and `H` matrices.
 
 Note that the order of columns ('signals') in `W` and  `We[kopt]` are not expected to match.
 Also note that the order of rows ('sensors') in `H` and  `He[kopt]` are also not expected to match.
@@ -140,7 +148,7 @@ NMFk.plotmatrix(H)
 NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]))
 ```
 
-More examples can be found the in the `test`, `demo`, and `examples` directories of **NMFk**.
+More examples can be found the in the `test`, `demo`, `examples` and `notebooks` directories of the **NMFk** repository.
 
 ### Applications:
 
@@ -148,13 +156,19 @@ More examples can be found the in the `test`, `demo`, and `examples` directories
 The analyzed datasets include model outputs, laboratory experimental data, and field tests:
 
 - Climate modeling
-- Material characterization using X rays
+- Watershed modeling
+- Aquifer modeling
+- Surface-water and Groundwater analyses
+- Material characterization
 - Reactive mixing
 - Molecular dynamics
 - Contaminant transport
 - Induced seismicity
 - Phase separation of co-polymers
 - Oil / Gas extraction from unconventional reservoirs
+- Geothermal exploration
+- Geologic carbon storages
+- Wild fires
 
 ### Videos:
 
