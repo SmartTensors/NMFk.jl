@@ -127,7 +127,7 @@ NMFk.plot_signal_selecton(2:5, fitquality, robustness)
 ```
 
 <div style="text-align: left">
-    <img src="images/signal_selection.png" alt="signal_selection" width=125%  max-width=300px;/>
+    <img src="images/signal_selection.png" alt="signal_selection" width=75%  max-width=200px;/>
 </div>
 
 The code also returns estimates of matrices `W` and `H`.
@@ -179,7 +179,7 @@ The analyzed datasets include model outputs, laboratory experimental data, and f
 - Progress of nonnegative matrix factorization process:
 
 <div style="text-align: left">
-    <img src="movies/m643.gif" alt="nmfk-example" width=100%  max-width=250px;/>
+    <img src="movies/m643.gif" alt="nmfk-example" width=75%  max-width=250px;/>
 </div>
 
 Videos are also available at [YouTube](https://www.youtube.com/playlist?list=PLpVcrIWNlP22LfyIu5MSZ7WHp7q0MNjsj)
