@@ -179,7 +179,7 @@ The analyzed datasets include model outputs, laboratory experimental data, and f
 - Progress of nonnegative matrix factorization process:
 
 <div style="text-align: left">
-    <img src="movies/m643.gif" alt="nmfk-example" width=60%  max-width=250px;/>
+    <img src="movies/m643.gif" alt="nmfk-example" width=100%  max-width=250px;/>
 </div>
 
 Videos are also available at [YouTube](https://www.youtube.com/playlist?list=PLpVcrIWNlP22LfyIu5MSZ7WHp7q0MNjsj)
