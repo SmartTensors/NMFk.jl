@@ -41,7 +41,7 @@ These tools substantially facilitate utilization of the package in various real-
 **NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.github.io](https://smarttensors.github.io)).
 
 <div style="text-align: left">
-    <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=125%  max-width=125px;/>
+    <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
 </div>
 
 
@@ -127,7 +127,7 @@ NMFk.plot_signal_selecton(2:5, fitquality, robustness)
 ```
 
 <div style="text-align: left">
-    <img src="images/signal_selection.png" alt="signal_selection" width=25%  max-width=200px;/>
+    <img src="images/signal_selection.png" alt="signal_selection" width=125%  max-width=300px;/>
 </div>
 
 The code also returns estimates of matrices `W` and `H`.
