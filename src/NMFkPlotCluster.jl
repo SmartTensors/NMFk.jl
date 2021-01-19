@@ -18,8 +18,8 @@ Gadfly.Stat.default_scales(stat::HeatMapStatistic) = [Gadfly.Scale.z_func(), Gad
 function Gadfly.Stat.apply_statistic(stat::HeatMapStatistic, scales::Dict{Symbol,Gadfly.ScaleElement}, coord::Gadfly.CoordinateElement,aes::Gadfly.Aesthetics)
 	if stat.metric == nothing
 		r, c = size(aes.z)
-		aes.x = repeat(aes.x; outer=c)
-		aes.y = repeat(aes.y; inner=r)
+		aes.x = repeat(aes.x; inner=r)
+		aes.y = repeat(aes.y; outer=c)
 		dist = aes.z
 		aes.color_key_title = ""
 	else
@@ -76,11 +76,11 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	usecol = guide.location == :both || guide.location == :right
 	if guide.raw
 		if userow
-			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=1))
+			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=2))
 			branches_row, _, pos_row = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		if usecol
-			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=2))
+			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=1))
 			_, branches_col, pos_col = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		r, c = size(aes.z)
@@ -92,25 +92,40 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	end
 	gpg = Gadfly.Guide.PositionedGuide[]
 	if userow
-		ctx_row = Compose.context(units=Compose.UnitBox(0.5, pos_row, r, -pos_row, bottompad=4Gadfly.px), minheight=pos_row*25)
+		ctx_row = Compose.context(units=Compose.UnitBox(0.5, pos_row, c, -pos_row, bottompad=4Gadfly.px), minheight=pos_row*25)
 		Compose.compose!(ctx_row, Compose.line(branches_row), Compose.stroke(guide.color), Compose.linewidth(guide.linewidth))
 		push!(gpg, Gadfly.Guide.PositionedGuide([ctx_row], 0, Gadfly.Guide.top_guide_position))
 	end
 	if usecol
-		ctx_col = Compose.context(units=Compose.UnitBox(0, c+0.5,  pos_col, -c, leftpad=4Gadfly.px), minwidth=pos_col*25)
+		ctx_col = Compose.context(units=Compose.UnitBox(0, r+0.5,  pos_col, -r, leftpad=4Gadfly.px), minwidth=pos_col*25)
 		Compose.compose!(ctx_col, Compose.line(branches_col), Compose.stroke(guide.color), Compose.linewidth(guide.linewidth))
 		push!(gpg, Gadfly.Guide.PositionedGuide([ctx_col], 0, Gadfly.Guide.right_guide_position))
 	end
 	return gpg
 end
 
-function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt)
+function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, xticks=nothing, yticks=nothing)
+	gm = []
 	r, c = size(X)
+	if xticks == nothing
+		push!(gm, Gadfly.Guide.xticks(label=false, ticks=nothing))
+	else
+		@assert length(xticks) == c
+		push!(gm, Gadfly.Scale.x_discrete(labels=i->xticks[i]))
+		push!(gm, Gadfly.Guide.xticks(label=true))
+	end
+	if yticks == nothing
+		push!(gm, Gadfly.Guide.yticks(label=false, ticks=nothing))
+	else
+		@assert length(yticks) == r
+		push!(gm, Gadfly.Scale.y_discrete(labels=i->yticks[i]))
+		push!(gm, Gadfly.Guide.yticks(label=true))
+	end
 	raw = metricheat == nothing
 	if raw
 		r, c = size(X)
 	else
 		r = c = size(X, dim)
 	end
-	return Gadfly.plot(z=X, x=1:r, y=1:c, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric))
+	return Gadfly.plot(z=X, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none))
 end
