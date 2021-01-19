@@ -1,12 +1,14 @@
 __precompile__()
 
 """
-NMFk.jl: Nonnegative Matrix Factorization + k-means clustering
+NMFk.jl: Nonnegative Matrix Factorization + k-means clustering and physics constraints
 ----
 
-NMFk performs unsupervised machine learning based on matrix decomposition coupled with sparsity and nonnegativity constraints.
+NMFk performs unsupervised machine learning based on matrix decomposition coupled with various constraints.
 
 NMFk provides automatic identification of the optimal number of signals (features) present in two-dimensional data arrays (matrices).
+
+NMFk offers visualization, pre-, and post-processing capabilities
 """
 module NMFk
 
@@ -60,6 +62,7 @@ include("NMFkPlotWell.jl")
 include("NMFkPlotColors.jl")
 include("NMFkPlotProgressBar.jl")
 include("NMFkPlotMatrix.jl")
+include("NMFkPlotCluster.jl")
 include("NMFkCapture.jl")
 include("NMFkRegression.jl")
 include("NMFkMapping.jl")

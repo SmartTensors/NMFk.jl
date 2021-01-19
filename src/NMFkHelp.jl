@@ -9,7 +9,7 @@ function welcome()
 	d2 = c[:bold] * c[:red]     # second dot
 	d3 = c[:bold] * c[:green]   # third dot
 	d4 = c[:bold] * c[:magenta] # fourth dot
-	println("$(bl)NMFk: Nonnegative Matrix Factorization + k-means clustering$(tx)")
+	println("$(bl)NMFk: Nonnegative Matrix Factorization + k-means clustering and physics constraints$(tx)")
 	println("====")
 	println("")
 	println("$(d1)  _     _  $(d2) _      _  $(d3) _______   $(d4)_$(tx)")
@@ -20,8 +20,9 @@ function welcome()
 	println("$(d1) | |  \\  | $(d2)| |    | | $(d3)| |       $(d4)| |\\ \\$(tx)")
 	println("$(d1) |_|   \\_| $(d2)|_|    |_| $(d3)|_|       $(d4)|_| \\_\\$(tx)")
 	println("")
-	println("NMFk performs unsupervised machine learning based on matrix decomposition coupled with sparsity and nonnegativity constraints.")
+	println("NMFk performs unsupervised machine learning based on matrix decomposition coupled with various constraints.")
 	println("NMFk provides automatic identification of the optimal number of signals (features) present in two-dimensional data arrays (matrices).")
+	println("NMFk offers visualization, pre-, and post-processing capabilities.")
 end
 
 function functions(re::Regex; stdout::Bool=false, quiet::Bool=false)
