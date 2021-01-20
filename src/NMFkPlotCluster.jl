@@ -67,25 +67,26 @@ struct Dendrogram <: Gadfly.GuideElement
 	raw::Bool
 	dim::Int64
 	metric::Union{Distances.Metric,Distances.SemiMetric}
+	linkage::Symbol
 end
 
-dendrogram(; location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, raw::Bool=true, dim::Int64=1, metric::Union{Distances.Metric,Distances.SemiMetric}=Distances.CosineDist()) = Dendrogram(location, scaleheight, height, color, linewidth, raw, dim, metric)
+dendrogram(; location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, raw::Bool=true, dim::Int64=1, metric::Union{Distances.Metric,Distances.SemiMetric}=Distances.CosineDist(), linkage::Symbol=:complete) = Dendrogram(location, scaleheight, height, color, linewidth, raw, dim, metric, linkage)
 
 function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly.Aesthetics)
 	userow = guide.location == :both || guide.location == :top
 	usecol = guide.location == :both || guide.location == :right
 	if guide.raw
 		if userow
-			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=2))
+			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=2); linkage=guide.linkage)
 			branches_row, _, pos_row = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		if usecol
-			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=1))
+			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=1); linkage=guide.linkage)
 			_, branches_col, pos_col = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		r, c = size(aes.z)
 	else
-		hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=guide.dim))
+		hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=guide.dim); linkage=guide.linkage)
 		branches_row, branches_col, pos_col = branches(hc, guide.location, guide.scaleheight, guide.height)
 		pos_row = pos_col
 		r = c = size(aes.z, guide.dim)
@@ -104,7 +105,7 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	return gpg
 end
 
-function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, xticks=nothing, yticks=nothing)
+function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, xticks=nothing, yticks=nothing)
 	gm = []
 	r, c = size(X)
 	if xticks == nothing
@@ -127,5 +128,5 @@ function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.Cosine
 	else
 		r = c = size(X, dim)
 	end
-	return Gadfly.plot(z=X, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none))
+	return Gadfly.plot(z=X, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none))
 end
