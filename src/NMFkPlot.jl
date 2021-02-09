@@ -286,7 +286,6 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		f = Gadfly.vstack(m...)
 		vsize *= length(suc)
 	end
-	!quiet && Mads.display(f; gw=hsize, gh=vsize * length(suc))
 	if filename != ""
 		j = joinpath(figuredir, filename)
 		recursivemkdir(j)
@@ -294,12 +293,15 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 			vsize /= length(suc)
 			fp = splitext(filename)
 			for (i, p) in enumerate(m)
-				plotfileformat(p, joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize / length(suc); dpi=dpi)
-				!quiet && Mads.display(p; gw=hsize, gh=vsize / length(suc))
+				plotfileformat(p, joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize; dpi=dpi)
+				!quiet && Mads.display(p; gw=hsize, gh=vsize)
 			end
 		else
 			plotfileformat(f, j, hsize, vsize; dpi=dpi)
+			!quiet && Mads.display(f; gw=hsize, gh=vsize)
 		end
+	else
+		!quiet && Mads.display(f; gw=hsize, gh=vsize)
 	end
 	return nothing
 end
