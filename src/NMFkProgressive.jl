@@ -105,7 +105,7 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 	return window_k
 end
 
-function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, df::DataFrames.DataFrame, df_header::DataFrames.DataFrame, api::AbstractVector; nNMF::Integer=100, load::Bool=true, problem::AbstractString="gaswellshor", figuredirdata::AbstractString="figures-data-eagleford", resultdir::AbstractString="results-nmfk-eagleford", figuredirresults::AbstractString="figures-nmfk-eagleford", scale::Bool=false, normalize::Bool=true, seriesplot::Bool=false, predr2plot::Bool=true, kw...)
+function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, df::DataFrames.DataFrame, df_header::DataFrames.DataFrame, api::AbstractVector; nNMF::Integer=100, load::Bool=true, problem::AbstractString="gaswellshor", figuredirdata::AbstractString="figures-data-eagleford", resultdir::AbstractString="results-nmfk-eagleford", figuredirresults::AbstractString="figures-nmfk-eagleford", scale::Bool=false, normalize::Bool=true, plotseries::Bool=false, plotr2pred::Bool=true, kw...)
 	@assert length(syears) == length(eyears)
 
 	for (qq, y) in enumerate(syears)
@@ -211,7 +211,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 						ending =  abs(perror) > 50 ? "-bad" : ""
 						# ending = ""
 						gm = [Gadfly.layer(xintercept=[Dates.Date(y - 1, 12, 1)], Gadfly.Geom.vline(color=["darkgray"], size=[4Gadfly.pt]))]
-						Mads.plotseries([Oall[1:p,i] gas_pred[1:p,i]], "$(figuredirresults)-$(problem)$(ending)/data-prediction-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)-well-$s.png"; title="Well $(s) : $(period_pred)",  names=["Prediction $(round(pred; sigdigits=3))", "Truth $(round(truth; sigdigits=3))"], colors=["blue", "red"], ymin=0.0, xmin=startdates_train[i], xmax=startdates_train[i] + Dates.Month(p-1), xaxis=collect(startdates_train[i]:Dates.Month(1):startdates_train[i] + Dates.Month(p-1)), gm=gm, quiet=!seriesplot, dpi=100)
+						Mads.plotseries([Oall[1:p,i] gas_pred[1:p,i]], "$(figuredirresults)-$(problem)$(ending)/data-prediction-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)-well-$s.png"; title="Well $(s) : $(period_pred)",  names=["Prediction $(round(pred; sigdigits=3))", "Truth $(round(truth; sigdigits=3))"], colors=["blue", "red"], ymin=0.0, xmin=startdates_train[i], xmax=startdates_train[i] + Dates.Month(p-1), xaxis=collect(startdates_train[i]:Dates.Month(1):startdates_train[i] + Dates.Month(p-1)), gm=gm, quiet=!plotseries, dpi=100)
 					end
 				end
 			end
@@ -253,7 +253,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, 
 
 			if length(gas_p) > 0
 				NMFk.plotscatter(gas_ta, gas_pa; filename="$(figuredirresults)-$(problem)/data-scatter-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)_all.png", title="Gas $(period_pred): Window $(ds[j]) months r2=$(round(r2a; sigdigits=3)) count=$(length(gas_ta))", xtitle="Truth", ytitle="Prediction", line=true)
-				predr2plot && NMFk.plotscatter(gas_t, gas_p; filename="$(figuredirresults)-$(problem)/data-scatter-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", title="Gas $(period_pred): Window $(ds[j]) months r2=$(round(r2; sigdigits=3)) count=$(length(gas_t))", xtitle="Truth", ytitle="Prediction", line=true)
+				plotr2pred && NMFk.plotscatter(gas_t, gas_p; filename="$(figuredirresults)-$(problem)/data-scatter-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).png", title="Gas $(period_pred): Window $(ds[j]) months r2=$(round(r2; sigdigits=3)) count=$(length(gas_t))", xtitle="Truth", ytitle="Prediction", line=true)
 			else
 				@warn("No data!")
 				@warn("Something went wrong")
