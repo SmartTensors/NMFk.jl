@@ -105,9 +105,10 @@ function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::A
 	return window_k
 end
 
-function progressive(syears::AbstractVector, eyears::AbstractVector, startdate, df::DataFrames.DataFrame, df_header::DataFrames.DataFrame, api::AbstractVector; nNMF::Integer=100, load::Bool=true, problem::AbstractString="gaswellshor", figuredirdata::AbstractString="figures-data-eagleford", resultdir::AbstractString="results-nmfk-eagleford", figuredirresults::AbstractString="figures-nmfk-eagleford", scale::Bool=false, normalize::Bool=true, plotseries::Bool=false, plotr2pred::Bool=true, kw...)
+function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFrames.DataFrame, df_header::DataFrames.DataFrame, api::AbstractVector; nNMF::Integer=100, load::Bool=true, problem::AbstractString="gaswellshor", figuredirdata::AbstractString="figures-data-eagleford", resultdir::AbstractString="results-nmfk-eagleford", figuredirresults::AbstractString="figures-nmfk-eagleford", scale::Bool=false, normalize::Bool=true, plotseries::Bool=false, plotr2pred::Bool=true, kw...)
 	@assert length(syears) == length(eyears)
 
+	startdate = minimum(df[!, :ReportDate])
 	for (qq, y) in enumerate(syears)
 		dates = collect(startdate:Dates.Month(1):Dates.Date(y - 1, 12, 1))
 		dates_pred = collect(startdate:Dates.Month(1):Dates.Date(eyears[qq] - 1, 12, 1))
