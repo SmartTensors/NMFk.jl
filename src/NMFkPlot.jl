@@ -287,17 +287,21 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		vsize *= length(suc)
 	end
 	if filename != ""
-		j = joinpath(figuredir, filename)
-		recursivemkdir(j)
+		if figuredir != "." && filename[1] != '/'
+			filenamelong = joinpath(figuredir, filename)
+		else
+			filenamelong = filename
+		end
+		recursivemkdir(filenamelong)
 		if separate && length(m) > 1
 			vsize /= length(suc)
-			fp = splitext(filename)
+			fp = splitext(filenamelong)
 			for (i, p) in enumerate(m)
-				plotfileformat(p, joinpath(figuredir, join([fp[1], "_$i", fp[end]])), hsize, vsize; dpi=dpi)
+				plotfileformat(p, join([fp[1], "_$i", fp[end]]), hsize, vsize; dpi=dpi)
 				!quiet && Mads.display(p; gw=hsize, gh=vsize)
 			end
 		else
-			plotfileformat(f, j, hsize, vsize; dpi=dpi)
+			plotfileformat(f, filenamelong, hsize, vsize; dpi=dpi)
 			!quiet && Mads.display(f; gw=hsize, gh=vsize)
 		end
 	else

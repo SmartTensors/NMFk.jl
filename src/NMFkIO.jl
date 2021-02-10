@@ -93,13 +93,13 @@ function recursivemkdir(s::String; filename=true)
 	end
 	d = Vector{String}(undef, 0)
 	sc = deepcopy(s)
-	if !filename && sc!= ""
+	if !filename && sc!= ""	
 		push!(d, sc)
 	end
 	while true
 		sd = splitdir(sc)
 		sc = sd[1]
-		if sc == ""
+		if sc == "" || sc == "/"
 			break;
 		end
 		push!(d, sc)
