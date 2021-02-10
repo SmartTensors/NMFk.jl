@@ -72,7 +72,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 end
 
 function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)
-	if stepvalue != nothing
+	if stepvalue !== nothing
 		if granulate && !quiet
 			@info("Initial: $minvalue $maxvalue")
 		end
@@ -179,7 +179,7 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type:
 end
 
 function bincoordinates(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing)
-	if stepvalue != nothing
+	if stepvalue !== nothing
 		if typeof(minvalue) <: Dates.DateTime
 			maxvalue = ceil(maxvalue, stepvalue)
 			minvalue = floor(minvalue, stepvalue)
@@ -222,7 +222,7 @@ function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing)
 	return o
 end
 
-function remap(v::AbstractMatrix{T}, mapping::Vector; func::Function=!isnothing) where {T, N}
+function remap(v::AbstractMatrix{T}, mapping::Vector; func::Function=!isnothing) where {T}
 	o = Array{T}(undef, length(mapping), size(v, 2))
 	o .= NaN
 	if typeof(T) <: Integer
@@ -262,10 +262,10 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfir
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 		end
 		firstentry = Base.findfirst(funcfirst.(X[nt...]))
-		if firstentry != nothing
+		if firstentry !== nothing
 			afirstentry[i] = firstentry
 			lastentry = findlast(funclast.(X[nt...]))
-			if lastentry != nothing
+			if lastentry !== nothing
 				datasize[i] = lastentry - firstentry + 1
 				alastentry[i] = lastentry
 			else

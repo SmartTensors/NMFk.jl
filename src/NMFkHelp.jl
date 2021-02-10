@@ -46,7 +46,7 @@ end
 function functions(m::Union{Symbol, Module}, re::Regex; stdout::Bool=false, quiet::Bool=false)
 	n = 0
 	try
-		f = names(eval(m), true)
+		f = names(eval(m); all=true)
 		functions = Array{String}(undef, 0)
 		for i in 1:length(f)
 			functionname = "$(f[i])"

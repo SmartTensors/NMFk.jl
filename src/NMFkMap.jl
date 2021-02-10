@@ -21,21 +21,21 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	end
 	signalorder, signalpeakindex = NMFk.signalorder(Ma, odim)
 	nt = dim == 1 ? (Colon(),signalorder) : (signalorder,Colon())
-	if dates != nothing
+	if dates !== nothing
 		@assert length(dates) == size(Ma, 1)
 		ndates = dates[signalpeakindex]
 	else
 		ndates = dates
 	end
 	if plotseries
-		fn = casefilename == "" ? "" : joinpath(figuredir, casefilename * "-waves.png")
+		fn = casefilename == "" ? "" : joinpathcheck(figuredir, casefilename * "-waves.png")
 		Mads.plotseries(S[nt...] ./ maximum(S), fn; xaxis=dates, names=["$name $(ndates[i])" for i in signalorder])
 		if movie && casefilename != ""
 			c = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorder)], code=true, quiet=true)
 			progressbar = NMFk.make_progressbar_2d(c)
 			for i = 1:length(dates)
 				p = progressbar(i, true, 1, dates[1])
-				Gadfly.draw(Gadfly.PNG(joinpath(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize, dpi=dpi), p)
+				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize, dpi=dpi), p)
 				!quiet && (@info dates[i]; Mads.display(p; gw=hsize, gh=vsize))
 			end
 			makemovie(; moviedir=moviedir, prefix=casefilename * "-progressbar", keyword="", numberofdigits=6, cleanup=cleanup, vspeed=vspeed)
@@ -58,7 +58,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
 	@assert length(signalorder) == length(signalid)
-	if dates != nothing
+	if dates !== nothing
 		@assert size(X, dim) == length(dates)
 	end
 	recursivemkdir(figuredir; filename=false)
@@ -67,15 +67,15 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 		nt = ntuple(j->(j == dim ? k : Colon()), ndims(X))
 		df[!, :Z] = [vec(X[nt...]); zeros(sum(.!goodcounties))]
 		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], leadingzeros, '0') : signalid[i]
-		if title || (dates != nothing && titletext != "")
+		if title || (dates !== nothing && titletext != "")
 			ttitle = "$(titletext) $(signalidtext)"
-			if dates != nothing
+			if dates !== nothing
 				ttitle *= ": $(datetext): $(dates[k])"
 			end
 			ltitle = ""
 		else
 			ttitle = nothing
-			if dates != nothing
+			if dates !== nothing
 				ltitle =  datetext .* "$(dates[k])"
 			else
 				ltitle = "$(titletext) $(signalidtext)"
@@ -105,7 +105,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 		)
 		!quiet && (display(p); println())
 		if casefilename != ""
-			VegaLite.save(joinpath("$(figuredir)", "$(casefilename)-$(signalidtext).png"), p)
+			VegaLite.save(joinpathcheck("$(figuredir)", "$(casefilename)-$(signalidtext).png"), p)
 		end
 	end
 	if casefilename != "" && movie
@@ -141,6 +141,6 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	)
 	!quiet && (display(p); println())
 	if casefilename != ""
-		VegaLite.save(joinpath("$(figuredir)", "$(casefilename).png"), p)
+		VegaLite.save(joinpathcheck("$(figuredir)", "$(casefilename).png"), p)
 	end
 end

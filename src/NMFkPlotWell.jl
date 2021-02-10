@@ -2,22 +2,22 @@ import Plotly
 import PlotlyJS
 
 function plot_wells(filename::AbstractString, v...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, k...)
-	if plotly == nothing
+	if plotly === nothing
 		p = PlotlyJS.plot(NMFk.plot_wells(v...; k...), Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 	else
 		p = PlotlyJS.plot(plotly, Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 		p = Plotly.addtraces(p, NMFk.plot_wells(v...; k...)...)
 	end
-	j = joinpath(figuredir, filename)
+	j = joinpathcheck(figuredir, filename)
 	recursivemkdir(j)
 	PlotlyJS.savehtml(p, j, :remote)
 end
 
 function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; hover=nothing, label=nothing, pointsize=6)
-	if hover != nothing
+	if hover !== nothing
 		@assert length(hover) == length(wx)
 	end
-	if label != nothing
+	if label !== nothing
 		@assert length(label) == length(wx)
 	end
 	@assert length(wx) == length(wy)
@@ -25,8 +25,8 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; h
 	wells = []
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
-		l = label == nothing ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
-		h = hover == nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
+		l = label === nothing ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
+		h = hover === nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
 		well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], l..., name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
@@ -34,7 +34,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; h
 end
 
 function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, c::AbstractVector; hover=nothing, pointsize=6)
-	if hover != nothing
+	if hover !== nothing
 		@assert length(hover) == length(wx)
 	end
 	@assert length(wx) == length(wy)
@@ -43,7 +43,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, 
 	wells = []
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
-		h = hover == nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
+		h = hover === nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
 		well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
@@ -67,7 +67,7 @@ function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x
 end
 
 function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, c::AbstractVector; hover=nothing)
-	if hover != nothing
+	if hover !== nothing
 		@assert length(hover) == length(heel_x)
 	end
 	@assert length(heel_x) == length(heel_y)
@@ -83,7 +83,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 		ty = toe_y[ic]
 		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
 		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
-		if hover != nothing
+		if hover !== nothing
 			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
 			well_trace = PlotlyJS.scatter(;x=x, y=y, hovertext=h, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
 		else
@@ -95,7 +95,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 end
 
 function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, toe_z::AbstractVector, c::AbstractVector; hover=nothing)
-	if hover != nothing
+	if hover !== nothing
 		@assert length(hover) == length(heel_x)
 	end
 	@assert length(heel_x) == length(heel_y)
@@ -114,7 +114,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::A
 		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
 		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
 		z = vec(hcat([[hz[i] tz[i] NaN] for i = 1:length(hz)]...))
-		if hover != nothing
+		if hover !== nothing
 			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
 			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, hovertext=h, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
 		else

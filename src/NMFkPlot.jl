@@ -67,7 +67,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	p = Gadfly.vstack(rowp...)
 	!quiet && Mads.display(p; gwo=hsize * (c-1), gho=vsize * (c-1), gw=100Compose.mm * (c-1), gh=100Compose.mm * (c-1))
 	if filename != ""
-		j = joinpath(figuredir, filename)
+		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
 		plotfileformat(p, j, hsize * (c-1), vsize * (c-1); dpi=dpi)
 	end
@@ -183,7 +183,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		Mads.display(p; gw=hsize, gh=vsize)
 	end
 	if filename != ""
-		j = joinpath(figuredir, filename)
+		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
 		plotfileformat(p, j, hsize, vsize; dpi=dpi)
 	end
@@ -211,7 +211,7 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 	@assert ndata == length(classes)
 	maxd = maximumnan(data)
 	mind = minimumnan(data)
-	if edges == nothing
+	if edges === nothing
 		histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	else
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
@@ -239,8 +239,8 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		xmina = xaxis
 		xmaxa = xaxis
 	end
-	xminl = xmin == nothing ? xmina[1] : min(xmina[1], xmin)
-	xmaxl = xmax == nothing ? xmaxa[end] : max(xmaxa[end], xmax)
+	xminl = xmin === nothing ? xmina[1] : min(xmina[1], xmin)
+	xmaxl = xmax === nothing ? xmaxa[end] : max(xmaxa[end], xmax)
 	l = []
 	suc = sort(unique(classes))
 	ccount = Vector{Int64}(undef, length(suc))
@@ -266,9 +266,9 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		ymaxl = max(maximum(ya), ymaxl)
 		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
-	ymax = ymax != nothing ? ymax : ymaxl
+	ymax = ymax !== nothing ? ymax : ymaxl
 	s = [Gadfly.Coord.Cartesian(xmin=xminl, xmax=xmaxl, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl), Gadfly.Guide.xticks(ticks=collect(xminl:dx:xmaxl)), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
-	if xlabelmap != nothing
+	if xlabelmap !== nothing
 		s = [s..., Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl, labels=xlabelmap)]
 	end
 	m = []
@@ -287,11 +287,7 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		vsize *= length(suc)
 	end
 	if filename != ""
-		if figuredir != "." && filename[1] != '/'
-			filenamelong = joinpath(figuredir, filename)
-		else
-			filenamelong = filename
-		end
+		filenamelong = joinpathcheck(figuredir, filename)
 		recursivemkdir(filenamelong)
 		if separate && length(m) > 1
 			vsize /= length(suc)
@@ -322,7 +318,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(line_width=4Gadfly.pt,default_color="red", discrete_highlight_color=c->nothing)), Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
-		j = joinpath(figuredir, filename)
+		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
@@ -330,11 +326,11 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 end
 
 function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
-	if polygon != nothing
-		xmin = xmin != nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
-		xmax = xmax != nothing ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
-		ymin = ymin != nothing ? min(minimumnan(polygon[:,2]), ymin) : minimumnan(polygon[:,2])
-		ymax = ymax != nothing ? max(maximumnan(polygon[:,2]), ymax) : maximumnan(polygon[:,2])
+	if polygon !== nothing
+		xmin = xmin !== nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
+		xmax = xmax !== nothing ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
+		ymin = ymin !== nothing ? min(minimumnan(polygon[:,2]), ymin) : minimumnan(polygon[:,2])
+		ymax = ymax !== nothing ? max(maximumnan(polygon[:,2]), ymax) : maximumnan(polygon[:,2])
 		pm = [Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=line_width, default_color=line_color))]
 	else
 		pm = []
@@ -353,8 +349,8 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	if length(color) > 0
 		@assert length(color) == length(x)
 		if eltype(color) <: Number
-			zmin = zmin != nothing ? zmin : minimumnan(color)
-			zmax = zmax != nothing ? zmax : maximumnan(color)
+			zmin = zmin !== nothing ? zmin : minimumnan(color)
+			zmax = zmax !== nothing ? zmax : maximumnan(color)
 			zin = .!isnan.(color)
 			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=color[zin], size=size[zin], Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=zmin, maxvalue=zmax, colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
 		else
@@ -369,7 +365,7 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	end
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
-		j = joinpath(figuredir, filename)
+		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
@@ -391,7 +387,7 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
-		j = joinpath(figuredir, filename)
+		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
@@ -424,7 +420,7 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 	ff = Gadfly.plot(pl..., Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(ymin=ymin, ymax=ymax), tc..., tx..., gm...)
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
-		j = joinpath(figuredir, filename)
+		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end

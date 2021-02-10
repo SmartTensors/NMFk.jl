@@ -71,7 +71,7 @@ function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVe
 end
 
 function clusterresults(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; kw...)
-	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange]), nkrange, W, H, Wnames, Hnames; kw...)
+	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange]), nkrange, nruns, Wnames, Hnames; kw...)
 end
 
 function clusterresults(krange::Union{AbstractVector{Int64},Integer}, nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", keyword::AbstractString="", kw...)
@@ -133,7 +133,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 	Wnamesmaxlength = max(length.(Wnames)...)
 	Wnames = Wnames[Worder]
 	Hnames = Hnames[Horder]
-	if lon != nothing && lat != nothing
+	if lon !== nothing && lat !== nothing
 		@assert length(lon) == length(lat)
 		plotmap = 0
 	end
@@ -285,7 +285,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			@assert signalmap == sortperm(clustermap)
 			@assert clustermap[signalmap] == clusterlabels
 			dumpcsv = true
-			if lon != nothing && lat != nothing
+			if lon !== nothing && lat !== nothing
 				if length(lon) != length(chnew)
 					plotmap = 1
 				else
@@ -374,7 +374,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			# 	snew2[snew .== "S$(i)"] .= "S$(ws[i])"
 			# end
 			dumpcsv = true
-			if lon != nothing && lat != nothing
+			if lon !== nothing && lat !== nothing
 				if length(lon) != length(cwnew)
 					(plotmap == 1) && @warn("Coordinate data does not match the number of either W matrix rows or H matrix columns!")
 				else
@@ -470,7 +470,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				table2 = hcat(table2, map(i->attributesl[Xekm[:,i]], 1:length(Hnames)))
 				table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(Hnames)))
 			end
-			if lon != nothing && lat != nothing
+			if lon !== nothing && lat !== nothing
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_max.csv", [lonlat table], ',')
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_$(cutoff_s).csv", [lonlat table2], ';')
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_count_$(cutoff_s).csv", [lonlat table3], ',')
@@ -540,7 +540,7 @@ function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, loc
 		@info "Location cluster: $c"
 		min, max, std, count = NMFk.datanalytics(X[i,:], attributes; dims=dims, plothistogram=plothistogram, quiet=quiet)
 		@info "Missing attribute measurements:"
-		if attributematrix == nothing
+		if attributematrix === nothing
 			display(attributes[count.==0])
 		else
 			p = attributematrix[ic,count.==0]

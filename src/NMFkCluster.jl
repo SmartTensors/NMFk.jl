@@ -61,7 +61,7 @@ end
 
 function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false)
 	if load && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
 		if isfile(filename)
 			sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
 			@info("Robust k-means analysis results are loaded from file $(filename)!")
@@ -94,7 +94,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	end
 	sc = sortclustering(c)
 	if save && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
 		recursivemkdir(filename)
 		JLD.save(filename, "assignments", sc, "best_silhouettes", best_silhouettes)
 		@info("Robust k-means analysis results are saved in file $(filename)!")
@@ -192,7 +192,7 @@ function finduniquesignalsbest(X::AbstractMatrix)
 end
 
 function getsignalassignments(X::AbstractMatrix{T}, c::Vector; dims=1, clusterlabels=nothing) where {T}
-	if clusterlabels == nothing
+	if clusterlabels === nothing
 		clusterlabels = sort(unique(c))
 	end
 	d = dims == 1 ? 2 : 1

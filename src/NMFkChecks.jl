@@ -21,10 +21,10 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			# @show nt
 			# @show ix
 			# @show firstentry
-			if firstentry != nothing
+			if firstentry !== nothing
 				firstentrys[i] = firstentry
 				lastentry = Base.findlast(funclast.(ix[firstentry:end]))
-				if lastentry != nothing
+				if lastentry !== nothing
 					lastentrys[i] = lastentry + firstentry - 1
 					record_length[i] = lastentry
 				else

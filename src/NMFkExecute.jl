@@ -40,7 +40,7 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 		casefilename = "nmfk"
 	end
 	if load && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if isfile(filename)
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			if size(W) == (size(X, 1), nk) && size(H) == (nk, size(X, 2))
@@ -62,7 +62,7 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 	end
 	!veryquiet && println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
 	if save && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		recursivemkdir(filename)
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	end
@@ -82,7 +82,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		runflag = true
 	end
 	if loadall && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		if isfile(filename)
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
 			saveall = false
@@ -209,7 +209,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
 		end
 		if saveall && casefilename != ""
-			filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+			filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 			JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
 		end
 	end
@@ -302,7 +302,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	runflag = true
 	if loadall && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		if isfile(filename)
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
 			saveall = false
@@ -454,7 +454,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
 	end
 	if saveall && casefilename != ""
-		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
 	end
 	if best

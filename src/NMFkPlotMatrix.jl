@@ -10,10 +10,10 @@ end
 function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumnan(X), key_tilte="", title="", xlabel="", ylabel="", xticks=nothing, yticks=nothing, xplot=nothing, yplot=nothing, xmatrix=nothing, ymatrix=nothing, gl=[], gm=[Gadfly.Guide.xticks(label=false, ticks=nothing), Gadfly.Guide.yticks(label=false, ticks=nothing)], masize::Int64=0, colormap=colormap_gyr, filename::String="", hsize=6Compose.inch, vsize=6Compose.inch, figuredir::String=".", colorkey::Bool=true, key_position::Symbol=:right, mask=nothing, dots=nothing, polygon=nothing, contour=nothing, linewidth::Measures.Length{:mm,Float64}=2Gadfly.pt, key_title_font_size=10Gadfly.pt, key_label_font_size=10Gadfly.pt, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, dotcolor="purple", linecolor="gray", defaultcolor=nothing, pointsize=1.5Gadfly.pt, dotsize=1.5Gadfly.pt, transform=nothing, code::Bool=false, nbins::Integer=0, flatten::Bool=false, rectbin::Bool=(nbins>0) ? false : true, dpi::Number=imagedpi, quiet::Bool=true)
 	recursivemkdir(figuredir; filename=false)
 	recursivemkdir(filename)
-	minvalue = minvalue == nothing ? minimumnan(X) : minvalue
-	maxvalue = maxvalue == nothing ? maximumnan(X) : maxvalue
+	minvalue = minvalue === nothing ? minimumnan(X) : minvalue
+	maxvalue = maxvalue === nothing ? maximumnan(X) : maxvalue
 	Xp = deepcopy(min.(max.(movingwindow(X, masize), minvalue), maxvalue))
-	if transform != nothing
+	if transform !== nothing
 		Xp = transform.(Xp)
 	end
 	nanmask!(Xp, mask)
@@ -27,10 +27,10 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	# 	vsize = vsize * ratio + 3Compose.inch
 	# end
 	rect = checkrectbin(Xp)
-	if xmatrix != nothing && ymatrix != nothing
+	if xmatrix !== nothing && ymatrix !== nothing
 		rectbin = false
 	end
-	if xticks != nothing
+	if xticks !== nothing
 		if size(X, 2) != length(xticks)
 			@warn "Number of x-axis ticks ($(length(xticks))) is inconsistent with the matrix size ($(size(X, 2)))"
 			return
@@ -40,7 +40,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		end
 		gm = [gm..., Gadfly.Scale.x_discrete(labels=i->xticks[i]), Gadfly.Guide.xticks(label=true)]
 	end
-	if yticks != nothing
+	if yticks !== nothing
 		if size(X, 1) != length(yticks)
 			@warn "Number of y-axis ticks ($(length(yticks))) is inconsistent with the matrix size ($(size(X, 1)))"
 			return
@@ -51,14 +51,14 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		gm = [gm..., Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]
 	end
 	cs = colorkey ? [Gadfly.Guide.ColorKey(title=key_tilte)] : []
-	cm = colormap == nothing ? [] : [Gadfly.Scale.ContinuousColorScale(colormap..., minvalue=minvalue, maxvalue=maxvalue)]
-	cs = colormap == nothing ? [] : cs
+	cm = colormap === nothing ? [] : [Gadfly.Scale.ContinuousColorScale(colormap..., minvalue=minvalue, maxvalue=maxvalue)]
+	cs = colormap === nothing ? [] : cs
 	if !colorkey
 		key_position = :none
 	end
 	ds = min.(size(Xp)) == 1 ? [Gadfly.Scale.x_discrete, Gadfly.Scale.y_discrete] : []
-	if polygon != nothing
-		if xplot == nothing && yplot == nothing
+	if polygon !== nothing
+		if xplot === nothing && yplot === nothing
 			xplot = Vector{Float64}(undef, 2)
 			xplot[1] = minimum(polygon[:,1])
 			xplot[2] = maximum(polygon[:,1])
@@ -83,11 +83,11 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		yflip = false
 		sx = m
 		sy = n
-		if xmatrix != nothing
+		if xmatrix !== nothing
 			xmatrixmin = xmatrix[1]; xmatrixmax = xmatrix[2];
 			sx = xmatrixmax - xmatrixmin
 		end
-		if ymatrix != nothing
+		if ymatrix !== nothing
 			ymatrixmin = ymatrix[1]; ymatrixmax = ymatrix[2]; yflip = false
 			sy = ymatrixmax - ymatrixmin
 		end
@@ -100,7 +100,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		ymin = ymatrixmin + dy / 2
 		ymax = ymatrixmax + dy / 2
 		# @show xmin, xmax, ymin, ymax
-		if polygon != nothing
+		if polygon !== nothing
 			xmin = min(xplot[1], xmin)
 			xmax = max(xplot[2], xmax)
 			ymin = min(yplot[1], ymin)
@@ -115,7 +115,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	end
 	# @show ymatrixmin ymatrixmax xmatrixmax xmatrixmin yflip
 	gt = [Gadfly.Guide.title(title), Gadfly.Guide.xlabel(xlabel), Gadfly.Guide.ylabel(ylabel), Gadfly.Theme(major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size, key_label_font_size=key_label_font_size, key_title_font_size=key_title_font_size, bar_spacing=0Gadfly.mm, key_position=key_position, discrete_highlight_color=c->nothing), Gadfly.Coord.cartesian(yflip=yflip, fixed=true, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous, Gadfly.Scale.y_continuous]
-	if defaultcolor == nothing
+	if defaultcolor === nothing
 		if length(vs) > 0
 			if length(vs) < m * n && !rectbin
 				l = [Gadfly.layer(x=xs, y=ys, color=vs, Gadfly.Theme(point_size=pointsize, highlight_width=0Gadfly.pt))]
@@ -144,24 +144,24 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			end
 		end
 	end
-	if l == nothing && maxvalue != nothing && minvalue != nothing
+	if l === nothing && maxvalue !== nothing && minvalue !== nothing
 		l = Gadfly.layer(x=[xmin, xmax], y=[ymin, ymax], color=[minvalue, maxvalue], Gadfly.Theme(point_size=0Gadfly.pt, highlight_width=0Gadfly.pt))
 	end
-	if polygon == nothing && contour == nothing && dots == nothing
+	if polygon === nothing && contour === nothing && dots === nothing
 		c = l..., gl..., ds..., cm..., cs..., gt..., gm...
 	else
 		c = []
-		if polygon != nothing
+		if polygon !== nothing
 			push!(c, Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
 		end
-		if dots != nothing
+		if dots !== nothing
 			push!(c, Gadfly.layer(x=dots[:,1], y=dots[:,2], Gadfly.Theme(point_size=dotsize, highlight_width=0Gadfly.pt, default_color=dotcolor)))
 		end
-		if contour != nothing
+		if contour !== nothing
 			push!(c, Gadfly.layer(z=permutedims(contour .* (maxvalue - minvalue) .+ minvalue), x=collect(1:size(contour, 2)), y=collect(1:size(contour, 1)), Gadfly.Geom.contour(levels=[minvalue]), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
 		end
-		if l != nothing
-			if mask != nothing
+		if l !== nothing
+			if mask !== nothing
 				c = l..., gl..., ds..., cm..., cs..., gt..., gm..., c...
 			else
 				c = l..., gl..., ds..., cm..., cs..., gt..., gm..., c...
@@ -173,9 +173,9 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	p = Gadfly.plot(c...)
 	!quiet && Mads.display(p; gw=hsize, gh=vsize)
 	if filename != ""
-		plotfileformat(p, joinpath(figuredir, filename), hsize, vsize; dpi=dpi)
+		plotfileformat(p, joinpathcheck(figuredir, filename), hsize, vsize; dpi=dpi)
 		if flatten
-			f = joinpath(figuredir, filename)
+			f = joinpathcheck(figuredir, filename)
 			e = splitext(f)
 			cmd = `convert -background black -flatten -format jpg $f $(e[1]).jpg`
 			run(pipeline(cmd, stdout=devnull, stderr=devnull))

@@ -1,7 +1,7 @@
 import MultivariateStats
 
 function regression(P::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method::Union{Symbol,Nothing}=:ridge, improve::Bool=true, bias::Bool=true, r::Number=0.1, showerror::Bool=false) where T
-	if method == nothing
+	if method === nothing
 		method = :ridge
 	end
 	local W, H, of, sil, aic
@@ -32,7 +32,7 @@ function regression(P::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method:
 		Xe = Array{T}(undef, size(Mpredict, 1), size(P, 2), size(P, 3))
 		nk = size(Mtrain, 2)+1
 		for k = 1:size(P, 3)
-			if Ab == nothing
+			if Ab === nothing
 				ng = size(P, 1)
 				if nk <= ng
 					Ab = copy(P[1:nk,:,k])

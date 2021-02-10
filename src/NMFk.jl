@@ -28,7 +28,7 @@ import FileIO
 import ReusableFunctions
 import DocumentFunction
 
-if Base.source_path() != nothing
+if Base.source_path() !== nothing
 	const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
 end
 

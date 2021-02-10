@@ -32,7 +32,7 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 end
 function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false)
 	if casefilename != "" && filename == ""
-		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
 	if isfile(filename)
 		W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
@@ -60,7 +60,7 @@ function save(W, H, fitquality, robustness, aic, nkrange::AbstractRange{Int}=1:l
 end
 function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
-		filename = joinpath(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
 	recursivemkdir(filename)
 	if !isfile(filename)
@@ -114,4 +114,13 @@ function recursivemkdir(s::String; filename=true)
 			@info("Make dir $(sc)")
 		end
 	end
+end
+
+function joinpathcheck(path::AbstractString, paths::AbstractString...)
+	if path == "." && paths[1] == '/'
+		filenamelong = joinpath(paths...)
+	else
+		filenamelong = joinpath(path, paths...)
+	end
+	return filenamelong
 end

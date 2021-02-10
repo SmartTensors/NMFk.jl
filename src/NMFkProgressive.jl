@@ -125,7 +125,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 		well_y = Array{Float32}(undef, 0)
 		for w in api[existing_wells]
 			iwell = findall((in)(w), df_header[!, :API])
-			if iwell != nothing
+			if iwell !== nothing
 				push!(well_x, df_header[!, :Lon][iwell[1]])
 				push!(well_y, df_header[!, :Lat][iwell[1]])
 			else
@@ -272,7 +272,7 @@ function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::
 		k = nkrange[1]
 	else
 		kn = findlast(i->i > cutoff, robustness)
-		if kn == nothing
+		if kn === nothing
 			inan = isnan.(robustness)
 			robustness[inan] .= -Inf
 			kn = findmax(robustness)[2]

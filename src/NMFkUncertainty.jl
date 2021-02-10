@@ -4,7 +4,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		casefilename = "nmfk_uncertainty"
 	end
 	if loadall
-		filename = joinpath(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
 		if isfile(filename)
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			return W, H, fitquality, robustness, aic
@@ -54,7 +54,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		end
 	end
 	if saveall
-		filename = joinpath(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
 		recursivemkdir(filename)
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 		@info("Results saved in $filename.")
