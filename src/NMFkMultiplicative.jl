@@ -1,6 +1,6 @@
 import DistributedArrays
 
-function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, normalizevector::Vector{T}=Vector{T}(undef, 0)) where {T}
+function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, normalizevector::Vector{T}=Vector{T}(undef, 0)) where {T}
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative!")
 	end
@@ -117,7 +117,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 	return W, H, objvalue
 end
 
-function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; Winit::Matrix{T}=Array{T}(undef, 0, 0), Hinit::Matrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, seed::Int=-1) where {T,N}
+function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, seed::Int=-1) where {T,N}
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative!")
 	end
