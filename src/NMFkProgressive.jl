@@ -123,7 +123,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 			enddate_pred = eyears[qq]
 			period_pred *= "-$(enddate_pred)"
 		else
-			enddate =  Dates.Date(eyears[qq] - 1, 12, 1)
+			enddate_pred =  Dates.Date(eyears[qq] - 1, 12, 1)
 			period_pred *= "-$(qq)"
 		end
  		dates = collect(startdate:Dates.Month(1):enddate)
