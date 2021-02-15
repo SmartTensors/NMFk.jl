@@ -110,10 +110,24 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 
 	startdate = minimum(df[!, :ReportDate])
 	for (qq, y) in enumerate(syears)
-		dates = collect(startdate:Dates.Month(1):Dates.Date(y - 1, 12, 1))
-		dates_pred = collect(startdate:Dates.Month(1):Dates.Date(eyears[qq] - 1, 12, 1))
-		period = "$y"
-		period_pred = "$y-$(eyears[qq])"
+		if typeof(y) <: Dates.Date
+			enddate = y
+			period = "$(enddate)"
+			period_pred = "$(enddate)"
+		else
+			enddate = Dates.Date(y - 1, 12, 1)
+			period = "$(y)"
+			period_pred = "$(y)"
+		end
+		if typeof(eyears[qq]) <: Dates.Date
+			enddate_pred = eyears[qq]
+			period_pred *= "-$(enddate_pred)"
+		else
+			enddate =  Dates.Date(eyears[qq] - 1, 12, 1)
+			period_pred *= "-$(qq)"
+		end
+ 		dates = collect(startdate:Dates.Month(1):enddate)
+		dates_pred = collect(startdate:Dates.Month(1):enddate_pred)
 
 		gas_data, existing_wells = NMFk.df2matrix(df, api, dates, :WellGas)
 		nw = sum(existing_wells)
@@ -198,8 +212,8 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 				push!(gas_ta, truth)
 				push!(gas_pa, pred)
 				push!(hovertext, "Well: $(s)<br>Start Date: $(startdates_train[i])<br>Total Gas: $(round(truth; sigdigits=3))<br>Predicted: $(round(pred; sigdigits=3))")
-				if startdates_train[i] <= Dates.Date(y - 1, 12, 1) && enddates_pred[i] > Dates.Date(y - 1, 12, 1)
-					r = length(startdates_train[i]:Dates.Month(1):Dates.Date(y - 1, 12, 1))
+				if startdates_train[i] <= enddate && enddates_pred[i] > enddate
+					r = length(startdates_train[i]:Dates.Month(1):enddate)
 					op = gas_pred[r:p,i]
 					ip = .!isnan.(op)
 					truth = sum(op[ip])
@@ -211,7 +225,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 					if mod(i, 10) == 1
 						ending =  abs(perror) > 50 ? "-bad" : ""
 						# ending = ""
-						gm = [Gadfly.layer(xintercept=[Dates.Date(y - 1, 12, 1)], Gadfly.Geom.vline(color=["darkgray"], size=[4Gadfly.pt]))]
+						gm = [Gadfly.layer(xintercept=[enddate], Gadfly.Geom.vline(color=["darkgray"], size=[4Gadfly.pt]))]
 						Mads.plotseries([Oall[1:p,i] gas_pred[1:p,i]], "$(figuredirresults)-$(problem)$(ending)/data-prediction-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)-well-$s.png"; title="Well $(s) : $(period_pred)",  names=["Prediction $(round(pred; sigdigits=3))", "Truth $(round(truth; sigdigits=3))"], colors=["blue", "red"], ymin=0.0, xmin=startdates_train[i], xmax=startdates_train[i] + Dates.Month(p-1), xaxis=collect(startdates_train[i]:Dates.Month(1):startdates_train[i] + Dates.Month(p-1)), gm=gm, quiet=!plotseries, dpi=100)
 					end
 				end
