@@ -123,7 +123,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		if Wcolors == NMFk.colors
 			Wcolors = Vector{String}(undef, length(Wtypes))
 			for (j, t) in enumerate(unique(Wtypes))
-				Wcolors[attributetype .== t] .= NMFk.colors[j]
+				Wcolors[Wtypes .== t] .= NMFk.colors[j]
 			end
 		end
 		Wnametypes = (Wnames .* " " .* String.(Wtypes))[Worder]
@@ -304,10 +304,13 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				yticks = ["$(Hnames[i]) $(chnew[i])" for i=1:length(chnew)]
 				NMFk.plotmatrix(Hm; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=xticks, yticks=yticks, colorkey=false, minor_label_font_size=Hmatrix_font_size)
 				NMFk.plotmatrix(Hm[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
+				if length(Htypes) > 0
+					yticks = ["$(Hnametypes[i]) $(chnew[i])" for i=1:length(chnew)]
+					NMFk.plotmatrix(Hm[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, minor_label_font_size=Hmatrix_font_size)
+				end
 				yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
 				NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size)
 				display(NMFk.plotdendrogram(Hm[cs,signalmap]; metricheat=nothing, xticks=clusterlabels, yticks=yticks))
-				# NMFk.plotmatrix(permutedims((Ha ./ sum(Ha; dims=2)))[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Hnametypes[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)], colorkey=false, minor_label_font_size=Hmatrix_font_size)
 				if plottimeseries == :H || plottimeseries == :WH
 					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames)
 				end
@@ -397,9 +400,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				cws = sortperm(cw)
 				yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=1:length(cw)]
+				# @show yticks
 				NMFk.plotmatrix(Wm[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=xticks, yticks=yticks, colorkey=false, minor_label_font_size=Wmatrix_font_size)
-				# @show ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cw)]
-				NMFk.plotmatrix(Wm[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[i]) $(cwnew[i])" for i=1:length(cwnew)], colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
+				yticks = ["$(Wnames[i]) $(cwnew[i])" for i=1:length(cwnew)]
+				NMFk.plotmatrix(Wm[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
+				if length(Wtypes) > 0
+					yticks = ["$(Wnametypes[i]) $(cwnew[i])" for i=1:length(cwnew)]
+					NMFk.plotmatrix(Wm[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, minor_label_font_size=Hmatrix_font_size)
+				end
 				yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)]
 				NMFk.plotmatrix(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
 				display(NMFk.plotdendrogram(Wm[cs,signalmap]; metricheat=nothing, xticks=clusterlabels, yticks=yticks))
