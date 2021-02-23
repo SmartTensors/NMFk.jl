@@ -297,7 +297,7 @@ function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::
 	return k
 end
 
-function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.25) where {T1 <: Integer, T2 <: Number}
+function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.25; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing) where {T1 <: Integer, T2 <: Number, T3 <: Integer}
 	@assert length(nkrange) == length(robustness)
 	if all(isnan.(robustness))
 		return []
@@ -315,10 +315,10 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 			k = nkrange[kn]
 		end
 	end
-	return k
+	return mergeks(k, ks)
 end
 
-function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25) where {T1 <: Integer, T2 <: AbstractArray}
+function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
 	@assert length(nkrange) == length(F)
 	if all(isnan.(robustness))
 		return []
@@ -337,5 +337,13 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::Abstract
 			end
 		end
 	end
-	return kn
+	return mergeks(kn, ks)
+end
+
+function mergeks(k::AbstractVector{T}, ks::Nothing) where {T <: Integer}
+	return k
+end
+
+function mergeks(k::AbstractVector{T1}, ks::Union{T2, AbstractVector{T2}}) where {T1 <: Integer, T2 <: Integer}
+	return unique(sort([k; ks]))
 end
