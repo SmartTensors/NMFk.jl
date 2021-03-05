@@ -1,6 +1,7 @@
 import Dates
 import DataFrames
 import Statistics
+import StatsBase
 
 function log10s(v::AbstractVector; offset::Number=1)
 	iz = v .<= 0
@@ -20,10 +21,10 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, kw...)
 	vn = v[ig]
 	if length(vn) > 0
 		plothistogram && NMFk.histogram(vn; kw...)
-		return minimum(vn), maximum(vn), Statistics.std(vn), sum(ig)
+		return minimum(vn), maximum(vn), Statistics.std(vn), StatsBase.skewness(vn), sum(ig)
 	else
 		plothistogram && @warn("No data!")
-		return -Inf, Inf, Inf, 0
+		return -Inf, Inf, Inf, 0, 0
 	end
 end
 
@@ -39,7 +40,8 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	min = Vector{T}(undef, length(names))
 	max = Vector{T}(undef, length(names))
 	std = Vector{T}(undef, length(names))
-	c = Vector{Int64}(undef, length(names))
+	skewness = Vector{T}(undef, length(names))
+	count = Vector{Int64}(undef, length(names))
 	for (i, n) in enumerate(names)
 		nt = ntuple(k->(k == dims ? i : Colon()), ndims(a))
 		if logv[i]
@@ -58,17 +60,17 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 				filename = casefilename * "-$(n).png"
 			end
 		end
-		min[i], max[i], std[i], c[i] = datanalytics(v; filename=filename, kw..., title=n)
-		!quiet && println("$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Count $(c[i])")
+		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename=filename, kw..., title=n)
+		!quiet && println("$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Skewness $(skewness[i]) Count $(count[i])")
 	end
 	if !quiet
 		@info "Attributes"
 		println("Name Min Max StdDev Count (non-NaN's)")
 		for (i, n) in enumerate(names)
-			println("$n $(min[i]) $(max[i]) $(std[i]) $(c[i])")
+			println("$n $(min[i]) $(max[i]) $(std[i]) $(skewness[i]) $(count[i])")
 		end
 	end
-	return min, max, std, c
+	return min, max, std, skewness, count
 end
 
 function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)

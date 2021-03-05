@@ -209,8 +209,8 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 		return
 	end
 	@assert ndata == length(classes)
-	maxd = maximumnan(data)
 	mind = minimumnan(data)
+	maxd = maximumnan(data)
 	if edges === nothing
 		histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	else
@@ -264,6 +264,11 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 			ya = y
 		end
 		ymaxl = max(maximum(ya), ymaxl)
+		if length(ya) == 1
+			ya = [0, ya[1], 0]
+			xmina = [xmina[1] - dx, xmina...]
+			xmaxa = [xmaxa..., xmaxa[end] + dx]
+		end
 		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
 	ymax = ymax !== nothing ? ymax : ymaxl

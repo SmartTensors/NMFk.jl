@@ -55,6 +55,11 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 		if logv[i]
 			iz = av .<= 0
 			siz = sum(iz)
+			if siz == length(iz)
+				av .= abs.(av)
+			end
+			iz = av .<= 0
+			siz = sum(iz)
 			siz > 0 && (av[iz] .= NaN)
 			av .= log10.(av)
 			if siz > 0
@@ -64,7 +69,7 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 		end
 	end
 	amin, amax = matrixminmax(a, dim)
-	dx = amax - amin
+	dx = amax .- amin
 	if length(dx) > 1
 		i0 = dx .== 0
 		amin[i0] .= 0
