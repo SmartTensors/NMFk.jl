@@ -411,3 +411,24 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, recordl
 	end
 	return matrix, startdates, enddates
 end
+
+function moving_average(v::AbstractVector, window::Integer=3)
+	wback = div(window, 2)
+	wforw = isodd(window) ? div(window, 2) : div(window, 2) - 1
+	lv = length(v)
+	vs = similar(v)
+	for i = 1:lv
+		lo = max(1, i - wback)
+		hi = min(lv, i + wforw)
+		vs[i] = Statistics.mean(v[lo:hi])
+	end
+	return vs
+end
+
+function moving_average(m::AbstractMatrix, window::Integer=3; dims::Integer=2)
+	ms = similar(m)
+	for i = 1:size(m, dims)
+		ms[:,i] = moving_average(m[:,i], window)
+	end
+	return ms
+end

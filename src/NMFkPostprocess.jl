@@ -107,7 +107,6 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			end
 		end
 	end
-	@show biplotlabel
 	if length(Htypes) > 0
 		if Hcolors == NMFk.colors
 			Hcolors = Vector{String}(undef, length(Htypes))
@@ -401,7 +400,6 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				cws = sortperm(cw)
 				yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=1:length(cw)]
-				# @show yticks
 				NMFk.plotmatrix(Wm[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=xticks, yticks=yticks, colorkey=false, minor_label_font_size=Wmatrix_font_size)
 				yticks = ["$(Wnames[i]) $(cwnew[i])" for i=1:length(cwnew)]
 				NMFk.plotmatrix(Wm[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size)
@@ -438,7 +436,6 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 					biplotlabels = [fill("", length(Wnames)); fill("", length(Hnames))]
 					biplotlabelflag = false
 				end
-				@show biplotlabel
 				if biplotcolor == :W
 					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
 					biplotcolors = [typecolors(cwnew, Wcolors); fill("gray", length(Hnames))]
