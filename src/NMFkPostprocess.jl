@@ -70,6 +70,16 @@ function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVe
 	end
 end
 
+function clusterresults(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) where {T}
+	k = size(W, 2)
+	@assert size(H, 1) == k
+	Wa = Array{Array{T, 2}}(undef, k)
+	Ha = Array{Array{T, 2}}(undef, k)
+	Wa[k] = W
+	Ha[k] = H
+	NMFk.clusterresults(k, Wa, Ha, aw...; kw...)
+end
+
 function clusterresults(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; kw...)
 	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange]), nkrange, nruns, Wnames, Hnames; kw...)
 end
