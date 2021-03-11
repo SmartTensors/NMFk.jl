@@ -10,10 +10,23 @@ function log10s(v::AbstractVector; offset::Number=1)
 	siz > 0 && (vm[iz] .= NaN)
 	vm .= log10.(vm)
 	if siz > 0
-		m = minimumnan(vm[.!iz])
-		vm[iz] .= m - offset
+		min = minimumnan(vm[.!iz]) - offset
+		vm[iz] .= min
 	end
 	return vm
+end
+
+function log10s(m::AbstractMatrix; offset::Number=1)
+	iz = m .<= 0
+	siz = sum(iz)
+	mm = copy(m)
+	siz > 0 && (mm[iz] .= NaN)
+	mm .= log10.(mm)
+	if siz > 0
+		min = minimumnan(mm[.!iz]) - offset
+		mm[iz] .= min
+	end
+	return mm
 end
 
 function datanalytics(v::AbstractVector; plothistogram::Bool=true, kw...)

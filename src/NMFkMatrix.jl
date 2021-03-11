@@ -46,6 +46,11 @@ function normalizematrix_row!(a::AbstractMatrix; kw...)
 	normalizematrix!(a, 1; kw...)
 end
 
+"Normalize matrix"
+function normalizematrix(a::AbstractMatrix, dim::Integer; kw...)
+	normalizematrix!(copy(a), dim; kw)
+end
+
 function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
 	amin, amax = matrixminmax(a, dim)
 	zflag = falses(length(amin))
