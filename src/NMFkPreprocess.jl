@@ -3,30 +3,20 @@ import DataFrames
 import Statistics
 import StatsBase
 
-function log10s(v::AbstractVector; offset::Number=1)
-	iz = v .<= 0
-	siz = sum(iz)
-	vm = copy(v)
-	siz > 0 && (vm[iz] .= NaN)
-	vm .= log10.(vm)
-	if siz > 0
-		min = minimumnan(vm[.!iz]) - offset
-		vm[iz] .= min
-	end
-	return vm
+function log10s(x::AbstractArray; kw...)
+	NMFk.log10s!(copy(x); kw...)
 end
 
-function log10s(m::AbstractMatrix; offset::Number=1)
-	iz = m .<= 0
+function log10s!(x::AbstractArray; offset::Number=1)
+	iz = x .<= 0
 	siz = sum(iz)
-	mm = copy(m)
-	siz > 0 && (mm[iz] .= NaN)
-	mm .= log10.(mm)
+	siz > 0 && (x[iz] .= NaN)
+	x .= log10.(x)
 	if siz > 0
-		min = minimumnan(mm[.!iz]) - offset
-		mm[iz] .= min
+		min = minimumnan(x[.!iz]) - offset
+		x[iz] .= min
 	end
-	return mm
+	return x
 end
 
 function datanalytics(v::AbstractVector; plothistogram::Bool=true, kw...)
