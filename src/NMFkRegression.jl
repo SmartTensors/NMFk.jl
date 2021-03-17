@@ -23,8 +23,8 @@ function regression(P::Array{T}, Mtrain::Matrix{T}, Mpredict::Matrix{T}; method:
 				Xe[:,:,k] = Mpredict * Ab
 			end
 		end
-	catch e
-		showerror && (display(e))
+	catch errmsg
+		showerror && println(errmsg)
 		Ab = nothing
 		Xe = nothing
 	end
