@@ -123,7 +123,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 			enddate_pred = eyears[qq]
 			period_pred *= "-$(enddate_pred)"
 		else
-			enddate_pred =  Dates.Date(eyears[qq] - 1, 12, 1)
+			enddate_pred = Dates.Date(eyears[qq] - 1, 12, 1)
 			period_pred *= "-$(qq)"
 		end
  		dates = collect(startdate:Dates.Month(1):enddate)
@@ -223,10 +223,10 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 					push!(gas_p, pred)
 					perror = abs(pred - truth) / truth * 100
 					if mod(i, 10) == 1
-						ending =  abs(perror) > 50 ? "-bad" : ""
+						ending = abs(perror) > 50 ? "-bad" : ""
 						# ending = ""
 						gm = [Gadfly.layer(xintercept=[enddate], Gadfly.Geom.vline(color=["darkgray"], size=[4Gadfly.pt]))]
-						Mads.plotseries([Oall[1:p,i] gas_pred[1:p,i]], "$(figuredirresults)-$(problem)$(ending)/data-prediction-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)-well-$s.png"; title="Well $(s) : $(period_pred)",  names=["Prediction $(round(pred; sigdigits=3))", "Truth $(round(truth; sigdigits=3))"], colors=["blue", "red"], ymin=0.0, xmin=startdates_train[i], xmax=startdates_train[i] + Dates.Month(p-1), xaxis=collect(startdates_train[i]:Dates.Month(1):startdates_train[i] + Dates.Month(p-1)), gm=gm, quiet=!plotseries, dpi=100)
+						Mads.plotseries([Oall[1:p,i] gas_pred[1:p,i]], "$(figuredirresults)-$(problem)$(ending)/data-prediction-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)-well-$s.png"; title="Well $(s) : $(period_pred)", names=["Prediction $(round(pred; sigdigits=3))", "Truth $(round(truth; sigdigits=3))"], colors=["blue", "red"], ymin=0.0, xmin=startdates_train[i], xmax=startdates_train[i] + Dates.Month(p-1), xaxis=collect(startdates_train[i]:Dates.Month(1):startdates_train[i] + Dates.Month(p-1)), gm=gm, quiet=!plotseries, dpi=100)
 					end
 				end
 			end

@@ -147,7 +147,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		end
 		dfw2 = DataFrames.DataFrame(x=x[inext][iorder2], y=y[inext][iorder2], label=label[inext][iorder2], color=cv[inext][iorder2])
 		if plotlabel
-			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, label=:label, color=:color, Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true),  Gadfly.Theme(point_size=point_size_label, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
+			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, label=:label, color=:color, Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(point_size=point_size_label, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		else
 			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		end
@@ -254,7 +254,7 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 			if closed == :left && maxd == xaxis[end-1]
 				ya = y[1:end-1]
 				ya[end] += y[end]
-			elseif closed == :right &&  mind == xaxis[2]
+			elseif closed == :right && mind == xaxis[2]
 				ya = y[2:end]
 				ya[1] += y[1]
 			else
@@ -700,8 +700,7 @@ end
 """
 Set image file `format` based on the `filename` extension, or sets the `filename` extension based on the requested `format`. The default `format` is `PNG`. `SVG`, `PDF`, `ESP`, and `PS` are also supported.
 
-$(DocumentFunction.documentfunction(setplotfileformat;
-                                    argtext=Dict("filename"=>"output file name")))
+$(DocumentFunction.documentfunction(setplotfileformat; argtext=Dict("filename"=>"output file name")))
 
 Returns:
 

@@ -11,7 +11,7 @@ end
 
 heatmap(; metric::Union{Nothing,Distances.Metric,Distances.SemiMetric}=Distances.CosineDist(), dim::Int64=1) = HeatMapStatistic(metric, dim)
 
-Gadfly.Stat.input_aesthetics(stat::HeatMapStatistic) =  [:z, :x, :y]
+Gadfly.Stat.input_aesthetics(stat::HeatMapStatistic) = [:z, :x, :y]
 Gadfly.Stat.output_aesthetics(stat::HeatMapStatistic) = [:xmin, :xmax, :ymin, :ymax]
 Gadfly.Stat.default_scales(stat::HeatMapStatistic) = [Gadfly.Scale.z_func(), Gadfly.Scale.x_discrete(), Gadfly.Scale.y_discrete(), Gadfly.Scale.color_continuous()]
 
@@ -98,7 +98,7 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 		push!(gpg, Gadfly.Guide.PositionedGuide([ctx_row], 0, Gadfly.Guide.top_guide_position))
 	end
 	if usecol
-		ctx_col = Compose.context(units=Compose.UnitBox(0, r+0.5,  pos_col, -r, leftpad=4Gadfly.px), minwidth=pos_col*25)
+		ctx_col = Compose.context(units=Compose.UnitBox(0, r+0.5, pos_col, -r, leftpad=4Gadfly.px), minwidth=pos_col*25)
 		Compose.compose!(ctx_col, Compose.line(branches_col), Compose.stroke(guide.color), Compose.linewidth(guide.linewidth))
 		push!(gpg, Gadfly.Guide.PositionedGuide([ctx_col], 0, Gadfly.Guide.right_guide_position))
 	end

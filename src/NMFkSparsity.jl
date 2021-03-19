@@ -36,8 +36,8 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 	end
 
 	Wn = sqrt.(sum(W.^2; dims=1))
-	W  = bsxfun(\, W, Wn)
-	H  = bsxfun(*, H, Wn')
+	W = bsxfun(\, W, Wn)
+	H = bsxfun(*, H, Wn')
 
 	lambda_new = max.(W * H, lambda)
 	last_cost = Inf
@@ -96,7 +96,7 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 		elseif sparse_div_beta == 0
 			divergence = sum(X ./ lambda_new - log.(X ./ lambda_new) - 1)
 		else
-			divergence = sum(X.^sparse_div_beta + (sparse_div_beta - 1) * lambda_new.^sparse_div_beta  - sparse_div_beta * X .* lambda_new.^(sparse_div_beta - 1))/(sparse_div_beta * (sparse_div_beta - 1))
+			divergence = sum(X.^sparse_div_beta + (sparse_div_beta - 1) * lambda_new.^sparse_div_beta - sparse_div_beta * X .* lambda_new.^(sparse_div_beta - 1))/(sparse_div_beta * (sparse_div_beta - 1))
 		end
 		of = divergence + sum(H .* sparsity)
 

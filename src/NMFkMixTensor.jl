@@ -157,7 +157,7 @@ function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::Abst
 		for j=1:numconstituents
 			for i=1:nummixtures
 				for k=1:numbuckets
-					Xe[i, j, t] +=  W[i, k, t] * H[k, j]
+					Xe[i, j, t] += W[i, k, t] * H[k, j]
 				end
 			end
 		end
@@ -175,7 +175,7 @@ function mixmatchcompute(W::AbstractArray{T, 3}, H::AbstractArray{T, 2}) where {
 		for j=1:numconstituents
 			for i=1:nummixtures
 				for k=1:numbuckets
-					Xe[i, j, t] +=  W[i, k, t] * H[k, j]
+					Xe[i, j, t] += W[i, k, t] * H[k, j]
 				end
 			end
 		end

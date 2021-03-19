@@ -76,7 +76,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 		else
 			ttitle = nothing
 			if dates !== nothing
-				ltitle =  datetext .* "$(dates[k])"
+				ltitle = datetext .* "$(dates[k])"
 			else
 				ltitle = "$(titletext) $(signalidtext)"
 			end
@@ -137,7 +137,7 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 			}
 		}],
 		projection={type=:albersUsa},
-		color={title=title, field="Z", type="ordinal", scale={scheme=vec("#" .*  Colors.hex.(parse.(Colors.Colorant, NMFk.colors), :RGB))[1:nc], reverse=true, domainMax=zmax, domainMin=zmin}}
+		color={title=title, field="Z", type="ordinal", scale={scheme=vec("#" .* Colors.hex.(parse.(Colors.Colorant, NMFk.colors), :RGB))[1:nc], reverse=true, domainMax=zmax, domainMin=zmin}}
 	)
 	!quiet && (display(p); println())
 	if casefilename != ""
