@@ -403,7 +403,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				end
 			end
 			if dumpcsv
-				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"];  Wnames Wm cwnew], ',')
+				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k)) "Signal"]; Wnames Wm cwnew], ',')
 			end
 			cs = sortperm(cwnew)
 			if createplots

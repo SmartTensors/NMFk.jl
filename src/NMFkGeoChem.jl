@@ -17,7 +17,7 @@ function getisotopeconcentration(delta::Union{Number,Vector,Matrix}, deltastanda
 		Ascalefactor = scalefactor
 	end
 	ratio = (delta / 1000 .+ 1) .* Adeltastandard
-	concentration_isotope  = concentration_species .* ratio ./ (ratio .+ 1) .* Ascalefactor
+	concentration_isotope = concentration_species .* ratio ./ (ratio .+ 1) .* Ascalefactor
 end
 
 "Convert stable isotope concentrations to deltas"

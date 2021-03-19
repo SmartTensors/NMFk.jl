@@ -221,7 +221,7 @@ function clustersolutions(factors::Vector, clusterWmatrix::Bool=false)
 	needZeroFix = false
 	for i in 1:numFactors
 		factor = factors[i]
-		if minimum(sum(factor; dims=1)) == 0  # if we have a zero column
+		if minimum(sum(factor; dims=1)) == 0 # if we have a zero column
 			needZeroFix = true
 			break
 		end
