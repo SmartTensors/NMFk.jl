@@ -412,6 +412,33 @@ function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMat
 	return vflip
 end
 
+function flatten(X::AbstractArray{T,N}, mask::BitArray{M}) where {T,N,M}
+	@assert N - 1 == M
+	sz = size(X)
+	A = Array{T}(undef, sum(.!mask), sz[end])
+	for i = 1:sz[end]
+		nt = ntuple(k->(k == N ? i : Colon()), N)
+		A[:, i] = X[nt...][.!mask]
+	end
+	return A
+end
+
+function flatten(X::AbstractArray{T,N}, dim::Number=1) where {T,N}
+	sz = size(X)
+	nt = Vector{Int64}(undef, 0)
+	for k = 1:N
+		if (k != dim)
+			push!(nt, k)
+		end
+	end
+	A = Array{T}(undef, *(sz[nt]...), sz[dim])
+	for i = 1:sz[dim]
+		nt = ntuple(k->(k == dim ? i : Colon()), N)
+		A[:, i] = vec(X[nt...])
+	end
+	return A
+end
+
 import Base.replace
 
 function replace(str::String, old_new::Pair...)
