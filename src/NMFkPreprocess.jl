@@ -37,7 +37,7 @@ function datanalytics(a::AbstractMatrix; dims::Integer=1, kw...)
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, quiet::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where T
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, quiet::Bool=false, veryquiet::Bool=quiet, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where T
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	min = Vector{T}(undef, length(names))
@@ -48,10 +48,10 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	for (i, n) in enumerate(names)
 		nt = ntuple(k->(k == dims ? i : Colon()), ndims(a))
 		if logv[i]
-			!quiet && @info("$n: log10-transformed")
+			!veryquiet && @info("$n: log10-transformed")
 			v = log10s(vec(a[nt...]))
 		else
-			!quiet && @info n
+			!veryquiet && @info n
 			v = vec(a[nt...])
 		end
 		if casefilename == ""
@@ -64,7 +64,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			end
 		end
 		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename=filename, kw..., title=n)
-		!quiet && println("$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Skewness $(skewness[i]) Count $(count[i])")
+		!veryquiet && println("$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Skewness $(skewness[i]) Count $(count[i])")
 	end
 	if !quiet
 		@info "Attributes"
