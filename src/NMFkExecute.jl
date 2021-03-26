@@ -2,7 +2,7 @@ import Distributed
 import JLD
 
 "Execute NMFk analysis for a range of number of signals"
-function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...) where {T, N}
+function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, kw...) where {T, N}
 	maxk = maximum(collect(nkrange))
 	W = Array{Array{T, N}}(undef, maxk)
 	H = Array{Array{T, 2}}(undef, maxk)
@@ -16,7 +16,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 	for nk in nkrange
 		println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality[nk])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[nk])) AIC: $(@Printf.sprintf("%12.7g", aic[nk]))")
 	end
-	kopt = getk(nkrange, robustness[nkrange])
+	kopt = getk(nkrange, robustness[nkrange], cutoff)
 	@info("Optimal solution: $kopt signals")
 	return W, H, fitquality, robustness, aic, kopt
 end

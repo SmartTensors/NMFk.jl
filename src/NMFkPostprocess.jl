@@ -80,8 +80,8 @@ function clusterresults(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...
 	NMFk.clusterresults(k, Wa, Ha, aw...; kw...)
 end
 
-function clusterresults(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; kw...)
-	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange]), nkrange, nruns, Wnames, Hnames; kw...)
+function clusterresults(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; cutoff::Number=0.5, kw...)
+	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange], cutoff), nkrange, nruns, Wnames, Hnames; kw...)
 end
 
 function clusterresults(krange::Union{AbstractVector{Int64},Integer}, nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", keyword::AbstractString="", kw...)

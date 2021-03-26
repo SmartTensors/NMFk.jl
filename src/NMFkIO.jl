@@ -1,6 +1,6 @@
 import JLD
 
-function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
+function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, kw...)
 	maxsignals = maximum(collect(nkrange))
 	aicl = NaN
 	i = 0
@@ -26,7 +26,7 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; kw...)
 	for k in nkrange[i+1:end]
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=type, dim=dim, kw...)
 	end
-	kopt = getk(nkrange, robustness[nkrange])
+	kopt = getk(nkrange, robustness[nkrange], cutoff)
 	i < length(nkrange) && @info("Optimal solution: $kopt signals")
 	return W, H, fitquality, robustness, aic, kopt
 end
@@ -93,7 +93,7 @@ function recursivemkdir(s::String; filename=true)
 	end
 	d = Vector{String}(undef, 0)
 	sc = deepcopy(s)
-	if !filename && sc!= ""	
+	if !filename && sc!= ""
 		push!(d, sc)
 	end
 	while true
