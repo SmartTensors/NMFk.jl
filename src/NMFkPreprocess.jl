@@ -156,6 +156,16 @@ function processdata!(M::AbstractArray; nanstring::AbstractString="NaN", negativ
 	return M
 end
 
+function griddata(x::AbstractVector, y::AbstractVector; stepvalue=nothing, nbins=nothing, xrev::Bool=false, xnbins::Integer=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=stepvalue, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=stepvalue, granulate::Bool=true, quiet::Bool=true)
+	if nbins !== nothing
+		xnbins = nbins
+		ynbins = nbins
+	end
+	ix, xbins, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate, quiet=quiet)
+	iy, ybins, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate, quiet=quiet)
+	return range(gxmin; stop=gxmax, length=xbins), range(gymin; stop=gymax, length=ybins)
+end
+
 function griddata(x::AbstractVector, y::AbstractVector, z::AbstractVector; kw...)
 	return griddata(x, y, reshape(z, (length(z), 1)); kw...)
 end
