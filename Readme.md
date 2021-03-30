@@ -192,6 +192,14 @@ A series of Jupyter notebooks demonstrating **NMFk** have been developed:
 * [Blind Prediction](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/simple_mapping.ipynb)
 * [Unmixing concentration data](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/mixing-concentrations.ipynb)
 
+The notebooks can be accessed also as:
+
+```
+Pkg.add("IJulia")
+import IJulia
+IJulia.notebook(; dir=joinpath(NMFk.nmfkdir, "notebooks"), detached=true)
+```
+
 ### Other Examples:
 
 * [Machine Learning](https://madsjulia.github.io/Mads.jl/Examples/machine_learning/index.html)
