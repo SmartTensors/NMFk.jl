@@ -191,7 +191,7 @@ function finduniquesignalsbest(X::AbstractMatrix)
 	return signalmapbest
 end
 
-function getsignalassignments(X::AbstractMatrix{T}, c::Vector; dims=1, clusterlabels=nothing) where {T}
+function getsignalassignments(X::AbstractMatrix{T}, c::Vector; dims=1, clusterlabels=nothing) where {T <: Number}
 	if clusterlabels === nothing
 		clusterlabels = sort(unique(c))
 	end

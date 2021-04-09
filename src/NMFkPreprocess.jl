@@ -37,7 +37,7 @@ function datanalytics(a::AbstractMatrix; dims::Integer=1, kw...)
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, quiet::Bool=false, veryquiet::Bool=quiet, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where T
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, quiet::Bool=false, veryquiet::Bool=quiet, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	min = Vector{T}(undef, length(names))
@@ -224,7 +224,7 @@ function bincoordinates(v::AbstractVector; rev::Bool=false, nbins=length(v), min
 	return vs
 end
 
-function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing) where {T}
+function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing) where {T <: Number}
 	o = Vector{T}(undef, length(mapping))
 	o .= NaN
 	if typeof(T) <: Integer
@@ -237,7 +237,7 @@ function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing)
 	return o
 end
 
-function remap(v::AbstractMatrix{T}, mapping::Vector; func::Function=!isnothing) where {T}
+function remap(v::AbstractMatrix{T}, mapping::Vector; func::Function=!isnothing) where {T <: Number}
 	o = Array{T}(undef, length(mapping), size(v, 2))
 	o .= NaN
 	if typeof(T) <: Integer
@@ -260,7 +260,7 @@ function slopes(v::AbstractVector)
 	return s
 end
 
-function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T, N}
+function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T <: Number, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	if length(start) > 0
@@ -293,7 +293,7 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfir
 	return afirstentry, alastentry, datasize
 end
 
-function shiftarray(X::Array{T,N}, d::Integer, start::Vector{Int64}, finish::Vector{Int64}, datasize::Vector{Int64}) where {T, N}
+function shiftarray(X::Array{T,N}, d::Integer, start::Vector{Int64}, finish::Vector{Int64}, datasize::Vector{Int64}) where {T <: Number, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	@assert length(start) == dd

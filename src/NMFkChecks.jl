@@ -1,4 +1,4 @@
-function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T, N}
+function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
 	rangeentry = Array{UnitRange{Int64}}(undef, N)
 	min_firstentry = Array{Int64}(undef, N)
 	max_lastentry = Array{Int64}(undef, N)
@@ -71,7 +71,7 @@ checkarray_nans(X::Array; kw...) = checkarrayentries(X; kw...)
 checkarray_zeros(X::Array; kw...) = checkarrayentries(X, i->i>0; kw...)
 checkarray_count(X::Array, func; kw...) = checkarrayentries(X, func; ecount=true, kw...)
 
-function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, good::Bool=false, ecount::Bool=false) where {T, N}
+function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, good::Bool=false, ecount::Bool=false) where {T <: Number, N}
 	local flag = true
 	return_selected_indeces = Vector{Vector{Int64}}(undef, N)
 	for d = 1:N

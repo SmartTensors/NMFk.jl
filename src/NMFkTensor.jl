@@ -1,6 +1,6 @@
 import DocumentFunction
 
-function tensorfactorization(X::AbstractArray{T,N}, range::Union{AbstractRange{Int},Integer}, dims::Union{AbstractRange{Int},Integer}=1:N, aw...; kw...) where {T,N}
+function tensorfactorization(X::AbstractArray{T,N}, range::Union{AbstractRange{Int},Integer}, dims::Union{AbstractRange{Int},Integer}=1:N, aw...; kw...) where {T <: Number, N}
 	@assert maximum(dims) <= N
 	M = Vector{Tuple}(undef, N)
 	for d = dims
@@ -9,7 +9,7 @@ function tensorfactorization(X::AbstractArray{T,N}, range::Union{AbstractRange{I
 	return M
 end
 
-function tensorfactorization(X::AbstractArray{T,N}, range::AbstractVector, aw...; kw...) where {T,N}
+function tensorfactorization(X::AbstractArray{T,N}, range::AbstractVector, aw...; kw...) where {T <: Number, N}
 	@assert length(range) == N
 	M = Vector{Tuple}(undef, N)
 	for d = 1:N

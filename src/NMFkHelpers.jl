@@ -194,7 +194,7 @@ function cornan(x, y)
 	end
 end
 
-function hardencodelength(x::Vector{T}) where {T}
+function hardencodelength(x::Vector{T}) where {T <: Number}
 	u = unique(x)
 	i = indexin(x, u)
 	inan = indexin(true, isnan.(u))[1]
@@ -202,7 +202,7 @@ function hardencodelength(x::Vector{T}) where {T}
 	return d
 end
 
-function hardencode(x::Vector{T}) where {T}
+function hardencode(x::Vector{T}) where {T <: Number}
 	u = unique(x)
 	i = indexin(x, u)
 	inan = indexin(true, isnan.(u))[1]
@@ -224,11 +224,11 @@ function hardencode(x::Vector{T}) where {T}
 	return m
 end
 
-function hardencode(x::Matrix{T}) where {T}
+function hardencode(x::Matrix{T}) where {T <: Number}
 	hcat([hardencode(x[:,i]) for i = 1:size(x, 2)]...)
 end
 
-function gettypes(x::Matrix{T}, levels=[0.05,0.35]) where {T}
+function gettypes(x::Matrix{T}, levels=[0.05,0.35]) where {T <: Number}
 	nlevels = length(levels)
 	nw = size(x, 1)
 	ns = size(x, 2)
@@ -251,7 +251,7 @@ function gettypes(x::Matrix{T}, levels=[0.05,0.35]) where {T}
 	map(i->types[i], iwcode)
 end
 
-function harddecode(x::AbstractMatrix, h::AbstractMatrix{T}) where {T}
+function harddecode(x::AbstractMatrix, h::AbstractMatrix{T}) where {T <: Number}
 	na = size(x, 2)
 	d = [hardencodelength(x[:,i]) for i = 1:na]
 	ns = size(h, 1)
@@ -288,7 +288,7 @@ function checkcols(x::AbstractMatrix; quiet::Bool=false)
 	return inans, izeros, ineg
 end
 
-function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Function=meannan) where {T, N}
+function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Function=meannan) where {T <: Number, N}
 	if windowsize == 0
 		return A
 	end
@@ -372,7 +372,7 @@ function flip(X)
 	-X .+ NMFk.maximumnan(X) .+ NMFk.minimumnan(X)
 end
 
-function estimateflip_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
+function estimateflip_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where {T <: Number}
 	@assert size(X, 2) == size(Y, 2)
 	@assert size(B, 2) == size(A, 2)
 	@assert size(X, 1) == size(A, 1)
@@ -392,7 +392,7 @@ function estimateflip_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A:
 	return vflip
 end
 
-function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where T
+function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where {T <: Number}
 	@assert size(X, 1) == size(Y, 1)
 	@assert size(B, 1) == size(A, 1)
 	@assert size(X, 2) == size(A, 2)
@@ -423,7 +423,7 @@ function flatten(X::AbstractArray{T,N}, mask::BitArray{M}) where {T,N,M}
 	return A
 end
 
-function flatten(X::AbstractArray{T,N}, dim::Number=1) where {T,N}
+function flatten(X::AbstractArray{T,N}, dim::Number=1) where {T <: Number, N}
 	sz = size(X)
 	nt = Vector{Int64}(undef, 0)
 	for k = 1:N

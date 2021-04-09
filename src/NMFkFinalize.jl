@@ -75,7 +75,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=fals
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
-function finalize(Wa::Matrix{T}, Ha::Matrix{T}, nNMF::Integer, idx::Matrix, clusterWmatrix::Bool=false) where {T}
+function finalize(Wa::Matrix{T}, Ha::Matrix{T}, nNMF::Integer, idx::Matrix, clusterWmatrix::Bool=false) where {T <: Number}
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
 	nT = size(Ha, 1) # total number of signals to cluster

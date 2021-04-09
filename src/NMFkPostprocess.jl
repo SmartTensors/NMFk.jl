@@ -70,7 +70,7 @@ function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVe
 	end
 end
 
-function clusterresults(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) where {T}
+function clusterresults(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) where {T <: Number}
 	k = size(W, 2)
 	@assert size(H, 1) == k
 	Wa = Array{Array{T, 2}}(undef, k)

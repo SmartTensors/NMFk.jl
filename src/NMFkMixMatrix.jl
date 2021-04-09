@@ -10,7 +10,7 @@ const defaultratiosweight = 1.
 const defaultdeltasweight = 1.
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), ratiosweight::T=convert(T, defaultratiosweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T}
+function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), ratiosweight::T=convert(T, defaultratiosweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <: Number}
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -231,7 +231,7 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function mixmatchdeltas(concentrations_in::Matrix{T}, deltas_in::Matrix{T}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), deltasweight::T=convert(T, defaultdeltasweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinitd::Matrix{T}=Array{T}(undef, 0, 0), tol::Float64=1e-3, maxbaditers::Int=10, quiet::Bool=NMFk.quiet) where {T}
+function mixmatchdeltas(concentrations_in::Matrix{T}, deltas_in::Matrix{T}, deltaindices::Vector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), deltasweight::T=convert(T, defaultdeltasweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinitd::Matrix{T}=Array{T}(undef, 0, 0), tol::Float64=1e-3, maxbaditers::Int=10, quiet::Bool=NMFk.quiet) where {T <: Number}
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)
@@ -375,7 +375,7 @@ function mixmatchdeltas(concentrations_in::Matrix{T}, deltas_in::Matrix{T}, delt
 end
 
 "Match data with only deltas"
-function mixmatchwaterdeltas(deltas::AbstractMatrix{T}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), maxdeltaguess::T=convert(T, 1000.), bucketmeans::Matrix{T}=zeros(numbuckets, 2)) where {T}
+function mixmatchwaterdeltas(deltas::AbstractMatrix{T}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), maxdeltaguess::T=convert(T, 1000.), bucketmeans::Matrix{T}=zeros(numbuckets, 2)) where {T <: Number}
 	deltas = copy(deltas) # we may overwrite some of the fields if there are NaN's, so make a copy
 	nummixtures = size(deltas, 1)
 	numconstituents = 2

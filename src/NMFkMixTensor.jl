@@ -144,7 +144,7 @@ function setbadmixerelements!(X::AbstractArray, W::AbstractArray, H::AbstractArr
 	end
 end
 
-function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::AbstractArray{T, 2}, isn=isnan.(X)) where {T}
+function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::AbstractArray{T, 2}, isn=isnan.(X)) where {T <: Number}
 	nummixtures, numconstituents, ntimes = size(X)
 	nummixtures2, numbuckets, ntimes2 = size(W)
 	numbuckets2, numconstituents2 = size(H)
@@ -166,7 +166,7 @@ function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::Abst
 	return convert(AbstractArray{T, 3}, Xe)
 end
 
-function mixmatchcompute(W::AbstractArray{T, 3}, H::AbstractArray{T, 2}) where {T}
+function mixmatchcompute(W::AbstractArray{T, 3}, H::AbstractArray{T, 2}) where {T <: Number}
 	nummixtures, numbuckets, ntimes = size(W)
 	numbuckets2, numconstituents = size(H)
 	@assert numbuckets == numbuckets2
@@ -183,7 +183,7 @@ function mixmatchcompute(W::AbstractArray{T, 3}, H::AbstractArray{T, 2}) where {
 	return convert(Array{T, 3}, Xe)
 end
 
-function fixmixers!(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}) where {T}
+function fixmixers!(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}) where {T <: Number}
 	nw, nc, nt = size(X)
 	for t = 1:nt
 		for w = 1:nw

@@ -175,7 +175,7 @@ function denormalizematrix_row!(a::AbstractMatrix, amin::AbstractVector, amax::A
 end
 
 "Normalize array"
-function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), amax=vec(maximumnan(a; dims=dims)), amin=vec(minimumnan(a; dims=dims))) where {T,N}
+function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), amax=vec(maximumnan(a; dims=dims)), amin=vec(minimumnan(a; dims=dims))) where {T <: Number, N}
 	for i = 1:length(amax)
 		dx = amax[i] - amin[i]
 		if dx != 0 && !isnan(dx)
@@ -195,7 +195,7 @@ function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), ama
 end
 
 "Denormalize array"
-function denormalizearray!(a::AbstractArray{T,N}, amin, amax; dims=(1,2)) where {T,N}
+function denormalizearray!(a::AbstractArray{T,N}, amin, amax; dims=(1,2)) where {T <: Number, N}
 	for i = 1:length(amax)
 		dx = amax[i] - amin[i]
 		if dx != 0 && !isnan(dx)
@@ -208,7 +208,7 @@ function denormalizearray!(a::AbstractArray{T,N}, amin, amax; dims=(1,2)) where 
 end
 
 "Scale array"
-function scalearray!(a::AbstractArray{T,N}; dims=(1,2)) where {T,N}
+function scalearray!(a::AbstractArray{T,N}; dims=(1,2)) where {T <: Number, N}
 	amax = vec(maximumnan(a; dims=dims))
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
@@ -218,7 +218,7 @@ function scalearray!(a::AbstractArray{T,N}; dims=(1,2)) where {T,N}
 	end
 	return a, amax
 end
-function scalearray!(a::AbstractArray{T,N}, dim::Integer) where {T,N}
+function scalearray!(a::AbstractArray{T,N}, dim::Integer) where {T <: Number, N}
 	_, amax = matrixminmax(a, dim)
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
@@ -230,7 +230,7 @@ function scalearray!(a::AbstractArray{T,N}, dim::Integer) where {T,N}
 end
 
 "Descale array"
-function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector; dims=(1,2)) where {T,N}
+function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector; dims=(1,2)) where {T <: Number, N}
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			nt = ntuple(k->(k in dims ? Colon() : i), N)
@@ -239,7 +239,7 @@ function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector; dims=(1,2)) 
 	end
 	return a
 end
-function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector, dim::Integer) where {T,N}
+function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector, dim::Integer) where {T <: Number, N}
 	for i = 1:length(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), N)

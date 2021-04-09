@@ -1,5 +1,5 @@
 "Execute NMFk analysis for a given of number of signals multiple times"
-function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF::Integer=1; window::Integer=size(X, 1), maxwindow::Integer=window, save::Bool=false, saveall::Bool=false, loadall::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", quiet::Bool=false, kw...) where {T, N}
+function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF::Integer=1; window::Integer=size(X, 1), maxwindow::Integer=window, save::Bool=false, saveall::Bool=false, loadall::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", quiet::Bool=false, kw...) where {T <: Number, N}
 	if casefilename == ""
 		casefilename = "nmfk_uncertainty"
 	end
