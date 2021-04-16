@@ -26,7 +26,7 @@ function typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
 	return typecolors
 end
 
-function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", types=[], typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, background_color=nothing, kw...)
+function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", types=[], separate::Bool=false, typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, background_color=nothing, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -60,6 +60,14 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 			else
 				push!(colp, biplot(X ./ maximumnan(X), label, mapping; code=true, col1=c1, col2=c2, hsize=hsize, vsize=vsize, colors=typecolors, background_color=background_color, kw...))
 				f = true
+			end
+			if separate && filename != ""
+				pp = i < j ? biplot(X ./ maximumnan(X), label, mapping; code=true, col1=c1, col2=c2, hsize=hsize, vsize=vsize, colors=typecolors, background_color=background_color, kw...) : colp[end]
+				ff = splitext(filename)
+				filename_long = ff[1] * "_$(c1)_$(c2)" * ff[end]
+				fl = joinpathcheck(figuredir, filename_long)
+				recursivemkdir(fl)
+				plotfileformat(pp, fl, hsize, vsize; dpi=dpi)
 			end
 		end
 		f && push!(rowp, Gadfly.hstack(colp...))
@@ -174,7 +182,6 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		else
 			p = Gadfly.plot([x y cv], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), color=Gadfly.Col.value(3), Gadfly.Geom.point(), Gadfly.Scale.color_discrete(colormap), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1), gm...)
 		end
-
 	end
 	if code
 		return p
