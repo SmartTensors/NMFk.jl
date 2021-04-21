@@ -1,8 +1,10 @@
+demo/* linguist-documentation
 docs/* linguist-documentation
-site/* linguist-documentation
-movies/* linguist-documentation
-examples/* linguist-documentation
+docker/* linguist-documentation
 logo/* linguist-documentation
+examples/* linguist-documentation
+images/* linguist-documentation
+movies/* linguist-documentation
 notebooks/* linguist-documentation
 webapp/* linguist-vendored
 *.jl linguist-language=Julia
