@@ -457,11 +457,11 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 					biplotlabelflag = false
 				end
 				Wbiplottypecolors = length(Wtypes) > 0 ? Wcolors : typecolors(cwnew, Wcolors)
-				Hbiplottypecolors = length(Htypes) > 0 ? Hcolors : typecolors(cwnew, Hcolors)
+				Hbiplottypecolors = length(Htypes) > 0 ? Hcolors : typecolors(chnew, Hcolors)
 				if biplotcolor == :W
 					biplotcolors = [Wbiplottypecolors; fill("gray", length(Hnames))]
 				elseif biplotcolor == :WH
-					Hbiplottypecolors = length(Htypes) > 0 ? Hcolors : typecolors(cwnew, Hcolors[k+1:end])
+					Hbiplottypecolors = length(Htypes) > 0 ? Hcolors : typecolors(chnew, Hcolors[k+1:end])
 					biplotcolors = [Wbiplottypecolors; Hbiplottypecolors]
 				elseif biplotcolor == :H
 					biplotcolors = [fill("gray", length(Wnames)); Hbiplottypecolors]
