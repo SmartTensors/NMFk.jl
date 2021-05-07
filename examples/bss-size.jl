@@ -1,4 +1,5 @@
 import NMFk
+import Random
 
 @info("Reconstruction of sin/rand disturbance signal ...")
 Random.seed!(2015)
