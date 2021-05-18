@@ -1,6 +1,6 @@
 import NMFk
 import Mads
-using Base.Test
+import Random
 
 @info("Reconstruction of random signals ...")
 Random.seed!(2015)
