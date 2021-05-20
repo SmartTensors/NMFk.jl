@@ -185,10 +185,19 @@ function normnan(X::AbstractArray)
 	LinearAlgebra.norm(X[.!isnan.(X)])
 end
 
-function cornan(x, y)
+function covnan(x, y)
 	isn = .!(isnan.(x) .| isnan.(y))
 	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
 		return Statistics.cov(x[isn], y[isn])
+	else
+		return NaN
+	end
+end
+
+function cornan(x, y)
+	isn = .!(isnan.(x) .| isnan.(y))
+	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
+		return Statistics.cor(x[isn], y[isn])
 	else
 		return NaN
 	end
