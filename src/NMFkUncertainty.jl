@@ -1,8 +1,5 @@
 "Execute NMFk analysis for a given of number of signals multiple times"
-function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF::Integer=1; window::Integer=size(X, 1), maxwindow::Integer=window, save::Bool=false, saveall::Bool=false, loadall::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", quiet::Bool=false, kw...) where {T <: Number, N}
-	if casefilename == ""
-		casefilename = "nmfk_uncertainty"
-	end
+function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF::Integer=1; window::Integer=size(X, 1), maxwindow::Integer=window, save::Bool=false, saveall::Bool=false, loadall::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="nmfk_uncertainty", quiet::Bool=false, kw...) where {T <: Number, N}
 	if loadall
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
 		if isfile(filename)
@@ -60,4 +57,28 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		@info("Results saved in $filename.")
 	end
 	return W, H, fitquality, robustness, aic
+end
+
+function uncertainty(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=1; save::Bool=false, loadall::Bool=true, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", quiet::Bool=false, kw...) where {T <: Number, N}
+	filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+	if loadall && isfile(filename)
+		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
+	else
+		@warn("Filename $filename is missing!")
+		NMFk.execute(X, nk, nNMF; kw..., saveall=true, resultdir=resultdir, casefilename="$casefilename-$nk-$nNMF-all.jld")
+		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
+	end
+	Xvar = similar(X)
+	Xmin = similar(X)
+	Xmax = similar(X)
+	Xe = Vector{typeof(X)}(undef, nNMF)
+	for i = 1:nNMF
+		Xe[i] = WBig[i] * HBig[i]
+	end
+	for i = 1:*(size(X)...)
+		Xvar[i] = Statistics.var([Xe[j][i] for j=1:nNMF])
+		Xmin[i] = minimum([Xe[j][i] for j=1:nNMF])
+		Xmax[i] = maximum([Xe[j][i] for j=1:nNMF])
+	end
+	return Xmin, Xmax, Xvar
 end
