@@ -31,6 +31,10 @@ function r2(x::AbstractVector, y::AbstractVector)
 	return r2
 end
 
+function r2(x::AbstractArray, y::AbstractArray)
+	return r2(vec(x), vec(y))
+end
+
 function findfirst(v::AbstractVector, func::Function=i->i > 0; zerod::Bool=true, funczerod::Function=isnan)
 	if zerod
 		i = funczerod.(v)

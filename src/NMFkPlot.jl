@@ -337,6 +337,10 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.
 	return nothing
 end
 
+function plotscatter(x::AbstractArray, y::AbstractArray, aw...; kw...)
+	plotscatter(vec(x), vec(y), aw...; kw...)
+end
+
 function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
 	if polygon !== nothing
 		xmin = xmin !== nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
