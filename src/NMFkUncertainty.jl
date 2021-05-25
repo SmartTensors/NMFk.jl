@@ -1,5 +1,5 @@
 "Execute NMFk analysis for a given of number of signals multiple times"
-function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF::Integer=1; window::Integer=size(X, 1), maxwindow::Integer=window, save::Bool=false, saveall::Bool=false, loadall::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="nmfk_uncertainty", quiet::Bool=false, kw...) where {T <: Number, N}
+function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF::Integer=10; window::Integer=size(X, 1), maxwindow::Integer=window, save::Bool=false, saveall::Bool=false, loadall::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="nmfk_uncertainty", quiet::Bool=false, kw...) where {T <: Number, N}
 	if loadall
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
 		if isfile(filename)
@@ -59,7 +59,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 	return W, H, fitquality, robustness, aic
 end
 
-function uncertainty(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=1; save::Bool=false, loadall::Bool=true, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", quiet::Bool=false, kw...) where {T <: Number, N}
+function uncertainty(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; save::Bool=false, loadall::Bool=true, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", quiet::Bool=false, kw...) where {T <: Number, N}
 	filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 	if loadall && isfile(filename)
 		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
