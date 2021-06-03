@@ -59,7 +59,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 	return W, H, fitquality, robustness, aic
 end
 
-function uncertainty(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; save::Bool=false, loadall::Bool=true, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", quiet::Bool=false, kw...) where {T <: Number, N}
+function uncertaintyranges(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; loadall::Bool=true, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", kw...) where {T <: Number, N}
 	filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 	if loadall && isfile(filename)
 		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
