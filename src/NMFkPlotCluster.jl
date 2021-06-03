@@ -62,7 +62,7 @@ struct Dendrogram <: Gadfly.GuideElement
 	location::Symbol
 	scaleheight::Number
 	height::Number
-	color::String
+	color::AbstractString
 	linewidth::Measures.Length{:mm,Float64}
 	raw::Bool
 	dim::Int64
@@ -70,7 +70,7 @@ struct Dendrogram <: Gadfly.GuideElement
 	linkage::Symbol
 end
 
-dendrogram(; location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, raw::Bool=true, dim::Int64=1, metric::Union{Distances.Metric,Distances.SemiMetric}=Distances.CosineDist(), linkage::Symbol=:complete) = Dendrogram(location, scaleheight, height, color, linewidth, raw, dim, metric, linkage)
+dendrogram(; location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, raw::Bool=true, dim::Int64=1, metric::Union{Distances.Metric,Distances.SemiMetric}=Distances.CosineDist(), linkage::Symbol=:complete) = Dendrogram(location, scaleheight, height, color, linewidth, raw, dim, metric, linkage)
 
 function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly.Aesthetics)
 	userow = guide.location == :both || guide.location == :top
@@ -105,7 +105,7 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	return gpg
 end
 
-function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::String="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, xticks=nothing, yticks=nothing, minor_label_font_size=10Gadfly.pt)
+function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, xticks=nothing, yticks=nothing, minor_label_font_size=10Gadfly.pt)
 	gm = []
 	r, c = size(X)
 	if xticks === nothing

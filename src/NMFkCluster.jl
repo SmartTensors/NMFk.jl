@@ -191,7 +191,7 @@ function finduniquesignalsbest(X::AbstractMatrix)
 	return signalmapbest
 end
 
-function getsignalassignments(X::AbstractMatrix{T}, c::Vector; dims=1, clusterlabels=nothing) where {T <: Number}
+function getsignalassignments(X::AbstractMatrix{T}, c::AbstractVector; dims=1, clusterlabels=nothing) where {T <: Number}
 	if clusterlabels === nothing
 		clusterlabels = sort(unique(c))
 	end
@@ -206,7 +206,7 @@ function getsignalassignments(X::AbstractMatrix{T}, c::Vector; dims=1, clusterla
 	return NMFk.finduniquesignalsbest(Ms)
 end
 
-function clustersolutions(factors::Vector, clusterWmatrix::Bool=false)
+function clustersolutions(factors::AbstractVector, clusterWmatrix::Bool=false)
 	if !clusterWmatrix
 		factors = [permutedims(f) for f in factors]
 	end
@@ -301,7 +301,7 @@ function clustersolutions(factors::Vector, clusterWmatrix::Bool=false)
 end
 
 "Cluster NMFk solutions"
-function clustersolutions_old(W::Vector, clusterWmatrix::Bool=false)
+function clustersolutions_old(W::AbstractVector, clusterWmatrix::Bool=false)
 	nNMF = length(W)
 	nc, nr = size(W[1])
 	nk = clusterWmatrix ? nr : nc
@@ -349,7 +349,7 @@ function clustersolutions_old(W::Vector, clusterWmatrix::Bool=false)
 	return idx, permutedims(centroids)
 end
 
-function clustersolutions_old(W::Matrix, nNMF::Integer)
+function clustersolutions_old(W::AbstractMatrix, nNMF::Integer)
 	nP, nT = size(W) # number of observations (components/transients), number of total number of signals to cluster
 	nk = convert(Int, nT / nNMF)
 

@@ -1,7 +1,7 @@
 import Statistics
 
 "Finalize the NMFk results"
-function finalize(Wa::Vector, idx::Matrix)
+function finalize(Wa::AbstractVector, idx::AbstractMatrix)
 	nNMF = length(Wa)
 	nk, nP = size(Wa[1]) # number of observation points (samples)
 	nT = nk * nNMF # total number of signals to cluster
@@ -31,7 +31,7 @@ function finalize(Wa::Vector, idx::Matrix)
 	end
 	return W, clustersilhouettes, Wvar
 end
-function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=false)
+function finalize(Wa::AbstractVector, Ha::AbstractVector, idx::AbstractMatrix, clusterWmatrix::Bool=false)
 	N = ndims(Wa[1])
 	nNMF = length(Wa)
 	nP = size(Wa[1], 1) # number of observation points (samples)
@@ -75,7 +75,7 @@ function finalize(Wa::Vector, Ha::Vector, idx::Matrix, clusterWmatrix::Bool=fals
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
-function finalize(Wa::Matrix{T}, Ha::Matrix{T}, nNMF::Integer, idx::Matrix, clusterWmatrix::Bool=false) where {T <: Number}
+function finalize(Wa::AbstractMatrix{T}, Ha::AbstractMatrix{T}, nNMF::Integer, idx::AbstractMatrix, clusterWmatrix::Bool=false) where {T <: Number}
 	nP = size(Wa, 1) # number of observation points (samples)
 	nC = size(Ha, 2) # number of observations for each point (components/transients)
 	nT = size(Ha, 1) # total number of signals to cluster
@@ -104,12 +104,12 @@ function finalize(Wa::Matrix{T}, Ha::Matrix{T}, nNMF::Integer, idx::Matrix, clus
 	end
 	return W, H, clustersilhouettes, Wvar, Hvar
 end
-function finalize(Wa::Matrix, Ha::Matrix)
+function finalize(Wa::AbstractMatrix, Ha::AbstractMatrix)
 	W = Statistics.mean(Wa; dims=2)
 	H = Statistics.mean(Ha; dims=1)
 	return W, H
 end
-function finalize(Wa::Vector, Ha::Vector)
+function finalize(Wa::AbstractVector, Ha::AbstractVector)
 	W = Statistics.mean(Wa[1]; dims=2)
 	H = Statistics.mean(Ha[1]; dims=1)
 	return W, H

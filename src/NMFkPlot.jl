@@ -26,7 +26,7 @@ function typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
 	return typecolors
 end
 
-function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::String="", title::String="", types=[], separate::Bool=false, typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, background_color=nothing, kw...)
+function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", types=[], separate::Bool=false, typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, background_color=nothing, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -82,7 +82,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), figuredir::String=".", filename::String="", title::String="", col1::Number=1, col2::Number=2, axisname::String="Signal", xtitle::String="$axisname $col1", ytitle::String="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
+function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -209,7 +209,7 @@ function histogram(datain::AbstractVector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., joined=false)
 end
 
-function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::String=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
+function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
 	if ndata <= 1
 		@warn("Data input is too short to compute histogram (length of data = $ndata)!")
@@ -318,7 +318,7 @@ function histogram(data::AbstractVector, classes::Vector; joined::Bool=true, sep
 	return nothing
 end
 
-function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
+function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
 	nsignals = length(unique(sort(df[!, :Attribute])))
 	loopcolors = nsignals + 1 > ncolors ? true : false
 	if loopcolors
@@ -341,7 +341,7 @@ function plotscatter(x::AbstractArray, y::AbstractArray, aw...; kw...)
 	plotscatter(vec(x), vec(y), aw...; kw...)
 end
 
-function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
+function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
 	if polygon !== nothing
 		xmin = xmin !== nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
 		xmax = xmax !== nothing ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
@@ -388,7 +388,7 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	return nothing
 end
 
-function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", gm=[], dpi=imagedpi)
+function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", gm=[], dpi=imagedpi)
 	nsignals = length(V)
 	@assert nsignals == length(A)
 	loopcolors = nsignals + 1 > ncolors ? true : false
@@ -410,7 +410,7 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	return ff
 end
 
-function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::String=".", filename::String="", title::String="", xtitle::String="", ytitle::String="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))), dpi=imagedpi)
+function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))), dpi=imagedpi)
 	msize = size(M)
 	ndimensons = length(msize)
 	@assert dim >= 1 && dim <= ndimensons
@@ -443,7 +443,7 @@ function plot2dmatrixcomponents(M::Matrix, dim::Integer=1; quiet::Bool=false, hs
 	return ff
 end
 
-function plotmatrix(A::Matrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixelsize::Number; line_width::Number=2, alpha::Number=1)
+function plotmatrix(A::AbstractMatrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixelsize::Number; line_width::Number=2, alpha::Number=1)
 	w = pixelsize * size(A, 2)
 	h = pixelsize * size(A, 1)
 	ax = fig.add_axes([x0, y0, w, h], frameon=false)
@@ -465,7 +465,7 @@ function plotmatrix(A::Matrix, fig::PyPlot.Figure, x0::Number, y0::Number, pixel
 	return ax, w, h
 end
 
-function plotequation(X::Matrix, W::Matrix, H::Matrix, fig::PyPlot.Figure; x0::Number=-0.05, y0::Number=0.05, pixelsize::Number=0.10, alpha::Number=1)
+function plotequation(X::AbstractMatrix, W::AbstractMatrix, H::AbstractMatrix, fig::PyPlot.Figure; x0::Number=-0.05, y0::Number=0.05, pixelsize::Number=0.10, alpha::Number=1)
 	owh, oww = size(W)
 	ohh, ohw = size(H)
 	#fig[:text](x0, y0, "×", fontsize=75, va="center")
@@ -486,7 +486,7 @@ function plotequation(X::Matrix, W::Matrix, H::Matrix, fig::PyPlot.Figure; x0::N
 	# ax.text(x0 + w + ww + wh + pixelsize * 1.5, h + 1.5 * pixelsize, "H", fontsize=50, va="center", ha="center")
 end
 
-function plotequation643(X::Matrix, W::Matrix, H::Matrix, fig::PyPlot.Figure; x0::Number=-0.05, y0::Number=0.05, pixelsize::Number=0.12, alpha::Number=1)
+function plotequation643(X::AbstractMatrix, W::AbstractMatrix, H::AbstractMatrix, fig::PyPlot.Figure; x0::Number=-0.05, y0::Number=0.05, pixelsize::Number=0.12, alpha::Number=1)
 	owh, oww = size(W)
 	ohh, ohw = size(H)
 	#fig[:text](x0, y0, "×", fontsize=75, va="center")
@@ -507,7 +507,7 @@ function plotequation643(X::Matrix, W::Matrix, H::Matrix, fig::PyPlot.Figure; x0
 	ax.text(x0 + w + ww + wh + pixelsize * 1.5, h + 1.5 * pixelsize, "H", fontsize=50, va="center", ha="center")
 end
 
-function plotnmf(X::Matrix, W::Matrix, H::Matrix; filename::AbstractString="", movie::Bool=false, frame::Integer=0)
+function plotnmf(X::AbstractMatrix, W::AbstractMatrix, H::AbstractMatrix; filename::AbstractString="", movie::Bool=false, frame::Integer=0)
 	nr, nk = size(W)
 	nk, nc = size(H)
 	fig, throwawayax = PyPlot.subplots(figsize=(16,9))
@@ -718,7 +718,7 @@ Returns:
 - output file name
 - output plot format (`png`, `pdf`, etc.)
 """
-function setplotfileformat(filename::String, format::String="PNG")
+function setplotfileformat(filename::AbstractString, format::AbstractString="PNG")
 	d = splitdir(filename)
 	root, extension = splitext(d[end])
 	if extension == ""
@@ -733,7 +733,7 @@ function setplotfileformat(filename::String, format::String="PNG")
 	return filename, Symbol(format)
 end
 
-function plotfileformat(p, filename::String, hsize, vsize; dpi=imagedpi)
+function plotfileformat(p, filename::AbstractString, hsize, vsize; dpi=imagedpi)
 	if vsize > 20Compose.inch && hsize > 20Compose.inch
 		hsize = 20Compose.inch
 		vsize = 20Compose.inch

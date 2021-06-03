@@ -17,7 +17,7 @@ function setdpi(dpi::Integer)
 	global imagedpi = dpi;
 end
 
-toupper(x::String, i=1) = x[1:i-1] * uppercase(x[i:i]) * x[i+1:end]
+toupper(x::AbstractString, i=1) = x[1:i-1] * uppercase(x[i:i]) * x[i+1:end]
 
 function r2(x::AbstractVector, y::AbstractVector)
 	# rho = Statistics.cov(x, y) / (Statistics.std(x) * Statistics.std(y))
@@ -207,7 +207,7 @@ function cornan(x, y)
 	end
 end
 
-function hardencodelength(x::Vector{T}) where {T <: Number}
+function hardencodelength(x::AbstractVector{T}) where {T <: Number}
 	u = unique(x)
 	i = indexin(x, u)
 	inan = indexin(true, isnan.(u))[1]
@@ -215,7 +215,7 @@ function hardencodelength(x::Vector{T}) where {T <: Number}
 	return d
 end
 
-function hardencode(x::Vector{T}) where {T <: Number}
+function hardencode(x::AbstractVector{T}) where {T <: Number}
 	u = unique(x)
 	i = indexin(x, u)
 	inan = indexin(true, isnan.(u))[1]
@@ -237,11 +237,11 @@ function hardencode(x::Vector{T}) where {T <: Number}
 	return m
 end
 
-function hardencode(x::Matrix{T}) where {T <: Number}
+function hardencode(x::AbstractMatrix{T}) where {T <: Number}
 	hcat([hardencode(x[:,i]) for i = 1:size(x, 2)]...)
 end
 
-function gettypes(x::Matrix{T}, levels=[0.05,0.35]) where {T <: Number}
+function gettypes(x::AbstractMatrix{T}, levels=[0.05,0.35]) where {T <: Number}
 	nlevels = length(levels)
 	nw = size(x, 1)
 	ns = size(x, 2)
@@ -369,7 +369,7 @@ function remask(sm, repeats::Union{Vector{Int64},Vector{Int32}})
 	return reshape(repeat(sm, 1, *(repeats...)), (size(sm)..., repeats...))
 end
 
-function bincount(x::Vector; cutoff=0)
+function bincount(x::AbstractVector; cutoff=0)
 	n = unique(sort(x))
 	c = map(i->sum(x .== i), n)
 	i = sortperm(c; rev=true)
@@ -454,7 +454,7 @@ end
 
 import Base.replace
 
-function replace(str::String, old_new::Pair...)
+function replace(str::AbstractString, old_new::Pair...)
 	mapping = Dict(old_new)
 	for k in keys(mapping)
 		str = Base.replace(str, Pair(k, mapping[k]))
@@ -462,6 +462,6 @@ function replace(str::String, old_new::Pair...)
 	return str
 end
 
-function stringfix(str::String)
+function stringfix(str::AbstractString)
 	replace(str, '&' => "&amp;", '(' => "[", ')' => "]", '<' => "≤", '–' => "-")
 end

@@ -17,7 +17,7 @@ function inputstring2data(s::AbstractString)
 	return data
 end
 
-function processdata(data::Matrix, n::Int, components::Array{Any, 1})
+function processdata(data::AbstractMatrix, n::Int, components::Array{Any, 1})
 	mixer, buckets, objectiveeval = NMFk.mixmatchdata(data, n)
 	push!(components, plaintext("Fit quality (lower is better): $objectiveeval"))
 	for i = 1:n

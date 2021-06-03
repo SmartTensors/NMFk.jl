@@ -34,7 +34,7 @@ function functions(re::Regex; stdout::Bool=false, quiet::Bool=false)
 	n > 0 && string == "" && @info("Total number of functions: $n")
 	return
 end
-function functions(string::String=""; stdout::Bool=false, quiet::Bool=false)
+function functions(string::AbstractString=""; stdout::Bool=false, quiet::Bool=false)
 	n = 0
 	for i in modules
 		Core.eval(NMFk, :(@tryimport $(Symbol(i))))
@@ -73,7 +73,7 @@ function functions(m::Union{Symbol, Module}, re::Regex; stdout::Bool=false, quie
 	n > 0 && string == "" && @info("Number of functions in module $m: $n")
 	return n
 end
-function functions(m::Union{Symbol, Module}, string::String=""; stdout::Bool=false, quiet::Bool=false)
+function functions(m::Union{Symbol, Module}, string::AbstractString=""; stdout::Bool=false, quiet::Bool=false)
 	n = 0
 	if string != ""
 		quiet=false
@@ -123,11 +123,11 @@ NMFk.functions(NMFk, "get")
 """ functions
 
 "Checks if package is available"
-function ispkgavailable(modulename::String)
+function ispkgavailable(modulename::AbstractString)
 	return pkginstalled(modulename)
 end
 
-function pkginstalled(modulename::String)
+function pkginstalled(modulename::AbstractString)
 	found = false
 	deps = Pkg.dependencies()
 	for (uuid, dep) in deps

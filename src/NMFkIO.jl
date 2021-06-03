@@ -81,7 +81,7 @@ Create directories recursively (if does not already exist)
 $(DocumentFunction.documentfunction(recursivemkdir;
 argtext=Dict("dirname"=>"directory")))
 """
-function recursivemkdir(s::String; filename=true)
+function recursivemkdir(s::AbstractString; filename=true)
 	if filename
 		if isfile(s)
 			return

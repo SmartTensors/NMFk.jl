@@ -1,5 +1,5 @@
 "vspeed = 10 - ten times slower; vspped=0.1 - ten times faster"
-function makemovie(; movieformat="mp4", movieopacity::Bool=false, moviedir::String=".", prefix::String="", keyword::String="frame", imgformat::String="png", cleanup::Bool=true, quiet::Bool=true, vspeed::Number=1.0, numberofdigits::Integer=6)
+function makemovie(; movieformat="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", prefix::AbstractString="", keyword::AbstractString="frame", imgformat::AbstractString="png", cleanup::Bool=true, quiet::Bool=true, vspeed::Number=1.0, numberofdigits::Integer=6)
 	if moviedir == "."
 		moviedir, prefix = splitdir(prefix)
 		if moviedir == ""

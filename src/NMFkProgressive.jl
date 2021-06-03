@@ -5,7 +5,7 @@ import Gadfly
 import Plotly
 import PlotlyJS
 
-function progressive(X::Matrix{T}, windowsize::Int64, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
+function progressive(X::AbstractMatrix{T}, windowsize::Int64, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
 		@warn("Input matrix contains rows or columns with only NaNs!")
@@ -27,7 +27,7 @@ function progressive(X::Matrix{T}, windowsize::Int64, nkrange::AbstractRange{Int
 	return k
 end
 
-function progressive(X::Matrix{T}, windowsize::Vector{Int64}, window_k::Vector{Int64}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, kw...) where {T <: Number}
+function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, window_k::AbstractVector{Int64}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, kw...) where {T <: Number}
 	@assert length(windowsize) == length(window_k)
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
@@ -50,7 +50,7 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, window_k::Vector{I
 	return window_k
 end
 
-function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
+function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
 		@warn("Input matrix contains rows or columns with only NaNs!")
@@ -74,7 +74,7 @@ function progressive(X::Matrix{T}, windowsize::Vector{Int64}, nkrange::AbstractR
 	return window_k
 end
 
-function progressive(X::Vector{Matrix{T}}, windowsize::Vector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
+function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	window_k = Array{Int64}(undef, 0)
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")

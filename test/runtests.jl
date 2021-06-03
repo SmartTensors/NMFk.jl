@@ -6,7 +6,7 @@ import LinearAlgebra
 
 @Test.testset "NMFk" begin
 
-function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
+function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
 	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-1), maxiter=5000, verbosity=0, tol=0.0000001, method=:ipopt)
@@ -22,7 +22,7 @@ function runtest(concs::Matrix, buckets::Matrix, ratios::Array{Float32, 2}=Array
 	checkratios(mixerestimate, bucketestimate, ratios, ratiocomponents)
 end
 
-function checkratios(mixerestimate::Matrix, bucketestimate::Matrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratiocomponents::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0))
+function checkratios(mixerestimate::AbstractMatrix, bucketestimate::AbstractMatrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratiocomponents::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0))
 	if sizeof(ratios) == 0
 		return
 	end

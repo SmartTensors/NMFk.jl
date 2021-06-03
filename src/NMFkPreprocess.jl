@@ -224,7 +224,7 @@ function bincoordinates(v::AbstractVector; rev::Bool=false, nbins=length(v), min
 	return vs
 end
 
-function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing) where {T <: Number}
+function remap(v::AbstractVector{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Vector{T}(undef, length(mapping))
 	o .= NaN
 	if typeof(T) <: Integer
@@ -237,7 +237,7 @@ function remap(v::AbstractVector{T}, mapping::Vector; func::Function=!isnothing)
 	return o
 end
 
-function remap(v::AbstractMatrix{T}, mapping::Vector; func::Function=!isnothing) where {T <: Number}
+function remap(v::AbstractMatrix{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Array{T}(undef, length(mapping), size(v, 2))
 	o .= NaN
 	if typeof(T) <: Integer
@@ -260,7 +260,7 @@ function slopes(v::AbstractVector)
 	return s
 end
 
-function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::Vector{Int64}=Vector{Int64}(undef, 0)) where {T <: Number, N}
+function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::AbstractVector{Int64}=Vector{Int64}(undef, 0)) where {T <: Number, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	if length(start) > 0
@@ -293,7 +293,7 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfir
 	return afirstentry, alastentry, datasize
 end
 
-function shiftarray(X::Array{T,N}, d::Integer, start::Vector{Int64}, finish::Vector{Int64}, datasize::Vector{Int64}) where {T <: Number, N}
+function shiftarray(X::Array{T,N}, d::Integer, start::AbstractVector{Int64}, finish::AbstractVector{Int64}, datasize::AbstractVector{Int64}) where {T <: Number, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	@assert length(start) == dd
@@ -312,7 +312,7 @@ end
 """
 Extract a matrix from a dataframe
 """
-function df2matrix(df::DataFrames.DataFrame, id::Vector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
+function df2matrix(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
 	nw = length(id)
 	matrix = Array{Float32}(undef, length(dates), nw)
 	matrix .= NaN32

@@ -3,7 +3,7 @@ import Measures
 import Colors
 import Compose
 
-function progressbar_regular(i::Number, timescale::Bool=false, timestep::Number=1, datestart=nothing, dateend=nothing, dateincrement::String="Dates.Day")
+function progressbar_regular(i::Number, timescale::Bool=false, timestep::Number=1, datestart=nothing, dateend=nothing, dateincrement::AbstractString="Dates.Day")
 	s = timescale ? sprintf("%6.4f", i * timestep) : sprintf("%6d", i)
 	if datestart !== nothing
 		if dateend !== nothing
@@ -25,7 +25,7 @@ function progressbar_regular(i::Number, timescale::Bool=false, timestep::Number=
 end
 
 function make_progressbar_2d(s; vlinecolor="gray", vlinesize=2Gadfly.pt)
-	function progressbar_2d(i::Number, timescale::Bool=false, timestep::Number=1, datestart=nothing, dateend=nothing, dateincrement::String="Dates.Day")
+	function progressbar_2d(i::Number, timescale::Bool=false, timestep::Number=1, datestart=nothing, dateend=nothing, dateincrement::AbstractString="Dates.Day")
 		if i > 0
 			xi = timescale ? i * timestep : i
 			if datestart !== nothing
