@@ -17,7 +17,7 @@ X = W * H
 
 X[1, 1] = NaN
 
-We, He, fit, sil, aic, kopt = NMFk.execute(X, 2:5; save=false, mixture=:mixmatch);
+We, He, fit, sil, aic, kopt = NMFk.execute(X, 2:5; save=false, mixture=:mixmatch)
 
 NMFk.plotmatrix(We[2])
 NMFk.plotmatrix(W)
