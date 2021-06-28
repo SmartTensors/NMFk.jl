@@ -1,0 +1,62 @@
+NMFk example: Mapping variables
+---
+
+A problem demonstrating how **NMFk** can be applied to learn mapping between variables.
+
+The test problem is related to predicting pressure transients observed in wells based on various attributes (e.g., well-logs, fracking stages, proppant mass, etc.) associated with the well construction.
+
+The machine-lerning problem described here relates to clasical history matching problems.
+
+If **NMFk** is not installed, first execute `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
+
+We start by loading the necessary Julia modules:
+
+Load test matrices `A`, `B`, `X`, `Y` and `Z` that will be applied for the ML analyses presented below:
+
+`A`: pressure transients over time observed in a group of 5 wells
+
+`B`: pressure transients over time observed in a group of 4 wells
+
+`X`: 4 attributes representing well properties of the group of 4 wells
+
+`Y`: 4 attributes representing well properties of the group of 5 wells
+
+`Z`: 4 attributes representing well properties of a new well which does not have any transient production data observed yet
+
+Pressure matrix `A` is associated with attribute matrix `Y`.
+
+Pressure matrix `B` is associated with attribute matrix `X`.
+
+Pressure transients over time observed in the group of 5 wells (matrix `A`) are:
+
+
+Pressure transients over time observed in the group of 4 wells (matrix `B`) are:
+
+Well attributes for the group of 5 wells (matrix `Y`) are:
+
+
+
+Well attributes for the group of 4 wells (matrix X) are:
+
+We learn how the well attributes associated with the 2 well groups are related.
+
+We achieve this by discovering how the `X` and `Y` matrices are mapped.
+
+After that we can apply the discovered mapping betweent the `X` and `Y` matrices (i.e., well attributes) to predict the transients.
+
+The ML analyses is performed as follows:
+
+The extracted mapping betweenn the `X` and `Y` matrices is encoded in `H`.
+
+We use now the mapping `H` and known transients of wells in group `A` (matrix `A`) to predict transients of the well in group `B`.
+
+In this case, we assume that none of the transinets of well in group are known; this is completely blind prediction.
+
+The prediction error is:
+
+
+
+Blind predictions of the transients for the 5 wells (Group `B`) based on the transinets of the 4 wells (Group `A`) are:
+
+Blind predictions of the transients for the 5 wells (dashed lines) are compared against the true values (solid lines):
+

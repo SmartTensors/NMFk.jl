@@ -10,9 +10,9 @@
 
 <style type="text/css">
     pre { line-height: 125%; }
-td.linenos pre { color: #000000; background-color: #f0f0f0; padding-left: 5px; padding-right: 5px; }
-span.linenos { color: #000000; background-color: #f0f0f0; padding-left: 5px; padding-right: 5px; }
-td.linenos pre.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
 span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
 .highlight .hll { background-color: var(--jp-cell-editor-active-background) }
 .highlight { background: var(--jp-cell-editor-background); color: var(--jp-mirror-editor-variable-color) }
@@ -14398,7 +14398,7 @@ a.anchor-link {
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[5]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">A</span> <span class="o">=</span> <span class="n">permutedims</span><span class="p">([</span><span class="mf">0.168427</span>        <span class="mf">0.049914</span>        <span class="mf">0.031383</span>        <span class="mf">0.020747</span>        <span class="mf">0.007634</span>        <span class="mf">0.004797</span>        <span class="mf">0.003955</span>
@@ -14447,10 +14447,10 @@ a.anchor-link {
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[6]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">A</span><span class="p">;</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well&quot;</span><span class="p">,</span> <span class="n">logy</span><span class="o">=</span><span class="kc">true</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Well Group A (matrix A)&quot;</span><span class="p">)</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">A</span><span class="p">;</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well&quot;</span><span class="p">,</span> <span class="n">logy</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Well Group A (matrix A)&quot;</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -14502,10 +14502,10 @@ a.anchor-link {
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[7]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[6]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">B</span><span class="p">;</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well&quot;</span><span class="p">,</span> <span class="n">logy</span><span class="o">=</span><span class="kc">true</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Well Group B (matrix B)&quot;</span><span class="p">)</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">B</span><span class="p">;</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well&quot;</span><span class="p">,</span> <span class="n">logy</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Well Group B (matrix B)&quot;</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -14557,7 +14557,7 @@ a.anchor-link {
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[27]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[7]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">Y</span><span class="p">;</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Attribute matrix Y (Well Group A)&quot;</span><span class="p">,</span> <span class="n">xticks</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;W</span><span class="si">$i</span><span class="s">&quot;</span> <span class="k">for</span> <span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="o">:</span><span class="mi">5</span><span class="p">],</span> <span class="n">yticks</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;Attribute </span><span class="si">$i</span><span class="s">&quot;</span> <span class="k">for</span> <span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="o">:</span><span class="mi">4</span><span class="p">])</span>
@@ -14576,7 +14576,7 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[27]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[7]:</div>
 
 
 
@@ -16090,7 +16090,7 @@ fig.select("#img-2f0374db-57")
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[28]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[8]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">X</span><span class="p">;</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Attribute matrix X (Well Group B)&quot;</span><span class="p">,</span> <span class="n">xticks</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;W</span><span class="si">$i</span><span class="s">&quot;</span> <span class="k">for</span> <span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="o">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">yticks</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;Attribute </span><span class="si">$i</span><span class="s">&quot;</span> <span class="k">for</span> <span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="o">:</span><span class="mi">4</span><span class="p">])</span>
@@ -16109,7 +16109,7 @@ fig.select("#img-2f0374db-57")
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[28]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[8]:</div>
 
 
 
@@ -17606,10 +17606,10 @@ fig.select("#img-f47cb958-52")
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[10]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[9]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">sil</span><span class="p">,</span> <span class="n">aic</span> <span class="o">=</span> <span class="n">NMFk</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">;</span> <span class="n">method</span><span class="o">=:</span><span class="n">ipopt</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">false</span><span class="p">);</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">sil</span><span class="p">,</span> <span class="n">aic</span> <span class="o">=</span> <span class="n">NMFk</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">;</span> <span class="n">method</span><span class="o">=</span><span class="ss">:ipopt</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="nb">false</span><span class="p">);</span>
 </pre></div>
 
      </div>
@@ -17651,7 +17651,7 @@ fig.select("#img-f47cb958-52")
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[11]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[10]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">normnan</span><span class="p">(</span><span class="n">B</span> <span class="o">.-</span> <span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">H</span><span class="p">))</span>
@@ -17670,7 +17670,7 @@ fig.select("#img-f47cb958-52")
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[11]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[10]:</div>
 
 
 
@@ -17694,10 +17694,10 @@ fig.select("#img-f47cb958-52")
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[14]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[11]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">H</span><span class="p">;</span> <span class="n">logy</span><span class="o">=</span><span class="kc">true</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=:</span><span class="n">dash</span><span class="p">)</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">H</span><span class="p">;</span> <span class="n">logy</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="ss">:dash</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -17749,10 +17749,10 @@ fig.select("#img-f47cb958-52")
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[18]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[12]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">H</span><span class="p">;</span> <span class="n">linestyle</span><span class="o">=:</span><span class="n">dash</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well (est.)&quot;</span><span class="p">,</span> <span class="n">logy</span><span class="o">=</span><span class="kc">true</span><span class="p">,</span> <span class="n">gl</span><span class="o">=</span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">B</span><span class="p">;</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well (true)&quot;</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="kc">true</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">true</span><span class="p">))</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">H</span><span class="p">;</span> <span class="n">linestyle</span><span class="o">=</span><span class="ss">:dash</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well (est.)&quot;</span><span class="p">,</span> <span class="n">logy</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">gl</span><span class="o">=</span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">B</span><span class="p">;</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Well (true)&quot;</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="nb">true</span><span class="p">))</span>
 </pre></div>
 
      </div>
