@@ -1,0 +1,18 @@
+Signal A (S4)
+s5 	1.0
+s3 	0.8
+
+Signal B (S1)
+s8 	1.0
+s9 	0.79
+s1 	0.602
+
+Signal C (S2)
+s4 	1.0
+s10	0.614
+s6 	0.201
+
+Signal D (S3)
+s2 	1.0
+s7 	0.399
+

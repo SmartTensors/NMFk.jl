@@ -1,15 +1,16 @@
-NMFk example: Blind Source Separation
+NMFk example: Feature extraction
 -----
 
-An example problem demonstrating how **NMFk** can be applied to extract unknown signals or signatures embeded (mixed) in unknown fasion in analyzed datasets.
+An example problem demonstrating how **NMFk** can be applied to extract and clasify features and sensors observing these mixed features.
 
-This type of analysis is frequently called **blind source separation** or **feature extraction**.
+This type of analysis is related to **blind source separation**
 
 Applying **NMFk**, we can automatically:
 
 - identify the number of the unknown mixed signatures in dataset 
 - estimate the shape of the unknown mixed signatures
 - estimate how the signatures are mixed at each sensor
+- clasify sensors based on how they observe (are impacted) the extracted features.
 
 If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
 
@@ -23,85 +24,148 @@ import Random
 Random.seed!(2021)
 ```
 
-    ┌ Info: Precompiling NMFk [e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8]
-    └ @ Base loading.jl:1317
+
+<script>
+// Immediately-invoked-function-expression to avoid global variables.
+(function() {
+    var warning_div = document.getElementById("webio-warning-1047027516803802308");
+    var hide = function () {
+        var script = document.getElementById("webio-setup-11893526307498903598");
+        var parent = script && script.parentElement;
+        var grandparent = parent && parent.parentElement;
+        if (grandparent) {
+            grandparent.style.display = "none";
+        }
+        warning_div.style.display = "none";
+    };
+    if (typeof Jupyter !== "undefined") {
+        console.log("WebIO detected Jupyter notebook environment.");
+        // Jupyter notebook.
+        var extensions = (
+            Jupyter
+            && Jupyter.notebook.config.data
+            && Jupyter.notebook.config.data.load_extensions
+        );
+        if (extensions && extensions["webio-jupyter-notebook"]) {
+            // Extension already loaded.
+            console.log("Jupyter WebIO nbextension detected; not loading ad-hoc.");
+            hide();
+            return;
+        }
+    } else if (window.location.pathname.includes("/lab")) {
+        // Guessing JupyterLa
+        console.log("Jupyter Lab detected; make sure the @webio/jupyter-lab-provider labextension is installed.");
+        hide();
+        return;
+    }
+})();
+
+</script>
+<p
+    id="webio-warning-1047027516803802308"
+    class="output_text output_stderr"
+    style="padding: 1em; font-weight: bold;"
+>
+    Unable to load WebIO. Please make sure WebIO works for your Jupyter client.
+    For troubleshooting, please see <a href="https://juliagizmos.github.io/WebIO.jl/latest/providers/ijulia/">
+    the WebIO/IJulia documentation</a>.
+    <!-- TODO: link to installation docs. -->
+</p>
 
 
-Let us generate 3 random signals:
+
+    ┌ Info: Installing pyqt package to avoid buggy tkagg backend.
+    └ @ PyPlot /Users/vvv/.julia/packages/PyPlot/XHEG0/src/init.jl:118
+
+
+
+
+
+    MersenneTwister(2021)
+
+
+
+Let us generate 4 random signals with legnth of 100 (this can be considered as 100 ):
 
 
 ```julia
-a = rand(15)
-b = rand(15)
-c = rand(15)
-[a b c]
+s1 = (sin.(0.05:0.05:5) .+1) ./ 2
+s2 = (sin.(0.3:0.3:30) .+ 1) ./ 2
+s3 = (sin.(0.5:0.5:50) .+ 1) ./ 2
+s4 = rand(100)
+W = [s1 s2 s3 s4]
 ```
+
+
+
+
+    100×4 Matrix{Float64}:
+     0.52499      0.64776     0.739713    0.647247
+     0.549917     0.782321    0.920735    0.12358
+     0.574719     0.891663    0.998747    0.992042
+     0.599335     0.96602     0.954649    0.767448
+     0.623702     0.998747    0.799236    0.616215
+     0.64776      0.986924    0.57056     0.836668
+     0.671449     0.931605    0.324608    0.399988
+     0.694709     0.837732    0.121599    0.60606
+     0.717483     0.71369     0.0112349   0.192925
+     0.739713     0.57056     0.0205379   0.170886
+     0.761344     0.421127    0.14723     0.0299662
+     0.782321     0.27874     0.360292    0.490479
+     0.802593     0.156117    0.60756     0.669716
+     ⋮                                    
+     0.0171135    0.999997    0.747443    0.627557
+     0.0112349    0.978188    0.925452    0.0639847
+     0.00657807   0.913664    0.999295    0.389393
+     0.0031545    0.812189    0.950894    0.662159
+     0.000972781  0.682826    0.792098    0.162863
+     3.83712e-5   0.537133    0.561787    0.816227
+     0.000353606  0.388122    0.316347    0.0800853
+     0.0019177    0.249105    0.115873    0.0840246
+     0.00472673   0.1325      0.00944578  0.127368
+     0.00877369   0.0487227   0.0231237   0.535774
+     0.0140485    0.00525646  0.153558    0.115173
+     0.0205379    0.00598419  0.368813    0.702329
+
+
 
 The singals look like this:
 
 
 ```julia
 
-Mads.plotseries([a b c])
+Mads.plotseries(W)
 ```
 
 
     
-![png](blind_source_separation_files/blind_source_separation_5_0.png)
+![png](feature_extraction_files/feature_extraction_5_0.png)
     
 
 
     
 
-We can collect the 3 signal vectors into a signal matrix `W`:
+Now we can mix the signals in matrix `W` to produce a data matrix `X` representing data collected at 10 sensors (e.g., measurement devices or wells at different locations).
 
+Each of the 10 sensors is observing some mixture of the 4 signals in `W`.
 
-```julia
-W = [a b c]
-```
-
-
-
-
-    15×3 Matrix{Float64}:
-     0.142528  0.37457    0.417998
-     0.244368  0.315157   0.82316
-     0.084349  0.566074   0.4159
-     0.87666   0.19155    0.305887
-     0.297135  0.0340242  0.653658
-     0.102301  0.923879   0.933132
-     0.961446  0.672256   0.0419137
-     0.994825  0.783367   0.186087
-     0.518444  0.429427   0.915341
-     0.908245  0.930611   0.173948
-     0.523605  0.795334   0.623679
-     0.777877  0.449229   0.783005
-     0.656755  0.605779   0.346222
-     0.854471  0.778596   0.917936
-     0.92996   0.693078   0.264864
-
-
-
-Now we can mix the signals in matrix `W` to produce a data matrix `X` representing data collected at 5 sensors (e.g., measurement devices or wells at different locations).
-
-Each of the 5 sensors is observing some mixture of the signals in `W`.
-
-The way the 3 signals are mixed at the sensors is represented by the mixing matrix `H`.
+The way the 4 signals are mixed at the sensors is represented by the mixing matrix `H`.
 
 Let us define the mixing matrix `H` as:
 
 
 ```julia
-H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
+H = [1 5 0 0 1 1 2 1 0 2; 0 1 1 5 2 1 0 0 2 3; 3 0 0 1 0 1 0 5 4 3; 1 1 4 1 5 0 1 1 5 3]
 ```
 
 
 
 
-    3×5 Matrix{Int64}:
-     1  10  0  0  1
-     0   1  1  5  2
-     3   0  0  1  5
+    4×10 Matrix{Int64}:
+     1  5  0  0  1  1  2  1  0  2
+     0  1  1  5  2  1  0  0  2  3
+     3  0  0  1  0  1  0  5  4  3
+     1  1  4  1  5  0  1  1  5  3
 
 
 
@@ -125,22 +189,33 @@ X = W * H
 
 
 
-    15×5 Matrix{Float64}:
-     1.39652   1.79985  0.37457    2.29085   2.98166
-     2.71385   2.75884  0.315157   2.39895   4.99049
-     1.33205   1.40956  0.566074   3.24627   3.296
-     1.79432   8.95815  0.19155    1.26364   2.78919
-     2.25811   3.00538  0.0340242  0.823779  3.63347
-     2.9017    1.94689  0.923879   5.55253   6.61572
-     1.08719  10.2867   0.672256   3.40319   2.51553
-     1.55309  10.7316   0.783367   4.10292   3.492
-     3.26447   5.61387  0.429427   3.06248   5.954
-     1.43009  10.0131   0.930611   4.827     3.6392
-     2.39464   6.03138  0.795334   4.60035   5.23267
-     3.12689   8.228    0.449229   3.02915   5.59136
-     1.69542   7.17333  0.605779   3.37512   3.59942
-     3.60828   9.32331  0.778596   4.81092   7.00134
-     1.72455   9.99268  0.693078   3.73025   3.64044
+    100×10 Matrix{Float64}:
+     3.39137   3.91995   3.23675   4.62576   …  4.8708     7.49061   7.15414
+     3.4357    3.65549   1.27664   4.95592      5.27717    5.86549   6.57974
+     4.563     4.7573    4.85983   6.44911      6.5605    10.7385    9.7968
+     4.23073   4.73014   4.03581   6.55219      6.14003    9.58787   9.26302
+     3.63763   4.73347   3.46361   6.40919      5.2361     8.27552   8.49
+     3.19611   5.06239   4.33359   6.34185   …  4.33723    8.43943   8.47797
+     2.04526   4.68884   2.53156   5.38262      2.69448    5.16158   6.3115
+     1.66557   4.91734   3.26197   4.91632      1.90876    5.19216   6.08559
+     0.944113  4.49403   1.48539   3.77261      0.966583   2.43695   4.18852
+     0.972213  4.44001   1.25411   3.04422      1.01329    2.0777    3.76538
+     1.233     4.25781   0.540992  2.28283   …  1.52746    1.581     3.31766
+     2.35368   4.68083   2.24066   2.24447      3.07426    4.45105   4.95318
+     3.29499   4.8388    2.83498   2.05786      4.51011    6.09105   5.90537
+     ⋮                                       ⋱                       
+     2.887     1.71312   3.51023   6.37498      4.38188    8.12755   7.15922
+     2.85157   1.09835   1.23413   5.88038      4.70248    5.97811   5.92534
+     3.39386   1.33595   2.47124   5.95701   …  5.39245    7.77147   6.92021
+     3.518     1.49012   3.46082   5.674        5.41978    8.73875   7.28203
+     2.54013   0.850553  1.33428   4.36909      4.12433    5.34836   4.91531
+     2.50162   1.35355   3.80204   4.06368      3.6252     7.40255   5.74551
+     1.02948   0.469976  0.708464  2.33704      1.66218    2.44206   2.35437
+     0.43356   0.342718  0.585204  1.44542   …  0.665306   1.38182   1.35084
+     0.160432  0.283502  0.641972  0.799315     0.179324   0.939623  0.817395
+     0.613919  0.628365  2.19182   0.802511     0.660166   2.86881   1.84041
+     0.589894  0.190671  0.465947  0.295012     0.897009   1.20061   0.850057
+     1.8293    0.811002  2.8153    1.10106      2.56693    4.99886   3.27245
 
 
 
@@ -153,7 +228,7 @@ Mads.plotseries(X; name="Sensors")
 
 
     
-![png](blind_source_separation_files/blind_source_separation_13_0.png)
+![png](feature_extraction_files/feature_extraction_11_0.png)
     
 
 
@@ -173,46 +248,105 @@ This can be done based only on the information in `X`:
 
 
 ```julia
-We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
+nkrange=2:10
+We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, nkrange; save=false, method=:simple);
 ```
 
     
-    OF: min 16.543332107387688 max 16.54370333630169 mean 16.543657649186834 std 0.00011732763015242336
-    Worst correlation by columns: 0.9639027073120046
-    Worst correlation by rows: 0.02743227869440581
-    Worst norm by columns: 0.40817234689975457
-    Worst norm by rows: 0.783687725540016
-    Signals:  2 Fit:     16.54333 Silhouette:    0.9927216 AIC:    -33.36287
+    OF: min 548.7422582028156 max 580.5440039409768 mean 562.8566553254008 std 14.795160329024531
+    Worst correlation by columns: 0.49656990847609483
+    Worst correlation by rows: 0.6933647679055946
+    Worst covariance by columns: 0.055916982680008095
+    Worst covariance by rows: 0.32212576245424585
+    Worst norm by columns: 0.218926345183287
+    Worst norm by rows: 0.5820116755178509
+    Signals:  2 Fit:     548.7423 Silhouette:     0.721058 AIC:    -160.1264
     
-    OF: min 3.6205773516030755e-9 max 0.024966294581316016 mean 0.004260857741097067 std 0.008033631111142974
-    Worst correlation by columns: 0.956744979192939
-    Worst correlation by rows: 0.07071154036399516
-    Worst norm by columns: 0.5387264618794112
-    Worst norm by rows: 0.5664600383452569
-    Signals:  3 Fit: 3.620577e-09 Silhouette:    0.8026802 AIC:    -1661.559
+    OF: min 194.4904756107191 max 195.72210922217826 mean 195.05832746522387 std 0.3568209408545568
+    Worst correlation by columns: 0.7973657126701852
+    Worst correlation by rows: 0.8485227941925483
+    Worst covariance by columns: 0.11006980619827106
+    Worst covariance by rows: 0.3405091353610321
+    Worst norm by columns: 0.23735564397861872
+    Worst norm by rows: 0.7186549773672026
+    Signals:  3 Fit:     194.4905 Silhouette:    0.9635512 AIC:    -977.3721
     
-    OF: min 2.9243345186560516e-5 max 0.001015416195548337 mean 0.0003210515459856785 std 0.00031525368737313317
-    Worst correlation by columns: 0.9566107482444881
-    Worst correlation by rows: 0.07069962799810608
-    Worst norm by columns: 0.5886787800802283
-    Worst norm by rows: 0.716149644115928
-    Signals:  4 Fit: 2.924335e-05 Silhouette:   -0.7534138 AIC:     -946.801
+    OF: min 0.024567539643564267 max 0.2557292346363618 mean 0.07825162953367235 std 0.06955207877093642
+    Worst correlation by columns: 0.9999298389283214
+    Worst correlation by rows: 0.9999696138868174
+    Worst covariance by columns: 0.1210850074410432
+    Worst covariance by rows: 0.4104468667507611
+    Worst norm by columns: 0.45544860880336985
+    Worst norm by rows: 0.49363052841845634
+    Signals:  4 Fit:   0.02456754 Silhouette:    0.9900919 AIC:    -9734.085
     
-    OF: min 3.256995549437627e-7 max 0.003511157809921111 mean 0.0008459352126525784 std 0.0011910385054715723
-    Worst correlation by columns: 0.9567407128598857
-    Worst correlation by rows: 0.07071639753987459
-    Worst norm by columns: 0.5353872310202072
-    Worst norm by rows: 0.7424436227370489
-    Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
-    Signals:  2 Fit:     16.54333 Silhouette:    0.9927216 AIC:    -33.36287
-    Signals:  3 Fit: 3.620577e-09 Silhouette:    0.8026802 AIC:    -1661.559
-    Signals:  4 Fit: 2.924335e-05 Silhouette:   -0.7534138 AIC:     -946.801
-    Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
+    OF: min 0.034959172411549236 max 0.1342883775620919 mean 0.08963554383556427 std 0.029434706900467403
+    Worst correlation by columns: 0.9997551432598472
+    Worst correlation by rows: 0.9999826032292326
+    Worst covariance by columns: 0.12118132451992127
+    Worst covariance by rows: 0.4116483847152705
+    Worst norm by columns: 0.7505862637755518
+    Worst norm by rows: 0.5774040310563099
+    Signals:  5 Fit:   0.03495917 Silhouette:   -0.6710045 AIC:     -9161.33
+    
+    OF: min 0.012395713190771929 max 0.10100022867431603 mean 0.06102845924458885 std 0.032758186512379994
+    Worst correlation by columns: 0.9999769207459439
+    Worst correlation by rows: 0.9999822864473042
+    Worst covariance by columns: 0.12107481259150804
+    Worst covariance by rows: 0.41086859549499544
+    Worst norm by columns: 0.4606609077018131
+    Worst norm by rows: 0.4219304909072685
+    Signals:  6 Fit:   0.01239571 Silhouette:   -0.7081863 AIC:     -9978.16
+    
+    OF: min 0.014279080399083406 max 0.04203903400448463 mean 0.025080160409965864 std 0.009159040363508357
+    Worst correlation by columns: 0.9998617441069437
+    Worst correlation by rows: 0.9999781666727414
+    Worst covariance by columns: 0.1212447270420936
+    Worst covariance by rows: 0.41208737995133793
+    Worst norm by columns: 0.4291794702668473
+    Worst norm by rows: 0.5291878994208419
+    Signals:  7 Fit:   0.01427908 Silhouette:   -0.5797985 AIC:    -9616.715
+    
+    OF: min 0.012167744238057238 max 0.05498442349282478 mean 0.02473469900927914 std 0.012350855520365144
+    Worst correlation by columns: 0.9999830538862466
+    Worst correlation by rows: 0.9999783942897638
+    Worst covariance by columns: 0.12114551283517493
+    Worst covariance by rows: 0.41170445785720095
+    Worst norm by columns: 0.46287848246083313
+    Worst norm by rows: 0.5438469278392251
+    Signals:  8 Fit:   0.01216774 Silhouette:   -0.5668756 AIC:    -9556.722
+    
+    OF: min 0.003204529014893123 max 0.03408171081253873 mean 0.014966613060853905 std 0.010457853370662554
+    Worst correlation by columns: 0.9999780060578708
+    Worst correlation by rows: 0.9999956300963163
+    Worst covariance by columns: 0.1210850148164106
+    Worst covariance by rows: 0.4116607117796995
+    Worst norm by columns: 0.5301950377080721
+    Worst norm by rows: 0.5185206300410663
+    Signals:  9 Fit:  0.003204529 Silhouette:   -0.4705146 AIC:    -10670.95
+    
+    OF: min 0.004088861981960635 max 0.03191171642822882 mean 0.014856110459924582 std 0.009203900264949426
+    Worst correlation by columns: 0.9999919832456418
+    Worst correlation by rows: 0.9999804374019728
+    Worst covariance by columns: 0.12119221086643853
+    Worst covariance by rows: 0.41119944038429773
+    Worst norm by columns: 0.4503988645066309
+    Worst norm by rows: 0.6426981134641838
+    Signals: 10 Fit:  0.004088862 Silhouette:   -0.4626647 AIC:    -10207.24
+    Signals:  2 Fit:     548.7423 Silhouette:     0.721058 AIC:    -160.1264
+    Signals:  3 Fit:     194.4905 Silhouette:    0.9635512 AIC:    -977.3721
+    Signals:  4 Fit:   0.02456754 Silhouette:    0.9900919 AIC:    -9734.085
+    Signals:  5 Fit:   0.03495917 Silhouette:   -0.6710045 AIC:     -9161.33
+    Signals:  6 Fit:   0.01239571 Silhouette:   -0.7081863 AIC:     -9978.16
+    Signals:  7 Fit:   0.01427908 Silhouette:   -0.5797985 AIC:    -9616.715
+    Signals:  8 Fit:   0.01216774 Silhouette:   -0.5668756 AIC:    -9556.722
+    Signals:  9 Fit:  0.003204529 Silhouette:   -0.4705146 AIC:    -10670.95
+    Signals: 10 Fit:  0.004088862 Silhouette:   -0.4626647 AIC:    -10207.24
 
 
     ┌ Info: Results
     └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkExecute.jl:15
-    ┌ Info: Optimal solution: 3 signals
+    ┌ Info: Optimal solution: 4 signals
     └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkExecute.jl:20
 
 
@@ -232,22 +366,33 @@ We[kopt]
 
 
 
-    15×3 Matrix{Float64}:
-      1.25937     3.72324     3.86085
-      2.51593     2.92553     7.73582
-      0.306818    5.76286     3.78028
-     10.7111      1.42971     2.85602
-      3.54325     1.70449e-9  6.21152
-      1.33202e-7  9.35074     8.58998
-     11.2749      6.49663     0.193308
-     11.5323      7.60014     1.53054
-      5.80211     3.94336     8.57877
-     10.2771      9.19473     1.36816
-      5.50639     7.85983     5.68814
-      9.06469     4.04517     7.31478
-      7.46018     5.88067     3.10823
-      9.61252     7.41424     8.49568
-     10.8056      6.66714     2.30821
+    100×4 Matrix{Float64}:
+     12.6746    10.3151     6.77863      13.5874
+     15.3779    12.6577     7.08556       2.13378
+     17.1228    14.195      7.40271      20.9294
+     16.2405    15.3711     7.73907      16.0439
+     13.548     15.803      8.08658      12.7956
+      9.84764   15.3966     8.43585      17.6508
+      5.51722   14.4668     8.78552       8.25139
+      2.27513   12.805      9.11285      12.8047
+      0.257121  10.8949     9.42496       3.89097
+      0.466265   8.67362    9.70333       3.44009
+      2.57475    6.46544    9.95522       0.381131
+      6.46818    4.28512   10.1719       10.3415
+     10.7672     2.5035    10.382        14.1851
+      ⋮                                  
+     12.4706    15.9274     0.179814     13.1574
+     15.1589    15.8378     3.39669e-6    0.962523
+     16.5977    14.8251     6.06528e-12   7.92237
+     15.9713    13.1277     2.12615e-13  13.8576
+     13.0935    11.1416     4.17574e-15   3.06862
+      9.63637    8.53135    7.08823e-12  17.3971
+      5.1901     6.24485    4.17574e-15   1.53127
+      1.88743    3.93757    0.0259663     1.72892
+      0.175141   2.03373    0.0701616     2.73259
+      0.651587   0.618048   0.0990628    11.6563
+      2.63922    0.158376   0.157849      2.45031
+      6.56381    0.149698   0.201104     15.1632
 
 
 
@@ -259,10 +404,11 @@ He[kopt]
 
 
 
-    3×5 Matrix{Float64}:
-     0.0803405  0.805002   0.00425469  0.0213696  0.0890334
-     0.0184625  0.185572   0.0960015   0.48317    0.216794
-     0.317705   0.0246405  0.00305093  0.120433   0.534171
+    4×10 Matrix{Float64}:
+     0.180266    0.00192653  8.8627e-5   …  0.299463    0.23666     0.17462
+     0.00507919  0.0629675   0.0673405      0.00815786  0.137707    0.198628
+     0.0722585   0.384978    0.00337183     0.0689723   5.66632e-5  0.153851
+     0.0415675   0.0467733   0.185329       0.038596    0.22572     0.136098
 
 
 
@@ -282,7 +428,7 @@ Mads.plotseries(W; title="Original signals")
 
 
     
-![png](blind_source_separation_files/blind_source_separation_20_0.png)
+![png](feature_extraction_files/feature_extraction_18_0.png)
     
 
 
@@ -295,7 +441,7 @@ Mads.plotseries(We[kopt] ./ maximum(We[kopt]; dims=1); title="Reconstructed sign
 
 
     
-![png](blind_source_separation_files/blind_source_separation_21_0.png)
+![png](feature_extraction_files/feature_extraction_19_0.png)
     
 
 
@@ -320,270 +466,345 @@ NMFk.plotmatrix(H ./ maximum(H); title="Original mixing matrix")
      stroke-width="0.3"
      font-size="3.88"
 
-     id="img-c81730bb">
+     id="img-306f8c38">
 <defs>
   <marker id="arrow" markerWidth="15" markerHeight="7" refX="5" refY="3.5" orient="auto" markerUnits="strokeWidth">
     <path d="M0,0 L15,3.5 L0,7 z" stroke="context-stroke" fill="context-stroke"/>
   </marker>
 </defs>
-<g class="plotroot xscalable yscalable" id="img-c81730bb-1">
-  <g class="guide colorkey" id="img-c81730bb-2">
-    <g font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#4C404B" id="img-c81730bb-3">
-      <g transform="translate(131.12,49.21)">
-        <g class="primitive">
-          <text dy="0.35em">1.0</text>
-        </g>
-      </g>
-      <g transform="translate(131.12,56.96)">
+<g class="plotroot xscalable yscalable" id="img-306f8c38-1">
+  <g class="guide colorkey" id="img-306f8c38-2">
+    <g font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#4C404B" id="img-306f8c38-3">
+      <g transform="translate(131.33,56.96)">
         <g class="primitive">
           <text dy="0.35em">0.5</text>
         </g>
       </g>
-      <g transform="translate(131.12,64.7)">
+      <g transform="translate(131.33,64.7)">
         <g class="primitive">
           <text dy="0.35em">0.0</text>
         </g>
       </g>
-    </g>
-    <g shape-rendering="crispEdges" fill-opacity="1" stroke="#000000" stroke-opacity="0.000" id="img-c81730bb-4">
-      <g transform="translate(129.49,64.51)" fill="#008000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,64.12)" fill="#208600">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,63.73)" fill="#328D00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,63.35)" fill="#409300">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,62.96)" fill="#4D9A00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,62.57)" fill="#5AA000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,62.18)" fill="#66A700">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,61.8)" fill="#72AD00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,61.41)" fill="#7DB300">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,61.02)" fill="#88BA00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,60.64)" fill="#94C000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,60.25)" fill="#9FC700">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,59.86)" fill="#AACE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,59.47)" fill="#B5D400">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,59.09)" fill="#C1DB00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,58.7)" fill="#CCE100">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,58.31)" fill="#D7E800">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,57.92)" fill="#E2EE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,57.54)" fill="#EEF500">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,57.15)" fill="#F9FC00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,56.76)" fill="#FFFA00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,56.37)" fill="#FFF100">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,55.99)" fill="#FFE800">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,55.6)" fill="#FFDE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,55.21)" fill="#FFD500">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,54.83)" fill="#FFCB00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,54.44)" fill="#FFC200">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,54.05)" fill="#FFB800">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,53.66)" fill="#FFAE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,53.28)" fill="#FFA400">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,52.89)" fill="#FF9A00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,52.5)" fill="#FF8F00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,52.11)" fill="#FF8400">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,51.73)" fill="#FF7900">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,51.34)" fill="#FF6D00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,50.95)" fill="#FF6000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,50.56)" fill="#FF5200">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,50.18)" fill="#FF4200">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,49.79)" fill="#FF2D00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,49.4)" fill="#FF0000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g stroke="#FFFFFF" stroke-width="0.2" id="img-c81730bb-5">
-        <g transform="translate(129.49,49.21)">
-          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
-        </g>
-        <g transform="translate(129.49,56.96)">
-          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
-        </g>
-        <g transform="translate(129.49,64.7)">
-          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+      <g transform="translate(131.33,49.21)">
+        <g class="primitive">
+          <text dy="0.35em">1.0</text>
         </g>
       </g>
     </g>
-    <g fill="#362A35" font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="img-c81730bb-6">
-      <g transform="translate(128.85,45.21)">
+    <g shape-rendering="crispEdges" fill-opacity="1" stroke="#000000" stroke-opacity="0.000" id="img-306f8c38-4">
+      <g transform="translate(129.69,64.51)" fill="#008000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,64.12)" fill="#208600">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,63.73)" fill="#328D00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,63.35)" fill="#409300">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,62.96)" fill="#4D9A00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,62.57)" fill="#5AA000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,62.18)" fill="#66A700">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,61.8)" fill="#72AD00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,61.41)" fill="#7DB300">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,61.02)" fill="#88BA00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,60.64)" fill="#94C000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,60.25)" fill="#9FC700">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,59.86)" fill="#AACE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,59.47)" fill="#B5D400">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,59.09)" fill="#C1DB00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,58.7)" fill="#CCE100">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,58.31)" fill="#D7E800">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,57.92)" fill="#E2EE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,57.54)" fill="#EEF500">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,57.15)" fill="#F9FC00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,56.76)" fill="#FFFA00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,56.37)" fill="#FFF100">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,55.99)" fill="#FFE800">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,55.6)" fill="#FFDE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,55.21)" fill="#FFD500">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,54.83)" fill="#FFCB00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,54.44)" fill="#FFC200">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,54.05)" fill="#FFB800">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,53.66)" fill="#FFAE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,53.28)" fill="#FFA400">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,52.89)" fill="#FF9A00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,52.5)" fill="#FF8F00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,52.11)" fill="#FF8400">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,51.73)" fill="#FF7900">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,51.34)" fill="#FF6D00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,50.95)" fill="#FF6000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,50.56)" fill="#FF5200">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,50.18)" fill="#FF4200">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,49.79)" fill="#FF2D00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,49.4)" fill="#FF0000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g stroke="#FFFFFF" stroke-width="0.2" id="img-306f8c38-5">
+        <g transform="translate(129.69,56.96)">
+          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+        </g>
+        <g transform="translate(129.69,64.7)">
+          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+        </g>
+        <g transform="translate(129.69,49.21)">
+          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+        </g>
+      </g>
+    </g>
+    <g fill="#362A35" font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="img-306f8c38-6">
+      <g transform="translate(129.06,45.21)">
         <g class="primitive">
           <text dy="-0em"></text>
         </g>
       </g>
     </g>
   </g>
-  <g clip-path="url(#img-c81730bb-7)">
-    <g id="img-c81730bb-8">
-      <g pointer-events="visible" stroke-width="0.3" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="img-c81730bb-9">
-        <g transform="translate(65.92,52.96)" id="img-c81730bb-10">
-          <path d="M-60.92,-36.55 L60.92,-36.55 60.92,36.55 -60.92,36.55  z" class="primitive"/>
+  <g clip-path="url(#img-306f8c38-7)">
+    <g id="img-306f8c38-8">
+      <g pointer-events="visible" stroke-width="0.3" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="img-306f8c38-9">
+        <g transform="translate(66.03,52.96)" id="img-306f8c38-10">
+          <path d="M-61.03,-24.41 L61.03,-24.41 61.03,24.41 -61.03,24.41  z" class="primitive"/>
         </g>
       </g>
-      <g class="plotpanel" id="img-c81730bb-11">
+      <g class="plotpanel" id="img-306f8c38-11">
         <metadata>
-          <boundingbox value="5.0mm 16.401519832366176mm 121.84753625033034mm 73.10852175019821mm"/>
-          <unitbox value="0.41514459853655217 0.4131800268903481 5.169710802926896 3.173639946219304"/>
+          <boundingbox value="5.0mm 28.544656703926986mm 122.05562001769147mm 48.82224800707659mm"/>
+          <unitbox value="0.33058832779834746 0.3215172072865031 10.338823344403306 4.356965585426994"/>
         </metadata>
-        <g shape-rendering="crispEdges" class="geometry" stroke="#000000" stroke-opacity="0.000" id="img-c81730bb-12">
-          <g transform="translate(18.78,29.92)" id="img-c81730bb-13" fill-opacity="1" fill="#4C9900">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+        <g shape-rendering="crispEdges" class="geometry" stroke="#000000" stroke-opacity="0.000" id="img-306f8c38-12">
+          <g transform="translate(12.9,36.15)" id="img-306f8c38-13" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(18.78,52.96)" id="img-c81730bb-14" fill-opacity="1" fill="#008000">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(12.9,47.35)" id="img-306f8c38-14" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(18.78,75.99)" id="img-c81730bb-15" fill-opacity="1" fill="#A7CC00">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(12.9,58.56)" id="img-306f8c38-15" fill="#FFDB00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(42.35,29.92)" id="img-c81730bb-16" fill-opacity="1" fill="#FF0000">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(12.9,69.76)" id="img-306f8c38-16" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(42.35,52.96)" id="img-c81730bb-17" fill-opacity="1" fill="#4C9900">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,36.15)" id="img-306f8c38-17" fill="#FF0000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(42.35,75.99)" id="img-c81730bb-18" fill-opacity="1" fill="#008000">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,47.35)" id="img-306f8c38-18" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(65.92,29.92)" id="img-c81730bb-19" fill-opacity="1" fill="#008000">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,58.56)" id="img-306f8c38-19" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(65.92,52.96)" id="img-c81730bb-20" fill-opacity="1" fill="#4C9900">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,69.76)" id="img-306f8c38-20" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(65.92,75.99)" id="img-c81730bb-21" fill-opacity="1" fill="#008000">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,36.15)" id="img-306f8c38-21" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(89.49,29.92)" id="img-c81730bb-22" fill-opacity="1" fill="#008000">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,47.35)" id="img-306f8c38-22" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(89.49,52.96)" id="img-c81730bb-23" fill-opacity="1" fill="#FFFF00">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,58.56)" id="img-306f8c38-23" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(89.49,75.99)" id="img-c81730bb-24" fill-opacity="1" fill="#4C9900">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,69.76)" id="img-306f8c38-24" fill="#FF8D00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(113.06,29.92)" id="img-c81730bb-25" fill-opacity="1" fill="#4C9900">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(48.32,36.15)" id="img-306f8c38-25" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(113.06,52.96)" id="img-c81730bb-26" fill-opacity="1" fill="#7BB200">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(48.32,47.35)" id="img-306f8c38-26" fill="#FF0000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(113.06,75.99)" id="img-c81730bb-27" fill-opacity="1" fill="#FFFF00">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(48.32,58.56)" id="img-306f8c38-27" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(48.32,69.76)" id="img-306f8c38-28" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,36.15)" id="img-306f8c38-29" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,47.35)" id="img-306f8c38-30" fill="#D3E500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,58.56)" id="img-306f8c38-31" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,69.76)" id="img-306f8c38-32" fill="#FF0000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,36.15)" id="img-306f8c38-33" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,47.35)" id="img-306f8c38-34" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,58.56)" id="img-306f8c38-35" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,69.76)" id="img-306f8c38-36" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,36.15)" id="img-306f8c38-37" fill="#D3E500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,47.35)" id="img-306f8c38-38" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,58.56)" id="img-306f8c38-39" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,69.76)" id="img-306f8c38-40" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,36.15)" id="img-306f8c38-41" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,47.35)" id="img-306f8c38-42" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,58.56)" id="img-306f8c38-43" fill="#FF0000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,69.76)" id="img-306f8c38-44" fill="#7BB200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,36.15)" id="img-306f8c38-45" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,47.35)" id="img-306f8c38-46" fill="#D3E500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,58.56)" id="img-306f8c38-47" fill="#FF8D00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,69.76)" id="img-306f8c38-48" fill="#FF0000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,36.15)" id="img-306f8c38-49" fill="#D3E500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,47.35)" id="img-306f8c38-50" fill="#FFDB00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,58.56)" id="img-306f8c38-51" fill="#FFDB00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,69.76)" id="img-306f8c38-52" fill="#FFDB00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
         </g>
       </g>
-      <g fill-opacity="0" class="guide crosshair" id="img-c81730bb-28">
-        <g class="text_box" fill="#000000" id="img-c81730bb-29">
-          <g transform="translate(119.79,16.93)" id="img-c81730bb-30">
+      <g fill-opacity="0" class="guide crosshair" id="img-306f8c38-53">
+        <g class="text_box" fill="#000000" id="img-306f8c38-54">
+          <g transform="translate(120,29.07)" id="img-306f8c38-55">
             <g class="primitive">
               <text text-anchor="end" dy="0.6em"></text>
             </g>
           </g>
         </g>
       </g>
-      <g fill-opacity="0" class="guide helpscreen" id="img-c81730bb-31">
-        <g class="text_box" id="img-c81730bb-32">
-          <g fill="#000000" id="img-c81730bb-33">
-            <g transform="translate(65.92,52.96)" id="img-c81730bb-34">
-              <path d="M-29.65,-10.71 L29.65,-10.71 29.65,10.71 -29.65,10.71  z" class="primitive"/>
+      <g fill-opacity="0" class="guide helpscreen" id="img-306f8c38-56">
+        <g class="text_box" id="img-306f8c38-57">
+          <g fill="#000000" id="img-306f8c38-58">
+            <g transform="translate(66.03,52.96)" id="img-306f8c38-59">
+              <path d="M-28.13,-10.71 L28.13,-10.71 28.13,10.71 -28.13,10.71  z" class="primitive"/>
             </g>
           </g>
-          <g fill="#FFFF74" font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="img-c81730bb-35">
-            <g transform="translate(65.92,45.17)" id="img-c81730bb-36">
+          <g fill="#FFFF74" font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="img-306f8c38-60">
+            <g transform="translate(66.03,45.17)" id="img-306f8c38-61">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">h,j,k,l,arrows,drag to pan</text>
               </g>
             </g>
-            <g transform="translate(65.92,49.06)" id="img-c81730bb-37">
+            <g transform="translate(66.03,49.06)" id="img-306f8c38-62">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">i,o,+,-,scroll,shift-drag to zoom</text>
               </g>
             </g>
-            <g transform="translate(65.92,52.96)" id="img-c81730bb-38">
+            <g transform="translate(66.03,52.96)" id="img-306f8c38-63">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">r,dbl-click to reset</text>
               </g>
             </g>
-            <g transform="translate(65.92,56.85)" id="img-c81730bb-39">
+            <g transform="translate(66.03,56.85)" id="img-306f8c38-64">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">c for coordinates</text>
               </g>
             </g>
-            <g transform="translate(65.92,60.75)" id="img-c81730bb-40">
+            <g transform="translate(66.03,60.75)" id="img-306f8c38-65">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">? for help</text>
               </g>
@@ -591,9 +812,9 @@ NMFk.plotmatrix(H ./ maximum(H); title="Original mixing matrix")
           </g>
         </g>
       </g>
-      <g fill-opacity="0" class="guide questionmark" id="img-c81730bb-41">
-        <g class="text_box" fill="#000000" id="img-c81730bb-42">
-          <g transform="translate(126.85,16.93)" id="img-c81730bb-43">
+      <g fill-opacity="0" class="guide questionmark" id="img-306f8c38-66">
+        <g class="text_box" fill="#000000" id="img-306f8c38-67">
+          <g transform="translate(127.06,29.07)" id="img-306f8c38-68">
             <g class="primitive">
               <text text-anchor="end" dy="0.6em">?</text>
             </g>
@@ -602,8 +823,8 @@ NMFk.plotmatrix(H ./ maximum(H); title="Original mixing matrix")
       </g>
     </g>
   </g>
-  <g font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="img-c81730bb-44">
-    <g transform="translate(65.92,10.49)" id="img-c81730bb-45">
+  <g font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="img-306f8c38-69">
+    <g transform="translate(66.03,22.63)" id="img-306f8c38-70">
       <g class="primitive">
         <text text-anchor="middle" dy="0.6em">Original mixing matrix</text>
       </g>
@@ -611,8 +832,8 @@ NMFk.plotmatrix(H ./ maximum(H); title="Original mixing matrix")
   </g>
 </g>
 <defs>
-  <clipPath id="img-c81730bb-7">
-    <path d="M5,16.4 L126.85,16.4 126.85,89.51 5,89.51 " />
+  <clipPath id="img-306f8c38-7">
+    <path d="M5,28.54 L127.06,28.54 127.06,77.37 5,77.37 " />
   </clipPath>
 </defs>
 <script> <![CDATA[
@@ -1725,10 +1946,10 @@ return Gadfly;
           factory(glob.Snap, glob.Gadfly);
       }
 })(window, function (Snap, Gadfly) {
-    var fig = Snap("#img-c81730bb");
-fig.select("#img-c81730bb-8")
+    var fig = Snap("#img-306f8c38");
+fig.select("#img-306f8c38-8")
    .init_gadfly();
-fig.select("#img-c81730bb-42")
+fig.select("#img-306f8c38-67")
    .mouseenter(Gadfly.helpscreen_visible)
 .mouseleave(Gadfly.helpscreen_hidden)
 ;
@@ -1758,270 +1979,345 @@ NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]); title="Reconstructed mixing matri
      stroke-width="0.3"
      font-size="3.88"
 
-     id="img-cabf29fe">
+     id="img-c9e0d243">
 <defs>
   <marker id="arrow" markerWidth="15" markerHeight="7" refX="5" refY="3.5" orient="auto" markerUnits="strokeWidth">
     <path d="M0,0 L15,3.5 L0,7 z" stroke="context-stroke" fill="context-stroke"/>
   </marker>
 </defs>
-<g class="plotroot xscalable yscalable" id="img-cabf29fe-1">
-  <g class="guide colorkey" id="img-cabf29fe-2">
-    <g font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#4C404B" id="img-cabf29fe-3">
-      <g transform="translate(131.12,49.2)">
-        <g class="primitive">
-          <text dy="0.35em">1.0</text>
-        </g>
-      </g>
-      <g transform="translate(131.12,56.95)">
+<g class="plotroot xscalable yscalable" id="img-c9e0d243-1">
+  <g class="guide colorkey" id="img-c9e0d243-2">
+    <g font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#4C404B" id="img-c9e0d243-3">
+      <g transform="translate(131.33,56.95)">
         <g class="primitive">
           <text dy="0.35em">0.5</text>
         </g>
       </g>
-      <g transform="translate(131.12,64.69)">
+      <g transform="translate(131.33,64.69)">
         <g class="primitive">
           <text dy="0.35em">0.0</text>
         </g>
       </g>
-    </g>
-    <g shape-rendering="crispEdges" fill-opacity="1" stroke="#000000" stroke-opacity="0.000" id="img-cabf29fe-4">
-      <g transform="translate(129.49,64.5)" fill="#008000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,64.11)" fill="#208600">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,63.73)" fill="#328D00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,63.34)" fill="#409300">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,62.95)" fill="#4D9A00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,62.56)" fill="#5AA000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,62.18)" fill="#66A700">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,61.79)" fill="#72AD00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,61.4)" fill="#7DB300">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,61.01)" fill="#88BA00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,60.63)" fill="#94C000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,60.24)" fill="#9FC700">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,59.85)" fill="#AACE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,59.47)" fill="#B5D400">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,59.08)" fill="#C1DB00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,58.69)" fill="#CCE100">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,58.3)" fill="#D7E800">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,57.92)" fill="#E2EE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,57.53)" fill="#EEF500">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,57.14)" fill="#F9FC00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,56.75)" fill="#FFFA00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,56.37)" fill="#FFF100">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,55.98)" fill="#FFE800">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,55.59)" fill="#FFDE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,55.2)" fill="#FFD500">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,54.82)" fill="#FFCB00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,54.43)" fill="#FFC200">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,54.04)" fill="#FFB800">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,53.65)" fill="#FFAE00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,53.27)" fill="#FFA400">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,52.88)" fill="#FF9A00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,52.49)" fill="#FF8F00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,52.11)" fill="#FF8400">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,51.72)" fill="#FF7900">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,51.33)" fill="#FF6D00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,50.94)" fill="#FF6000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,50.56)" fill="#FF5200">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,50.17)" fill="#FF4200">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,49.78)" fill="#FF2D00">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g transform="translate(129.49,49.39)" fill="#FF0000">
-        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
-      </g>
-      <g stroke="#FFFFFF" stroke-width="0.2" id="img-cabf29fe-5">
-        <g transform="translate(129.49,49.2)">
-          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
-        </g>
-        <g transform="translate(129.49,56.95)">
-          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
-        </g>
-        <g transform="translate(129.49,64.69)">
-          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+      <g transform="translate(131.33,49.2)">
+        <g class="primitive">
+          <text dy="0.35em">1.0</text>
         </g>
       </g>
     </g>
-    <g fill="#362A35" font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="img-cabf29fe-6">
-      <g transform="translate(128.85,45.2)">
+    <g shape-rendering="crispEdges" fill-opacity="1" stroke="#000000" stroke-opacity="0.000" id="img-c9e0d243-4">
+      <g transform="translate(129.69,64.5)" fill="#008000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,64.11)" fill="#208600">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,63.73)" fill="#328D00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,63.34)" fill="#409300">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,62.95)" fill="#4D9A00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,62.56)" fill="#5AA000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,62.18)" fill="#66A700">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,61.79)" fill="#72AD00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,61.4)" fill="#7DB300">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,61.01)" fill="#88BA00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,60.63)" fill="#94C000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,60.24)" fill="#9FC700">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,59.85)" fill="#AACE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,59.47)" fill="#B5D400">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,59.08)" fill="#C1DB00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,58.69)" fill="#CCE100">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,58.3)" fill="#D7E800">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,57.92)" fill="#E2EE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,57.53)" fill="#EEF500">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,57.14)" fill="#F9FC00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,56.75)" fill="#FFFA00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,56.37)" fill="#FFF100">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,55.98)" fill="#FFE800">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,55.59)" fill="#FFDE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,55.2)" fill="#FFD500">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,54.82)" fill="#FFCB00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,54.43)" fill="#FFC200">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,54.04)" fill="#FFB800">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,53.65)" fill="#FFAE00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,53.27)" fill="#FFA400">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,52.88)" fill="#FF9A00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,52.49)" fill="#FF8F00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,52.11)" fill="#FF8400">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,51.72)" fill="#FF7900">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,51.33)" fill="#FF6D00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,50.94)" fill="#FF6000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,50.56)" fill="#FF5200">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,50.17)" fill="#FF4200">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,49.78)" fill="#FF2D00">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g transform="translate(129.69,49.39)" fill="#FF0000">
+        <path d="M-0.64,-0.19 L0.64,-0.19 0.64,0.19 -0.64,0.19  z" class="primitive"/>
+      </g>
+      <g stroke="#FFFFFF" stroke-width="0.2" id="img-c9e0d243-5">
+        <g transform="translate(129.69,56.95)">
+          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+        </g>
+        <g transform="translate(129.69,64.69)">
+          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+        </g>
+        <g transform="translate(129.69,49.2)">
+          <path fill="none" d="M-0.64,0 L0.64,0 " class="primitive"/>
+        </g>
+      </g>
+    </g>
+    <g fill="#362A35" font-size="3.53" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" stroke="#000000" stroke-opacity="0.000" id="img-c9e0d243-6">
+      <g transform="translate(129.06,45.2)">
         <g class="primitive">
           <text dy="-0em"></text>
         </g>
       </g>
     </g>
   </g>
-  <g clip-path="url(#img-cabf29fe-7)">
-    <g id="img-cabf29fe-8">
-      <g pointer-events="visible" stroke-width="0.3" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="img-cabf29fe-9">
-        <g transform="translate(65.92,52.95)" id="img-cabf29fe-10">
-          <path d="M-60.92,-36.55 L60.92,-36.55 60.92,36.55 -60.92,36.55  z" class="primitive"/>
+  <g clip-path="url(#img-c9e0d243-7)">
+    <g id="img-c9e0d243-8">
+      <g pointer-events="visible" stroke-width="0.3" fill="#000000" fill-opacity="0.000" stroke="#000000" stroke-opacity="0.000" class="guide background" id="img-c9e0d243-9">
+        <g transform="translate(66.03,52.95)" id="img-c9e0d243-10">
+          <path d="M-61.03,-24.41 L61.03,-24.41 61.03,24.41 -61.03,24.41  z" class="primitive"/>
         </g>
       </g>
-      <g class="plotpanel" id="img-cabf29fe-11">
+      <g class="plotpanel" id="img-c9e0d243-11">
         <metadata>
-          <boundingbox value="5.0mm 16.393079348425204mm 121.84753625033034mm 73.10852175019821mm"/>
-          <unitbox value="0.41514459853655217 0.4131800268903481 5.169710802926896 3.173639946219304"/>
+          <boundingbox value="5.0mm 28.536216219986017mm 122.05562001769145mm 48.82224800707658mm"/>
+          <unitbox value="0.3305883277983474 0.3215172072865031 10.338823344403306 4.356965585426994"/>
         </metadata>
-        <g shape-rendering="crispEdges" class="geometry" stroke="#000000" stroke-opacity="0.000" id="img-cabf29fe-12">
-          <g transform="translate(18.78,29.91)" id="img-cabf29fe-13" fill-opacity="1" fill="#4C9900">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+        <g shape-rendering="crispEdges" class="geometry" stroke="#000000" stroke-opacity="0.000" id="img-c9e0d243-12">
+          <g transform="translate(12.9,36.14)" id="img-c9e0d243-13" fill="#F1F700" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(18.78,52.95)" id="img-cabf29fe-14" fill-opacity="1" fill="#1E8600">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(12.9,47.34)" id="img-c9e0d243-14" fill="#148300" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(18.78,75.98)" id="img-cabf29fe-15" fill-opacity="1" fill="#D0E400">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(12.9,58.55)" id="img-c9e0d243-15" fill="#75AF00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(42.35,29.91)" id="img-cabf29fe-16" fill-opacity="1" fill="#FF0000">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(12.9,69.76)" id="img-c9e0d243-16" fill="#509B00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(42.35,52.95)" id="img-cabf29fe-17" fill-opacity="1" fill="#88BA00">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,36.14)" id="img-c9e0d243-17" fill="#098100" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(42.35,75.98)" id="img-cabf29fe-18" fill-opacity="1" fill="#248800">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,47.34)" id="img-c9e0d243-18" fill="#6AA900" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(65.92,29.91)" id="img-cabf29fe-19" fill-opacity="1" fill="#098100">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,58.55)" id="img-c9e0d243-19" fill="#FF0000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(65.92,52.95)" id="img-cabf29fe-20" fill-opacity="1" fill="#569E00">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(24.71,69.76)" id="img-c9e0d243-20" fill="#579E00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(65.92,75.98)" id="img-cabf29fe-21" fill-opacity="1" fill="#068100">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,36.14)" id="img-c9e0d243-21" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(89.49,29.91)" id="img-cabf29fe-22" fill-opacity="1" fill="#218700">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,47.34)" id="img-c9e0d243-22" fill="#6FAC00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(89.49,52.95)" id="img-cabf29fe-23" fill-opacity="1" fill="#FFDA00">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,58.55)" id="img-c9e0d243-23" fill="#0F8200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(89.49,75.98)" id="img-cabf29fe-24" fill-opacity="1" fill="#64A500">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(36.51,69.76)" id="img-c9e0d243-24" fill="#F7FA00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(113.06,29.91)" id="img-cabf29fe-25" fill-opacity="1" fill="#519C00">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(48.32,36.14)" id="img-c9e0d243-25" fill="#579F00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(113.06,52.95)" id="img-cabf29fe-26" fill-opacity="1" fill="#99C400">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(48.32,47.34)" id="img-c9e0d243-26" fill="#FF7C00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
-          <g transform="translate(113.06,75.98)" id="img-cabf29fe-27" fill-opacity="1" fill="#FFC300">
-            <path d="M-11.78,-11.52 L11.78,-11.52 11.78,11.52 -11.78,11.52  z" class="primitive"/>
+          <g transform="translate(48.32,58.55)" id="img-c9e0d243-27" fill="#158300" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(48.32,69.76)" id="img-c9e0d243-28" fill="#589F00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,36.14)" id="img-c9e0d243-29" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,47.34)" id="img-c9e0d243-30" fill="#B9D600" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,58.55)" id="img-c9e0d243-31" fill="#80B500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(60.13,69.76)" id="img-c9e0d243-32" fill="#FFDA00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,36.14)" id="img-c9e0d243-33" fill="#64A500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,47.34)" id="img-c9e0d243-34" fill="#6DAA00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,58.55)" id="img-c9e0d243-35" fill="#79B100" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(71.93,69.76)" id="img-c9e0d243-36" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,36.14)" id="img-c9e0d243-37" fill="#0B8200" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,47.34)" id="img-c9e0d243-38" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,58.55)" id="img-c9e0d243-39" fill="#D2E500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(83.74,69.76)" id="img-c9e0d243-40" fill="#569E00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,36.14)" id="img-c9e0d243-41" fill="#FF9600" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,47.34)" id="img-c9e0d243-42" fill="#1C8500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,58.55)" id="img-c9e0d243-43" fill="#71AD00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(95.54,69.76)" id="img-c9e0d243-44" fill="#4C9900" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,36.14)" id="img-c9e0d243-45" fill="#FFD500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,47.34)" id="img-c9e0d243-46" fill="#C0DA00" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,58.55)" id="img-c9e0d243-47" fill="#008000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(107.35,69.76)" id="img-c9e0d243-48" fill="#FFE000" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,36.14)" id="img-c9e0d243-49" fill="#EAF300" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,47.34)" id="img-c9e0d243-50" fill="#FFF900" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,58.55)" id="img-c9e0d243-51" fill="#D2E500" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
+          </g>
+          <g transform="translate(119.15,69.76)" id="img-c9e0d243-52" fill="#BED900" fill-opacity="1">
+            <path d="M-5.9,-5.6 L5.9,-5.6 5.9,5.6 -5.9,5.6  z" class="primitive"/>
           </g>
         </g>
       </g>
-      <g fill-opacity="0" class="guide crosshair" id="img-cabf29fe-28">
-        <g class="text_box" fill="#000000" id="img-cabf29fe-29">
-          <g transform="translate(119.79,16.92)" id="img-cabf29fe-30">
+      <g fill-opacity="0" class="guide crosshair" id="img-c9e0d243-53">
+        <g class="text_box" fill="#000000" id="img-c9e0d243-54">
+          <g transform="translate(120,29.07)" id="img-c9e0d243-55">
             <g class="primitive">
               <text text-anchor="end" dy="0.6em"></text>
             </g>
           </g>
         </g>
       </g>
-      <g fill-opacity="0" class="guide helpscreen" id="img-cabf29fe-31">
-        <g class="text_box" id="img-cabf29fe-32">
-          <g fill="#000000" id="img-cabf29fe-33">
-            <g transform="translate(65.92,52.95)" id="img-cabf29fe-34">
-              <path d="M-29.65,-10.71 L29.65,-10.71 29.65,10.71 -29.65,10.71  z" class="primitive"/>
+      <g fill-opacity="0" class="guide helpscreen" id="img-c9e0d243-56">
+        <g class="text_box" id="img-c9e0d243-57">
+          <g fill="#000000" id="img-c9e0d243-58">
+            <g transform="translate(66.03,52.95)" id="img-c9e0d243-59">
+              <path d="M-28.13,-10.71 L28.13,-10.71 28.13,10.71 -28.13,10.71  z" class="primitive"/>
             </g>
           </g>
-          <g fill="#FFFF74" font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="img-cabf29fe-35">
-            <g transform="translate(65.92,45.16)" id="img-cabf29fe-36">
+          <g fill="#FFFF74" font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" id="img-c9e0d243-60">
+            <g transform="translate(66.03,45.16)" id="img-c9e0d243-61">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">h,j,k,l,arrows,drag to pan</text>
               </g>
             </g>
-            <g transform="translate(65.92,49.05)" id="img-cabf29fe-37">
+            <g transform="translate(66.03,49.05)" id="img-c9e0d243-62">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">i,o,+,-,scroll,shift-drag to zoom</text>
               </g>
             </g>
-            <g transform="translate(65.92,52.95)" id="img-cabf29fe-38">
+            <g transform="translate(66.03,52.95)" id="img-c9e0d243-63">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">r,dbl-click to reset</text>
               </g>
             </g>
-            <g transform="translate(65.92,56.84)" id="img-cabf29fe-39">
+            <g transform="translate(66.03,56.84)" id="img-c9e0d243-64">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">c for coordinates</text>
               </g>
             </g>
-            <g transform="translate(65.92,60.74)" id="img-cabf29fe-40">
+            <g transform="translate(66.03,60.74)" id="img-c9e0d243-65">
               <g class="primitive">
                 <text text-anchor="middle" dy="0.35em">? for help</text>
               </g>
@@ -2029,9 +2325,9 @@ NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]); title="Reconstructed mixing matri
           </g>
         </g>
       </g>
-      <g fill-opacity="0" class="guide questionmark" id="img-cabf29fe-41">
-        <g class="text_box" fill="#000000" id="img-cabf29fe-42">
-          <g transform="translate(126.85,16.92)" id="img-cabf29fe-43">
+      <g fill-opacity="0" class="guide questionmark" id="img-c9e0d243-66">
+        <g class="text_box" fill="#000000" id="img-c9e0d243-67">
+          <g transform="translate(127.06,29.07)" id="img-c9e0d243-68">
             <g class="primitive">
               <text text-anchor="end" dy="0.6em">?</text>
             </g>
@@ -2040,8 +2336,8 @@ NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]); title="Reconstructed mixing matri
       </g>
     </g>
   </g>
-  <g font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="img-cabf29fe-44">
-    <g transform="translate(65.92,10.5)" id="img-cabf29fe-45">
+  <g font-size="4.23" font-family="'PT Sans','Helvetica Neue','Helvetica',sans-serif" fill="#564A55" stroke="#000000" stroke-opacity="0.000" id="img-c9e0d243-69">
+    <g transform="translate(66.03,22.64)" id="img-c9e0d243-70">
       <g class="primitive">
         <text text-anchor="middle" dy="0.6em">Reconstructed mixing matrix</text>
       </g>
@@ -2049,8 +2345,8 @@ NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]); title="Reconstructed mixing matri
   </g>
 </g>
 <defs>
-  <clipPath id="img-cabf29fe-7">
-    <path d="M5,16.39 L126.85,16.39 126.85,89.5 5,89.5 " />
+  <clipPath id="img-c9e0d243-7">
+    <path d="M5,28.54 L127.06,28.54 127.06,77.36 5,77.36 " />
   </clipPath>
 </defs>
 <script> <![CDATA[
@@ -3163,10 +3459,10 @@ return Gadfly;
           factory(glob.Snap, glob.Gadfly);
       }
 })(window, function (Snap, Gadfly) {
-    var fig = Snap("#img-cabf29fe");
-fig.select("#img-cabf29fe-8")
+    var fig = Snap("#img-c9e0d243");
+fig.select("#img-c9e0d243-8")
    .init_gadfly();
-fig.select("#img-cabf29fe-42")
+fig.select("#img-c9e0d243-67")
    .mouseenter(Gadfly.helpscreen_visible)
 .mouseleave(Gadfly.helpscreen_hidden)
 ;
@@ -3176,3 +3472,779 @@ fig.select("#img-cabf29fe-42")
 
 
 
+
+
+```julia
+NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* string.(collect(1:100)), "s" .* string.(collect(1:10)); Wcasefilename="times", Hcasefilename="sensors", biplotcolor=:WH, sortmag=false, biplotlabel=:H, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
+```
+
+    Signal importance (high->low): [2, 1]
+
+
+    ┌ Info: Number of signals: 2
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:164
+    ┌ Info: Sensors (signals=2)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:168
+    ┌ Warning: File ./Hmatrix-2-2_10-1000.jld does not exist! Robust k-means analysis will be executed ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:74
+    ┌ Info: Robust k-means analysis results are saved in file ./Hmatrix-2-2_10-1000.jld!
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:100
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: File ./Wmatrix-2-2_100-1000.jld does not exist! Robust k-means analysis will be executed ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:74
+    ┌ Info: Robust k-means analysis results are saved in file ./Wmatrix-2-2_100-1000.jld!
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:100
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Info: Signal A -> A Count: 8
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+
+
+
+    8×2 Matrix{Any}:
+     "s9"   1.0
+     "s10"  0.788439
+     "s8"   0.718571
+     "s4"   0.537016
+     "s5"   0.46532
+     "s1"   0.456592
+     "s3"   0.335853
+     "s6"   0.195421
+
+
+    ┌ Info: Signal B -> B Count: 2
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal A (S2) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+
+
+
+    2×2 Matrix{Any}:
+     "s2"  1.0
+     "s7"  0.422131
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_5.png)
+    
+
+
+    ┌ Info: Signal B (S1) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_7.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_9.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_10.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_12.png)
+    
+
+
+
+    64×2 Matrix{Any}:
+     "t66"  1.0
+     "t3"   0.995616
+     "t92"  0.939067
+     "t4"   0.907584
+     "t27"  0.89612
+     "t28"  0.894106
+     "t91"  0.886251
+     "t29"  0.88556
+     "t89"  0.872883
+     "t78"  0.826028
+     "t67"  0.792849
+     "t79"  0.781565
+     "t5"   0.775981
+     ⋮      
+     "t16"  0.416932
+     "t63"  0.408192
+     "t77"  0.399223
+     "t74"  0.374316
+     "t75"  0.334599
+     "t85"  0.293
+     "t95"  0.292407
+     "t86"  0.252929
+     "t98"  0.20827
+     "t96"  0.155649
+     "t99"  0.117014
+     "t97"  0.0795985
+
+
+
+    36×2 Matrix{Any}:
+     "t46"  1.0
+     "t24"  0.949794
+     "t25"  0.921673
+     "t21"  0.911409
+     "t48"  0.876323
+     "t22"  0.87149
+     "t35"  0.844379
+     "t20"  0.833659
+     "t33"  0.828204
+     "t36"  0.811971
+     "t45"  0.807707
+     "t47"  0.7906
+     "t44"  0.769936
+     ⋮      
+     "t12"  0.584323
+     "t38"  0.557434
+     "t37"  0.554392
+     "t11"  0.509121
+     "t72"  0.50314
+     "t60"  0.484285
+     "t61"  0.461324
+     "t59"  0.427494
+     "t62"  0.399923
+     "t58"  0.37513
+     "t57"  0.339269
+     "t73"  0.297573
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_15.png)
+    
+
+
+    
+
+    ┌ Info: Times (signals=2)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:350
+    ┌ Info: Signal A (S2) Count: 64
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal B (S1) Count: 36
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal A -> A Count: 64
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal B -> B Count: 36
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal A (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+    ┌ Info: Signal B (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_18.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_20.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_21.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_23.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_24.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_26.png)
+    
+
+
+    Signal importance (high->low): [2, 3, 1]
+
+
+    ┌ Info: Number of signals: 3
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:164
+    ┌ Info: Sensors (signals=3)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:168
+    ┌ Warning: File ./Hmatrix-3-3_10-1000.jld does not exist! Robust k-means analysis will be executed ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:74
+    ┌ Info: Robust k-means analysis results are saved in file ./Hmatrix-3-3_10-1000.jld!
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:100
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: File ./Wmatrix-3-3_100-1000.jld does not exist! Robust k-means analysis will be executed ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:74
+
+
+
+    3×2 Matrix{Any}:
+     "s4"  1.0
+     "s5"  0.915499
+     "s3"  0.667749
+
+
+
+    5×2 Matrix{Any}:
+     "s8"   1.0
+     "s9"   0.79109
+     "s1"   0.61774
+     "s10"  0.608085
+     "s6"   0.202659
+
+
+
+    2×2 Matrix{Any}:
+     "s2"  1.0
+     "s7"  0.4245
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_32.png)
+    
+
+
+    ┌ Info: Robust k-means analysis results are saved in file ./Wmatrix-3-3_100-1000.jld!
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:100
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Info: Signal B -> A Count: 3
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal A -> B Count: 5
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal C -> C Count: 2
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal A (S2) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+    ┌ Info: Signal B (S3) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+    ┌ Info: Signal C (S1) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_34.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_36.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_37.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_39.png)
+    
+
+
+
+    37×2 Matrix{Any}:
+     "t27"   1.0
+     "t3"    0.996301
+     "t66"   0.971245
+     "t29"   0.907703
+     "t28"   0.907556
+     "t4"    0.898674
+     "t89"   0.866861
+     "t5"    0.821095
+     "t69"   0.813855
+     "t92"   0.804378
+     "t94"   0.75174
+     "t43"   0.708383
+     "t91"   0.692903
+     ⋮       
+     "t65"   0.502089
+     "t68"   0.495228
+     "t76"   0.48642
+     "t2"    0.435835
+     "t93"   0.435653
+     "t100"  0.424621
+     "t81"   0.377014
+     "t63"   0.35528
+     "t75"   0.281262
+     "t95"   0.240285
+     "t96"   0.172016
+     "t99"   0.0751611
+
+
+
+    23×2 Matrix{Any}:
+     "t41"  1.0
+     "t16"  0.988476
+     "t15"  0.964959
+     "t40"  0.960083
+     "t53"  0.957865
+     "t17"  0.900471
+     "t14"  0.849653
+     "t55"  0.834555
+     "t39"  0.828956
+     "t30"  0.810997
+     "t77"  0.804218
+     "t80"  0.7863
+     "t18"  0.750464
+     "t51"  0.657356
+     "t56"  0.652796
+     "t13"  0.6515
+     "t38"  0.629279
+     "t31"  0.628595
+     "t19"  0.529062
+     "t57"  0.419718
+     "t37"  0.413572
+     "t58"  0.23137
+     "t34"  0.108903
+
+
+
+    40×2 Matrix{Any}:
+     "t35"  1.0
+     "t36"  0.992154
+     "t24"  0.981954
+     "t25"  0.977369
+     "t33"  0.975431
+     "t21"  0.96166
+     "t46"  0.953169
+     "t20"  0.934378
+     "t22"  0.92257
+     "t32"  0.911171
+     "t44"  0.858272
+     "t45"  0.856264
+     "t48"  0.852365
+     ⋮      
+     "t62"  0.47024
+     "t70"  0.450389
+     "t72"  0.401947
+     "t74"  0.322782
+     "t73"  0.265025
+     "t84"  0.238196
+     "t83"  0.208642
+     "t85"  0.173543
+     "t87"  0.121654
+     "t86"  0.105959
+     "t98"  0.0996115
+     "t97"  0.0357299
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_43.png)
+    
+
+
+    
+
+    ┌ Info: Times (signals=3)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:350
+    ┌ Info: Signal A (S1) Count: 40
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal B (S2) Count: 37
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal C (S3) Count: 23
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal B -> A Count: 37
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal C -> B Count: 23
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal A -> C Count: 40
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal A (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+    ┌ Info: Signal B (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+    ┌ Info: Signal C (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_46.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_48.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_49.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_51.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_52.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_54.png)
+    
+
+
+    Signal importance (high->low): [4, 1, 2, 3]
+
+
+    ┌ Info: Number of signals: 4
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:164
+    ┌ Info: Sensors (signals=4)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:168
+    ┌ Warning: File ./Hmatrix-4-4_10-1000.jld does not exist! Robust k-means analysis will be executed ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:74
+    ┌ Info: Robust k-means analysis results are saved in file ./Hmatrix-4-4_10-1000.jld!
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:100
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: File ./Wmatrix-4-4_100-1000.jld does not exist! Robust k-means analysis will be executed ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:74
+
+
+
+    2×2 Matrix{Any}:
+     "s5"  1.0
+     "s3"  0.799532
+
+
+
+    3×2 Matrix{Any}:
+     "s8"  1.0
+     "s9"  0.79028
+     "s1"  0.601962
+
+
+    ┌ Info: Robust k-means analysis results are saved in file ./Wmatrix-4-4_100-1000.jld!
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:100
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Warning: Procedure to find unique signals could not identify a solution ...
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkCluster.jl:158
+    ┌ Info: Signal D -> A Count: 2
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal A -> B Count: 3
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal B -> C Count: 3
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal C -> D Count: 2
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:275
+    ┌ Info: Signal A (S4) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+    ┌ Info: Signal B (S1) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+    ┌ Info: Signal C (S2) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+
+
+
+    3×2 Matrix{Any}:
+     "s4"   1.0
+     "s10"  0.613947
+     "s6"   0.201276
+
+
+
+    2×2 Matrix{Any}:
+     "s2"  1.0
+     "s7"  0.399474
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_62.png)
+    
+
+
+    ┌ Info: Signal D (S3) (k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:292
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_64.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_66.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_67.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_69.png)
+    
+
+
+    
+
+
+    27×2 Matrix{Any}:
+     "t71"   0.99842
+     "t36"   0.917673
+     "t20"   0.904744
+     "t46"   0.894263
+     "t35"   0.884538
+     "t82"   0.880886
+     "t84"   0.872824
+     "t21"   0.843684
+     "t6"    0.838251
+     "t94"   0.826204
+     "t25"   0.818714
+     "t70"   0.807446
+     "t83"   0.805781
+     ⋮       
+     "t100"  0.720112
+     "t74"   0.676008
+     "t72"   0.661477
+     "t50"   0.608804
+     "t8"    0.608108
+     "t44"   0.581842
+     "t98"   0.553569
+     "t85"   0.445068
+     "t60"   0.418785
+     "t61"   0.372216
+     "t59"   0.305934
+     "t97"   0.129773
+
+
+
+    40×2 Matrix{Any}:
+     "t41"  1.0
+     "t28"  0.990217
+     "t3"   0.990052
+     "t79"  0.985958
+     "t78"  0.985492
+     "t66"  0.985395
+     "t54"  0.982794
+     "t16"  0.982776
+     "t29"  0.968168
+     "t53"  0.967117
+     "t15"  0.958085
+     "t40"  0.955911
+     "t42"  0.918322
+     ⋮      
+     "t13"  0.622565
+     "t31"  0.603464
+     "t38"  0.58695
+     "t19"  0.480153
+     "t75"  0.395829
+     "t57"  0.393706
+     "t12"  0.373994
+     "t32"  0.371084
+     "t37"  0.346155
+     "t62"  0.298608
+     "t58"  0.182046
+     "t99"  0.152601
+
+
+
+    21×2 Matrix{Any}:
+     "t68"  1.0
+     "t89"  0.994724
+     "t90"  0.989127
+     "t5"   0.986953
+     "t26"  0.982561
+     "t67"  0.976628
+     "t88"  0.971565
+     "t69"  0.961725
+     "t4"   0.959983
+     "t91"  0.925882
+     "t87"  0.892837
+     "t92"  0.819875
+     "t65"  0.811626
+     "t2"   0.790523
+     "t86"  0.789248
+     "t30"  0.705488
+     "t93"  0.695834
+     "t51"  0.694574
+     "t63"  0.52366
+     "t95"  0.390014
+     "t96"  0.245916
+
+
+
+    12×2 Matrix{Any}:
+     "t34"  1.0
+     "t23"  0.963279
+     "t22"  0.951511
+     "t45"  0.89329
+     "t47"  0.859631
+     "t48"  0.845018
+     "t49"  0.824024
+     "t11"  0.764273
+     "t10"  0.744935
+     "t9"   0.723564
+     "t7"   0.674474
+     "t73"  0.260176
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_75.png)
+    
+
+
+    ┌ Info: Times (signals=4)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:350
+    ┌ Info: Signal A (S1) Count: 40
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal B (S4) Count: 27
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal C (S2) Count: 21
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal D (S3) Count: 12
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:363
+    ┌ Info: Signal B -> A Count: 27
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal A -> B Count: 40
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal C -> C Count: 21
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal D -> D Count: 12
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:373
+    ┌ Info: Signal A (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+    ┌ Info: Signal B (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+    ┌ Info: Signal C (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+    ┌ Info: Signal D (remapped k-means clustering)
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkPostprocess.jl:388
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_77.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_79.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_80.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_82.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_83.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_22_85.png)
+    
+
+
+    
+
+
+
+
+    ([[2, 1], [2, 3, 1], [4, 1, 2, 3]], [['A', 'A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B'  …  'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'], ['A', 'A', 'A', 'A', 'A', 'C', 'C', 'C', 'C', 'C'  …  'A', 'A', 'A', 'A', 'A', 'A', 'C', 'C', 'A', 'A'], ['B', 'C', 'B', 'C', 'C', 'A', 'D', 'A', 'D', 'D'  …  'C', 'C', 'C', 'A', 'C', 'C', 'A', 'A', 'B', 'A']], [['A', 'B', 'A', 'A', 'A', 'A', 'B', 'A', 'A', 'A'], ['B', 'C', 'A', 'A', 'A', 'B', 'C', 'B', 'B', 'B'], ['B', 'D', 'A', 'C', 'A', 'C', 'D', 'B', 'B', 'C']])
+
+
+
+
+```julia
+
+```

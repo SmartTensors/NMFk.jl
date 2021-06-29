@@ -1,29 +1,28 @@
-NMFk example: Blind Source Separation
+NMFk example: Feature extraction
 -----
 
-An example problem demonstrating how **NMFk** can be applied to extract unknown signals or signatures embeded (mixed) in unknown fasion in analyzed datasets.
+An example problem demonstrating how **NMFk** can be applied to extract and clasify features and sensors observing these mixed features.
 
-This type of analysis is frequently called **blind source separation** or **feature extraction**.
+This type of analysis is related to **blind source separation**
 
 Applying **NMFk**, we can automatically:
 
 - identify the number of the unknown mixed signatures in dataset 
 - estimate the shape of the unknown mixed signatures
 - estimate how the signatures are mixed at each sensor
+- clasify sensors based on how they observe (are impacted) the extracted features.
 
 If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
 
-Let us generate 3 random signals:
+Let us generate 4 random signals with legnth of 100 (this can be considered as 100 ):
 
 The singals look like this:
 
-We can collect the 3 signal vectors into a signal matrix `W`:
+Now we can mix the signals in matrix `W` to produce a data matrix `X` representing data collected at 10 sensors (e.g., measurement devices or wells at different locations).
 
-Now we can mix the signals in matrix `W` to produce a data matrix `X` representing data collected at 5 sensors (e.g., measurement devices or wells at different locations).
+Each of the 10 sensors is observing some mixture of the 4 signals in `W`.
 
-Each of the 5 sensors is observing some mixture of the signals in `W`.
-
-The way the 3 signals are mixed at the sensors is represented by the mixing matrix `H`.
+The way the 4 signals are mixed at the sensors is represented by the mixing matrix `H`.
 
 Let us define the mixing matrix `H` as:
 

@@ -14276,7 +14276,12 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="k">import</span> <span class="n">NMFk</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="k">import</span> <span class="n">Revise</span>
+<span class="k">import</span> <span class="n">NMFk</span>
+<span class="k">import</span> <span class="n">Mads</span>
+<span class="k">import</span> <span class="n">Random</span>
+
+<span class="n">Random</span><span class="o">.</span><span class="n">seed!</span><span class="p">(</span><span class="mi">2021</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -14302,144 +14307,6 @@ a.anchor-link {
 </div>
 </div>
 
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre><span class="ansi-bold">Mads: Model Analysis &amp; Decision Support</span>
-====
-
-<span class="ansi-blue-intense-fg ansi-bold">    ___      ____    </span><span class="ansi-red-intense-fg ansi-bold">        ____   </span><span class="ansi-green-intense-fg ansi-bold"> ____         </span><span class="ansi-magenta-intense-fg ansi-bold">     ______</span>
-<span class="ansi-blue-intense-fg ansi-bold">   /   \    /    \  </span><span class="ansi-red-intense-fg ansi-bold">        /    | </span><span class="ansi-green-intense-fg ansi-bold"> |    \     </span><span class="ansi-magenta-intense-fg ansi-bold">       /  __  \</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |     \  /     |   </span><span class="ansi-red-intense-fg ansi-bold">      /     |  </span><span class="ansi-green-intense-fg ansi-bold">|     \     </span><span class="ansi-magenta-intense-fg ansi-bold">     /  /  \__\</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |  |\  \/  /|  | </span><span class="ansi-red-intense-fg ansi-bold">       /      | </span><span class="ansi-green-intense-fg ansi-bold"> |      \   </span><span class="ansi-magenta-intense-fg ansi-bold">     |  |</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |  | \    / |  |  </span><span class="ansi-red-intense-fg ansi-bold">     /  /|   | </span><span class="ansi-green-intense-fg ansi-bold"> |   |\  \   </span><span class="ansi-magenta-intense-fg ansi-bold">     \  \______.</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |  |  \__/  |  |  </span><span class="ansi-red-intense-fg ansi-bold">    /  / |   | </span><span class="ansi-green-intense-fg ansi-bold"> |   | \  \  </span><span class="ansi-magenta-intense-fg ansi-bold">      \_______  \</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |  |        |  | </span><span class="ansi-red-intense-fg ansi-bold">    /  /  |   | </span><span class="ansi-green-intense-fg ansi-bold"> |   |  \  \  </span><span class="ansi-magenta-intense-fg ansi-bold">             \  \</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |  |        |  |  </span><span class="ansi-red-intense-fg ansi-bold">  /  /===|   | </span><span class="ansi-green-intense-fg ansi-bold"> |   |___\  \ </span><span class="ansi-magenta-intense-fg ansi-bold">   __.        |  |</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |  |        |  | </span><span class="ansi-red-intense-fg ansi-bold">  /  /    |   | </span><span class="ansi-green-intense-fg ansi-bold"> |           \  </span><span class="ansi-magenta-intense-fg ansi-bold"> \  \______/  /</span>
-<span class="ansi-blue-intense-fg ansi-bold">  |__|        |__| </span><span class="ansi-red-intense-fg ansi-bold"> /__/     |___| </span><span class="ansi-green-intense-fg ansi-bold"> |____________\ </span><span class="ansi-magenta-intense-fg ansi-bold">  \__________/</span>
-
-<span class="ansi-bold">MADS</span> is an integrated high-performance computational framework for data- and model-based analyses.
-<span class="ansi-bold">MADS</span> can perform: Sensitivity Analysis, Parameter Estimation, Model Inversion and Calibration, Uncertainty Quantification, Model Selection and Model Averaging, Model Reduction and Surrogate Modeling, Machine Learning, Decision Analysis and Support.
-</pre>
-</div>
-</div>
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
-<pre><span class="ansi-green-intense-fg ansi-bold">    Updating</span> registry at `~/.julia/registries/General`
-<span class="ansi-green-intense-fg ansi-bold">   Resolving</span> package versions...
-<span class="ansi-cyan-intense-fg ansi-bold">[ </span><span class="ansi-cyan-intense-fg ansi-bold">Info: </span>Module BIGUQ is not available!
-</pre>
-</div>
-</div>
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre><span class="ansi-bold">NMFk: Nonnegative Matrix Factorization + k-means clustering and physics constraints</span>
-====
-
-<span class="ansi-blue-intense-fg ansi-bold">  _     _  </span><span class="ansi-red-intense-fg ansi-bold"> _      _  </span><span class="ansi-green-intense-fg ansi-bold"> _______   </span><span class="ansi-magenta-intense-fg ansi-bold">_</span>
-<span class="ansi-blue-intense-fg ansi-bold"> |  \  | | </span><span class="ansi-red-intense-fg ansi-bold">|  \  /  | </span><span class="ansi-green-intense-fg ansi-bold">|  _____| </span><span class="ansi-magenta-intense-fg ansi-bold">| |  _</span>
-<span class="ansi-blue-intense-fg ansi-bold"> | . \ | | </span><span class="ansi-red-intense-fg ansi-bold">| . \/ . | </span><span class="ansi-green-intense-fg ansi-bold">| |___    </span><span class="ansi-magenta-intense-fg ansi-bold">| | / /</span>
-<span class="ansi-blue-intense-fg ansi-bold"> | |\ \| | </span><span class="ansi-red-intense-fg ansi-bold">| |\  /| | </span><span class="ansi-green-intense-fg ansi-bold">|  ___|   </span><span class="ansi-magenta-intense-fg ansi-bold">| |/ /</span>
-<span class="ansi-blue-intense-fg ansi-bold"> | | \ &#39; | </span><span class="ansi-red-intense-fg ansi-bold">| | \/ | | </span><span class="ansi-green-intense-fg ansi-bold">| |       </span><span class="ansi-magenta-intense-fg ansi-bold">|   (</span>
-<span class="ansi-blue-intense-fg ansi-bold"> | |  \  | </span><span class="ansi-red-intense-fg ansi-bold">| |    | | </span><span class="ansi-green-intense-fg ansi-bold">| |       </span><span class="ansi-magenta-intense-fg ansi-bold">| |\ \</span>
-<span class="ansi-blue-intense-fg ansi-bold"> |_|   \_| </span><span class="ansi-red-intense-fg ansi-bold">|_|    |_| </span><span class="ansi-green-intense-fg ansi-bold">|_|       </span><span class="ansi-magenta-intense-fg ansi-bold">|_| \_\</span>
-
-NMFk performs unsupervised machine learning based on matrix decomposition coupled with various constraints.
-NMFk provides automatic identification of the optimal number of signals (features) present in two-dimensional data arrays (matrices).
-NMFk offers visualization, pre-, and post-processing capabilities.
-</pre>
-</div>
-</div>
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-
-<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output " data-mime-type="text/html">
-<script>
-// Immediately-invoked-function-expression to avoid global variables.
-(function() {
-    var warning_div = document.getElementById("webio-warning-8563818355232015570");
-    var hide = function () {
-        var script = document.getElementById("webio-setup-3029204998331534126");
-        var parent = script && script.parentElement;
-        var grandparent = parent && parent.parentElement;
-        if (grandparent) {
-            grandparent.style.display = "none";
-        }
-        warning_div.style.display = "none";
-    };
-    if (typeof Jupyter !== "undefined") {
-        console.log("WebIO detected Jupyter notebook environment.");
-        // Jupyter notebook.
-        var extensions = (
-            Jupyter
-            && Jupyter.notebook.config.data
-            && Jupyter.notebook.config.data.load_extensions
-        );
-        if (extensions && extensions["webio-jupyter-notebook"]) {
-            // Extension already loaded.
-            console.log("Jupyter WebIO nbextension detected; not loading ad-hoc.");
-            hide();
-            return;
-        }
-    } else if (window.location.pathname.includes("/lab")) {
-        // Guessing JupyterLa
-        console.log("Jupyter Lab detected; make sure the @webio/jupyter-lab-provider labextension is installed.");
-        hide();
-        return;
-    }
-})();
-
-</script>
-<p
-    id="webio-warning-8563818355232015570"
-    class="output_text output_stderr"
-    style="padding: 1em; font-weight: bold;"
->
-    Unable to load WebIO. Please make sure WebIO works for your Jupyter client.
-    For troubleshooting, please see <a href="https://juliagizmos.github.io/WebIO.jl/latest/providers/ijulia/">
-    the WebIO/IJulia documentation</a>.
-    <!-- TODO: link to installation docs. -->
-</p>
-
-</div>
-
-</div>
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-
-
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr">
-<pre>┌ Info: Installing pyqt package to avoid buggy tkagg backend.
-└ @ PyPlot /Users/vvv/.julia/packages/PyPlot/XHEG0/src/init.jl:118
-</pre>
-</div>
-</div>
-
 </div>
 
 </div>
@@ -14450,10 +14317,10 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 <p>Let us generate 3 random signals:</p>
 
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[2]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
@@ -14467,44 +14334,6 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 </div>
 </div>
 
-<div class="jp-Cell-outputWrapper">
-
-
-<div class="jp-OutputArea jp-Cell-outputArea">
-
-<div class="jp-OutputArea-child">
-
-    
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[2]:</div>
-
-
-
-
-<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
-<pre>15×3 Matrix{Float64}:
- 0.142528  0.37457    0.417998
- 0.244368  0.315157   0.82316
- 0.084349  0.566074   0.4159
- 0.87666   0.19155    0.305887
- 0.297135  0.0340242  0.653658
- 0.102301  0.923879   0.933132
- 0.961446  0.672256   0.0419137
- 0.994825  0.783367   0.186087
- 0.518444  0.429427   0.915341
- 0.908245  0.930611   0.173948
- 0.523605  0.795334   0.623679
- 0.777877  0.449229   0.783005
- 0.656755  0.605779   0.346222
- 0.854471  0.778596   0.917936
- 0.92996   0.693078   0.264864</pre>
-</div>
-
-</div>
-
-</div>
-
-</div>
-
 </div>
 <div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
@@ -14514,11 +14343,10 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[3]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="k">import</span> <span class="n">Mads</span>
-<span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">([</span><span class="n">a</span> <span class="n">b</span> <span class="n">c</span><span class="p">])</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">([</span><span class="n">a</span> <span class="n">b</span> <span class="n">c</span><span class="p">])</span>
 </pre></div>
 
      </div>
@@ -14570,7 +14398,7 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[4]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">W</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="n">b</span> <span class="n">c</span><span class="p">]</span>
@@ -14589,7 +14417,7 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[4]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
 
 
 
@@ -14631,7 +14459,7 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[5]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">H</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="mi">10</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span><span class="p">;</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">5</span> <span class="mi">2</span><span class="p">;</span> <span class="mi">3</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">5</span><span class="p">]</span>
@@ -14650,7 +14478,7 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[5]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
 
 
 
@@ -14682,7 +14510,7 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[6]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">X</span> <span class="o">=</span> <span class="n">W</span> <span class="o">*</span> <span class="n">H</span>
@@ -14701,7 +14529,7 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[6]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
 
 
 
@@ -14740,7 +14568,7 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[7]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">X</span><span class="p">;</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Sensors&quot;</span><span class="p">)</span>
@@ -14803,10 +14631,10 @@ NMFk offers visualization, pre-, and post-processing capabilities.
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[8]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">We</span><span class="p">,</span> <span class="n">He</span><span class="p">,</span> <span class="n">fitquality</span><span class="p">,</span> <span class="n">robustness</span><span class="p">,</span> <span class="n">aic</span><span class="p">,</span> <span class="n">kopt</span> <span class="o">=</span> <span class="n">NMFk</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="mi">2</span><span class="o">:</span><span class="mi">5</span><span class="p">;</span> <span class="n">save</span><span class="o">=</span><span class="kc">false</span><span class="p">,</span> <span class="n">method</span><span class="o">=:</span><span class="n">simple</span><span class="p">);</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">We</span><span class="p">,</span> <span class="n">He</span><span class="p">,</span> <span class="n">fitquality</span><span class="p">,</span> <span class="n">robustness</span><span class="p">,</span> <span class="n">aic</span><span class="p">,</span> <span class="n">kopt</span> <span class="o">=</span> <span class="n">NMFk</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="mi">2</span><span class="o">:</span><span class="mi">5</span><span class="p">;</span> <span class="n">save</span><span class="o">=</span><span class="nb">false</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="ss">:simple</span><span class="p">);</span>
 </pre></div>
 
      </div>
@@ -14893,7 +14721,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[9]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">We</span><span class="p">[</span><span class="n">kopt</span><span class="p">]</span>
@@ -14912,7 +14740,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[9]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
 
 
 
@@ -14945,7 +14773,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[10]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">He</span><span class="p">[</span><span class="n">kopt</span><span class="p">]</span>
@@ -14964,7 +14792,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[10]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
 
 
 
@@ -14994,7 +14822,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[11]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">W</span><span class="p">;</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Original signals&quot;</span><span class="p">)</span>
@@ -15043,7 +14871,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[12]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">Mads</span><span class="o">.</span><span class="n">plotseries</span><span class="p">(</span><span class="n">We</span><span class="p">[</span><span class="n">kopt</span><span class="p">]</span> <span class="o">./</span> <span class="n">maximum</span><span class="p">(</span><span class="n">We</span><span class="p">[</span><span class="n">kopt</span><span class="p">];</span> <span class="n">dims</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Reconstructed signals&quot;</span><span class="p">)</span>
@@ -15092,7 +14920,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[13]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">H</span> <span class="o">./</span> <span class="n">maximum</span><span class="p">(</span><span class="n">H</span><span class="p">);</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Original mixing matrix&quot;</span><span class="p">)</span>
@@ -15111,7 +14939,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[13]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
 
 
 
@@ -16554,7 +16382,7 @@ fig.select("#img-c81730bb-42")
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[14]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">He</span><span class="p">[</span><span class="n">kopt</span><span class="p">]</span> <span class="o">./</span> <span class="n">maximum</span><span class="p">(</span><span class="n">He</span><span class="p">[</span><span class="n">kopt</span><span class="p">]);</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Reconstructed mixing matrix&quot;</span><span class="p">)</span>
@@ -16573,7 +16401,7 @@ fig.select("#img-c81730bb-42")
 <div class="jp-OutputArea-child">
 
     
-    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[14]:</div>
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[&nbsp;]:</div>
 
 
 
