@@ -350,7 +350,39 @@ We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, nkrange; save=false,
     └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkExecute.jl:20
 
 
-**NMFk** returns the estimated optimal number of signals `kopt` which in this case, as expected, is equal to 3.
+**NMFk** returns the estimated optimal number of signals `kopt` which in this case, as expected, is equal to 4.
+
+A plot of the fit and the robustness is shown below:
+
+
+```julia
+NMFk.plot_feature_selecton(nkrange, fitquality, robustness)
+```
+
+
+    
+![png](feature_extraction_files/feature_extraction_15_0.png)
+    
+
+
+    
+
+Acceptable (underfitting) solutions:
+
+
+```julia
+NMFk.getks(nkrange, robustness[nkrange])
+```
+
+
+
+
+    3-element Vector{Int64}:
+     2
+     3
+     4
+
+
 
 **NMFk** also returns estimates of matrices `W` and `H`.
 
@@ -428,7 +460,7 @@ Mads.plotseries(W; title="Original signals")
 
 
     
-![png](feature_extraction_files/feature_extraction_18_0.png)
+![png](feature_extraction_files/feature_extraction_22_0.png)
     
 
 
@@ -441,7 +473,7 @@ Mads.plotseries(We[kopt] ./ maximum(We[kopt]; dims=1); title="Reconstructed sign
 
 
     
-![png](feature_extraction_files/feature_extraction_19_0.png)
+![png](feature_extraction_files/feature_extraction_23_0.png)
     
 
 
@@ -3531,7 +3563,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_5.png)
+![png](feature_extraction_files/feature_extraction_26_5.png)
     
 
 
@@ -3541,7 +3573,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_7.png)
+![png](feature_extraction_files/feature_extraction_26_7.png)
     
 
 
@@ -3549,13 +3581,13 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_9.png)
+![png](feature_extraction_files/feature_extraction_26_9.png)
     
 
 
 
     
-![png](feature_extraction_files/feature_extraction_22_10.png)
+![png](feature_extraction_files/feature_extraction_26_10.png)
     
 
 
@@ -3563,7 +3595,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_12.png)
+![png](feature_extraction_files/feature_extraction_26_12.png)
     
 
 
@@ -3629,7 +3661,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_15.png)
+![png](feature_extraction_files/feature_extraction_26_15.png)
     
 
 
@@ -3653,7 +3685,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_18.png)
+![png](feature_extraction_files/feature_extraction_26_18.png)
     
 
 
@@ -3661,27 +3693,13 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_20.png)
+![png](feature_extraction_files/feature_extraction_26_20.png)
     
 
 
 
     
-![png](feature_extraction_files/feature_extraction_22_21.png)
-    
-
-
-    
-
-
-    
-![png](feature_extraction_files/feature_extraction_22_23.png)
-    
-
-
-
-    
-![png](feature_extraction_files/feature_extraction_22_24.png)
+![png](feature_extraction_files/feature_extraction_26_21.png)
     
 
 
@@ -3689,7 +3707,21 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_26.png)
+![png](feature_extraction_files/feature_extraction_26_23.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_26_24.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_26_26.png)
     
 
 
@@ -3738,7 +3770,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_32.png)
+![png](feature_extraction_files/feature_extraction_26_32.png)
     
 
 
@@ -3762,7 +3794,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_34.png)
+![png](feature_extraction_files/feature_extraction_26_34.png)
     
 
 
@@ -3770,13 +3802,13 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_36.png)
+![png](feature_extraction_files/feature_extraction_26_36.png)
     
 
 
 
     
-![png](feature_extraction_files/feature_extraction_22_37.png)
+![png](feature_extraction_files/feature_extraction_26_37.png)
     
 
 
@@ -3784,7 +3816,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_39.png)
+![png](feature_extraction_files/feature_extraction_26_39.png)
     
 
 
@@ -3877,7 +3909,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_43.png)
+![png](feature_extraction_files/feature_extraction_26_43.png)
     
 
 
@@ -3907,7 +3939,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_46.png)
+![png](feature_extraction_files/feature_extraction_26_46.png)
     
 
 
@@ -3915,27 +3947,13 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_48.png)
+![png](feature_extraction_files/feature_extraction_26_48.png)
     
 
 
 
     
-![png](feature_extraction_files/feature_extraction_22_49.png)
-    
-
-
-    
-
-
-    
-![png](feature_extraction_files/feature_extraction_22_51.png)
-    
-
-
-
-    
-![png](feature_extraction_files/feature_extraction_22_52.png)
+![png](feature_extraction_files/feature_extraction_26_49.png)
     
 
 
@@ -3943,7 +3961,21 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_54.png)
+![png](feature_extraction_files/feature_extraction_26_51.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_26_52.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_26_54.png)
     
 
 
@@ -4020,7 +4052,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_62.png)
+![png](feature_extraction_files/feature_extraction_26_62.png)
     
 
 
@@ -4030,7 +4062,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_64.png)
+![png](feature_extraction_files/feature_extraction_26_64.png)
     
 
 
@@ -4038,13 +4070,13 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_66.png)
+![png](feature_extraction_files/feature_extraction_26_66.png)
     
 
 
 
     
-![png](feature_extraction_files/feature_extraction_22_67.png)
+![png](feature_extraction_files/feature_extraction_26_67.png)
     
 
 
@@ -4052,7 +4084,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_69.png)
+![png](feature_extraction_files/feature_extraction_26_69.png)
     
 
 
@@ -4161,7 +4193,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_75.png)
+![png](feature_extraction_files/feature_extraction_26_75.png)
     
 
 
@@ -4195,7 +4227,7 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_77.png)
+![png](feature_extraction_files/feature_extraction_26_77.png)
     
 
 
@@ -4203,27 +4235,13 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_79.png)
+![png](feature_extraction_files/feature_extraction_26_79.png)
     
 
 
 
     
-![png](feature_extraction_files/feature_extraction_22_80.png)
-    
-
-
-    
-
-
-    
-![png](feature_extraction_files/feature_extraction_22_82.png)
-    
-
-
-
-    
-![png](feature_extraction_files/feature_extraction_22_83.png)
+![png](feature_extraction_files/feature_extraction_26_80.png)
     
 
 
@@ -4231,7 +4249,21 @@ NMFk.clusterresults(NMFk.getks(nkrange, robustness[nkrange]), We, He, "t" .* str
 
 
     
-![png](feature_extraction_files/feature_extraction_22_85.png)
+![png](feature_extraction_files/feature_extraction_26_82.png)
+    
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_26_83.png)
+    
+
+
+    
+
+
+    
+![png](feature_extraction_files/feature_extraction_26_85.png)
     
 
 
