@@ -52,7 +52,11 @@ We can execute **NMFk** and analyze the data matrix `X`.
 
 This can be done based only on the information in `X`:
 
-**NMFk** returns the estimated optimal number of signals `kopt` which in this case, as expected, is equal to 3.
+**NMFk** returns the estimated optimal number of signals `kopt` which in this case, as expected, is equal to 4.
+
+A plot of the fit and the robustness is shown below:
+
+Acceptable (underfitting) solutions:
 
 **NMFk** also returns estimates of matrices `W` and `H`.
 
