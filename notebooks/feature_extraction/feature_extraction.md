@@ -19945,4 +19945,30 @@ Mads.display("sensors-4-labeled-sorted-dendogram.png")
     
 
 
+The biplots below show how the 4 extracted features are projecting the sensors and the timeseries data.
+Here, the features are viewed as basis vectors spanning the sensor/time space.
+Sensors located along the basis vectors (i.e., plot axes) are the most informative to charecterize the data.
+Temporal messurements along the plot axes are also the most important to represent the observed processes.
 
+
+```julia
+Mads.display("all-4-biplots-original.pdf")
+```
+
+    ┌ Info: Precompiling ImageMagick [6218d12a-5da1-5696-b52f-db25d2ecc6d1]
+    └ @ Base loading.jl:1317
+
+
+
+    
+![png](feature_extraction_files/feature_extraction_41_1.png)
+    
+
+
+    
+
+
+
+```julia
+
+```

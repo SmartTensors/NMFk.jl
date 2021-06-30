@@ -50,3 +50,7 @@ Mads.display("sensors-4-labeled-sorted.png")
 
 Mads.display("sensors-4-labeled-sorted-dendogram.png")
 
+
+Mads.display("all-4-biplots-original.pdf")
+
+

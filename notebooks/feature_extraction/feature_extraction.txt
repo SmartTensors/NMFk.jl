@@ -112,5 +112,8 @@ However, there are challanges when more than one signal is present.
 
 The clustering of the sensors into groups at the different levels of clsutering is visualized below:
 
-
+The biplots below show how the 4 extracted features are projecting the sensors and the timeseries data.
+Here, the features are viewed as basis vectors spanning the sensor/time space.
+Sensors located along the basis vectors (i.e., plot axes) are the most informative to charecterize the data.
+Temporal messurements along the plot axes are also the most important to represent the observed processes.
 
