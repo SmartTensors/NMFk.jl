@@ -14260,10 +14260,20 @@ a.anchor-link {
 <div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
 <h2 id="NMFk-example:-Mapping-variables">NMFk example: Mapping variables<a class="anchor-link" href="#NMFk-example:-Mapping-variables">&#182;</a></h2><p>A problem demonstrating how <strong>NMFk</strong> can be applied to learn mapping between variables.</p>
-<p>The test problem is related to predicting pressure transients observed in wells based on various attributes (e.g., well-logs, fracking stages, proppant mass, etc.) associated with the well construction.</p>
-<p>The machine-lerning problem described here relates to clasical history matching problems.</p>
-<p>If <strong>NMFk</strong> is not installed, first execute <code>import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")</code>.</p>
-<p>We start by loading the necessary Julia modules:</p>
+<p>Applying <strong>NMFk</strong>, we can automatically:</p>
+<ul>
+<li>identify the number of the unknown mixed signatures in a dataset </li>
+<li>estimate the shape of the unknown mixed signatures</li>
+<li>estimate how the signatures are mixed at each sensor</li>
+</ul>
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
+</div><p><strong>NMFk</strong> is a code within the <a href="https://github.com/SmartTensors">SmartTensors</a> framework.</p>
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
+</div><p>The test problem presented here is related to predicting pressure transients observed in wells based on various attributes (e.g., well-logs, fracking stages, proppant mass, etc.) associated with the well construction.</p>
+<p>The machine-lerning problem described here also relates to clasical <code>history matching</code> problems.</p>
+<p>If <strong>NMFk</strong> is not installed, first execute in the Julia REPL: <code>import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")</code>.</p>
 
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">

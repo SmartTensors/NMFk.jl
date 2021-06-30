@@ -14259,15 +14259,20 @@ a.anchor-link {
 
 <div class="jp-Cell-inputWrapper"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<h2 id="NMFk-example:-Blind-Source-Separation">NMFk example: Blind Source Separation<a class="anchor-link" href="#NMFk-example:-Blind-Source-Separation">&#182;</a></h2><p>An example problem demonstrating how <strong>NMFk</strong> can be applied to extract unknown signals or signatures embeded (mixed) in unknown fasion in analyzed datasets.</p>
+<h2 id="NMFk-Notebook:-Blind-Source-Separation">NMFk Notebook: Blind Source Separation<a class="anchor-link" href="#NMFk-Notebook:-Blind-Source-Separation">&#182;</a></h2><p>An example problem demonstrating how <strong>NMFk</strong> can be applied to extract unknown signals or signatures embeded (mixed) in unknown fasion in analyzed datasets.</p>
 <p>This type of analysis is frequently called <strong>blind source separation</strong> or <strong>feature extraction</strong>.</p>
 <p>Applying <strong>NMFk</strong>, we can automatically:</p>
 <ul>
-<li>identify the number of the unknown mixed signatures in dataset </li>
+<li>identify the number of the unknown mixed signatures in a dataset </li>
 <li>estimate the shape of the unknown mixed signatures</li>
 <li>estimate how the signatures are mixed at each sensor</li>
 </ul>
-<p>If <strong>NMFk</strong> is not installed, first execute in the Julia REPL: <code>import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")</code>.</p>
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
+</div><p><strong>NMFk</strong> is a code within the <a href="https://github.com/SmartTensors">SmartTensors</a> framework.</p>
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
+</div><p>If <strong>NMFk</strong> is not installed, first execute in the Julia REPL: <code>import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")</code>.</p>
 
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
@@ -14923,7 +14928,7 @@ Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">H</span> <span class="o">./</span> <span class="n">maximum</span><span class="p">(</span><span class="n">H</span><span class="p">);</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Original mixing matrix&quot;</span><span class="p">)</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">H</span> <span class="o">./</span> <span class="n">maximum</span><span class="p">(</span><span class="n">H</span><span class="p">;</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">);</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Original mixing matrix&quot;</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -16385,7 +16390,7 @@ fig.select("#img-c81730bb-42")
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[&nbsp;]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">He</span><span class="p">[</span><span class="n">kopt</span><span class="p">]</span> <span class="o">./</span> <span class="n">maximum</span><span class="p">(</span><span class="n">He</span><span class="p">[</span><span class="n">kopt</span><span class="p">]);</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Reconstructed mixing matrix&quot;</span><span class="p">)</span>
+<div class=" highlight hl-julia"><pre><span></span><span class="n">NMFk</span><span class="o">.</span><span class="n">plotmatrix</span><span class="p">(</span><span class="n">He</span><span class="p">[</span><span class="n">kopt</span><span class="p">]</span> <span class="o">./</span> <span class="n">maximum</span><span class="p">(</span><span class="n">He</span><span class="p">[</span><span class="n">kopt</span><span class="p">];</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">);</span> <span class="n">title</span><span class="o">=</span><span class="s">&quot;Reconstructed mixing matrix&quot;</span><span class="p">)</span>
 </pre></div>
 
      </div>

@@ -1,4 +1,4 @@
-NMFk example: Feature extraction
+NMFk Notebook: Feature extraction
 -----
 
 An example problem demonstrating how **NMFk** can be applied to extract and clasify features and sensors observing these mixed features.
@@ -7,7 +7,7 @@ This type of analysis is related to **blind source separation**
 
 Applying **NMFk**, we can automatically:
 
-- identify the number of the unknown mixed signatures in dataset 
+- identify the number of the unknown mixed signatures in a dataset 
 - estimate the shape of the unknown mixed signatures
 - estimate how the signatures are mixed at each sensor
 - clasify sensors based on how they observe (are impacted) the extracted features.
@@ -16,7 +16,7 @@ Applying **NMFk**, we can automatically:
     <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
 </div>
 
-**NMFk** is a code within the **SmartTensors** framework.
+**NMFk** is a code within the [SmartTensors](https://github.com/SmartTensors) framework.
 
 <div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
     <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>

@@ -1,4 +1,4 @@
-NMFk example: Blind Source Separation
+NMFk Notebook: Blind Source Separation
 -----
 
 An example problem demonstrating how **NMFk** can be applied to extract unknown signals or signatures embeded (mixed) in unknown fasion in analyzed datasets.
@@ -7,9 +7,19 @@ This type of analysis is frequently called **blind source separation** or **feat
 
 Applying **NMFk**, we can automatically:
 
-- identify the number of the unknown mixed signatures in dataset 
+- identify the number of the unknown mixed signatures in a dataset 
 - estimate the shape of the unknown mixed signatures
 - estimate how the signatures are mixed at each sensor
+
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
+
+**NMFk** is a code within the [SmartTensors](https://github.com/SmartTensors) framework.
+
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
 
 If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
 
@@ -303,7 +313,7 @@ Mads.plotseries(We[kopt] ./ maximum(We[kopt]; dims=1); title="Reconstructed sign
 
 
 ```julia
-NMFk.plotmatrix(H ./ maximum(H); title="Original mixing matrix")
+NMFk.plotmatrix(H ./ maximum(H; dims=2); title="Original mixing matrix")
 ```
 
 
@@ -1741,7 +1751,7 @@ fig.select("#img-c81730bb-42")
 
 
 ```julia
-NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]); title="Reconstructed mixing matrix")
+NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]; dims=2); title="Reconstructed mixing matrix")
 ```
 
 

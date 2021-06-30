@@ -26,7 +26,7 @@ function typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
 	return typecolors
 end
 
-function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", types=[], separate::Bool=false, typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, background_color=nothing, kw...)
+function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", types=[], separate::Bool=false, typecolors=NMFk.colors, ncolors=length(colors), dpi=imagedpi, background_color=nothing, kw...)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -82,7 +82,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize=5Gadfly.inch, vsize=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
+function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", colors=NMFk.colors, ncolors=length(colors), gm=[], point_label_font_size=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=false, point_size_nolabel=2Gadfly.pt, point_size_label=4Gadfly.pt)
 	r, c = size(X)
 	@assert length(label) == r
 	@assert c > 1
@@ -209,7 +209,7 @@ function histogram(datain::AbstractVector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., joined=false)
 end
 
-function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize=6Gadfly.inch, vsize=4Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
+function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize::Measures.AbsoluteLength=6Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
 	if ndata <= 1
 		@warn("Data input is too short to compute histogram (length of data = $ndata)!")
@@ -318,7 +318,7 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	return nothing
 end
 
-function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
+function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
 	nsignals = length(unique(sort(df[!, :Attribute])))
 	loopcolors = nsignals + 1 > ncolors ? true : false
 	if loopcolors
@@ -341,7 +341,7 @@ function plotscatter(x::AbstractArray, y::AbstractArray, aw...; kw...)
 	plotscatter(vec(x), vec(y), aw...; kw...)
 end
 
-function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize=5Gadfly.inch, vsize=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.Length{:mm,Float64}=2Gadfly.pt, dpi=imagedpi)
+function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.AbsoluteLength=2Gadfly.pt, dpi=imagedpi)
 	if polygon !== nothing
 		xmin = xmin !== nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
 		xmax = xmax !== nothing ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
@@ -388,7 +388,7 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	return nothing
 end
 
-function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", gm=[], dpi=imagedpi)
+function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize::Measures.AbsoluteLength=8Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", gm=[], dpi=imagedpi)
 	nsignals = length(V)
 	@assert nsignals == length(A)
 	loopcolors = nsignals + 1 > ncolors ? true : false
@@ -410,7 +410,7 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	return ff
 end
 
-function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=false, hsize=8Gadfly.inch, vsize=4Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))), dpi=imagedpi)
+function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=false, hsize::Measures.AbsoluteLength=8Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))), dpi=imagedpi)
 	msize = size(M)
 	ndimensons = length(msize)
 	@assert dim >= 1 && dim <= ndimensons

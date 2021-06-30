@@ -3,7 +3,7 @@ import VegaDatasets
 import DataFrames
 import Mads
 
-function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize=12Compose.inch, vsize=3Compose.inch, dpi::Integer=150, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize::Measures.AbsoluteLength=12Compose.inch, vsize::Measures.AbsoluteLength=3Compose.inch, dpi::Integer=150, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
 	@assert size(W, 2) == size(H, 1)
 	Wa, _, _ = NMFk.normalizematrix_col!(W)
 	Ha, _, _ = NMFk.normalizematrix_row!(H)

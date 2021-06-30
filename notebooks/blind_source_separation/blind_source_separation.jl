@@ -1,72 +1,36 @@
-NMFk example: Blind Source Separation
------
+import Revise
+import NMFk
+import Mads
+import Random
 
-An example problem demonstrating how **NMFk** can be applied to extract unknown signals or signatures embeded (mixed) in unknown fasion in analyzed datasets.
+Random.seed!(2021)
 
-This type of analysis is frequently called **blind source separation** or **feature extraction**.
-
-Applying **NMFk**, we can automatically:
-
-- identify the number of the unknown mixed signatures in dataset 
-- estimate the shape of the unknown mixed signatures
-- estimate how the signatures are mixed at each sensor
-
-If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
-
-Let us generate 3 random signals:
-
-The singals look like this:
-
-We can collect the 3 signal vectors into a signal matrix `W`:
-
-Now we can mix the signals in matrix `W` to produce a data matrix `X` representing data collected at 5 sensors (e.g., measurement devices or wells at different locations).
-
-Each of the 5 sensors is observing some mixture of the signals in `W`.
-
-The way the 3 signals are mixed at the sensors is represented by the mixing matrix `H`.
-
-Let us define the mixing matrix `H` as:
-
-Each column of the `H` matrix defines how the 3 signals are represented in each sensors.
-
-For example, the first sensor (column 1 above) detects only Signals 1 and 3; Signal 2 is missing because `H[2,1]` is equal to zero.
-
-The second sensor (column 2 above) detects Signals 1 and 2; Signal 3 is missing because `H[3,2]` is equal to zero.
-
-The entries of `H` matrix also define the proportions at which the signals are mixed.
-
-For example, the first sensor (column 1 above) detects Signal 3 times stronger than Signal 1.
-
-The data matrix `X` is formed by multiplying `W` and `H` matrices. `X` defines the actual data observed.
-
-The data matrix `X` looks like this:
-
-Now, we can assume that we only know the data matrix `X` and the `W` and `H` matrices are unknown.
-
-We can execute **NMFk** and analyze the data matrix `X`.
-
-**NMFk** will automatically:
-
-- identify the number of the unknown mixed signals in `X` 
-- estimate the shape of the unknown mixed signals (i.e., estimate the entries of `W` matrix)
-- estimate how the signals are mixed at the 5 sensors (i.e., estimate the entries of `H` matrix)
-
-This can be done based only on the information in `X`:
-
-**NMFk** returns the estimated optimal number of signals `kopt` which in this case, as expected, is equal to 3.
-
-**NMFk** also returns estimates of matrices `W` and `H`.
-
-Here the estimates of matrices W and H are stored as `We` and `He` objects.
-
-`We[kopt]` and `He[kopt]` are scaled versions of the original `W` and `H` matrices:
-
-Note that the order of columns ('signals') in `W` and `We[kopt]` are not expected to match.
-
-Also note that the order of rows ('sensors') in `H` and `He[kopt]` are also not expected to match.
-
-The estimated order of 'signals' will be different every time the code is executed.
-
-Below are plots providing comparisons between the original and estimated `W` an `H` matrices.
+a = rand(15)
+b = rand(15)
+c = rand(15)
+[a b c]
 
 
+Mads.plotseries([a b c])
+
+W = [a b c]
+
+H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
+
+X = W * H
+
+Mads.plotseries(X; name="Sensors")
+
+We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
+
+We[kopt]
+
+He[kopt]
+
+Mads.plotseries(W; title="Original signals")
+
+Mads.plotseries(We[kopt] ./ maximum(We[kopt]; dims=1); title="Reconstructed signals")
+
+NMFk.plotmatrix(H ./ maximum(H; dims=2); title="Original mixing matrix")
+
+NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]; dims=2); title="Reconstructed mixing matrix")

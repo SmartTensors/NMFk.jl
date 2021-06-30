@@ -3,13 +3,27 @@ NMFk example: Mapping variables
 
 A problem demonstrating how **NMFk** can be applied to learn mapping between variables.
 
-The test problem is related to predicting pressure transients observed in wells based on various attributes (e.g., well-logs, fracking stages, proppant mass, etc.) associated with the well construction.
+Applying **NMFk**, we can automatically:
 
-The machine-lerning problem described here relates to clasical history matching problems.
+- identify the number of the unknown mixed signatures in a dataset 
+- estimate the shape of the unknown mixed signatures
+- estimate how the signatures are mixed at each sensor
 
-If **NMFk** is not installed, first execute `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
 
-We start by loading the necessary Julia modules:
+**NMFk** is a code within the [SmartTensors](https://github.com/SmartTensors) framework.
+
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
+
+The test problem presented here is related to predicting pressure transients observed in wells based on various attributes (e.g., well-logs, fracking stages, proppant mass, etc.) associated with the well construction.
+
+The machine-lerning problem described here also relates to clasical `history matching` problems.
+
+If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
 
 
 ```julia

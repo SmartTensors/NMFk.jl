@@ -63,14 +63,14 @@ struct Dendrogram <: Gadfly.GuideElement
 	scaleheight::Number
 	height::Number
 	color::AbstractString
-	linewidth::Measures.Length{:mm,Float64}
+	linewidth::Measures.AbsoluteLength
 	raw::Bool
 	dim::Int64
 	metric::Union{Distances.Metric,Distances.SemiMetric}
 	linkage::Symbol
 end
 
-dendrogram(; location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, raw::Bool=true, dim::Int64=1, metric::Union{Distances.Metric,Distances.SemiMetric}=Distances.CosineDist(), linkage::Symbol=:complete) = Dendrogram(location, scaleheight, height, color, linewidth, raw, dim, metric, linkage)
+dendrogram(; location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.AbsoluteLength=0.3Compose.pt, raw::Bool=true, dim::Int64=1, metric::Union{Distances.Metric,Distances.SemiMetric}=Distances.CosineDist(), linkage::Symbol=:complete) = Dendrogram(location, scaleheight, height, color, linewidth, raw, dim, metric, linkage)
 
 function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly.Aesthetics)
 	userow = guide.location == :both || guide.location == :top
@@ -105,7 +105,7 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	return gpg
 end
 
-function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.Length{:mm,Float64}=0.3Compose.pt, xticks=nothing, yticks=nothing, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", dpi=imagedpi, hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch)
+function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.AbsoluteLength=0.3Compose.pt, xticks=nothing, yticks=nothing, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", dpi=imagedpi, hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch)
 	gm = []
 	r, c = size(X)
 	if xticks === nothing
@@ -129,10 +129,11 @@ function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.Cosine
 		r = c = size(X, dim)
 	end
 	p = Gadfly.plot(z=X, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none, minor_label_font_size=minor_label_font_size))
+	Mads.display(p)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
 		plotfileformat(p, j, hsize, vsize; dpi=dpi)
 	end
-	return p
+	return nothing
 end
