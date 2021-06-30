@@ -12,6 +12,16 @@ Applying **NMFk**, we can automatically:
 - estimate how the signatures are mixed at each sensor
 - clasify sensors based on how they observe (are impacted) the extracted features.
 
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
+
+**NMFk** is a code within the **SmartTensors** framework.
+
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
+
 If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
 
 Let us generate 4 random signals with legnth of 100 (this can be considered as 100 ):
@@ -30,11 +40,11 @@ Each column of the `H` matrix defines how the 3 signals are represented in each 
 
 For example, the first sensor (column 1 above) detects only Signals 1 and 3; Signal 2 is missing because `H[2,1]` is equal to zero.
 
-The second sensor (column 2 above) detects Signals 1 and 2; Signal 3 is missing because `H[3,2]` is equal to zero.
+The second sensor (column 2 above) detects Signals 1, 2 and 4; Signal 3 is missing because `H[3,2]` is equal to zero.
 
 The entries of `H` matrix also define the proportions at which the signals are mixed.
 
-For example, the first sensor (column 1 above) detects Signal 3 times stronger than Signal 1.
+For example, the first sensor (column 1 above) detects Signal 3 times stronger than Signals 1 and 4.
 
 The data matrix `X` is formed by multiplying `W` and `H` matrices. `X` defines the actual data observed.
 
@@ -71,5 +81,36 @@ Also note that the order of rows ('sensors') in `H` and `He[kopt]` are also not 
 The estimated order of 'signals' will be different every time the code is executed.
 
 Below are plots providing comparisons between the original and estimated `W` an `H` matrices.
+
+
+A plot of the original signals:
+
+A plot of the reconstructed signals:
+
+A plot of the original mixing matrix:
+
+A plot of the reconstructed mixing matrix:
+
+Figures above demonstrate the accurate reconstruction of the original `W` and `H` matrices.
+
+**NMFk** results can be further analyzed as demonstrated below:
+
+The code above perform analyses of all the acceptable solutions.
+These are solutions with number of extracted features equal to 2, 3, and 4.
+The solution with 4 features is the optimal one.
+The solutions for 2 and 3 features are underfitting but informative as well.
+
+Extracted features beased on the solutions for 2, 3, and 4 signals look like this:
+
+The 10 sensors are grouped intp 4 groups.
+The sensor grouping is based on which of the 4 signals are mostly detected by the 4 sensors.
+The sensor grouping is listed below:
+
+This grouping is based on analyses of the attribute matrix `H` presented below.
+The grouping process tries to pick up the most important signal observed by each sensor.
+However, there are challanges when more than one signal is present.
+
+The clustering of the sensors into groups at the different levels of clsutering is visualized below:
+
 
 
