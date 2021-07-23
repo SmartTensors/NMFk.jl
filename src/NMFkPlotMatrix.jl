@@ -7,13 +7,17 @@ function plotmatrix(X::AbstractVector; kw...)
 	plotmatrix(convert(Array{Float64,2}, permutedims(X)); kw...)
 end
 
-function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumnan(X), key_tilte="", title="", xlabel="", ylabel="", xticks=nothing, yticks=nothing, xplot=nothing, yplot=nothing, xmatrix=nothing, ymatrix=nothing, gl=[], gm=[Gadfly.Guide.xticks(label=false, ticks=nothing), Gadfly.Guide.yticks(label=false, ticks=nothing)], masize::Int64=0, colormap=colormap_gyr, filename::AbstractString="", hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, figuredir::AbstractString=".", colorkey::Bool=true, key_position::Symbol=:right, mask=nothing, dots=nothing, polygon=nothing, contour=nothing, linewidth::Measures.AbsoluteLength=2Gadfly.pt, key_title_font_size=10Gadfly.pt, key_label_font_size=10Gadfly.pt, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, dotcolor="purple", linecolor="gray", defaultcolor=nothing, pointsize=1.5Gadfly.pt, dotsize=1.5Gadfly.pt, transform=nothing, code::Bool=false, nbins::Integer=0, flatten::Bool=false, rectbin::Bool=(nbins>0) ? false : true, dpi::Number=imagedpi, quiet::Bool=false)
+function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumnan(X), key_tilte="", title="", xlabel="", ylabel="", xticks=nothing, yticks=nothing, xplot=nothing, yplot=nothing, xmatrix=nothing, ymatrix=nothing, gl=[], gm=[Gadfly.Guide.xticks(label=false, ticks=nothing), Gadfly.Guide.yticks(label=false, ticks=nothing)], masize::Int64=0, colormap=colormap_gyr, filename::AbstractString="", hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, figuredir::AbstractString=".", colorkey::Bool=true, key_position::Symbol=:right, mask=nothing, dots=nothing, polygon=nothing, contour=nothing, linewidth::Measures.AbsoluteLength=2Gadfly.pt, key_title_font_size=10Gadfly.pt, key_label_font_size=10Gadfly.pt, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, dotcolor="purple", linecolor="gray", defaultcolor=nothing, pointsize=1.5Gadfly.pt, dotsize=1.5Gadfly.pt, transform=nothing, code::Bool=false, plot::Bool=false, yflip::Bool=true, nbins::Integer=0, flatten::Bool=false, rectbin::Bool=(nbins>0) ? false : true, dpi::Number=imagedpi, quiet::Bool=false, permute::Bool=false)
 	recursivemkdir(figuredir; filename=false)
 	recursivemkdir(filename)
 	minvalue = minvalue === nothing ? minimumnan(X) : minvalue
 	maxvalue = maxvalue === nothing ? maximumnan(X) : maxvalue
 	@assert minvalue < maxvalue
-	Xp = deepcopy(min.(max.(movingwindow(X, masize), minvalue), maxvalue))
+	if permute
+		Xp = deepcopy(min.(max.(movingwindow(permutedims(X), masize), minvalue), maxvalue))
+	else
+		Xp = deepcopy(min.(max.(movingwindow(X, masize), minvalue), maxvalue))
+	end
 	if transform !== nothing
 		Xp = transform.(Xp)
 	end
@@ -74,14 +78,14 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		end
 	end
 	if rectbin && !rect
-		yflip = true
+		yflip = yflip
 		xmin = 0.5
 		xmax = m + 0.5
 		ymin = 0.5
 		ymax = n + 0.5
 	else
 		xmatrixmin = 0; xmatrixmax = m; ymatrixmin = 0; ymatrixmax = n;
-		yflip = false
+		yflip = !yflip
 		sx = m
 		sy = n
 		if xmatrix !== nothing
@@ -183,7 +187,9 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			rm(f)
 		end
 	end
-	if code
+	if plot
+		return p
+	elseif code
 		return c
 	else
 		return nothing

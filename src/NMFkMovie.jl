@@ -47,7 +47,8 @@ function makemovie(; movieformat="mp4", movieopacity::Bool=false, moviedir::Abst
 		run(c)
 	end
 	cleanup && run(`find $moviedir -name $prefix-$(keyword)"*".$imgformat -delete`)
-	return "$p.$movieformat"
+	println("Movie $p.$movieformat created!")
+	return
 end
 
 function stackmovie(movies...; dir::Symbol=:h, vspeed::Number=1.0, newname="results"=>"all")
