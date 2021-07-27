@@ -60,13 +60,14 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 	if runflag
 		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; veryquiet=veryquiet, resultdir=resultdir, casefilename=casefilename, kw...)
 	end
-	!veryquiet && println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic))")
+	so = signalorder(W, H)
+	!veryquiet && println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic)) Signal order: $(so)")
 	if save && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		recursivemkdir(filename)
-		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
+		JLD.save(filename, "W", W[:,so], "H", H[so,:], "fit", fitquality, "robustness", robustness, "aic", aic)
 	end
-	return W, H, fitquality, robustness, aic
+	return W[:,so], H[so,:], fitquality, robustness, aic
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"

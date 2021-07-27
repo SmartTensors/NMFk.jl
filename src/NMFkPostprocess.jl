@@ -2,19 +2,19 @@ import DelimitedFiles
 import PlotlyJS
 import Mads
 
-function signal_importance(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector)
+function signalorder(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector)
 	signal_order = Array{Array{Int64}}(undef, maximum(krange))
 	for k = 1:maximum(krange)
 		signal_order[k] = Array{Int64}(undef, 0)
 	end
 	for k in krange
 		@info("Number of signals: $k")
-		signal_order[k] = signal_importance(W[k], H[k])
+		signal_order[k] = signalorder(W[k], H[k])
 	end
 	return signal_order
 end
 
-function signal_importance(W::AbstractMatrix, H::AbstractMatrix)
+function signalorder(W::AbstractMatrix, H::AbstractMatrix)
 	k = size(W, 2)
 	@assert k == size(H, 1)
 	signal_sum = Array{eltype(W)}(undef, k)
@@ -24,6 +24,42 @@ function signal_importance(W::AbstractMatrix, H::AbstractMatrix)
 	signal_order = sortperm(signal_sum; rev=true)
 	println("Signal importance (high->low): $signal_order")
 	return signal_order
+end
+
+function signalorderassignments(X::AbstractArray, dim=1)
+	v = Vector{Int64}(undef, size(X, dim))
+	for i = 1:size(X, dim)
+		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
+		v[i] = findmax(X[nt...])[2]
+	end
+	sortperm(v), v
+end
+
+function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractString=".", loadassignements::Bool=true, Wclusterlabelcasefilename::AbstractString="Wmatrix", Hclusterlabelcasefilename::AbstractString="Hmatrix")
+	k = size(H, 1)
+	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k; resultdir=resultdir, casefilename=Hclusterlabelcasefilename, load=loadassignements, save=true)[1].assignments)
+	Hcs = sortperm(Hclusterlabels)
+	clusterlabels = sort(unique(Hclusterlabels))
+	Hsignalmap = NMFk.signalassignments(H, Hclusterlabels; clusterlabels=clusterlabels, dims=2)
+	Hclustermap = Vector{Char}(undef, k)
+	Hclustermap .= ' '
+	Hsignals = Vector{String}(undef, length(Hclusterlabels))
+	for (j, i) in enumerate(clusterlabels)
+		Hclustermap[Hsignalmap[j]] = i
+		Hsignals[Hclusterlabels .== i] .= "S$(Hsignalmap[j])"
+	end
+	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true)[1].assignments)
+	@assert clusterlabels == sort(unique(Wclusterlabels))
+	Wsignalmap = NMFk.signalassignments(W[:,Hsignalmap], Wclusterlabels; clusterlabels=clusterlabels, dims=1)
+	Wclusterlabelsnew = Vector{eltype(Wclusterlabels)}(undef, length(Wclusterlabels))
+	Wclusterlabelsnew .= ' '
+	Wsignals = Vector{String}(undef, length(Wclusterlabels))
+	for (j, i) in enumerate(clusterlabels)
+		iclustermap = Wsignalmap[j]
+		Wclusterlabelsnew[Wclusterlabels .== i] .= clusterlabels[iclustermap]
+		Wsignals[Wclusterlabels .== i] .= "S$(Wsignalmap[j])"
+	end
+	return Wclusterlabelsnew, Wsignals, Hclusterlabels, Hsignals
 end
 
 function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector, X::AbstractMatrix, W::AbstractVector, H::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, kw...)
@@ -163,7 +199,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 	for (ki, k) in enumerate(krange)
 		@info("Number of signals: $k")
 
-		isignalmap = signal_importance(W[k], H[k])
+		isignalmap = signalorder(W[k], H[k])
 
 		@info("$(uppercasefirst(Hcasefilename)) (signals=$k)")
 		recursivemkdir(resultdir; filename=false)
@@ -238,7 +274,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		if clusterH
 			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true)[1].assignments)
 			clusterlabels = sort(unique(ch))
-			hsignalmap = NMFk.getsignalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
+			hsignalmap = NMFk.signalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
 		end
 
 		if clusterW
@@ -248,7 +284,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			else
 				clusterlabels = sort(unique(cw))
 			end
-			wsignalmap = NMFk.getsignalassignments(Wa, cw; clusterlabels=clusterlabels, dims=1)
+			wsignalmap = NMFk.signalassignments(Wa, cw; clusterlabels=clusterlabels, dims=1)
 		end
 
 		if ordersignal == :importance
@@ -533,42 +569,6 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 		end
 	end
 	return Sorder, Wclusters, Hclusters
-end
-
-function signalorder(X::AbstractArray, dim=1)
-	v = Vector{Int64}(undef, size(X, dim))
-	for i = 1:size(X, dim)
-		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
-		v[i] = findmax(X[nt...])[2]
-	end
-	sortperm(v), v
-end
-
-function signalorder(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractString=".", loadassignements::Bool=true, Wclusterlabelcasefilename::AbstractString="Wmatrix", Hclusterlabelcasefilename::AbstractString="Hmatrix")
-	k = size(H, 1)
-	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k; resultdir=resultdir, casefilename=Hclusterlabelcasefilename, load=loadassignements, save=true)[1].assignments)
-	Hcs = sortperm(Hclusterlabels)
-	clusterlabels = sort(unique(Hclusterlabels))
-	Hsignalmap = NMFk.getsignalassignments(H, Hclusterlabels; clusterlabels=clusterlabels, dims=2)
-	Hclustermap = Vector{Char}(undef, k)
-	Hclustermap .= ' '
-	Hsignals = Vector{String}(undef, length(Hclusterlabels))
-	for (j, i) in enumerate(clusterlabels)
-		Hclustermap[Hsignalmap[j]] = i
-		Hsignals[Hclusterlabels .== i] .= "S$(Hsignalmap[j])"
-	end
-	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true)[1].assignments)
-	@assert clusterlabels == sort(unique(Wclusterlabels))
-	Wsignalmap = NMFk.getsignalassignments(W[:,Hsignalmap], Wclusterlabels; clusterlabels=clusterlabels, dims=1)
-	Wclusterlabelsnew = Vector{eltype(Wclusterlabels)}(undef, length(Wclusterlabels))
-	Wclusterlabelsnew .= ' '
-	Wsignals = Vector{String}(undef, length(Wclusterlabels))
-	for (j, i) in enumerate(clusterlabels)
-		iclustermap = Wsignalmap[j]
-		Wclusterlabelsnew[Wclusterlabels .== i] .= clusterlabels[iclustermap]
-		Wsignals[Wclusterlabels .== i] .= "S$(Wsignalmap[j])"
-	end
-	return Wclusterlabelsnew, Wsignals, Hclusterlabels, Hsignals
 end
 
 function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, locationclusters::AbstractVector; locationmatrix::Union{Nothing,AbstractMatrix}=nothing, attributematrix::Union{Nothing,AbstractMatrix}=nothing, dims::Integer=2, plothistogram::Bool=false, quiet::Bool=true)

@@ -19,8 +19,8 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		S = H
 		Fa = Wa
 	end
-	signalorder, signalpeakindex = NMFk.signalorder(Ma, odim)
-	nt = dim == 1 ? (Colon(),signalorder) : (signalorder,Colon())
+	signalorderassignments, signalpeakindex = NMFk.signalorderassignments(Ma, odim)
+	nt = dim == 1 ? (Colon(),signalorderassignments) : (signalorderassignments,Colon())
 	if dates !== nothing
 		@assert length(dates) == size(Ma, 1)
 		ndates = dates[signalpeakindex]
@@ -29,9 +29,9 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	end
 	if plotseries
 		fn = casefilename == "" ? "" : joinpathcheck(figuredir, casefilename * "-waves.png")
-		Mads.plotseries(S[nt...] ./ maximum(S), fn; xaxis=dates, names=["$name $(ndates[i])" for i in signalorder])
+		Mads.plotseries(S[nt...] ./ maximum(S), fn; xaxis=dates, names=["$name $(ndates[i])" for i in signalorderassignments])
 		if movie && casefilename != ""
-			c = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorder)], code=true, quiet=true)
+			c = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorderassignments)], code=true, quiet=true)
 			progressbar = NMFk.make_progressbar_2d(c)
 			for i = 1:length(dates)
 				p = progressbar(i, true, 1, dates[1])
@@ -42,10 +42,10 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		end
 	end
 	if plotpeaks
-		NMFk.plotmap(Fa, fips, dim, signalorder; dates=ndates, figuredir=figuredir, casefilename=casefilename, quiet=quiet, kw...)
+		NMFk.plotmap(Fa, fips, dim, signalorderassignments; dates=ndates, figuredir=figuredir, casefilename=casefilename, quiet=quiet, kw...)
 	end
 	if plottransients
-		for (i, k) in enumerate(signalorder)
+		for (i, k) in enumerate(signalorderassignments)
 			Xe = dim == 1 ? W[:,k:k] * H[k:k,:] : permutedims(W[:,k:k] * H[k:k,:])
 			# p = signalpeakindex[k]
 			# NMFk.plotmap(Xe[p:p,:], fips; dates=[ndates[k]], figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
@@ -54,16 +54,16 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	end
 end
 
-function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signalorder::AbstractVector=1:size(X, dim); signalid::AbstractVector=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::AbstractString="", figuredir::AbstractString=".", title::Bool=false, datetext::AbstractString="", titletext::AbstractString="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(signalorder)))), scheme::AbstractString="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, cleanup::Bool=true, vspeed::Number=1.0)
+function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signalorderassignments::AbstractVector=1:size(X, dim); signalid::AbstractVector=1:size(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::AbstractString="", figuredir::AbstractString=".", title::Bool=false, datetext::AbstractString="", titletext::AbstractString="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(signalorderassignments)))), scheme::AbstractString="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, cleanup::Bool=true, vspeed::Number=1.0)
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
-	@assert length(signalorder) == length(signalid)
+	@assert length(signalorderassignments) == length(signalid)
 	if dates !== nothing
 		@assert size(X, dim) == length(dates)
 	end
 	recursivemkdir(figuredir; filename=false)
 	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]])
-	for (i, k) in enumerate(signalorder)
+	for (i, k) in enumerate(signalorderassignments)
 		nt = ntuple(j->(j == dim ? k : Colon()), ndims(X))
 		df[!, :Z] = [vec(X[nt...]); zeros(sum(.!goodcounties))]
 		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], leadingzeros, '0') : signalid[i]
