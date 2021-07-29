@@ -14,7 +14,7 @@ function signalorder(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	return signal_order
 end
 
-function signalorder(W::AbstractMatrix, H::AbstractMatrix)
+function signalorder(W::AbstractMatrix, H::AbstractMatrix; quiet::Bool=true)
 	k = size(W, 2)
 	@assert k == size(H, 1)
 	signal_sum = Array{eltype(W)}(undef, k)
@@ -22,7 +22,7 @@ function signalorder(W::AbstractMatrix, H::AbstractMatrix)
 		signal_sum[i] = sum(W[:,i:i] * H[i:i,:])
 	end
 	signal_order = sortperm(signal_sum; rev=true)
-	println("Signal importance (high->low): $signal_order")
+	!quiet && println("Signal importance (high->low): $signal_order")
 	return signal_order
 end
 
