@@ -277,22 +277,36 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 	end
 end
 
-function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5) where {T1 <: Integer, T2 <: Number}
+function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; strict::Bool=false) where {T1 <: Integer, T2 <: Number}
 	@assert length(nkrange) == length(robustness)
 	if all(isnan.(robustness))
 		return 0
 	end
 	if length(nkrange) == 1
-		k = nkrange[1]
+		if strict
+			if robustness > cutoff
+				k = nkrange[1]
+			else
+				k = nothing
+			end
+		else
+			k = nkrange[1]
+		end
 	else
 		kn = findlast(i->i > cutoff, robustness)
 		if kn === nothing
-			inan = isnan.(robustness)
-			robustness[inan] .= -Inf
-			kn = findmax(robustness)[2]
-			robustness[inan] .= NaN
+			if strict
+				k = nothing
+			else
+				inan = isnan.(robustness)
+				robustness[inan] .= -Inf
+				kn = findmax(robustness)[2]
+				robustness[inan] .= NaN
+				k = nkrange[kn]
+			end
+		else
+			k = nkrange[kn]
 		end
-		k = nkrange[kn]
 	end
 	return k
 end

@@ -1,13 +1,13 @@
 import JLD
 
-function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, kw...)
+function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, quiet::Bool=false, strict::Bool=false, kw...)
 	maxsignals = maximum(collect(nkrange))
 	aicl = NaN
-	i = 0
+	i = 1
 	local Wl, Hl, fitqualityl, robustnessl, aicl
 	while isnan(aicl) && i < length(nkrange)
 		i += 1
-		Wl, Hl, fitqualityl, robustnessl, aicl = NMFk.load(nkrange[i], nNMF; kw...)
+		Wl, Hl, fitqualityl, robustnessl, aicl = NMFk.load(nkrange[i], nNMF; quiet=quiet, kw...)
 	end
 	dim = ndims(Wl)
 	type = eltype(Wl)
@@ -24,10 +24,10 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5,
 	k = nkrange[i]
 	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
 	for k in nkrange[i+1:end]
-		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=type, dim=dim, kw...)
+		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=type, dim=dim, quiet=quiet, kw...)
 	end
-	kopt = getk(nkrange, robustness[nkrange], cutoff)
-	i < length(nkrange) && @info("Optimal solution: $kopt signals")
+	kopt = getk(nkrange, robustness[nkrange], cutoff; strict=strict)
+	!quiet && i < length(nkrange) && @info("Optimal solution: $kopt signals")
 	return W, H, fitquality, robustness, aic, kopt
 end
 function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false)
