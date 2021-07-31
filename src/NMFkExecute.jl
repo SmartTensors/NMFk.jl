@@ -17,7 +17,11 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 		println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality[nk])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[nk])) AIC: $(@Printf.sprintf("%12.7g", aic[nk]))")
 	end
 	kopt = getk(nkrange, robustness[nkrange], cutoff)
-	@info("Optimal solution: $kopt signals")
+	if kopt == nothing
+		@warn("No optimal solutions")
+	else
+		@info("Optimal solution: $kopt signals")
+	end
 	return W, H, fitquality, robustness, aic, kopt
 end
 
@@ -48,6 +52,8 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 				runflag = false
 			else
 				@warn("File $filename contains inconsistent data; runs will be executed!")
+				println("W matrix - Expected size: $((size(X, 1), nk)) Actual size: $(size(W))")
+				println("H matrix - Expected size: $((nk, size(X, 2))) Actual size: $(size(H))")
 			end
 		else
 			if loadonly

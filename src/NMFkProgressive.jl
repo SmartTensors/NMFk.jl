@@ -64,7 +64,7 @@ function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nk
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
 		W, H, fitquality, robustness, aic = NMFk.execute(X[1:ws,:], nkrange, nNMF1; casefilename="$(casefilename)_$(ws)", load=load, kw...)
-		k = getk(nkrange, robustness[nkrange], cutoff)
+		k = getk(nkrange, robustness[nkrange], cutoff; strict=false)
 		push!(window_k, k)
 		if ws < size(X, 1)
 			@info("NMFk #2: $(casefilename) Window $ws: Best $k")
@@ -80,7 +80,7 @@ function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{In
 		@info("NMFk #1: $(casefilename) Window $ws")
 		normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i][1:ws,:]), ws), 1:length(X))...)
 		W, H, fitquality, robustness, aic = NMFk.execute(vcat([X[i][1:ws,:] for i = 1:length(X)]...), nkrange, nNMF1; normalizevector=normalizevector,casefilename="$(casefilename)_$(ws)", load=load, kw...)
-		k = getk(nkrange, robustness[nkrange], cutoff)
+		k = getk(nkrange, robustness[nkrange], cutoff; strict=false)
 		push!(window_k, k)
 		# global wws = 1
 		# global wwe = ws
@@ -277,8 +277,10 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 	end
 end
 
-function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; strict::Bool=false) where {T1 <: Integer, T2 <: Number}
-	@assert length(nkrange) == length(robustness)
+function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; strict::Bool=true) where {T1 <: Integer, T2 <: Number}
+	if length(nkrange) != length(robustness)
+		robustness = robustness[nkrange]
+	end
 	if all(isnan.(robustness))
 		return 0
 	end
@@ -311,16 +313,24 @@ function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::
 	return k
 end
 
-function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing) where {T1 <: Integer, T2 <: Number, T3 <: Integer}
+function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing, strict::Bool=true) where {T1 <: Integer, T2 <: Number, T3 <: Integer}
 	@assert length(nkrange) == length(robustness)
 	if all(isnan.(robustness))
 		return []
 	end
 	if length(nkrange) == 1
-		k = [nkrange[1]]
+		if strict
+			if robustness > cutoff
+				k = [nkrange[1]]
+			else
+				k = []
+			end
+		else
+			k = [nkrange[1]]
+		end
 	else
 		kn = findall(i->i > cutoff, robustness)
-		if (length(kn) == 0)
+		if length(kn) == 0
 			inan = isnan.(robustness)
 			robustness[inan] .= -Inf
 			k = nkrange[findmax(robustness)[2]]
@@ -332,13 +342,21 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 	return mergeks(k, ks)
 end
 
-function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
+function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing, strict::Bool=true) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
 	@assert length(nkrange) == length(F)
 	if all(isnan.(robustness))
 		return []
 	end
 	if length(nkrange) == 1
-		kn = [nkrange[1]]
+		if strict
+			if robustness > cutoff
+				k = [nkrange[1]]
+			else
+				k = []
+			end
+		else
+			k = [nkrange[1]]
+		end
 	else
 		kn = Vector{Int64}(undef, 0)
 		for (i, k) in enumerate(nkrange)
@@ -359,5 +377,7 @@ function mergeks(k::AbstractVector{T}, ks::Nothing) where {T <: Integer}
 end
 
 function mergeks(k::AbstractVector{T1}, ks::Union{T2, AbstractVector{T2}}) where {T1 <: Integer, T2 <: Integer}
-	return unique(sort([k; ks]))
+	if ks !== Nothing
+		return unique(sort([k; ks]))
+	end
 end

@@ -1,13 +1,13 @@
 import JLD
 
-function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, quiet::Bool=false, strict::Bool=false, kw...)
+function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, quiet::Bool=false, strict::Bool=true, kw...)
 	maxsignals = maximum(collect(nkrange))
 	aicl = NaN
-	i = 1
+	igood = 0
 	local Wl, Hl, fitqualityl, robustnessl, aicl
-	while isnan(aicl) && i < length(nkrange)
-		i += 1
-		Wl, Hl, fitqualityl, robustnessl, aicl = NMFk.load(nkrange[i], nNMF; quiet=quiet, kw...)
+	while isnan(aicl) && igood < length(nkrange)
+		igood += 1
+		Wl, Hl, fitqualityl, robustnessl, aicl = NMFk.load(nkrange[igood], nNMF; quiet=quiet, kw...)
 	end
 	dim = ndims(Wl)
 	type = eltype(Wl)
@@ -16,18 +16,22 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5,
 	fitquality = Array{type}(undef, maxsignals)
 	robustness = Array{type}(undef, maxsignals)
 	aic = Array{type}(undef, maxsignals)
-	k = nkrange[i]
-	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
-	for k = 1:i
+	for k = 1:nkrange[igood]
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{type, dim}(undef, [0 for i=1:dim]...), Array{type, 2}(undef, 0, 0), NaN, NaN, NaN
 	end
-	k = nkrange[i]
+	k = nkrange[igood]
 	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
-	for k in nkrange[i+1:end]
+	for k in nkrange[igood+1:end]
 		W[k], H[k], fitquality[k], robustness[k], aic[k] = NMFk.load(k, nNMF; type=type, dim=dim, quiet=quiet, kw...)
 	end
 	kopt = getk(nkrange, robustness[nkrange], cutoff; strict=strict)
-	!quiet && i < length(nkrange) && @info("Optimal solution: $kopt signals")
+	if !quiet
+		if kopt != nothing
+			@info("Optimal solution: $kopt signals")
+		else
+			@info("No optimal solution: $kopt signals")
+		end
+	end
 	return W, H, fitquality, robustness, aic, kopt
 end
 function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false)
