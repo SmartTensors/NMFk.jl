@@ -1,7 +1,7 @@
 name = "NMFk"
 uuid = "e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8"
 authors = ["Velimir V Vesselinov (monty) <velimir.vesselinov@gmail.com>"]
-version = "1.1.31"
+version = "1.1.32"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
@@ -69,7 +69,7 @@ MultivariateStats = "0.7, 0.8"
 NLopt = "0.6, 0.7"
 NMF = "0.4, 0.5, 0.6"
 Plotly = "0.3, 0.4"
-PlotlyJS = "0.14, 0.15"
+PlotlyJS = "0.14, 0.15, 0.16, 0.17, 0.18"
 PyCall = "1"
 PyPlot = "2"
 ReusableFunctions = "1"
