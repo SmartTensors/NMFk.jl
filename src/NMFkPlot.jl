@@ -223,6 +223,10 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	else
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
 	end
+	if all(histall.weights .== 0) # Fix for StatsBase bug
+		edges = histall.edges[1] .- histall.edges[1].step.hi
+		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
+	end
 	# if typeof(histall.edges[1].step) <: Integer || typeof(histall.edges[1].step) <: AbstractFloat
 	# 	newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
 	# else
