@@ -29,7 +29,7 @@ import ReusableFunctions
 import DocumentFunction
 
 if Base.source_path() !== nothing
-	const nmfkdir = splitdir(splitdir(Base.source_path())[1])[1]
+	const dir = splitdir(splitdir(Base.source_path())[1])[1]
 end
 
 global quiet = true
@@ -59,6 +59,7 @@ include("NMFkMultiplicative.jl")
 include("NMFkMultiplicativeMovie.jl")
 include("NMFkPlot.jl")
 include("NMFkMovie.jl")
+include("NMFkNotebooks.jl")
 include("NMFkPlotWell.jl")
 include("NMFkPlotColors.jl")
 include("NMFkPlotProgressBar.jl")

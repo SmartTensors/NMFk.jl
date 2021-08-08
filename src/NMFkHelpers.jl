@@ -5,7 +5,7 @@ import Suppressor
 
 "Test NMFk functions"
 function test()
-	include(joinpath(nmfkdir, "test", "runtests.jl"))
+	include(joinpath(dir, "test", "runtests.jl"))
 end
 
 """
