@@ -35,7 +35,7 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 		H = Hinit
 	end
 
-	Wn = sqrt.(sum(W.^2; dims=1))
+	Wn = sqrt.(sum(W .^ 2; dims=1))
 	W = bsxfun(\, W, Wn)
 	H = bsxfun(*, H, Wn')
 
@@ -62,9 +62,9 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 				dmh = W[:,h_ind]' * X
 				H[h_ind,:] = H[h_ind,:] .* dmh ./ dph
 			else
-				dph = W[:,h_ind]' * lambda_new.^(sparse_div_beta - 1) .+ sparsity
+				dph = W[:,h_ind]' * lambda_new .^ (sparse_div_beta - 1) .+ sparsity
 				dph = max.(dph, lambda)
-				dmh = W[:,h_ind]' * (X .* lambda_new.^(sparse_div_beta - 2))
+				dmh = W[:,h_ind]' * (X .* lambda_new .^ (sparse_div_beta - 2))
 				H[h_ind,:] = H[h_ind,:] .* dmh ./ dph;
 			end
 			lambda_new = max.(W * H, lambda)
@@ -76,14 +76,14 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 				dmw = X ./ lambda_new * H[w_ind,:]' + bsxfun(*, sum(bsxfun(*, sum(H[w_ind,:]; dims=2)', W[:,w_ind]); dims=1), W[:,w_ind])
 				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			elseif sparse_div_beta == 2
-				dpw = lambda_new * H[w_ind,:]' + bsxfun(*, sum(x * H[w_ind,:]' .* W[:,w_ind]; dims=1), W[:,w_ind])
+				dpw = lambda_new * H[w_ind,:]' + bsxfun(*, sum(X * H[w_ind,:]' .* W[:,w_ind]; dims=1), W[:,w_ind])
 				dpw = max.(dpw, lambda)
 				dmw = X * H[w_ind,:]' + bsxfun(*, sum(lambda_new * H[w_ind,:]' .* W[:,w_ind]; dims=1), W[:,w_ind])
 				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			else
-				dpw = lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' + bsxfun(*, sum((X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' .* W[:, w_ind]; dims=1), W[:, w_ind])
+				dpw = lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' + bsxfun(*, sum((X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' .* W[:, w_ind]; dims=1), W[:, w_ind])
 				dpw = max.(dpw, lambda)
-				dmw = (X .* lambda_new.^(sparse_div_beta - 2)) * H[w_ind, :]' + bsxfun(*, sum(lambda_new.^(sparse_div_beta - 1) * H[w_ind, :]' .* W[:, w_ind]; dims=1), W[:, w_ind])
+				dmw = (X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' + bsxfun(*, sum(lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' .* W[:, w_ind]; dims=1), W[:, w_ind])
 				W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
 			end
 			W = bsxfun(\, W, sqrt.(sum(W.^2; dims=1)))
@@ -94,7 +94,7 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 		elseif sparse_div_beta == 2
 			divergence = sum((X - lambda_new) .^ 2)
 		elseif sparse_div_beta == 0
-			divergence = sum(X ./ lambda_new - log.(X ./ lambda_new) - 1)
+			divergence = sum(X ./ lambda_new - log.(X ./ lambda_new) .- 1)
 		else
 			divergence = sum(X.^sparse_div_beta + (sparse_div_beta - 1) * lambda_new.^sparse_div_beta - sparse_div_beta * X .* lambda_new.^(sparse_div_beta - 1))/(sparse_div_beta * (sparse_div_beta - 1))
 		end
@@ -111,7 +111,7 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 		last_of = of
 	end
 	objvalue = sum((X - W * H).^2)
-	return W, H, (of, objvalue, it)
+	return W, H, of, objvalue, it
 end
 
 function bsxfun(o::Function, X, f)
