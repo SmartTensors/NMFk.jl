@@ -4,18 +4,21 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 	end
 
 	if sparse_div_beta == -1
-		if sparse_cf == :kl #
+		if sparse_cf == :kl
 			sparse_div_beta = 1
 			!quiet && @info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
-		elseif sparse_cf == :ed # Euclidean distance
+		elseif sparse_cf == :ed
 			sparse_div_beta = 2
 			!quiet && @info("Sparse NMF with Euclidean divergence (beta = $(sparse_div_beta))")
-		elseif sparse_cf == :is # Itakura-Saito divergence
+		elseif sparse_cf == :is
 			sparse_div_beta = 0
 			!quiet && @info("Sparse NMF with Itakura-Saito divergence (beta = $(sparse_div_beta))")
 		else
 			sparse_div_beta = 1
-			!quiet && @info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
+			if !quiet
+				@warn("Unknown divergence type: $(sparse_cf)")
+				@info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
+			end
 		end
 	else
 		!quiet && @info("Sparse NMF with fractional beta divergence (beta = $(sparse_div_beta))")
