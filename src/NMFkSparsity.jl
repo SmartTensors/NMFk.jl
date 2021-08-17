@@ -53,37 +53,32 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 		if update_h > 0
 			if sparse_div_beta == 1
 				dph = sum(W[:,h_ind]; dims=1)' .+ sparsity
-				dph = max.(dph, lambda)
 				dmh = W[:,h_ind]' * (X ./ lambda_new)
-
 			elseif sparse_div_beta == 2
 				dph = W[:,h_ind]' * lambda_new .+ sparsity
-				dph = max.(dph, lambda)
 				dmh = W[:,h_ind]' * X
 			else
 				dph = W[:,h_ind]' * lambda_new .^ (sparse_div_beta - 1) .+ sparsity
-				dph = max.(dph, lambda)
 				dmh = W[:,h_ind]' * (X .* lambda_new .^ (sparse_div_beta - 2))
 			end
-			H[h_ind,:] = H[h_ind,:] .* dmh ./ dph
+			dph = max.(dph, lambda)
+			H[h_ind,:] .*= dmh ./ dph
 			lambda_new = max.(W * H, lambda)
 		end
 		if update_w > 0
 			if sparse_div_beta == 1
 				dpw = sum(H[w_ind,:]; dims=2)' .+ (sum((X ./ lambda_new) * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind])
-				dpw = max.(dpw, lambda)
 				dmw = X ./ lambda_new * H[w_ind,:]' + sum(sum(H[w_ind,:]; dims=2)' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
 			elseif sparse_div_beta == 2
 				dpw = lambda_new * H[w_ind,:]' + sum(X * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
-				dpw = max.(dpw, lambda)
 				dmw = X * H[w_ind,:]' + sum(lambda_new * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
 			else
-				dpw = lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' + sum((X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' .* W[:, w_ind]; dims=1) .* W[:, w_ind]
-				dpw = max.(dpw, lambda)
-				dmw = (X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' + sum(lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' .* W[:, w_ind]; dims=1) .* W[:, w_ind]
+				dpw = lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' + sum((X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
+				dmw = (X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' + sum(lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
 			end
-			W[:,w_ind] = W[:,w_ind] .* dmw ./ dpw
-			W = W ./ sqrt.(sum(W .^ 2; dims=1))
+			dpw = max.(dpw, lambda)
+			W[:,w_ind] .*= dmw ./ dpw
+			W ./= sqrt.(sum(W .^ 2; dims=1))
 			lambda_new = max.(W * H, lambda)
 		end
 		if sparse_div_beta == 1
