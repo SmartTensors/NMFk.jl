@@ -1,40 +1,43 @@
-function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, sparse_div_beta::Number=-1, lambda::Number=1e-9, w_ind = trues(k), h_ind = trues(k), Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), quiet::Bool=NMFk.quiet) where {T <: Number}
+function NMFsparsity(X::AbstractMatrix{T}, k::Int; cost_function::Symbol=:ed, beta_divergence::Number=-1, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, lambda::Number=1e-9, w_ind::AbstractVector=trues(k), h_ind::AbstractVector=trues(k), Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), quiet::Bool=NMFk.quiet) where {T <: Number}
+	# inan, izero = NMFpreprocessing!(X; lambda=lambda)
+
+	sparse_text = sparsity == 0 ? "" : "Sparse "
+	if beta_divergence == -1
+		if cost_function == :kl
+			beta_divergence = 1
+			!quiet && @info("$(sparse_text)NMF with Kullback-Leibler divergence (beta = $(beta_divergence))")
+		elseif cost_function == :ed
+			beta_divergence = 2
+			!quiet && @info("$(sparse_text)NMF with Euclidean divergence (beta = $(beta_divergence))")
+		elseif cost_function == :is
+			beta_divergence = 0
+			!quiet && @info("$(sparse_text)NMF with Itakura-Saito divergence (beta = $(beta_divergence))")
+		else
+			beta_divergence = 2
+			if !quiet
+				@warn("Unknown cost function: $(cost_function)")
+				@info("$(sparse_text)NMF with Euclidean divergence (beta = $(beta_divergence))")
+			end
+		end
+	else
+		!quiet && @info("$(sparse_text)NMF with fractional beta divergence (beta = $(beta_divergence))")
+	end
+
 	if seed != -1
 		Random.seed!(seed)
 	end
 
-	if sparse_div_beta == -1
-		if sparse_cf == :kl
-			sparse_div_beta = 1
-			!quiet && @info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
-		elseif sparse_cf == :ed
-			sparse_div_beta = 2
-			!quiet && @info("Sparse NMF with Euclidean divergence (beta = $(sparse_div_beta))")
-		elseif sparse_cf == :is
-			sparse_div_beta = 0
-			!quiet && @info("Sparse NMF with Itakura-Saito divergence (beta = $(sparse_div_beta))")
-		else
-			sparse_div_beta = 1
-			if !quiet
-				@warn("Unknown divergence type: $(sparse_cf)")
-				@info("Sparse NMF with Kullback-Leibler divergence (beta = $(sparse_div_beta))")
-			end
-		end
-	else
-		!quiet && @info("Sparse NMF with fractional beta divergence (beta = $(sparse_div_beta))")
-	end
-
-	(m, n) = size(X)
+	n, m = size(X)
 	if sizeof(Winit) == 0
-		W = rand(m, k)
+		W = rand(n, k)
 	else
-		@assert (m, k) == size(Winit)
+		@assert (n, k) == size(Winit)
 		W = Winit
 	end
 	if sizeof(Hinit) == 0
-		H = rand(k, n)
+		H = rand(k, m)
 	else
-		@assert (k, n) == size(Hinit)
+		@assert (k, m) == size(Hinit)
 		H = Hinit
 	end
 
@@ -42,7 +45,7 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 	W = W ./ Wn
 	H = H .* Wn'
 
-	lambda_new = max.(W * H, lambda)
+	X_est = max.(W * H, lambda)
 	last_cost = Inf
 
 	update_h = sum(h_ind)
@@ -54,44 +57,44 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 	while it < maxiter
 		it += 1
 		if update_h > 0
-			if sparse_div_beta == 1
+			if beta_divergence == 1
 				dph = sum(W[:,h_ind]; dims=1)' .+ sparsity
-				dmh = W[:,h_ind]' * (X ./ lambda_new)
-			elseif sparse_div_beta == 2
-				dph = W[:,h_ind]' * lambda_new .+ sparsity
+				dmh = W[:,h_ind]' * (X ./ X_est)
+			elseif beta_divergence == 2
+				dph = W[:,h_ind]' * X_est .+ sparsity
 				dmh = W[:,h_ind]' * X
 			else
-				dph = W[:,h_ind]' * lambda_new .^ (sparse_div_beta - 1) .+ sparsity
-				dmh = W[:,h_ind]' * (X .* lambda_new .^ (sparse_div_beta - 2))
+				dph = W[:,h_ind]' * X_est .^ (beta_divergence - 1) .+ sparsity
+				dmh = W[:,h_ind]' * (X .* X_est .^ (beta_divergence - 2))
 			end
 			dph = max.(dph, lambda)
 			H[h_ind,:] .*= dmh ./ dph
-			lambda_new = max.(W * H, lambda)
+			X_est = max.(W * H, lambda)
 		end
 		if update_w > 0
-			if sparse_div_beta == 1
-				dpw = sum(H[w_ind,:]; dims=2)' .+ (sum((X ./ lambda_new) * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind])
-				dmw = X ./ lambda_new * H[w_ind,:]' + sum(sum(H[w_ind,:]; dims=2)' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
-			elseif sparse_div_beta == 2
-				dpw = lambda_new * H[w_ind,:]' + sum(X * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
-				dmw = X * H[w_ind,:]' + sum(lambda_new * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
+			if beta_divergence == 1
+				dpw = sum(H[w_ind,:]; dims=2)' .+ (sum((X ./ X_est) * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind])
+				dmw = X ./ X_est * H[w_ind,:]' + sum(sum(H[w_ind,:]; dims=2)' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
+			elseif beta_divergence == 2
+				dpw = X_est * H[w_ind,:]' + sum(X * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
+				dmw = X * H[w_ind,:]' + sum(X_est * H[w_ind,:]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
 			else
-				dpw = lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' + sum((X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
-				dmw = (X .* lambda_new .^ (sparse_div_beta - 2)) * H[w_ind, :]' + sum(lambda_new .^ (sparse_div_beta - 1) * H[w_ind, :]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
+				dpw = X_est .^ (beta_divergence - 1) * H[w_ind, :]' + sum((X .* X_est .^ (beta_divergence - 2)) * H[w_ind, :]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
+				dmw = (X .* X_est .^ (beta_divergence - 2)) * H[w_ind, :]' + sum(X_est .^ (beta_divergence - 1) * H[w_ind, :]' .* W[:,w_ind]; dims=1) .* W[:,w_ind]
 			end
 			dpw = max.(dpw, lambda)
 			W[:,w_ind] .*= dmw ./ dpw
 			W ./= sqrt.(sum(W .^ 2; dims=1))
-			lambda_new = max.(W * H, lambda)
+			X_est = max.(W * H, lambda)
 		end
-		if sparse_div_beta == 1
-			divergence = sum(X .* log.(X ./ lambda_new) - X + lambda_new)
-		elseif sparse_div_beta == 2
-			divergence = sum((X - lambda_new) .^ 2)
-		elseif sparse_div_beta == 0
-			divergence = sum(X ./ lambda_new - log.(X ./ lambda_new) .- 1)
+		if beta_divergence == 1
+			divergence = sum(X .* log.(X ./ X_est) - X + X_est)
+		elseif beta_divergence == 2
+			divergence = sum((X - X_est) .^ 2)
+		elseif beta_divergence == 0
+			divergence = sum(X ./ X_est - log.(X ./ X_est) .- 1)
 		else
-			divergence = sum(X .^ sparse_div_beta + (sparse_div_beta - 1) * lambda_new .^ sparse_div_beta - sparse_div_beta * X .* lambda_new .^ (sparse_div_beta - 1)) / (sparse_div_beta * (sparse_div_beta - 1))
+			divergence = sum(X .^ beta_divergence + (beta_divergence - 1) * X_est .^ beta_divergence - beta_divergence * X .* X_est .^ (beta_divergence - 1)) / (beta_divergence * (beta_divergence - 1))
 		end
 		of = divergence + sum(H .* sparsity)
 
@@ -106,5 +109,5 @@ function NMFsparsity(X::AbstractMatrix{T}, k::Int; sparse_cf::Symbol=:kl, sparsi
 		last_of = of
 	end
 	objvalue = sum((X - W * H) .^ 2)
-	return W, H, of, objvalue, it
+	return W, H, objvalue
 end

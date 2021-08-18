@@ -568,7 +568,7 @@ function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NM
 			W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; method=method, algorithm=algorithm, tol=tol, maxiter=maxiter, kw...)
 		end
 	elseif method == :sparsity
-		W, H, _, objvalue, _ = NMFk.NMFsparsity(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
+		W, H, objvalue = NMFk.NMFsparsity(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
 	elseif method == :ipopt || method == :nlopt
 		W, H, objvalue = NMFk.jump(Xn, nk; method=method, algorithm=algorithm, maxiter=maxiter, tol=tol, weightinverse=weightinverse, quiet=quiet, kw...)
 	elseif method == :simple

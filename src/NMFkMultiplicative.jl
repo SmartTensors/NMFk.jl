@@ -1,6 +1,6 @@
 import DistributedArrays
 
-function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, normalizevector::AbstractVector{T}=Vector{T}(undef, 0)) where {T <: Number}
+function NMFpreprocessing!(X::AbstractMatrix; lambda::Number=1e-32)
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative!")
 	end
@@ -11,31 +11,30 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 		@warn("All matrix entries in a column should not be 0!")
 	end
 	izero = X .<= 0
-	X[izero] .= 1e-32
+	X[izero] .= lambda
 	inan = isnan.(X)
-	if Hfixed || Wfixed
-		X[inan] .= 1e-32 # This can be ZERO; but sometimes, it fails
-	else
-		X[inan] .= 1e-32
-	end
-	if seed >= 0
-		Random.seed!(seed)
-	end
+	X[inan] .= lambda
+	return inan, izero
+end
+
+function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, lambda::Number=1e-32, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, normalizevector::AbstractVector{T}=Vector{T}(undef, 0)) where {T <: Number}
+	inan, izero = NMFpreprocessing!(X; lambda=lambda)
 
 	n, m = size(X)
-
 	if length(normalizevector) == n
 		X ./= normalizevector
 	elseif length(normalizevector) != 0
 		error("Length of normalizing vector does not match: $(length(normalizevector)) vs $(n)")
 	end
 
-	consold = falses(m, m)
-	inc = 0
+	if seed >= 0
+		Random.seed!(seed)
+	end
 
 	if sizeof(Winit) == 0
 		W = rand(n, k)
 	else
+		@assert size(Winit) == (n, k)
 		W = Winit
 		if sum(isnan.(W)) > 0
 			error("Initial values for the W matrix entries include NaNs!")
@@ -45,12 +44,15 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 	if sizeof(Hinit) == 0
 		H = rand(k, m)
 	else
+		@assert size(Hinit) == (k, m)
 		H = Hinit
 		if sum(isnan.(H)) > 0
 			error("Initial values for the H matrix entries include NaNs!")
 		end
 	end
 
+	consold = falses(m, m)
+	inc = 0
 	objvalue_best = Inf
 	index = Array{Int}(undef, m)
 	iters = 0
@@ -117,36 +119,18 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 	return W, H, objvalue
 end
 
-function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, quiet::Bool=NMFk.quiet, tol::Float64=1e-19, maxiter::Int=1000000, stopconv::Int=10000, seed::Int=-1) where {T <: Number, N}
-	if minimum(X) < 0
-		error("All matrix entries must be nonnegative!")
-	end
-	if minimum(sum(X; dims=2)) == 0
-		@warn("All matrix entries in a row should not be 0!")
-	end
-	if minimum(sum(X; dims=1)) == 0
-		@warn("All matrix entries in a column should not be 0!")
-	end
-	izero = X .<= 0
-	X[izero] .= 1e-32
-	inan = isnan.(X)
-	if Hfixed || Wfixed
-		X[inan] .= 1e-32 # In some cases this case be ZEROO; but sometimes it fails
-	else
-		X[inan] .= 1e-32
-	end
+function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, quiet::Bool=NMFk.quiet, tol::Float64=1e-19, lambda::Number=1e-32, maxiter::Int=1000000, stopconv::Int=10000, seed::Int=-1) where {T <: Number, N}
+	inan, izero = NMFpreprocessing!(X; lambda=lambda)
+
 	if seed >= 0
 		Random.seed!(seed)
 	end
 
 	n, m = size(X)
-
-	consold = falses(m, m)
-	inc = 0
-
 	if sizeof(Winit) == 0
 		W = DistributedArrays.distribute(rand(n, k))
 	else
+		@assert size(Winit) == (n, k)
 		W = Winit
 		if sum(isnan.(W)) > 0
 			error("Initial values for the W matrix entries include NaNs!")
@@ -156,12 +140,15 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 	if sizeof(Hinit) == 0
 		H = DistributedArrays.distribute(rand(k, m))
 	else
+		@assert size(Hinit) == (k, m)
 		H = Hinit
 		if sum(isnan.(H)) > 0
 			error("Initial values for the H matrix entries include NaNs!")
 		end
 	end
 
+	consold = falses(m, m)
+	inc = 0
 	index = Array{Int}(undef, m)
 	for i = 1:maxiter
 		a = permutedims(collect(sum(W; dims=1)))
