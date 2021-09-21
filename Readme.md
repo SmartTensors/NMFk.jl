@@ -32,7 +32,7 @@ The parallelization allows for utilization of multi-core / multi-processor envir
 GPU and TPU accelerations are available through existing Julia packages.
 
 **NMFk** provides advanced tools for visualization, pre- and post-processing.
-These tools substantially facilitate utilization of the package in various real-world applications. 
+These tools substantially facilitate utilization of the package in various real-world applications.
 
 **NMFk** methodology and applications are discussed in the research papers and presentations listed below.
 
@@ -238,12 +238,14 @@ Presentations are also available at [slideshare.net](https://www.slideshare.net/
 
 ### Extra information
 
-For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [smarttensors.github.io](https://smarttensors.github.io), and [tensors.lanl.gov](http://tensors.lanl.gov)
+For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [http://smarttensors.com](http://smarttensors.com) [smarttensors.github.io],(https://smarttensors.github.io), and [tensors.lanl.gov](http://tensors.lanl.gov).
 
 Installation behind a firewall
 ------------------------------
 
-Julia uses git for package management. Add in the `.gitconfig` file in your home directory:
+Julia uses git for package management.
+
+In some situations, you may need to add in the `.gitconfig` file in your home directory:
 
 ```
 [url "git@github.com:"]
@@ -265,7 +267,7 @@ git config --global url."git@gitlab.com:".insteadOf https://gitlab.com/
 git config --global url."git@github.com:".insteadOf https://github.com/
 ```
 
-To resolve "Private key location for 'git@github.com'" julia message, execute: 
+To resolve "Private key location for 'git@github.com'" julia message, execute:
 
 ```
 ssh-add ~/.ssh/id_rsa
