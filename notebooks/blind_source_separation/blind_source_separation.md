@@ -1,57 +1,94 @@
-NMFk Notebook: Blind Source Separation
------
-
-An example problem demonstrating how **NMFk** can be applied to extract unknown signals or signatures embeded (mixed) in unknown fasion in analyzed datasets.
-
-This type of analysis is frequently called **blind source separation** or **feature extraction**.
-
-Applying **NMFk**, we can automatically:
-
-- identify the number of the unknown mixed signatures in a dataset 
-- estimate the shape of the unknown mixed signatures
-- estimate how the signatures are mixed at each sensor
+# NMFk: Nonnegative Matrix Factorization with $k$-means clustering
 
 <div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
-    <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
+    <img src="https://raw.githubusercontent.com/SmartTensors/NMFk.jl/master/logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
 </div>
 
-**NMFk** is a code within the [SmartTensors](https://github.com/SmartTensors) framework.
+**NMFk** is a code within the [SmartTensors](https://github.com/SmartTensors) framework for unsupervised, supervised and physics-informed (scientific) machine learning (ML) and artificial intelligence (AI) ([web](https:///SmartTensors.com) [source](https://github.com/SmartTensors)).
 
 <div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
-    <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
+    <img src="https://raw.githubusercontent.com/SmartTensors/NMFk.jl/master/logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
 </div>
 
-If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
+Here, an example problem demonstrating how **NMFk** can be applied to solve a **blind source separation** problem.
+
+The goal is to extract unknown signatures embedded (mixed) in unknown fashion in analyzed datasets.
+
+**NMFk** also identifies how many are the unknown (hidden, latent) signatures.
+
+**NMFk** also estimates the mixing ratios at each sensor.
+
+The extracted signatures can be also unknown sources, signals or features depending on the analyzed dataset
+
+This type of analysis is also called **feature extraction**.
+
+In summary, **NMFk** automatically:
+- identifies the number of the unknown mixed signatures in a dataset 
+- estimates the shape of the unknown mixed signatures
+- estimates how the signatures are mixed at each sensor
+
+## NMFk installation
+
+If **NMFk** is not installed, first execute in the Julia REPL: 
+
+```julia
+import Pkg
+Pkg.add("NMFk")
+Pkg.add("Mads")
+Pkg.add("Cairo")
+Pkg.add("Fontconfig")
+Pkg.add("Gadfly")
+```
+
+## Loading NMFk in Julia
 
 
 ```julia
-import Revise
 import NMFk
 import Mads
+import Cairo
+import Fontconfig
+import Gadfly
 import Random
-
-Random.seed!(2021)
 ```
 
-    ┌ Info: Precompiling NMFk [e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8]
-    └ @ Base loading.jl:1317
-
+## Synthetic problem setup 
 
 Let us generate 3 random signals:
 
 
 ```julia
+Random.seed!(2021);
+
 a = rand(15)
 b = rand(15)
 c = rand(15)
 [a b c]
 ```
 
+
+    15×3 Matrix{Float64}:
+     0.405796   0.705261   0.592091
+     0.0657738  0.0900316  0.802722
+     0.398162   0.0208244  0.782083
+     0.163816   0.0835003  0.316525
+     0.783094   0.634718   0.803177
+     0.134115   0.0967049  0.0685768
+     0.883121   0.664583   0.73253
+     0.386875   0.61921    0.846265
+     0.242105   0.402028   0.361288
+     0.131588   0.0956702  0.390644
+     0.085331   0.219395   0.344963
+     0.330099   0.637804   0.094793
+     0.654601   0.590012   0.45923
+     0.467328   0.947572   0.271188
+     0.889334   0.936274   0.567385
+
+
 The singals look like this:
 
 
 ```julia
-
 Mads.plotseries([a b c])
 ```
 
@@ -71,28 +108,25 @@ W = [a b c]
 ```
 
 
-
-
     15×3 Matrix{Float64}:
-     0.142528  0.37457    0.417998
-     0.244368  0.315157   0.82316
-     0.084349  0.566074   0.4159
-     0.87666   0.19155    0.305887
-     0.297135  0.0340242  0.653658
-     0.102301  0.923879   0.933132
-     0.961446  0.672256   0.0419137
-     0.994825  0.783367   0.186087
-     0.518444  0.429427   0.915341
-     0.908245  0.930611   0.173948
-     0.523605  0.795334   0.623679
-     0.777877  0.449229   0.783005
-     0.656755  0.605779   0.346222
-     0.854471  0.778596   0.917936
-     0.92996   0.693078   0.264864
+     0.405796   0.705261   0.592091
+     0.0657738  0.0900316  0.802722
+     0.398162   0.0208244  0.782083
+     0.163816   0.0835003  0.316525
+     0.783094   0.634718   0.803177
+     0.134115   0.0967049  0.0685768
+     0.883121   0.664583   0.73253
+     0.386875   0.61921    0.846265
+     0.242105   0.402028   0.361288
+     0.131588   0.0956702  0.390644
+     0.085331   0.219395   0.344963
+     0.330099   0.637804   0.094793
+     0.654601   0.590012   0.45923
+     0.467328   0.947572   0.271188
+     0.889334   0.936274   0.567385
 
 
-
-Now we can mix the signals in matrix `W` to produce a data matrix `X` representing data collected at 5 sensors (e.g., measurement devices or wells at different locations).
+Now we can mix the signals in matrix `W` to produce a data matrix `X` representing data collected at 5 sensors (e.g., measurement devices or montoring wells at different locations).
 
 Each of the 5 sensors is observing some mixture of the signals in `W`.
 
@@ -106,26 +140,29 @@ H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
 ```
 
 
-
-
     3×5 Matrix{Int64}:
      1  10  0  0  1
      0   1  1  5  2
      3   0  0  1  5
 
 
-
 Each column of the `H` matrix defines how the 3 signals are represented in each sensors.
 
-For example, the first sensor (column 1 above) detects only Signals 1 and 3; Signal 2 is missing because `H[2,1]` is equal to zero.
+For example, the first sensor (column 1 above) detects only `Signals 1 and 3`.
 
-The second sensor (column 2 above) detects Signals 1 and 2; Signal 3 is missing because `H[3,2]` is equal to zero.
+`Signal 2` is missing because `H[2,1]` is equal to zero.
+
+The second sensor (column 2 above) detects Signals 1 and 2.
+
+`Signal 3` is missing because `H[3,2]` is equal to zero.
 
 The entries of `H` matrix also define the proportions at which the signals are mixed.
 
-For example, the first sensor (column 1 above) detects Signal 3 times stronger than Signal 1.
+For example, the first sensor (column 1 above) detects `Signal 3` three times stronger than `Signal 1`.
 
-The data matrix `X` is formed by multiplying `W` and `H` matrices. `X` defines the actual data observed.
+The data matrix `X` is formed by multiplying `W` and `H` matrices. 
+
+`X` defines the actual dataset observed at the 4 sensors.
 
 
 ```julia
@@ -133,25 +170,22 @@ X = W * H
 ```
 
 
-
-
     15×5 Matrix{Float64}:
-     1.39652   1.79985  0.37457    2.29085   2.98166
-     2.71385   2.75884  0.315157   2.39895   4.99049
-     1.33205   1.40956  0.566074   3.24627   3.296
-     1.79432   8.95815  0.19155    1.26364   2.78919
-     2.25811   3.00538  0.0340242  0.823779  3.63347
-     2.9017    1.94689  0.923879   5.55253   6.61572
-     1.08719  10.2867   0.672256   3.40319   2.51553
-     1.55309  10.7316   0.783367   4.10292   3.492
-     3.26447   5.61387  0.429427   3.06248   5.954
-     1.43009  10.0131   0.930611   4.827     3.6392
-     2.39464   6.03138  0.795334   4.60035   5.23267
-     3.12689   8.228    0.449229   3.02915   5.59136
-     1.69542   7.17333  0.605779   3.37512   3.59942
-     3.60828   9.32331  0.778596   4.81092   7.00134
-     1.72455   9.99268  0.693078   3.73025   3.64044
-
+     2.18207   4.76322  0.705261   4.11839   4.77677
+     2.47394   0.74777  0.0900316  1.25288   4.25945
+     2.74441   4.00244  0.0208244  0.886205  4.35023
+     1.11339   1.72166  0.0835003  0.734027  1.91344
+     3.19262   8.46565  0.634718   3.97677   6.06841
+     0.339846  1.43786  0.0967049  0.552101  0.670409
+     3.08071   9.49579  0.664583   4.05544   5.87494
+     2.92567   4.48796  0.61921    3.94231   5.85662
+     1.32597   2.82307  0.402028   2.37143   2.8526
+     1.30352   1.41155  0.0956702  0.868995  2.27615
+     1.12022   1.07271  0.219395   1.44194   2.24894
+     0.614478  3.93879  0.637804   3.28381   2.07967
+     2.03229   7.13603  0.590012   3.40929   4.13078
+     1.28089   5.62085  0.947572   5.00905   3.71841
+     2.59149   9.82962  0.936274   5.24876   5.59881
 
 
 The data matrix `X` looks like this:
@@ -169,15 +203,17 @@ Mads.plotseries(X; name="Sensors")
 
     
 
-Now, we can assume that we only know the data matrix `X` and the `W` and `H` matrices are unknown.
+## NMFk analysis
 
-We can execute **NMFk** and analyze the data matrix `X`.
+Now, we can assume that we only know the data matrix `X`.
 
-**NMFk** will automatically:
+The `W` and `H` matrices are assumed to be unknown and will be estimated by **NMFk**.
+
+**NMFk** analysis of the data matrix `X` will automatically:
 
 - identify the number of the unknown mixed signals in `X` 
 - estimate the shape of the unknown mixed signals (i.e., estimate the entries of `W` matrix)
-- estimate how the signals are mixed at the 5 sensors (i.e., estimate the entries of `H` matrix)
+- estimate how the signals are mixed at each sensors (i.e., estimate the entries of `H` matrix)
 
 This can be done based only on the information in `X`:
 
@@ -187,50 +223,63 @@ We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, met
 ```
 
     
-    OF: min 16.543332107387688 max 16.54370333630169 mean 16.543657649186834 std 0.00011732763015242336
-    Worst correlation by columns: 0.9639027073120046
-    Worst correlation by rows: 0.02743227869440581
-    Worst norm by columns: 0.40817234689975457
-    Worst norm by rows: 0.783687725540016
-    Signals:  2 Fit:     16.54333 Silhouette:    0.9927216 AIC:    -33.36287
+    OF: min 13.938575834075827 max 13.939149136011867 mean 13.939023936576564 std 0.00015978979250667993
+    Worst correlation by columns: 0.9089534909911938
+    Worst correlation by rows: 0.9138316304619002
+    Worst covariance by columns: 0.2104805928843496
+    Worst covariance by rows: 0.09047546204242647
+    Worst norm by columns: 0.43794006677052216
+    Worst norm by rows: 0.7401885751830948
+    Signals:  2 Fit:     13.93858 Silhouette:    0.9940184 AIC:    -46.21209 Signal order: [2, 1]
     
-    OF: min 3.6205773516030755e-9 max 0.024966294581316016 mean 0.004260857741097067 std 0.008033631111142974
-    Worst correlation by columns: 0.956744979192939
-    Worst correlation by rows: 0.07071154036399516
-    Worst norm by columns: 0.5387264618794112
-    Worst norm by rows: 0.5664600383452569
-    Signals:  3 Fit: 3.620577e-09 Silhouette:    0.8026802 AIC:    -1661.559
+    OF: min 2.1911664491732534e-6 max 0.03711703712024368 mean 0.008921756575796008 std 0.012217855601755515
+    Worst correlation by columns: 0.9999996871358519
+    Worst correlation by rows: 0.9999999467283969
+    Worst covariance by columns: 0.25687300064658025
+    Worst covariance by rows: 0.10477788224532734
+    Worst norm by columns: 0.795184210425011
+    Worst norm by rows: 0.7299738316665152
+    Signals:  3 Fit: 2.191166e-06 Silhouette:    0.7097371 AIC:    -1181.142 Signal order: [2, 3, 1]
     
-    OF: min 2.9243345186560516e-5 max 0.001015416195548337 mean 0.0003210515459856785 std 0.00031525368737313317
-    Worst correlation by columns: 0.9566107482444881
-    Worst correlation by rows: 0.07069962799810608
-    Worst norm by columns: 0.5886787800802283
-    Worst norm by rows: 0.716149644115928
-    Signals:  4 Fit: 2.924335e-05 Silhouette:   -0.7534138 AIC:     -946.801
+    OF: min 2.877455695118232e-7 max 0.007167581000578781 mean 0.001043172561235765 std 0.0022045302570061717
+    Worst correlation by columns: 0.9999999966490337
+    Worst correlation by rows: 0.9999999750381271
+    Worst covariance by columns: 0.2570941431322106
+    Worst covariance by rows: 0.10477628207076062
+    Worst norm by columns: 0.5126998474538412
+    Worst norm by rows: 0.7486400734293462
+    Signals:  4 Fit: 2.877456e-07 Silhouette:    0.3770708 AIC:    -1293.401 Signal order: [2, 3, 4, 1]
     
-    OF: min 3.256995549437627e-7 max 0.003511157809921111 mean 0.0008459352126525784 std 0.0011910385054715723
-    Worst correlation by columns: 0.9567407128598857
-    Worst correlation by rows: 0.07071639753987459
-    Worst norm by columns: 0.5353872310202072
-    Worst norm by rows: 0.7424436227370489
-    Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
-    Signals:  2 Fit:     16.54333 Silhouette:    0.9927216 AIC:    -33.36287
-    Signals:  3 Fit: 3.620577e-09 Silhouette:    0.8026802 AIC:    -1661.559
-    Signals:  4 Fit: 2.924335e-05 Silhouette:   -0.7534138 AIC:     -946.801
-    Signals:  5 Fit: 3.256996e-07 Silhouette:   -0.2781683 AIC:    -1244.108
-
-
+    OF: min 2.2183368055932843e-6 max 0.010281220182692433 mean 0.0023151582431914235 std 0.003832905360228223
+    Worst correlation by columns: 0.9999999407042833
+    Worst correlation by rows: 0.9999999450480098
+    Worst covariance by columns: 0.2570834472155579
+    Worst covariance by rows: 0.10476793011203807
+    Worst norm by columns: 0.706479560331746
+    Worst norm by rows: 0.6816152071162849
+    Signals:  5 Fit: 2.218337e-06 Silhouette:   -0.5794082 AIC:    -1100.218 Signal order: [5, 1, 2, 4, 3]
+    Signals:  2 Fit:     13.93858 Silhouette:    0.9940184 AIC:    -46.21209
+    Signals:  3 Fit: 2.191166e-06 Silhouette:    0.7097371 AIC:    -1181.142
+    Signals:  4 Fit: 2.877456e-07 Silhouette:    0.3770708 AIC:    -1293.401
+    Signals:  5 Fit: 2.218337e-06 Silhouette:   -0.5794082 AIC:    -1100.218
     ┌ Info: Results
     └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkExecute.jl:15
     ┌ Info: Optimal solution: 3 signals
-    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkExecute.jl:20
+    └ @ NMFk /Users/vvv/.julia/dev/NMFk/src/NMFkExecute.jl:23
 
 
 **NMFk** returns the estimated optimal number of signals `kopt` which in this case, as expected, is equal to 3.
 
+The optimal number of signals is estimated the following graph showing the quality (fit) and robustness of the soultion vs. number of signals:
+
+
+```julia
+NMFk.plot_feature_selecton(2:5, fitquality, robustness)
+```
+
 **NMFk** also returns estimates of matrices `W` and `H`.
 
-Here the estimates of matrices W and H are stored as `We` and `He` objects.
+Here, the estimates of matrices W and H are stored as `We` and `He` objects.
 
 `We[kopt]` and `He[kopt]` are scaled versions of the original `W` and `H` matrices:
 
@@ -240,25 +289,22 @@ We[kopt]
 ```
 
 
-
-
     15×3 Matrix{Float64}:
-      1.25937     3.72324     3.86085
-      2.51593     2.92553     7.73582
-      0.306818    5.76286     3.78028
-     10.7111      1.42971     2.85602
-      3.54325     1.70449e-9  6.21152
-      1.33202e-7  9.35074     8.58998
-     11.2749      6.49663     0.193308
-     11.5323      7.60014     1.53054
-      5.80211     3.94336     8.57877
-     10.2771      9.19473     1.36816
-      5.50639     7.85983     5.68814
-      9.06469     4.04517     7.31478
-      7.46018     5.88067     3.10823
-      9.61252     7.41424     8.49568
-     10.8056      6.66714     2.30821
-
+      3.83705    7.73812    4.97055
+      0.116595   0.67972    8.02776
+      6.63015    1.7091e-9  5.37396
+      2.39293    0.840371   2.33272
+     10.9901     6.95622    4.39182
+      1.99473    1.08654    0.0156484
+     12.7769     7.3464     3.04815
+      3.65363    6.66188    7.51626
+      2.36714    4.40365    3.00431
+      1.67387    0.936381   3.34564
+      0.292837   2.32771    3.48265
+      3.1683     7.17742    0.208837
+      9.10256    6.57062    1.62522
+      4.16325   10.6015     1.812
+     11.8058    10.4573     1.94185
 
 
 
@@ -267,20 +313,23 @@ He[kopt]
 ```
 
 
-
-
     3×5 Matrix{Float64}:
-     0.0803405  0.805002   0.00425469  0.0213696  0.0890334
-     0.0184625  0.185572   0.0960015   0.48317    0.216794
-     0.317705   0.0246405  0.00305093  0.120433   0.534171
+     0.166349   0.555428   0.000161808  0.0375717  0.240489
+     0.0032828  0.301899   0.0886785    0.437484   0.168656
+     0.305472   0.0595241  0.00368722   0.118509   0.512808
 
 
+The extracted signals are ordered by their expected importance.
+
+The most dominant is the first signal, which is captured by Column 1 of `We[kopt]` and Row 1 of `He[kopt]`.
+
+The least dominant is the third (last) signal, which is captured by Column 3 of `We[kopt]` and Row 3 of `He[kopt]`.
 
 Note that the order of columns ('signals') in `W` and `We[kopt]` are not expected to match.
 
-Also note that the order of rows ('sensors') in `H` and `He[kopt]` are also not expected to match.
+In the same way, the order of rows ('sensors') in `H` and `He[kopt]` are also not expected to match.
 
-The estimated order of 'signals' will be different every time the code is executed.
+In general, the estimated order of 'signals' may be slightly different every time the code is executed due to randomness of the processes.
 
 Below are plots providing comparisons between the original and estimated `W` an `H` matrices.
 
@@ -292,7 +341,7 @@ Mads.plotseries(W; title="Original signals")
 
 
     
-![png](blind_source_separation_files/blind_source_separation_20_0.png)
+![png](blind_source_separation_files/blind_source_separation_22_0.png)
     
 
 
@@ -305,7 +354,7 @@ Mads.plotseries(We[kopt] ./ maximum(We[kopt]; dims=1); title="Reconstructed sign
 
 
     
-![png](blind_source_separation_files/blind_source_separation_21_0.png)
+![png](blind_source_separation_files/blind_source_separation_23_0.png)
     
 
 
@@ -3186,3 +3235,28 @@ fig.select("#img-cabf29fe-42")
 
 
 
+
+## NMFk Pros
+- Automatic identification of interpretable hidden (latent) data signatures (features)
+- Reduction of data dimensionality
+- Detection of outlier, random and systematic noise
+- Applicable to any dataset with nonnegative entries (if there are nonnegative entries they can removed through transformations)
+- Applicable in a wide range problems: text mining, document clustering, making recommendations, visual pattern recognition, face recognition, gene expression analysis, feature extraction, source separation, etc. 
+
+## NMFk Cons
+- Computationally intensive
+- Limited scaleability
+
+## Math behind NMF
+
+**NMF** factorizes (splits up) a non-negative input matrix ($\mathbf{X}$) into two smaller rank matrices $\mathbf{W}$ and $\mathbf{H}$.
+
+To achieve this, **NMF** minimizes the following function:
+
+$$
+\Vert \mathbf{X} - \mathbf{W} \times \mathbf{H} \Vert_2
+$$
+
+**NMF** starts with either random or specified initialization of $\mathbf{W}$ and $\mathbf{H}$ matrices.
+
+**NMF** estimates $\mathbf{W}$ and $\mathbf{H}$ that approximate $\mathbf{X}$.

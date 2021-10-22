@@ -1,15 +1,16 @@
-import Revise
 import NMFk
 import Mads
+import Cairo
+import Fontconfig
+import Gadfly
 import Random
 
-Random.seed!(2021)
+Random.seed!(2021);
 
 a = rand(15)
 b = rand(15)
 c = rand(15)
 [a b c]
-
 
 Mads.plotseries([a b c])
 
@@ -22,6 +23,8 @@ X = W * H
 Mads.plotseries(X; name="Sensors")
 
 We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
+
+NMFk.plot_feature_selecton(2:5, fitquality, robustness)
 
 We[kopt]
 
