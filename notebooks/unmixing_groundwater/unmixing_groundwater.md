@@ -1,7 +1,19 @@
-NMFk Notebook: Unmixing Contaminated Groundwater
-----
+# NMFk: Unmixing Contaminated Groundwater
+
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="https://raw.githubusercontent.com/SmartTensors/NMFk.jl/master/logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
+
+**NMFk** is a code within our award winning [SmartTensors](https://github.com/SmartTensors) framework for unsupervised, supervised and physics-informed (scientific) machine learning (ML) and artificial intelligence (AI) ([web](https:///SmartTensors.com) [source](https://github.com/SmartTensors)).
+
+<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
+    <img src="https://raw.githubusercontent.com/SmartTensors/NMFk.jl/master/logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
+</div>
+
+**NMFk** performs Nonnegative Matrix Factorization with $k$-means clustering
 
 The example problem presented here is demonstrating how **NMFk** can be applied to unmix groundwater.
+
 Here, the dataset analyzed by **NMFk** includes a series of hydrogeochemical concentrations observed at monitoring wells.
 
 This type of analysis can also be called **blind source separation** or **feature extraction**.
@@ -12,25 +24,18 @@ In general, applying **NMFk**, we can automatically:
 - estimate the shape of the unknown mixed signatures
 - estimate how the signatures are mixed at each sensor
 
-<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
-    <img src="../../logo/nmfk-logo.png" alt="NMFk" width=20% max-width=125px;/>
-</div>
+## Setup
 
-**NMFk** is a code within the [SmartTensors](https://github.com/SmartTensors) framework.
+If **NMFk** is not installed, first execute in the Julia REPL: 
 
-<div style="text-align: left; padding-top: 30px; padding-bottom: 30px;">
-    <img src="../../logo/SmartTensorsNewSmall.png" alt="NMFk" width=20% max-width=125px;/>
-</div>
-
-Let us assume that there are multiple wells (monitoring points) detecting simultaneously multiple signals (here, contaminant plumes with different chemical signatures).
-Our goal is to estimate automatically the number of signals (plumes) using unsupervised machine learning (ML).
-
-In the example presented here, we assume that there are 20 wells (monitoring points), 2 sources (contaminant plumes), and 3 chemical species (e.g., nitrate, sulfate, chloride) detected at each well.
-
-These types of unsupervised machine learning analyses are applicable in many other situations where the mixing of signals (volumes/mass) is constrained by volumetric or weight constraints.
-For example, these types of problems occur in the case of mass transport in fluids (e.g., atmosphere, oceans, watersheds, oil/gas/geothermal reservoirs, aquifers, etc.).
-
-If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
+```julia
+import Pkg
+Pkg.add("NMFk")
+Pkg.add("Mads")
+Pkg.add("Cairo")
+Pkg.add("Fontconfig")
+Pkg.add("Gadfly")
+```
 
 
 ```julia
@@ -131,7 +136,18 @@ import Random
 
 
 
-Let assume that there are 20 measument locations (wells), 2 contaminant sources, and 3 geochemical species:
+
+Let us assume that there are multiple wells (monitoring points) detecting simultaneously multiple signals (here, contaminant plumes with different chemical signatures).
+
+Our goal is to estimate automatically the number of signals (plumes) using unsupervised machine learning (ML).
+
+In the example presented here, we assume that there are 20 wells (monitoring points), 2 sources (contaminant plumes), and 3 chemical species (e.g., nitrate, sulfate, chloride) detected at each well.
+
+These types of unsupervised machine learning analyses are applicable in many other situations where the mixing of signals (volumes/mass) is constrained by volumetric or weight constraints.
+
+For example, these types of problems occur in the case of mass transport in fluids (e.g., atmosphere, oceans, watersheds, oil/gas/geothermal reservoirs, aquifers, etc.).
+
+Let us assume that there are 20 measurement locations (wells), 2 contaminant sources, and 3 geochemical species:
 
 
 ```julia
@@ -270,13 +286,15 @@ display(X)
       53.2022  4.92608  11.3743
 
 
+## Analysis
+
 Now assuming that only `X` is **known**, **NMFk** can estimate **unknown** `W` and `H`.
 
 **NMFk** estimates *automatically* the number signals (features; here, contaminant sources) present in the analyzed dataset `X`.
 
 The number of signals is equal to the number of columns in `W` and the number of rows in `H`.
 
-**NMFk** computes the number signals (features) based on silhouettes of the k-means clusters obtained from a series of **NMF** solutions using random initial guesses (see the papers and presentations at http://tensors.lanl.gov for more details).
+**NMFk** computes the number signals (features) based on silhouettes of the k-means clusters obtained from a series of **NMF** solutions using random initial guesses ([see the papers and presentations at http://SmartTensors.com for more details](http://SmartTensors.com)).
 
 **NMFk** execution produces:
 
@@ -6354,6 +6372,6 @@ fig.select("#img-0515b816-33")
 
 
 
-In conclusion, **NMFk** successful estimated the number of plumes, the original concentrations at the contaminant sources (before mixing in the aquifer), and the mixing coefficients at each well.
+In conclusion, **NMFk** successfully estimated the number of plumes, the original concentrations at the contaminant sources (before mixing in the aquifer), and the mixing coefficients at each well.
 
 The **NMFk** unsupervised ML analyses are unbiased and robust.
