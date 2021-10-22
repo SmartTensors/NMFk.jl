@@ -1,4 +1,4 @@
-Signal A (S3)
+Signal A (S1)
 s4 	0.962
 s5 	0.924
 s3 	0.675
@@ -10,7 +10,7 @@ s10	0.643
 s1 	0.609
 s6 	0.221
 
-Signal C (S1)
+Signal C (S3)
 s2 	1.0
 s7 	0.419
 

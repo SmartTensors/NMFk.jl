@@ -1,7 +1,9 @@
-import Revise
 import NMFk
 import Mads
 import Random
+import Cairo
+import Fontconfig
+import Gadfly
 
 Random.seed!(2021)
 
@@ -52,5 +54,3 @@ Mads.display("sensors-4-labeled-sorted-dendogram.png")
 
 
 Mads.display("all-4-biplots-original.pdf")
-
-
