@@ -1,7 +1,7 @@
 # NMFk: Nonnegative Matrix Factorization + k-means clustering and physics constraints
 
 <div style="text-align: left; background-color: gray; width: 25%">
-    <img style="margin: auto", src="logo/nmfk-logo.png" alt="nmfk" width=90%%  max-width=125px;/>
+    <img style="margin: auto", src="logo/nmfk-logo.png" alt="nmfk" width=50%%  max-width=125px;/>
 </div>
 
 **NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.com](https://smarttensors.com)).
