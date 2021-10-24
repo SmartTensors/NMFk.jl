@@ -4,7 +4,7 @@
     <img src="logo/nmfk-logo.png" alt="nmfk" width=25%  max-width=125px;/>
 </div>
 
-**NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.github.io](https://smarttensors.github.io)).
+**NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.com](https://smarttensors.com)).
 
 <div style="text-align: left">
     <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
@@ -50,7 +50,7 @@ These tools substantially facilitate utilization of the package in various real-
 * 2021 R&D100 Bronze Medal: Market Disruptor in Services ([web](https://www.rdworldonline.com/2021-rd-100-special-recognition-winners-announced))
 
 <div style="text-align: left">
-    <img src="logo/RD100Awards-300x300.png" alt="SmartTensors" width=25%  max-width=125px;/>
+    <img src="logo/RD100Awards-300x300.png" alt="R&D100" width=25%  max-width=125px;/>
 </div>
 
 
