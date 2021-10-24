@@ -45,15 +45,13 @@ These tools substantially facilitate utilization of the package in various real-
 
 ## Awards
 
-**SmartTensors** was recently awarded:
-* 2021 R&D100 Award: Information Technologies (IT) ([web](https://www.rdworldonline.com/2021-rd-100-award-winners-announced-in-analytical-test-and-it-electrical-categories))
-* 2021 R&D100 Bronze Medal: Market Disruptor in Services ([web](https://www.rdworldonline.com/2021-rd-100-special-recognition-winners-announced))
+**SmartTensors** and **NMFk** were recently awarded:
+* 2021 R&D100 Award: [Information Technologies (IT)](https://www.rdworldonline.com/2021-rd-100-award-winners-announced-in-analytical-test-and-it-electrical-categories)
+* 2021 R&D100 Bronze Medal: [Market Disruptor in Services](https://www.rdworldonline.com/2021-rd-100-special-recognition-winners-announced)
 
 <div style="text-align: left">
     <img src="logo/RD100Awards-300x300.png" alt="R&D100" width=25%  max-width=125px;/>
 </div>
-
-
 
 ## Installation
 
@@ -73,8 +71,7 @@ import Pkg
 Pkg.add(Pkg.PackageSpec(name="NMFk", rev="master"))
 ```
 
-Docker
--------
+## Docker
 
 ```bash
 docker run --interactive --tty montyvesselinov/tensors
@@ -114,7 +111,7 @@ H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
 X = W * H
 ```
 
-After that execute, **NMFk** to estimate the number of unknown mixed signals based only on the information in `X`.
+After that, execute **NMFk** to estimate the number of unknown mixed signals based only on the information in `X`.
 
 ```julia
 import NMFk
@@ -161,10 +158,26 @@ Mads.plotseries([a b c])
 Mads.plotseries(We[kopt] ./ maximum(We[kopt]))
 ```
 
+<div style="text-align: left">
+    <img src="images/signals_original.png" alt="signals_original" width=75%  max-width=200px;/>
+</div>
+
+<div style="text-align: left">
+    <img src="images/signals_reconstructed.png" alt="signals_reconstructed" width=75%  max-width=200px;/>
+</div>
+
 ```julia
 NMFk.plotmatrix(H)
 NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]))
 ```
+
+<div style="text-align: left">
+    <img src="images/blind_source_separation_24_0.svg" alt="signals_original" width=50%  max-width=200px;/>
+</div>
+
+<div style="text-align: left">
+    <img src="images/blind_source_separation_25_0.svg" alt="signals_reconstructed" width=50%  max-width=200px;/>
+</div>
 
 More examples can be found in the `test`, `demo`, `examples`, and `notebooks` directories of the **NMFk** repository.
 
@@ -173,9 +186,9 @@ More examples can be found in the `test`, `demo`, `examples`, and `notebooks` di
 **NMFk** has been applied in a wide range of real-world applications.
 The analyzed datasets include model outputs, experimental laboratory data, and field tests:
 
-- Climate modeling
-- Watershed modeling
-- Aquifer modeling
+- Climate data and simulations
+- Watershed data and simulations
+- Aquifer simulations
 - Surface-water and Groundwater analyses
 - Material characterization
 - Reactive mixing
@@ -184,7 +197,7 @@ The analyzed datasets include model outputs, experimental laboratory data, and f
 - Induced seismicity
 - Phase separation of co-polymers
 - Oil / Gas extraction from unconventional reservoirs
-- Geothermal exploration
+- Geothermal exploration and produciton
 - Geologic carbon storages
 - Wildfires
 
@@ -196,22 +209,20 @@ The analyzed datasets include model outputs, experimental laboratory data, and f
     <img src="movies/m643.gif" alt="nmfk-example" width=75%  max-width=250px;/>
 </div>
 
-Videos are also available at [YouTube](https://www.youtube.com/playlist?list=PLpVcrIWNlP22LfyIu5MSZ7WHp7q0MNjsj)
+More videos are available at [YouTube](https://www.youtube.com/playlist?list=PLpVcrIWNlP22LfyIu5MSZ7WHp7q0MNjsj)
 
 ## Notebooks:
 
 A series of Jupyter notebooks demonstrating **NMFk** have been developed:
+* [Blind Source Separation](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/blind_source_separation/blind_source_separation.ipynb)
+* [Feature Extraction)](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/feature_extraction/feature_extraction.ipynb)
+* [Blind Prediction](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/mapping_variables/mapping_variables.ipynb)
+* [Unmixing concentration data](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/unmixing_groudwater/unmixing_groudwater.ipynb)
 
-* [Blind Source Separation (i.e. Feature Extraction)](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/blind_source_separation.ipynb)
-* [Blind Prediction](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/simple_mapping.ipynb)
-* [Unmixing concentration data](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/mixing-concentrations.ipynb)
+The notebooks can also be accessed using:
 
-The notebooks can also be accessed as:
-
-```
-Pkg.add("IJulia")
-import IJulia
-IJulia.notebook(; dir=joinpath(NMFk.nmfkdir, "notebooks"), detached=true)
+```julia
+NMFk.notebooks()
 ```
 
 ## Other Examples:
