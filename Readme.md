@@ -1,28 +1,33 @@
-NMFk: Nonnegative Matrix Factorization + k-means clustering and physics constraints
-================
+# NMFk: Nonnegative Matrix Factorization + k-means clustering and physics constraints
 
 <div style="text-align: left">
     <img src="logo/nmfk-logo.png" alt="nmfk" width=25%  max-width=125px;/>
 </div>
 
-**NMFk** is a novel unsupervised machine learning methodology which allows for automatic identification of the optimal number of features (signals/signatures) present in the data.
-Classical NMF approaches do not allow for automatic estimation of the number of features.
+**NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.github.io](https://smarttensors.github.io)).
+
+<div style="text-align: left">
+    <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
+</div>
+
+**NMFk** is a novel unsupervised machine learning methodology that allows for automatic identification of the optimal number of features (signals/signatures) present in the data.
+
+Classical **NMF** approaches do not allow for automatic estimation of the number of features.
 
 **NMFk** estimates the number of features `k` through *k*-means clustering coupled with regularization constraints (physical, mathematical, etc.).
 
 **NMFk** can be applied to perform:
-
 - Feature extraction (**FE**)
 - Blind source separation (**BSS**)
 - Detection of disruptions / anomalies
 - Image recognition
 - Text mining
 - Data classification
-- Separation of (physics) processes
+- Separation (deconstruction) of co-occurring (physics) processes
 - Discovery of unknown dependencies and phenomena
 - Development of reduced-order/surrogate models
 - Identification of dependencies between model inputs and outputs
-- Guiding development of physics models representing the ML analyzed data
+- Guiding the development of physics models representing the ML analyzed data
 - Blind predictions
 - Optimization of data acquisition (optimal experimental design)
 - Labeling of datasets for supervised ML analyses
@@ -31,33 +36,41 @@ Classical NMF approaches do not allow for automatic estimation of the number of 
 The parallelization allows for utilization of multi-core / multi-processor environments.
 GPU and TPU accelerations are available through existing Julia packages.
 
-**NMFk** provides advanced tools for visualization, pre- and post-processing.
+**NMFk** provides advanced tools for data visualization, pre- and post-processing.
 These tools substantially facilitate utilization of the package in various real-world applications.
 
 **NMFk** methodology and applications are discussed in the research papers and presentations listed below.
 
 **NMFk** is demonstrated with a series of examples and test problems provided here.
 
-**NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.github.io](https://smarttensors.github.io)).
+## Awards
+
+**SmartTensors** was recently awarded:
+* 2021 R&D100 Award: Information Technologies (IT) ([web](https://www.rdworldonline.com/2021-rd-100-award-winners-announced-in-analytical-test-and-it-electrical-categories))
+* 2021 R&D100 Bronze Medal: Market Disruptor in Services ([web](https://www.rdworldonline.com/2021-rd-100-special-recognition-winners-announced))
 
 <div style="text-align: left">
-    <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
+    <img src="logo/RD100Awards-300x300.png" alt="SmartTensors" width=25%  max-width=125px;/>
 </div>
 
 
-### Installation
+
+## Installation
 
 After starting Julia, execute:
 
 ```julia
-import Pkg; Pkg.add("NMFk")
+import Pkg
+Pkg.add("NMFk")
 ```
 
 to access the latest released version.
-To utilize the latest updates (commits) use:
+
+To utilize the latest code updates (commits), use:
 
 ```julia
-import Pkg; Pkg.add(Pkg.PackageSpec(name="NMFk", rev="master"))
+import Pkg
+Pkg.add(Pkg.PackageSpec(name="NMFk", rev="master"))
 ```
 
 Docker
@@ -69,13 +82,14 @@ docker run --interactive --tty montyvesselinov/tensors
 
 The docker image provides access to all **SmartTensors** packages ([smarttensors.github.io](https://smarttensors.github.io)).
 
-### Testing
+## Testing
 
 ```julia
+import Pkg
 Pkg.test("NMFk")
 ```
 
-### Examples
+## Examples
 
 A simple problem demonstrating **NMFk** can be executed as follows.
 First, generate 3 random signals in a matrix `W`:
@@ -118,9 +132,9 @@ Signals:  5 Fit: 2.598571e-05 Silhouette:   -0.6757581 AIC:    -915.6589
 [ Info: Optimal solution: 3 signals
 ```
 
-The code returns the estimated optimal number of signals `kopt` which in this case as expected is equal to 3.
+The code returns the estimated optimal number of signals `kopt`, which in this case as expected is equal to 3.
 
-The code returns the `fitquality` and `robustness`; they can appied to represent how the solutions change with the increase of `k`:
+The code returns the `fitquality` and `robustness`; they can applied to represent how the solutions change with the increase of `k`:
 
 ```julia
 NMFk.plot_signal_selecton(2:5, fitquality, robustness)
@@ -135,10 +149,10 @@ The code also returns estimates of matrices `W` and `H`.
 It can be easily verified that estimated `We[kopt]` and `He[kopt]` are scaled versions of the original `W` and `H` matrices.
 
 Note that the order of columns ('signals') in `W` and  `We[kopt]` are not expected to match.
-Also note that the order of rows ('sensors') in `H` and  `He[kopt]` are also not expected to match.
+The order of rows ('sensors') in `H` and  `He[kopt]` are also not expected to match.
 The estimated orders will be different every time the code is executed.
 
-For example, the matrices can be visualized using:
+The matrices can be visualized using:
 
 ```julia
 import Pkg; Pkg.add("Mads")
@@ -152,12 +166,12 @@ NMFk.plotmatrix(H)
 NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]))
 ```
 
-More examples can be found the in the `test`, `demo`, `examples` and `notebooks` directories of the **NMFk** repository.
+More examples can be found in the `test`, `demo`, `examples`, and `notebooks` directories of the **NMFk** repository.
 
-### Applications:
+## Applications:
 
 **NMFk** has been applied in a wide range of real-world applications.
-The analyzed datasets include model outputs, laboratory experimental data, and field tests:
+The analyzed datasets include model outputs, experimental laboratory data, and field tests:
 
 - Climate modeling
 - Watershed modeling
@@ -172,9 +186,9 @@ The analyzed datasets include model outputs, laboratory experimental data, and f
 - Oil / Gas extraction from unconventional reservoirs
 - Geothermal exploration
 - Geologic carbon storages
-- Wild fires
+- Wildfires
 
-### Videos:
+## Videos:
 
 - Progress of nonnegative matrix factorization process:
 
@@ -184,7 +198,7 @@ The analyzed datasets include model outputs, laboratory experimental data, and f
 
 Videos are also available at [YouTube](https://www.youtube.com/playlist?list=PLpVcrIWNlP22LfyIu5MSZ7WHp7q0MNjsj)
 
-### Notebooks:
+## Notebooks:
 
 A series of Jupyter notebooks demonstrating **NMFk** have been developed:
 
@@ -192,7 +206,7 @@ A series of Jupyter notebooks demonstrating **NMFk** have been developed:
 * [Blind Prediction](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/simple_mapping.ipynb)
 * [Unmixing concentration data](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/mixing-concentrations.ipynb)
 
-The notebooks can be accessed also as:
+The notebooks can also be accessed as:
 
 ```
 Pkg.add("IJulia")
@@ -200,17 +214,17 @@ import IJulia
 IJulia.notebook(; dir=joinpath(NMFk.nmfkdir, "notebooks"), detached=true)
 ```
 
-### Other Examples:
+## Other Examples:
 
 * [Machine Learning](https://madsjulia.github.io/Mads.jl/Examples/machine_learning/index.html)
 * [Blind Source Separation (i.e. Feature Extraction)](https://madsjulia.github.io/Mads.jl/Examples/blind_source_separation/index.html)
 * [Source Identification](https://madsjulia.github.io/Mads.jl/Examples/contaminant_source_identification/index.html)
 
-### Patent:
+## Patent:
 
 Alexandrov, B.S., Vesselinov, V.V., Alexandrov, L.B., Stanev, V., Iliev, F.L., Source identification by non-negative matrix factorization combined with semi-supervised clustering, [US20180060758A1](https://patents.google.com/patent/US20180060758A1/en)
 
-### Publications:
+## Publications:
 
 - Vesselinov, V.V., Mudunuru, M., Karra, S., O'Malley, D., Alexandrov, B.S., Unsupervised Machine Learning Based on Non-Negative Tensor Factorization for Analyzing Reactive-Mixing, 10.1016/j.jcp.2019.05.039, Journal of Computational Physics, 2019. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Vesselinov%20et%20al%202018%20Unsupervised%20Machine%20Learning%20Based%20on%20Non-Negative%20Tensor%20Factorization%20for%20Analyzing%20Reactive-Mixing.pdf)
 - Vesselinov, V.V., Alexandrov, B.S., O'Malley, D., Nonnegative Tensor Factorization for Contaminant Source Identification, Journal of Contaminant Hydrology, 10.1016/j.jconhyd.2018.11.010, 2018. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Vesselinov%20et%20al%202018%20Nonnegative%20Tensor%20Factorization%20for%20Contaminant%20Source%20Identification.pdf)
@@ -223,7 +237,7 @@ Alexandrov, B.S., Vesselinov, V.V., Alexandrov, L.B., Stanev, V., Iliev, F.L., S
 
 Research papers are also available at [Google Scholar](http://scholar.google.com/citations?user=sIFHVvwAAAAJ&hl=en), [ResearchGate](https://www.researchgate.net/profile/Velimir_Vesselinov) and [Academia.edu](https://lanl.academia.edu/monty)
 
-### Presentations:
+## Presentations:
 
 - Vesselinov, V.V., Physics-Informed Machine Learning Methods for Data Analytics and Model Diagnostics, M3 NASA DRIVE Workshop, Los Alamos, 2019. [PDF](http://monty.gitlab.io/presentations/Vesselinov%202019%20Physics-Informed%20Machine%20Learning%20Methods%20for%20Data%20Analytics%20and%20Model%20Diagnostics.pdf)
 - Vesselinov, V.V., Unsupervised Machine Learning Methods for Feature Extraction, New Mexico Big Data &amp; Analytics Summit, Albuquerque, 2019. [PDF](http://monty.gitlab.io/presentations/vesselinov%202019%20Unsupervised%20Machine%20Learning%20Methods%20for%20Feature%20Extraction%20LA-UR-19-21450.pdf)
@@ -236,46 +250,19 @@ Research papers are also available at [Google Scholar](http://scholar.google.com
 
 Presentations are also available at [slideshare.net](https://www.slideshare.net/VelimirmontyVesselin), [ResearchGate](https://www.researchgate.net/profile/Velimir_Vesselinov) and [Academia.edu](https://lanl.academia.edu/monty)
 
-### Extra information
+## Extra information
 
 For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [http://smarttensors.com](http://smarttensors.com) [smarttensors.github.io],(https://smarttensors.github.io), and [tensors.lanl.gov](http://tensors.lanl.gov).
 
-Installation behind a firewall
-------------------------------
+## Installation behind a firewall
 
 Julia uses git for package management.
 
-In some situations, you may need to add in the `.gitconfig` file in your home directory:
+Julia uses git and curl to install packages.
 
-```
-[url "git@github.com:"]
-    insteadOf = https://github.com/
-[url "git@gitlab.com:"]
-    insteadOf = https://gitlab.com/
-[url "https://"]
-    insteadOf = git://
-[url "http://"]
-    insteadOf = git://
-```
+It is important to set proxies if needed:
 
-or execute:
-
-```
-git config --global url."https://".insteadOf git://
-git config --global url."http://".insteadOf git://
-git config --global url."git@gitlab.com:".insteadOf https://gitlab.com/
-git config --global url."git@github.com:".insteadOf https://github.com/
-```
-
-To resolve "Private key location for 'git@github.com'" julia message, execute:
-
-```
-ssh-add ~/.ssh/id_rsa
-```
-
-Julia uses git and curl to install packages. Set proxies:
-
-```
+```bash
 export ftp_proxy=http://proxyout.<your_site>:8080
 export rsync_proxy=http://proxyout.<your_site>:8080
 export http_proxy=http://proxyout.<your_site>:8080
@@ -286,7 +273,7 @@ export no_proxy=.<your_site>
 For example, if you are doing this at LANL, you will need to execute the
 following lines in your bash command-line environment:
 
-```
+```bash
 export ftp_proxy=http://proxyout.lanl.gov:8080
 export rsync_proxy=http://proxyout.lanl.gov:8080
 export http_proxy=http://proxyout.lanl.gov:8080
@@ -312,4 +299,32 @@ ENV["rsync_proxy"] = ""
 ENV["http_proxy"] = ""
 ENV["https_proxy"] = ""
 ENV["no_proxy"] = ""
+```
+
+In some situations, you may need to add in the `.gitconfig` file in your home directory:
+
+```git
+[url "git@github.com:"]
+    insteadOf = https://github.com/
+[url "git@gitlab.com:"]
+    insteadOf = https://gitlab.com/
+[url "https://"]
+    insteadOf = git://
+[url "http://"]
+    insteadOf = git://
+```
+
+or execute:
+
+```bash
+git config --global url."https://".insteadOf git://
+git config --global url."http://".insteadOf git://
+git config --global url."git@gitlab.com:".insteadOf https://gitlab.com/
+git config --global url."git@github.com:".insteadOf https://github.com/
+```
+
+To resolve a "Private key location for 'git@github.com'" error message, execute:
+
+```
+ssh-add ~/.ssh/id_rsa
 ```
