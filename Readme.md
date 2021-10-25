@@ -14,7 +14,7 @@
 
 Classical **NMF** approaches do not allow for automatic estimation of the number of features.
 
-**NMFk** estimates the number of features `k` through *k*-means clustering coupled with regularization constraints (physical, mathematical, etc.).
+**NMFk** estimates the number of features `k` through *k*-means clustering coupled with regularization constraints (sparsity, physical, mathematical, etc.).
 
 **NMFk** can be applied to perform:
 - Feature extraction (**FE**)
@@ -269,7 +269,7 @@ For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [http://s
 
 Julia uses git for package management.
 
-Julia uses git and curl to install packages.
+Julia uses git and curl to install the necessary packages.
 
 It is important to set proxies if needed:
 
