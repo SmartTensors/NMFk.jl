@@ -121,7 +121,7 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 	if Wfixed
 		W = Winit
 	else
-		constrainW && (Winit = normalize!(Winit)[1])
+		constrainW && normalize!(Winit)
 		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk], start=convert(T, Winit[i, j]))
 		Wnonneg && @JuMP.constraint(m, W .>= 0)
 		constrainW && @JuMP.constraint(m, W .<= 1)
@@ -129,7 +129,7 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 	if Hfixed
 		H = Hinit
 	else
-		constrainH && (Hinit = normalize!(Hinit))
+		constrainH && normalize!(Hinit)
 		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents], start=convert(T, Hinit[i, j]))
 		Hnonneg && @JuMP.constraint(m, H .>= 0)
 		constrainH && @JuMP.constraint(m, H .<= 1)

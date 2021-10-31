@@ -224,7 +224,8 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
 	end
 	if all(histall.weights .== 0) # Fix for StatsBase bug
-		edges = histall.edges[1] .- histall.edges[1].step.hi
+		s = typeof(histall.edges[1].step) <: AbstractFloat ? histall.edges[1].step : histall.edges[1].step.hi
+		edges = histall.edges[1] .- s
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
 	end
 	# if typeof(histall.edges[1].step) <: Integer || typeof(histall.edges[1].step) <: AbstractFloat
@@ -706,7 +707,7 @@ function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, k
 	elseif normalize == :cols
 		D ./= sum(D; dims=1)
 	elseif normalize == :all
-		D = NMFk.normalize!(D)[1]
+		NMFk.normalize!(D)
 	end
 	NMFk.plotmatrix(D; kw..., key_position=:none, quiet=false)
 	return D

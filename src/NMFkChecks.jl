@@ -158,7 +158,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false)
 				ns2 = ntuple(k->(k == dim ? j : jsn), 2)
 				v2 = x[ns2...]
 				c = Statistics.cor(v, v2)
-				if c ≈ 1 || isnan(c)
+				if c ≈ 1
 					!quiet && @info "Matrix $name $i and $name $j are correlated!"
 					push!(icor, j)
 				end
@@ -173,5 +173,5 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false)
 			end
 		end
 	end
-	return inans, izeros, ineg, iconst, icor, ilog
+	return inans, izeros, ineg, iconst, unique(sort(icor)), ilog
 end
