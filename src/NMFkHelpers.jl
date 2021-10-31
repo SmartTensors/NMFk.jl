@@ -278,29 +278,6 @@ function harddecode(x::AbstractMatrix, h::AbstractMatrix{T}) where {T <: Number}
 	return s
 end
 
-function checkcols(x::AbstractMatrix; quiet::Bool=false)
-	inans = Vector{Int64}(undef, 0)
-	izeros = Vector{Int64}(undef, 0)
-	ineg = Vector{Int64}(undef, 0)
-	na = size(x, 2)
-	for i = 1:na
-		isn = .!isnan.(x[:,i])
-		if sum(isn) == 0
-			!quiet && @info "Matrix column $i has only NaNs!"
-			push!(inans, i)
-		elseif sum(x[isn, i]) == 0
-			!quiet && @info "Matrix column $i has only zeros!"
-			push!(izeros, i)
-		elseif any(x[isn, i] .< 0)
-			!quiet && @info "Matrix column $i has negative values!"
-			push!(ineg, i)
-		else
-
-		end
-	end
-	return inans, izeros, ineg
-end
-
 function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Function=meannan) where {T <: Number, N}
 	if windowsize == 0
 		return A

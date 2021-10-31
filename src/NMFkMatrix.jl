@@ -1,5 +1,8 @@
 "Normalize"
-function normalize!(a::AbstractArray; rev::Bool=false, amax = NMFk.maximumnan(a), amin = NMFk.minimumnan(a))
+function normalize(a::AbstractArray; kw...)
+	normalize!(copy(a))
+end
+function normalize!(a::AbstractArray; rev::Bool=false, amax=NMFk.maximumnan(a), amin=NMFk.minimumnan(a))
 	dx = amax - amin
 	if rev
 		a .= (amax .- a) ./ dx
@@ -9,19 +12,12 @@ function normalize!(a::AbstractArray; rev::Bool=false, amax = NMFk.maximumnan(a)
 		return a, amin, amax
 	end
 end
-function normalize!(a; rev::Bool=false, amax = NMFk.maximumnan(a), amin = NMFk.minimumnan(a))
-	dx = amax - amin
-	if rev
-		a .= (amax .- a) ./ dx
-		return a, amax, amin
-	else
-		a = (a .- amin) ./ dx
-		return a, amin, amax
-	end
-end
 
 "Denormalize"
-function denormalize!(a, amin, amax)
+function denormalize(a::AbstractArray, aw...)
+	denormalize!(copy(a), aw...)
+end
+function denormalize!(a::AbstractArray, amin, amax)
 	if all(amax .>= amin)
 		a .= a .* (amax - amin) .+ amin
 	else

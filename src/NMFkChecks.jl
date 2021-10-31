@@ -1,3 +1,6 @@
+import Statistics
+import StatsBase
+
 function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
 	rangeentry = Array{UnitRange{Int64}}(undef, N)
 	min_firstentry = Array{Int64}(undef, N)
@@ -115,4 +118,60 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=fa
 		return_selected_indeces[d] = selected_indeces
 	end
 	return return_selected_indeces
+end
+
+checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
+checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
+
+function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false)
+	na = size(x, dim)
+	name = dim == 2 ? "column" : "row"
+	inans = Vector{Int64}(undef, 0)
+	izeros = Vector{Int64}(undef, 0)
+	ineg = Vector{Int64}(undef, 0)
+	iconst = Vector{Int64}(undef, 0)
+	icor = Vector{Int64}(undef, 0)
+	ilog = Vector{Int64}(undef, 0)
+	for i = 1:na
+		nt = ntuple(k->(k == dim ? i : Colon()), 2)
+		isn = .!isnan.(x[nt...])
+		ns = ntuple(k->(k == dim ? i : isn), 2)
+		v = x[ns...]
+		skiplog = true
+		if sum(isn) == 0
+			!quiet && @info "Matrix $name $i has only NaNs!"
+			push!(inans, i)
+		elseif sum(v) == 0
+			!quiet && @info "Matrix $name $i has only zeros!"
+			push!(izeros, i)
+		elseif any(v .< 0)
+			!quiet && @info "Matrix $name $i has negative values!"
+			skiplog = false
+			push!(ineg, i)
+		elseif minimum(v) ≈ maximum(v)
+			!quiet && @info "Matrix $name $i is constant!"
+			push!(iconst, i)
+		else
+			for j = i+1:na
+				nt2 = ntuple(k->(k == dim ? j : Colon()), 2)
+				jsn = .!isnan.(x[nt2...])
+				ns2 = ntuple(k->(k == dim ? j : jsn), 2)
+				v2 = x[ns2...]
+				c = Statistics.cor(v, v2)
+				if c ≈ 1 || isnan(c)
+					!quiet && @info "Matrix $name $i and $name $j are correlated!"
+					push!(icor, j)
+				end
+			end
+			skiplog = false
+		end
+		if !skiplog
+			c = abs(StatsBase.skewness(v))
+			if c > 1
+				!quiet && @info "Matrix $name $i is very skewed; log-transformaiton recommended!"
+				push!(ilog, i)
+			end
+		end
+	end
+	return inans, izeros, ineg, iconst, icor, ilog
 end
