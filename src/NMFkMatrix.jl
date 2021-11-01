@@ -4,6 +4,10 @@ function normalize(a::AbstractArray; kw...)
 end
 function normalize!(a::AbstractArray; rev::Bool=false, amax=NMFk.maximumnan(a), amin=NMFk.minimumnan(a))
 	dx = amax - amin
+	if dx == 0
+		dx = amax
+		amin = 0
+	end
 	if rev
 		a .= (amax .- a) ./ dx
 		return a, amax, amin
@@ -97,7 +101,23 @@ function matrixminmax(a::AbstractMatrix, dim::Integer)
 	return amin, amax
 end
 
-function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false)
+function normalizearray(a::AbstractArray, dim::Integer; kw...)
+	normalizearray!(copy(a), dim; kw...)
+end
+
+function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::Bool=false)
+	n = size(a, dim)
+	vlog = falses(n)
+	if log
+		for i = 1:n
+			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
+			s = StatsBase.skewness(vec(a[nt...]))
+			if s > 1
+				a[nt...] .= NMFk.log10s(a[nt...])
+				vlog[i] = true
+			end
+		end
+	end
 	amin, amax = arrayminmax(a, dim)
 	dx = amax .- amin
 	if length(dx) > 1
@@ -108,17 +128,17 @@ function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false)
 		dx[i0] .= 1
 	end
 	if rev
-		for i = 1:size(a, dim)
+		for i = 1:n
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
 			a[nt...] .= (amax[i] .- a[nt...]) ./ dx[i]
 		end
 		return a, amax, amin
 	else
-		for i = 1:size(a, dim)
+		for i = 1:n
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
 			a[nt...] .= (a[nt...] .- amin[i]) ./ dx[i]
 		end
-		return a, amin, amax
+		return a, amin, amax, vlog
 	end
 end
 
