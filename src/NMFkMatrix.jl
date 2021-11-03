@@ -1,9 +1,18 @@
 "Normalize"
 function normalize(a::AbstractArray; kw...)
-	normalize!(copy(a))
+	normalize!(copy(a); kw...)
 end
-function normalize!(a::AbstractArray; rev::Bool=false, amax=NMFk.maximumnan(a), amin=NMFk.minimumnan(a))
-	dx = amax - amin
+function normalize!(a::AbstractArray{T, N}; rev::Bool=false, amax=NMFk.maximumnan(a), amin=NMFk.minimumnan(a), logv=falses(0)) where {T <: Number, N}
+	if N == 1 && length(logv) > 0
+		@assert length(logv) == length(a)
+		@assert length(logv) == length(amin)
+		for i = 1:length(logv)
+			if logv[i]
+				a[i] = log10s(a[i]; min=amin[i])
+			end
+		end
+	end
+	dx = amax .- amin
 	if dx == 0
 		dx = amax
 		amin = 0
@@ -107,14 +116,14 @@ end
 
 function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::Bool=false)
 	n = size(a, dim)
-	vlog = falses(n)
+	logv = falses(n)
 	if log
 		for i = 1:n
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
 			s = StatsBase.skewness(vec(a[nt...]))
 			if s > 1
 				a[nt...] .= NMFk.log10s(a[nt...])
-				vlog[i] = true
+				logv[i] = true
 			end
 		end
 	end
@@ -138,7 +147,7 @@ function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::B
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
 			a[nt...] .= (a[nt...] .- amin[i]) ./ dx[i]
 		end
-		return a, amin, amax, vlog
+		return a, amin, amax, logv
 	end
 end
 
@@ -211,6 +220,10 @@ function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), ama
 end
 
 "Denormalize array"
+function denormalizearray(a::AbstractArray{T,N}, aw...; kw...) where {T <: Number, N}
+	return denormalizearray!(copy(a), aw...; kw...)
+end
+
 function denormalizearray!(a::AbstractArray{T,N}, amin, amax; dims=(1,2)) where {T <: Number, N}
 	for i = 1:length(amax)
 		dx = amax[i] - amin[i]

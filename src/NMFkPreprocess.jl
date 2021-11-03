@@ -3,6 +3,10 @@ import DataFrames
 import Statistics
 import StatsBase
 
+function log10s(x::AbstractFloat; min::Number=log10(eps(typeof(x))))
+	x ≈ 0 ? min : log10(x)
+end
+
 function log10s(x::AbstractArray; kw...)
 	NMFk.log10s!(copy(x); kw...)
 end
