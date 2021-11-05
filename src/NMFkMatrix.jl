@@ -60,10 +60,11 @@ function normalizematrix(a::AbstractMatrix, dim::Integer; kw...)
 	normalizematrix!(copy(a), dim; kw)
 end
 
-function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
-	amin, amax = matrixminmax(a, dim)
+function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=matrixmin(a, dim), amax::AbstractArray=matrixmax(a, dim), rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
 	zflag = falses(length(amin))
-	for (i, m) in enumerate(amin)
+	lamin = copy(amin)
+	lamax = copy(amax)
+	for (i, m) in enumerate(lamin)
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
 		av = view(a, nt...)
 		if logv[i]
@@ -80,23 +81,24 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; rev::Bool=false, log:
 				av[iz] .= minimumnan(av) - offset
 				zflag[i] = true
 			end
+			lamin[nt...] .= minimum(av)
+			lamax[nt...] .= maximum(av)
 		end
 	end
-	amin, amax = matrixminmax(a, dim)
-	dx = amax .- amin
+	dx = lamax .- lamin
 	if length(dx) > 1
 		i0 = dx .== 0
-		amin[i0] .= 0
-		dx[i0] .= amax[i0]
+		lamin[i0] .= 0
+		dx[i0] .= lamax[i0]
 		i0 = dx .== 0 # check for zeros again
 		dx[i0] .= 1
 	end
 	if rev
-		a .= (amax .- a) ./ dx
-		return a, amax, amin, zflag
+		a .= (lamax .- a) ./ dx
+		return a, lamax, lamin, zflag
 	else
 		a .= (a .- amin) ./ dx
-		return a, amin, amax, zflag
+		return a, lamin, lamax, zflag
 	end
 end
 
@@ -108,6 +110,22 @@ function matrixminmax(a::AbstractMatrix, dim::Integer)
 		amin = permutedims(amin)
 	end
 	return amin, amax
+end
+
+function matrixmin(a::AbstractMatrix, dim::Integer)
+	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	if dim == 2
+		amin = permutedims(amin)
+	end
+	return amin
+end
+
+function matrixmax(a::AbstractMatrix, dim::Integer)
+	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	if dim == 2
+		amax = permutedims(amax)
+	end
+	return amax
 end
 
 function normalizearray(a::AbstractArray, dim::Integer; kw...)
