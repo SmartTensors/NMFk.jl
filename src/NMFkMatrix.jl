@@ -88,16 +88,13 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 	dx = lamax .- lamin
 	if length(dx) > 1
 		i0 = dx .== 0
-		lamin[i0] .= 0
-		dx[i0] .= lamax[i0]
-		i0 = dx .== 0 # check for zeros again
 		dx[i0] .= 1
 	end
 	if rev
 		a .= (lamax .- a) ./ dx
 		return a, lamax, lamin, zflag
 	else
-		a .= (a .- amin) ./ dx
+		a .= (a .- lamin) ./ dx
 		return a, lamin, lamax, zflag
 	end
 end
@@ -180,10 +177,12 @@ function denormalizematrix_col(a::AbstractMatrix, at...; kw...)
 	denormalizematrix_col!(copy(a), at...; kw...)
 end
 function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractMatrix, amax::AbstractMatrix; log::Bool=false, logv::AbstractVector=fill(log, size(a, 2)), zflag::AbstractVector=falses(size(a, 2)))
-	if all(amax .>= amin)
-		a .= a .* (amax - amin) + repeat(amin; outer=[size(a, 1), 1])
+	dx = amax .- amin
+	dx[dx .== 0] .= 1
+	if all(dx .>= 0)
+		a .= a .* dx + repeat(amin; outer=[size(a, 1), 1])
 	else
-		a .= repeat(amin; outer=[size(a, 1), 1]) + a .* (amax - amin)
+		a .= repeat(amin; outer=[size(a, 1), 1]) + a .* dx
 	end
 	for (i, m) in enumerate(amin)
 		av = view(a, :, i)
@@ -201,10 +200,12 @@ function denormalizematrix_row(a::AbstractMatrix, at...; kw...)
 	denormalizematrix_row!(copy(a), at...; kw...)
 end
 function denormalizematrix_row!(a::AbstractMatrix, amin::AbstractVector, amax::AbstractVector; log::Bool=false, logv::AbstractVector=fill(log, size(a, 1)), zflag::AbstractVector=falses(size(a, 2)))
-	if all(amax .>= amin)
+	dx = amax .- amin
+	dx[dx .== 0] .= 1
+	if all(dx .>= 0)
 		a .= a .* (amax - amin) + repeat(amin; outer=[1, size(a, 2)])
 	else
-		a .= repeat(amin; outer=[1, size(a, 1)]) + a .* (amax - amin)
+		a .= repeat(amin; outer=[1, size(a, 1)]) + a .* (dx)
 	end
 	for (i, m) in enumerate(amin)
 		av = view(a, i, :)
@@ -221,7 +222,10 @@ end
 function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), amax=vec(maximumnan(a; dims=dims)), amin=vec(minimumnan(a; dims=dims))) where {T <: Number, N}
 	for i = 1:length(amax)
 		dx = amax[i] - amin[i]
-		if dx != 0 && !isnan(dx)
+		if dx == 0
+			dx = 1
+		end
+		if !isnan(dx)
 			nt = ntuple(k->(k in dims ? Colon() : i), N)
 			if rev
 				a[nt...] .= (amax[i] .- a[nt...]) ./ dx
@@ -245,9 +249,11 @@ end
 function denormalizearray!(a::AbstractArray{T,N}, amin, amax; dims=(1,2)) where {T <: Number, N}
 	for i = 1:length(amax)
 		dx = amax[i] - amin[i]
-		if dx != 0 && !isnan(dx)
+		if dx == 0
+			dx = 1
+		end
+		if !isnan(dx)
 			nt = ntuple(k->(k in dims ? Colon() : i), N)
-			dx = amax[i] - amin[i]
 			a[nt...] .= a[nt...] .* dx .+ amin[i]
 		end
 	end
