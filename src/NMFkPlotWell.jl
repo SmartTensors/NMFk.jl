@@ -10,7 +10,7 @@ function plot_wells(filename::AbstractString, v...; figuredir::AbstractString=".
 	end
 	j = joinpathcheck(figuredir, filename)
 	recursivemkdir(j)
-	PlotlyJS.savehtml(p, j, :remote)
+	PlotlyJS.savefig(p, j; format="html")
 end
 
 function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; hover=nothing, label=nothing, pointsize=6)

@@ -67,7 +67,7 @@ function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{I
 	r2 = similar(robustness)
 	for k in nkrange
 		r2[k] = NMFk.r2(X, W[k] * H[k])
-		NMFk.plotscatter(X, W[k] * H[k]; title="Number of Signals = $k R2 = $(r2[k])", ymax=1, xmax=1)
+		NMFk.plotscatter(X, W[k] * H[k]; title="Number of Signals = $k R2 = $(r2[k])", ymin=0, xmin=0, ymax=1, xmax=1)
 	end
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r r2[nkrange]], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], xtitle=xtitle, ytitle=ytitle, names=["Fit", "Robustness", "R2"], kw...)
 end

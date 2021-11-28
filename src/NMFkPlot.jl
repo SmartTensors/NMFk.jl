@@ -610,8 +610,8 @@ function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::
 		end
 	end
 	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
-	htmlfile !="" && PlotlyJS.savehtml(s, htmlfile, :remote)
-	pdffile != "" && PlotlyJS.savefig(s, pdffile)
+	htmlfile !="" && PlotlyJS.savefig(s, htmlfile; format="html")
+	pdffile != "" && PlotlyJS.savefig(s, pdffile; format="pdf")
 	return s
 end
 function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString, t2::AbstractString, t3::AbstractString; htmlfile::AbstractString="", pdffile::AbstractString="")
@@ -652,8 +652,8 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 		end
 	end
 	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
-	htmlfile !="" && PlotlyJS.savehtml(s, htmlfile, :remote)
-	pdffile != "" && PlotlyJS.savefig(s, pdffile)
+	htmlfile !="" && PlotlyJS.savefig(s, htmlfile; format="html")
+	pdffile != "" && PlotlyJS.savefig(s, pdffile; format="pdf")
 	return s
 end
 function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString="", pdffile::AbstractString="")
@@ -689,8 +689,8 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 		csum += ss[c]
 	end
 	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
-	htmlfile !="" && PlotlyJS.savehtml(s, htmlfile, :remote)
-	pdffile != "" && PlotlyJS.savefig(s, pdffile)
+	htmlfile !="" && PlotlyJS.savefig(s, htmlfile; format="html")
+	pdffile != "" && PlotlyJS.savefig(s, pdffile; format="pdf")
 	return s
 end
 
