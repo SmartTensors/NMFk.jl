@@ -62,6 +62,27 @@ function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir:
 	return Wclusterlabelsnew, Wsignals, Hclusterlabels, Hsignals
 end
 
+function signal_attribute_var(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, dim::Integer=2; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="",  plotformat::AbstractString="png", names::AbstractVector, kw...)
+	for k in nkrange
+		Xe = W[k] * H[k]
+		isignalmap = signalorder(W[k], H[k])
+		vara = Vector{eltype(W[k])}(undef, size(Xe, dim))
+		for i = 1:size(Xe, dim)
+			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xe))
+			vara[i] = Statistics.var(Xe[nt...])
+		end
+		varas = Matrix{eltype(W[k])}(undef, size(Xe, dim), k)
+		for s in 1:k
+			Xes = W[k][:,s:s] * H[k][s:s,:]
+			for i = 1:size(Xe, dim)
+				nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xes))
+				varas[i, s] = Statistics.var(Xes[nt...]) ./ vara[i]
+			end
+		end
+		NMFk.plotmatrix((varas ./ maximum(varas; dims=dim))[:, isignalmap]; xticks=["S$i" for i=1:k], yticks=names, kw...)
+	end
+end
+
 function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector, X::AbstractMatrix, W::AbstractVector, H::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, kw...)
 	r = normalize_robustness ? robustness[nkrange] ./ maximumnan(robustness[nkrange]) : robustness[nkrange]
 	r2 = similar(robustness)
