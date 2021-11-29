@@ -8,7 +8,7 @@ function log10s(x::AbstractFloat; min::Number=log10(eps(typeof(x))))
 end
 
 function log10s(x::AbstractArray; kw...)
-	NMFk.log10s!(copy(x); kw...)
+	log10s!(copy(x); kw...)
 end
 
 function log10s!(x::AbstractArray; offset::Number=1)

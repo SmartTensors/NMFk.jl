@@ -81,8 +81,8 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 				av[iz] .= minimumnan(av) - offset
 				zflag[i] = true
 			end
-			lamin[nt...] .= minimum(av)
-			lamax[nt...] .= maximum(av)
+			lamin[nt...] .= minimumnan(av)
+			lamax[nt...] .= maximumnan(av)
 		end
 	end
 	dx = lamax .- lamin
