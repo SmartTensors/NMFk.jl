@@ -79,7 +79,7 @@ function signal_attribute_var(nkrange::Union{AbstractRange{Int},AbstractVector{I
 				varas[i, s] = Statistics.var(Xes[nt...]) ./ vara[i]
 			end
 		end
-		NMFk.plotmatrix((varas ./ maximum(varas; dims=dim==1 ? 2 : 1))[:, isignalmap]; xticks=["S$i" for i=1:k], yticks=names, kw...)
+		NMFk.plotmatrix((varas ./ maximum(varas; dims=1))[:, isignalmap]; xticks=["S$i" for i=1:k], yticks=names, kw...)
 	end
 end
 
