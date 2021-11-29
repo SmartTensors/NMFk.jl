@@ -76,7 +76,7 @@ function signal_attribute_var(nkrange::Union{AbstractRange{Int},AbstractVector{I
 			Xes = W[k][:,s:s] * H[k][s:s,:]
 			for i = 1:size(Xe, dim)
 				nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xes))
-				varas[i, s] = Statistics.var(Xes[nt...]) ./ vara[i]
+				varas[i, s] = vec(Statistics.var(Xes[nt...])) ./ vara[i]
 			end
 		end
 		NMFk.plotmatrix((varas ./ maximum(varas; dims=1))[:, isignalmap]; xticks=["S$i" for i=1:k], yticks=names, kw...)
