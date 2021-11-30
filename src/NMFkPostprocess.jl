@@ -62,24 +62,28 @@ function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir:
 	return Wclusterlabelsnew, Wsignals, Hclusterlabels, Hsignals
 end
 
-function signal_attribute_var(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, dim::Integer=2; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="",  plotformat::AbstractString="png", names::AbstractVector, kw...)
+function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, dim::Integer=2; figuredir::AbstractString=".", casefilename::AbstractString="", plotformat::AbstractString="png", names::AbstractVector, print::Bool=true, func::Function=Statistics.var, map::Function=i->i, kw...)
 	for k in nkrange
-		Xe = W[k] * H[k]
+		Xe = map(W[k] * H[k])
+		print && display([names Xe'])
 		isignalmap = signalorder(W[k], H[k])
-		vara = Vector{eltype(W[k])}(undef, size(Xe, dim))
+		stata = Vector{eltype(W[k])}(undef, size(Xe, dim))
 		for i = 1:size(Xe, dim)
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xe))
-			vara[i] = Statistics.var(Xe[nt...])
+			stata[i] = func(Xe[nt...])
 		end
-		varas = Matrix{eltype(W[k])}(undef, size(Xe, dim), k)
+		print && display([names stata])
+		statas = Matrix{eltype(W[k])}(undef, size(Xe, dim), k)
 		for s in 1:k
-			Xes = W[k][:,s:s] * H[k][s:s,:]
+			Xes = map(W[k][:,s:s] * H[k][s:s,:])
 			for i = 1:size(Xe, dim)
 				nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xes))
-				varas[i, s] = vec(Statistics.var(Xes[nt...])) ./ vara[i]
+				statas[i, s] = func(vec(Xes[nt...])) ./ stata[i]
 			end
 		end
-		NMFk.plotmatrix((varas ./ maximum(varas; dims=1))[:, isignalmap]; xticks=["S$i" for i=1:k], yticks=names, kw...)
+		print && display([names statas[:, isignalmap]])
+		filename = casefilename == "" ? "" : casefilename * "_$(k)signals.$(plotformat)"
+		NMFk.plotmatrix(statas[:, isignalmap] ./ maximum(statas; dims=1); xticks=["S$i" for i=1:k], yticks=names, filename=filename, kw...)
 	end
 end
 
