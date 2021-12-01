@@ -12,7 +12,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	recursivemkdir(filename)
 	minvalue = minvalue === nothing ? minimumnan(X) : minvalue
 	maxvalue = maxvalue === nothing ? maximumnan(X) : maxvalue
-	@assert minvalue < maxvalue
+	@assert minvalue <= maxvalue
 	if permute
 		Xp = deepcopy(min.(max.(movingwindow(permutedims(X), masize), minvalue), maxvalue))
 	else

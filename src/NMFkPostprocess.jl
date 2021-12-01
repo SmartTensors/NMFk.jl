@@ -65,25 +65,41 @@ end
 function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, dim::Integer=2; figuredir::AbstractString=".", casefilename::AbstractString="", plotformat::AbstractString="png", names::AbstractVector, print::Bool=true, func::Function=Statistics.var, map::Function=i->i, kw...)
 	for k in nkrange
 		Xe = map(W[k] * H[k])
-		print && display([names Xe'])
+		print && (@info "Reconstructed data:"; display([names Xe']))
 		isignalmap = signalorder(W[k], H[k])
 		stata = Vector{eltype(W[k])}(undef, size(Xe, dim))
 		for i = 1:size(Xe, dim)
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xe))
 			stata[i] = func(Xe[nt...])
 		end
-		print && display([names stata])
+		print && (@info "Total statistics:"; display([names stata]))
 		statas = Matrix{eltype(W[k])}(undef, size(Xe, dim), k)
 		for s in 1:k
 			Xes = map(W[k][:,s:s] * H[k][s:s,:])
 			for i = 1:size(Xe, dim)
 				nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xes))
-				statas[i, s] = func(vec(Xes[nt...])) ./ stata[i]
+				statas[i, s] = func(vec(Xes[nt...]))
 			end
 		end
-		print && display([names statas[:, isignalmap]])
+		print && (@info "Signal statistics:"; display([names statas[:, isignalmap]]))
+		for s in 1:k
+			for i = 1:size(Xe, dim)
+				if stata[i] != 0
+					statas[i, s] /= stata[i]
+				end
+			end
+		end
+		print && (@info "Normalized signal statistics:"; display([names statas[:, isignalmap]]))
+		nm = maximum(statas; dims=2)
+		for s in 1:k
+			for i = 1:size(Xe, dim)
+				if nm[i] != 0
+					statas[i, s] /= nm[i]
+				end
+			end
+		end
 		filename = casefilename == "" ? "" : casefilename * "_$(k)signals.$(plotformat)"
-		NMFk.plotmatrix(statas[:, isignalmap] ./ maximum(statas; dims=1); xticks=["S$i" for i=1:k], yticks=names, filename=filename, kw...)
+		NMFk.plotmatrix(statas[:, isignalmap]; xticks=["S$i" for i=1:k], yticks=names, filename=filename, kw...)
 	end
 end
 
