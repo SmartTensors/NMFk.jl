@@ -429,14 +429,16 @@ function flatten(X::AbstractArray{T,N}, dim::Number=1) where {T <: Number, N}
 	return A
 end
 
-import Base.replace
+if VERSION < v"1.7"
+	import Base.replace
 
-function replace(str::AbstractString, old_new::Pair...)
-	mapping = Dict(old_new)
-	for k in keys(mapping)
-		str = Base.replace(str, Pair(k, mapping[k]))
+	function replace(str::AbstractString, old_new::Pair...)
+		mapping = Dict(old_new)
+		for k in keys(mapping)
+			str = Base.replace(str, Pair(k, mapping[k]))
+		end
+		return str
 	end
-	return str
 end
 
 function stringfix(str::AbstractString)
