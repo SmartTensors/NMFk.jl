@@ -140,7 +140,7 @@ W = [a b]
 H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
 X = W * H
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-12)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:ipopt, tolX=1e-3, tol=1e-12)
 @Test.test isapprox(p, 0; atol=1e-3)
 @Test.test isapprox(s, 1; rtol=1e-1)
 @Test.test isapprox(He[1,2] / He[1,1], 10; rtol=1e-3)
@@ -156,7 +156,7 @@ W = [a b]
 H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
 X = W * H
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-6, tol=1e-19)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:nlopt, tolX=1e-6, tol=1e-19)
 @Test.test isapprox(p, 0, atol=1e-3)
 @Test.test isapprox(s, 1, rtol=1e-1)
 @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
@@ -169,7 +169,7 @@ Random.seed!(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:ipopt, tolX=1e-3, tol=1e-7)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:ipopt, tolX=1e-3, tol=1e-7)
 @Test.test isapprox(p, 0, atol=1e-3)
 @Test.test isapprox(s, 1, rtol=1e-1)
 @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-2)
@@ -182,7 +182,7 @@ Random.seed!(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; method=:nlopt, tolX=1e-12, tol=1e-19)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:nlopt, tolX=1e-12, tol=1e-19)
 @Test.test isapprox(p, 0, atol=1e-3)
 @Test.test isapprox(s, 1, rtol=1e-1)
 @Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
@@ -197,26 +197,26 @@ b = rand(15)
 c = rand(15)
 X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 @info("NMFk: ipopt ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:ipopt)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, save=false, method=:ipopt)
 @info("NMFk: nlopt ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, method=:nlopt)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, save=false, method=:nlopt)
 @info("NMFk: simple ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:simple)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:simple)
 @info("NMFk: nmf ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:nmf)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:nmf)
 @info("NMFk: with sparsity constraints ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, method=:sparsity)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:sparsity)
 
 @info("NMFk: 3 sources, 7 sensors, 50 transients (no sparseness)")
 a = exp.(-(0.2:.2:10))
 b = 1 .+ sin.(0:49)
 c = collect(0:49) / 49
 X = [a b c a+c a+b b+c a+b+c]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; method=:simple)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; save=false, method=:simple)
 @info("NMFk: 3 sources, 7 sensors, 50 transients (with sparseness)")
 inan = rand(50, 7) .> .8
 X[inan] .= NaN
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; method=:simple)
+@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; save=false, method=:simple)
 
 @info("NMFk: concentrations/delta tests ...")
 a0 = Float64[[20,10,1] [5,1,1]]
