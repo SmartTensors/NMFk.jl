@@ -2,7 +2,7 @@
 function normalize(a::AbstractArray; kw...)
 	normalize!(copy(a); kw...)
 end
-function normalize!(a::AbstractArray{T, N}; rev::Bool=false, amax=NMFk.maximumnan(a), amin=NMFk.minimumnan(a), logv=falses(0)) where {T <: Number, N}
+function normalize!(a::AbstractArray{T, N}; rev::Bool=false, amax=NMFk.maximumnan(a), amin=NMFk.minimumnan(a), logv::AbstractVector=falses(0)) where {T <: Number, N}
 	if N == 1 && length(logv) > 0
 		@assert length(logv) == length(a)
 		@assert length(logv) == length(amin)

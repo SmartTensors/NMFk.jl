@@ -23,10 +23,13 @@ function log10s!(x::AbstractArray; offset::Number=1)
 	return x
 end
 
-function datanalytics(v::AbstractVector; plothistogram::Bool=true, kw...)
+function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=false, kw...)
 	ig = .!isnan.(v)
 	vn = v[ig]
 	if length(vn) > 0
+		if log
+			vn = log10s(vn)
+		end
 		plothistogram && NMFk.histogram(vn; kw...)
 		return minimum(vn), maximum(vn), Statistics.std(vn), StatsBase.skewness(vn), sum(ig)
 	else
