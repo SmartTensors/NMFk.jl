@@ -446,13 +446,13 @@ function stringfix(str::AbstractString)
 	replace(str, '&' => "&amp;", '(' => "[", ')' => "]", '<' => "≤", '–' => "-")
 end
 
-function remap(v::AbstractVector, vi::Union{AbstractVector,AbstractUnitRange,StepRangeLen}, ve::Union{AbstractVector,AbstractUnitRange,StepRangeLen}; nonneg::Bool=true, sp=[Interpolations.BSpline(Interpolations.Quadratic(Interpolations.Line(Interpolations.OnGrid())))], ep=[Interpolations.Line(Interpolations.OnGrid())])
+function remap(v::AbstractVector, vi::Union{AbstractVector,AbstractUnitRange,StepRangeLen}, ve::Union{AbstractVector,AbstractUnitRange,StepRangeLen}; nonneg::Bool=true, sp=[Interpolations.Gridded(Interpolations.Linear())], ep=[Interpolations.Line(Interpolations.OnGrid())])
 	lv = length(v)
 	li = length(vi)
 	@assert lv == li
 	f1 = Vector{Float64}(undef, li)
 	isn = .!isnan.(v)
-	itp = Interpolations.interpolate((vi[isn],), v[isn], Interpolations.Gridded(Interpolations.Linear()))
+	itp = Interpolations.interpolate((vi[isn],), v[isn], sp...)
 	etp = Interpolations.extrapolate(itp, ep...)
 	f1 = etp.(ve)
 	nonneg && (f1[f1.<0] .= 0)
