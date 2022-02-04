@@ -2,6 +2,7 @@ import DocumentFunction
 import Statistics
 import LinearAlgebra
 import Suppressor
+import Interpolations
 
 "Test NMFk functions"
 function test()
@@ -443,4 +444,17 @@ end
 
 function stringfix(str::AbstractString)
 	replace(str, '&' => "&amp;", '(' => "[", ')' => "]", '<' => "≤", '–' => "-")
+end
+
+function remap(v::AbstractVector, vi::Union{AbstractVector,AbstractUnitRange,StepRangeLen}, ve::Union{AbstractVector,AbstractUnitRange,StepRangeLen}; nonneg::Bool=true, sp=[Interpolations.BSpline(Interpolations.Quadratic(Interpolations.Line(Interpolations.OnGrid())))], ep=[Interpolations.Line(Interpolations.OnGrid())])
+	lv = length(v)
+	li = length(vi)
+	@assert lv == li
+	f1 = Vector{Float64}(undef, li)
+	isn = .!isnan.(v)
+	itp = Interpolations.interpolate((vi[isn],), v[isn], Interpolations.Gridded(Interpolations.Linear()))
+	etp = Interpolations.extrapolate(itp, ep...)
+	f1 = etp.(ve)
+	nonneg && (f1[f1.<0] .= 0)
+	return f1
 end
