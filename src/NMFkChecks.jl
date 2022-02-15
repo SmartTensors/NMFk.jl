@@ -25,10 +25,10 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			# @show ix
 			# @show firstentry
 			if firstentry !== nothing
-				firstentrys[i] = firstentry
-				lastentry = Base.findlast(funclast.(ix[firstentry:end]))
+				firstentrys[i] = firstentry[1]
+				lastentry = Base.findlast(funclast.(ix[firstentrys[i]:end]))
 				if lastentry !== nothing
-					lastentrys[i] = lastentry + firstentry - 1
+					lastentrys[i] = lastentry[1] + firstentrys[i] - 1
 					record_length[i] = lastentry
 				else
 					lastentrys[i] = length(ix)
@@ -74,22 +74,22 @@ checkarray_nans(X::Array; kw...) = checkarrayentries(X; kw...)
 checkarray_zeros(X::Array; kw...) = checkarrayentries(X, i->i>0; kw...)
 checkarray_count(X::Array; kw...) = checkarrayentries(X; ecount=true, kw...)
 
-function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, good::Bool=false, ecount::Bool=false) where {T <: Number, N}
+function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
 	local flag = true
-	return_selected_indeces = Vector{Vector{Int64}}(undef, N)
+	return_selected_indices = Vector{Vector{Int64}}(undef, N)
 	for d = 1:N
 		!quiet && @info("Dimension $(d) ...")
-		selected_indeces = Vector{Int64}(undef, 0)
+		selected_indices = Vector{Int64}(undef, 0)
 		ecount && (acount = Vector{Int64}(undef, 0))
 		for i = 1:size(X, d)
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			c = sum(func.(X[nt...]))
 			ecount && (push!(acount, c))
-			flagi = c > 0
+			flagi = c > cutoff
 			if good
-				flagi && push!(selected_indeces, i)
+				flagi && push!(selected_indices, i)
 			else
-				!flagi && push!(selected_indeces, i)
+				!flagi && push!(selected_indices, i)
 			end
 			flag = flag && flagi
 		end
@@ -97,12 +97,12 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=fa
 			!quiet && println("Dimension $(d) count: $acount")
 		else
 			if !quiet
-				if length(selected_indeces) > 0
+				if length(selected_indices) > 0
 					if good
-						println("Dimension $(d) good indices: $selected_indeces")
+						println("Dimension $(d) good indices: $selected_indices")
 					else
-						println("Dimension $(d) bad indices: $selected_indeces")
-						# nt = ntuple(k->(k == d ? selected_indeces : Colon()), N)
+						println("Dimension $(d) bad indices: $selected_indices")
+						# nt = ntuple(k->(k == d ? selected_indices : Colon()), N)
 						# @show nt
 						# display(X[nt...])
 					end
@@ -115,9 +115,9 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=fa
 				end
 			end
 		end
-		return_selected_indeces[d] = selected_indeces
+		return_selected_indices[d] = selected_indices
 	end
-	return return_selected_indeces
+	return return_selected_indices
 end
 
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
