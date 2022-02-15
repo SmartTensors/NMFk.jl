@@ -44,7 +44,7 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 			end
 		end
 		if length(bad_indices) > 0
-			println("Dimension $(d) bad indices: $bad_indices")
+			println("Dimension $(d): Bad indices: $bad_indices")
 		else
 			println("Dimension $(d): No bad indices!")
 		end
