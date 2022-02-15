@@ -72,7 +72,7 @@ end
 
 checkarray_nans(X::Array; kw...) = checkarrayentries(X; kw...)
 checkarray_zeros(X::Array; kw...) = checkarrayentries(X, i->i>0; kw...)
-checkarray_count(X::Array, func; kw...) = checkarrayentries(X, func; ecount=true, kw...)
+checkarray_count(X::Array; kw...) = checkarrayentries(X; ecount=true, kw...)
 
 function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, good::Bool=false, ecount::Bool=false) where {T <: Number, N}
 	local flag = true
