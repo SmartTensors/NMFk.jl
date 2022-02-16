@@ -76,7 +76,7 @@ checkarray_count(X::Array; kw...) = checkarrayentries(X; ecount=true, kw...)
 
 function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
 	local flag = true
-	return_selected_indices = Vector{Vector{Int64}}(undef, N)
+	return_indices = Vector{Vector{Int64}}(undef, N)
 	for d = 1:N
 		!quiet && @info("Dimension $(d) ...")
 		selected_indices = Vector{Int64}(undef, 0)
@@ -115,9 +115,13 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=fa
 				end
 			end
 		end
-		return_selected_indices[d] = selected_indices
+		if ecount
+			return_indices[d] = acount
+		else
+			return_indices[d] = selected_indices
+		end
 	end
-	return return_selected_indices
+	return return_indices
 end
 
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)

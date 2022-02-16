@@ -2,28 +2,30 @@ import DocumentFunction
 
 function tensorfactorization(X::AbstractArray{T,N}, range::Union{AbstractRange{Int},Integer}, dims::Union{AbstractRange{Int},Integer}=1:N, aw...; casefilename::AbstractString="nmfk-tensor", kw...) where {T <: Number, N}
 	@assert maximum(dims) <= N
-	M = Vector{Tuple}(undef, N)
-	@info "Dimensions to be analyzed: $dims"
+	R = Vector{Tuple}(undef, N)
+	@info "Analyzed Dimensions: $dims"
 	for d in dims
-		@info "Dimension $d ..."
 		casefilename *= "-d$d"
-		M[d] = NMFk.execute(NMFk.flatten(X, d), range, aw...; casefilename=casefilename, kw...)
+		M = NMFk.flatten(X, d)
+		@info "Dimension $d: size: $(size(X)) -> $(size(M)) ..."
+		R[d] = NMFk.execute(M, range, aw...; casefilename=casefilename, kw...)
 	end
-	return M
+	return R
 end
 
 function tensorfactorization(X::AbstractArray{T,N}, range::AbstractVector, aw...; casefilename::AbstractString="nmfk-tensor", kw...) where {T <: Number, N}
 	@assert length(range) == N
-	M = Vector{Tuple}(undef, N)
-	@info "Dimensions to be analyzed: 1:$N"
+	R = Vector{Tuple}(undef, N)
+	@info "Analyzed Dimensions: 1:$N"
 	for d = 1:N
-		@info "Dimension $d ..."
-		casefilename *= "-d$d"
 		if length(range[d]) > 0
-			M[d] = NMFk.execute(NMFk.flatten(X, d), range[d], aw...; casefilename=casefilename, kw...)
+			casefilename *= "-d$d"
+			M = NMFk.flatten(X, d)
+			@info "Dimension $d: size: $(size(X)) -> $(size(M)) ..."
+			R[d] = NMFk.execute(M, range[d], aw...; casefilename=casefilename, kw...)
 		end
 	end
-	return M
+	return R
 end
 
 @doc """
