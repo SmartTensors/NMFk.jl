@@ -74,7 +74,7 @@ checkarray_nans(X::Array; kw...) = checkarrayentries(X; kw...)
 checkarray_zeros(X::Array; kw...) = checkarrayentries(X, i->i>0; kw...)
 checkarray_count(X::Array; kw...) = checkarrayentries(X; ecount=true, kw...)
 
-function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
+function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
 	local flag = true
 	return_indices = Vector{Vector{Int64}}(undef, N)
 	for d = 1:N
@@ -94,31 +94,23 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=fa
 			flag = flag && flagi
 		end
 		if ecount
-			!quiet && println("Dimension $(d) count: $acount")
-		else
-			if !quiet
-				if length(selected_indices) > 0
-					if good
-						println("Dimension $(d) good indices: $selected_indices")
-					else
-						println("Dimension $(d) bad indices: $selected_indices")
-						# nt = ntuple(k->(k == d ? selected_indices : Colon()), N)
-						# @show nt
-						# display(X[nt...])
-					end
-				else
-					if good
-						println("Dimension $(d): No good indices!")
-					else
-						println("Dimension $(d): No bad indices!")
-					end
-				end
-			end
-		end
-		if ecount
 			return_indices[d] = acount
+			st = "count"
 		else
 			return_indices[d] = selected_indices
+			st = good ? "good indices" : "bad indices"
+		end
+		if !quiet
+			if length(return_indices[d]) > 0
+				println("Dimension $(d) $(st): $(return_indices[d])")
+				if debug
+					nt = ntuple(k->(k == d ? return_indices[d] : Colon()), N)
+					display(nt)
+					display(X[nt...])
+				end
+			else
+				println("Dimension $(d): No $(st):")
+			end
 		end
 	end
 	return return_indices
