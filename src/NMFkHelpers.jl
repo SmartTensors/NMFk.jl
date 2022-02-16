@@ -458,3 +458,13 @@ function remap(v::AbstractVector, vi::Union{AbstractVector,AbstractUnitRange,Ste
 	nonneg && (f1[f1.<0] .= 0)
 	return f1
 end
+
+function stringproduct(a::AbstractVector, b::AbstractVector)
+	M = Matrix{eltype(a)}(undef, length(a), length(b))
+	for i = 1:length(a)
+		for j = 1:length(b)
+			M[i, j] = a[i] * ":" * b[j]
+		end
+	end
+	return M
+end

@@ -5,10 +5,9 @@ function tensorfactorization(X::AbstractArray{T,N}, range::Union{AbstractRange{I
 	R = Vector{Tuple}(undef, N)
 	@info "Analyzed Dimensions: $dims"
 	for d in dims
-		casefilename *= "-d$d"
 		M = NMFk.flatten(X, d)
 		@info "Dimension $d: size: $(size(X)) -> $(size(M)) ..."
-		R[d] = NMFk.execute(M, range, aw...; casefilename=casefilename, kw...)
+		R[d] = NMFk.execute(M, range, aw...; casefilename=casefilename * "-d$d", kw...)
 	end
 	return R
 end
@@ -19,10 +18,9 @@ function tensorfactorization(X::AbstractArray{T,N}, range::AbstractVector, aw...
 	@info "Analyzed Dimensions: 1:$N"
 	for d = 1:N
 		if length(range[d]) > 0
-			casefilename *= "-d$d"
 			M = NMFk.flatten(X, d)
 			@info "Dimension $d: size: $(size(X)) -> $(size(M)) ..."
-			R[d] = NMFk.execute(M, range[d], aw...; casefilename=casefilename, kw...)
+			R[d] = NMFk.execute(M, range[d], aw...; casefilename=casefilename * "-d$d", kw...)
 		end
 	end
 	return R
