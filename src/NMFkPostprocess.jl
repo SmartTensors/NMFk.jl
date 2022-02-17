@@ -236,8 +236,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 	Wnames = Wnames[Worder]
 	Hnames = Hnames[Horder]
 	if lon !== nothing && lat !== nothing
-		@assert length(lon) == length(lat)
-		plotmap = 0
+		if length(lon) == length(lat)
+			plotmap = true
+		else
+			@warn "Lat/Lon vector lengths do not match!"
+			plotmap = false
+		end
+	else
+		plotmap = false
 	end
 	Wclusters = Vector{Vector{Char}}(undef, length(krange))
 	Hclusters = Vector{Vector{Char}}(undef, length(krange))
@@ -387,10 +393,8 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			@assert signalmap == sortperm(clustermap)
 			@assert clustermap[signalmap] == clusterlabels
 			dumpcsv = true
-			if lon !== nothing && lat !== nothing
-				if length(lon) != length(chnew)
-					plotmap = 1
-				else
+			if plotmap
+				if length(lon) == length(chnew)
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.html", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 					lonlat = [lon lat]
 					DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Hnames lonlat Hm[:,signalmap] chnew], ',')
@@ -484,14 +488,14 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 			# 	snew2[snew .== "S$(i)"] .= "S$(ws[i])"
 			# end
 			dumpcsv = true
-			if lon !== nothing && lat !== nothing
-				if length(lon) != length(cwnew)
-					(plotmap == 1) && @warn("Coordinate data does not match the number of either W matrix rows or H matrix columns!")
-				else
+			if plotmap
+				if length(lon) == length(cwnew)
 					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 					lonlat = [lon lat]
 					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Wnames lonlat Wm[:,signalmap] cwnew], ',')
 					dumpcsv = false
+				else
+					@warn("Lat/Lon data does not match the number of either W matrix rows or H matrix columns!")
 				end
 			end
 			if dumpcsv
