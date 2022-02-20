@@ -1,16 +1,20 @@
 import Plotly
 import PlotlyJS
 
-function plot_wells(filename::AbstractString, v...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, k...)
+function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, kw...)
 	if plotly === nothing
-		p = PlotlyJS.plot(NMFk.plot_wells(v...; k...), Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+		p = PlotlyJS.plot(NMFk.plot_wells(ar...; kw...), Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 	else
 		p = PlotlyJS.plot(plotly, Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
-		p = Plotly.addtraces(p, NMFk.plot_wells(v...; k...)...)
+		p = Plotly.addtraces(p, NMFk.plot_wells(ar...; kw...)...)
 	end
 	j = joinpathcheck(figuredir, filename)
 	recursivemkdir(j)
 	PlotlyJS.savefig(p, j; format="html")
+end
+
+function plot_wells(wx::AbstractVector, wy::AbstractVector; kw...)
+	return NMFk.plot_wells(wx, wy, ones(length(wx)); kw...)
 end
 
 function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; hover=nothing, label=nothing, pointsize=6)

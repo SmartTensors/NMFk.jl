@@ -740,7 +740,8 @@ end
 
 function plotfileformat(p, filename::AbstractString, hsize, vsize; dpi=imagedpi)
 	if vsize > 20Compose.inch && hsize > 20Compose.inch
-		hsize = 20Compose.inch
+		m = max(hsize, vsize)
+		hsize = 20Compose.inch / m
 		vsize = 20Compose.inch
 	elseif vsize > 20Compose.inch
 		hsize /= vsize / 20

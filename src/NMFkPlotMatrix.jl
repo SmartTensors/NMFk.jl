@@ -123,7 +123,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 	if defaultcolor === nothing
 		if length(vs) > 0
 			if length(vs) < m * n && !rectbin
-				l = [Gadfly.layer(x=xs, y=ys, color=vs, Gadfly.Theme(point_size=pointsize, highlight_width=0Gadfly.pt))]
+				l = [Gadfly.layer(x=xs, y=ys, color=vs, Gadfly.Theme(point_size=pointsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt))]
 			elseif rect
 				l = [Gadfly.layer(x=xs, y=ys, color=vs, xmin=xrectmin, xmax=xrectmax, ymin=yrectmin, ymax=yrectmax, Gadfly.Geom.rect())]
 			else
@@ -134,7 +134,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		end
 	else
 		if nbins == 0
-			l = [Gadfly.layer(x=xs, y=ys, Gadfly.Theme(default_color=defaultcolor, point_size=pointsize, highlight_width=0Gadfly.pt))]
+			l = [Gadfly.layer(x=xs, y=ys, Gadfly.Theme(default_color=defaultcolor, point_size=pointsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt))]
 		else
 			l = []
 			s = (maxvalue - minvalue) / nbins
@@ -143,7 +143,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			for i = 1:nbins
 				id = findall(i->(i > s1 && i <= s2), vs)
 				c = Colors.RGBA(defaultcolor.r, defaultcolor.g, defaultcolor.b, defaultcolor.alpha/i)
-				sum(id) > 0 && (l = [l..., Gadfly.layer(x=xs[id], y=ys[id], Gadfly.Theme(default_color=c, point_size=pointsize, highlight_width=0Gadfly.pt))])
+				sum(id) > 0 && (l = [l..., Gadfly.layer(x=xs[id], y=ys[id], Gadfly.Theme(default_color=c, point_size=pointsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt))])
 				s1 += s
 				s2 += s
 			end
@@ -160,7 +160,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			push!(c, Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
 		end
 		if dots !== nothing
-			push!(c, Gadfly.layer(x=dots[:,1], y=dots[:,2], Gadfly.Theme(point_size=dotsize, highlight_width=0Gadfly.pt, default_color=dotcolor)))
+			push!(c, Gadfly.layer(x=dots[:,1], y=dots[:,2], Gadfly.Theme(point_size=dotsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt, default_color=dotcolor)))
 		end
 		if contour !== nothing
 			push!(c, Gadfly.layer(z=permutedims(contour .* (maxvalue - minvalue) .+ minvalue), x=collect(1:size(contour, 2)), y=collect(1:size(contour, 1)), Gadfly.Geom.contour(levels=[minvalue]), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
