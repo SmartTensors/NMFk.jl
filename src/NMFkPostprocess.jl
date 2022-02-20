@@ -181,7 +181,7 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=true, vsize=6Gadfly.inch, hsize=6Gadfly.inch, Hmatrix_vsize=vsize, Hmatrix_hsize=hsize, Hdendogram_vsize=vsize, Hdendogram_hsize=hsize, Wmatrix_vsize=vsize, Wmatrix_hsize=hsize, Wdendogram_vsize=vsize, Wdendogram_hsize=hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt)
+function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, Hmatrix_vsize=vsize, Hmatrix_hsize=hsize, Hdendogram_vsize=vsize, Hdendogram_hsize=hsize, Wmatrix_vsize=vsize, Wmatrix_hsize=hsize, Wdendogram_vsize=vsize, Wdendogram_hsize=hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt)
 	if length(krange) == 0
 		@warn("No optimal solutions")
 		return
@@ -239,10 +239,16 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 	Hnames = Hnames[Horder]
 	if lon !== nothing && lat !== nothing
 		if length(lon) == length(lat)
-			plotmap = true
+			if length(Hnames) != length(lon) || length(Wnames) != length(lat)
+				plotmap = false
+				@error("Length of lon/lat ($(length(lon))) must be equal to length of Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
+			else
+				plotmap = true
+			end
 		else
-			@warn "Lat/Lon vector lengths do not match!"
 			plotmap = false
+			@error("Lat/Lon vector lengths do not match!")
+			return
 		end
 	else
 		plotmap = false
@@ -506,7 +512,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Wnames lonlat Wm[:,signalmap] cwnew], ',')
 					dumpcsv = false
 				elseif length(lon) != length(chnew)
-					@warn("Lat/Lon data $((length(lon))) does not match the number of either W matrix rows $((length(cwnew))) or H matrix columns $((length(chnew)))!")
+					@warn("Lat/Lon data ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 				end
 			end
 			if dumpcsv
