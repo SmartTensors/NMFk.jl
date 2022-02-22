@@ -430,6 +430,25 @@ function flatten(X::AbstractArray{T,N}, dim::Number=1) where {T <: Number, N}
 	return A
 end
 
+function flattenindex(X::AbstractArray{T,N}, dim::Number=1; order=[1,2]) where {T <: Number, N}
+	sz = size(X)
+	nt = Vector{Int64}(undef, 0)
+	for k = 1:N
+		if (k != dim)
+			push!(nt, k)
+		end
+	end
+	if order == [1,2]
+		I = repeat(1:sz[nt[1]], sz[nt[2]])
+	elseif order == [2,1]
+		I = sort(repeat(1:sz[nt[2]], sz[nt[1]]))
+		# I = [repeat([i], sz[nt[1]]) for i=1:sz[nt[2]]]
+	else
+		error("Order must be [1,2] or [2,1]")
+	end
+	return I
+end
+
 if VERSION < v"1.7"
 	import Base.replace
 

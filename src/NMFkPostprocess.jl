@@ -316,7 +316,7 @@ function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},I
 				Wa = Wa[Worder,:]
 			elseif length(Wmap) > 0
 				@assert length(Wmap) == size(W[k], 1)
-				mu = unique(Ws)
+				mu = unique(Wmap)
 				na = length(mu)
 				@assert length(Wnames) == na
 				Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
