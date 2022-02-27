@@ -15,7 +15,7 @@ Gadfly.Stat.input_aesthetics(stat::HeatMapStatistic) = [:z, :x, :y]
 Gadfly.Stat.output_aesthetics(stat::HeatMapStatistic) = [:xmin, :xmax, :ymin, :ymax]
 Gadfly.Stat.default_scales(stat::HeatMapStatistic) = [Gadfly.Scale.z_func(), Gadfly.Scale.x_discrete(), Gadfly.Scale.y_discrete(), Gadfly.Scale.color_continuous()]
 
-function Gadfly.Stat.apply_statistic(stat::HeatMapStatistic, scales::Dict{Symbol,Gadfly.ScaleElement}, coord::Gadfly.CoordinateElement,aes::Gadfly.Aesthetics)
+function Gadfly.Stat.apply_statistic(stat::HeatMapStatistic, scales::Dict{Symbol,Gadfly.ScaleElement}, coord::Gadfly.CoordinateElement, aes::Gadfly.Aesthetics)
 	if stat.metric === nothing
 		r, c = size(aes.z)
 		aes.x = repeat(aes.x; inner=r)
@@ -26,7 +26,12 @@ function Gadfly.Stat.apply_statistic(stat::HeatMapStatistic, scales::Dict{Symbol
 		n = size(aes.z, stat.dim)
 		aes.x = repeat(aes.x; outer=n)
 		aes.y = repeat(aes.y; inner=n)
-		dist = Clustering.pairwise(stat.metric, aes.z; dims=stat.dim)
+		dist = Distances.pairwise(stat.metric, aes.z; dims=stat.dim)
+		if metric == Distances.CosineDist()
+			dist[isnan.(dist)] .= 1
+		else
+			dist[isnan.(dist)] .= 0
+		end
 		aes.color_key_title = string(replace(split(string(typeof(stat.metric)), ".")[end], "Dist"=>""), "\n","distance")
 	end
 	Gadfly.Stat.apply_statistic(Gadfly.Stat.rectbin(), scales, coord, aes)
@@ -77,16 +82,34 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	usecol = guide.location == :both || guide.location == :right
 	if guide.raw
 		if userow
-			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=2); linkage=guide.linkage)
+			dist = Distances.pairwise(guide.metric, aes.z; dims=2)
+			if guide.metric == Distances.CosineDist()
+				dist[isnan.(dist)] .= 1
+			else
+				dist[isnan.(dist)] .= 0
+			end
+			hc = Clustering.hclust(dist; linkage=guide.linkage)
 			branches_row, _, pos_row = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		if usecol
-			hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=1); linkage=guide.linkage)
+			dist = Distances.pairwise(guide.metric, aes.z; dims=1)
+			if guide.metric == Distances.CosineDist()
+				dist[isnan.(dist)] .= 1
+			else
+				dist[isnan.(dist)] .= 0
+			end
+			hc = Clustering.hclust(dist; linkage=guide.linkage)
 			_, branches_col, pos_col = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		r, c = size(aes.z)
 	else
-		hc = Clustering.hclust(Clustering.pairwise(guide.metric, aes.z; dims=guide.dim); linkage=guide.linkage)
+		dist = Distances.pairwise(guide.metric, aes.z; dims=guide.dim)
+		if guide.metric == Distances.CosineDist()
+			dist[isnan.(dist)] .= 1
+		else
+			dist[isnan.(dist)] .= 0
+		end
+		hc = Clustering.hclust(dist; linkage=guide.linkage)
 		branches_row, branches_col, pos_col = branches(hc, guide.location, guide.scaleheight, guide.height)
 		pos_row = pos_col
 		r = c = size(aes.z, guide.dim)
@@ -127,6 +150,13 @@ function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.Cosine
 		r, c = size(X)
 	else
 		r = c = size(X, dim)
+	end
+	dist = Distances.pairwise(metric, X; dims=dim)
+	dist[isnan.(dist)] .= 0
+	if !LinearAlgebra.issymmetric(dist)
+		@warn "Non symmetric matrix!"
+		display(dist)
+		return nothing
 	end
 	p = Gadfly.plot(z=X, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none, minor_label_font_size=minor_label_font_size))
 	Mads.display(p)

@@ -1,4 +1,6 @@
 import Statistics
+import Distances
+import Clustering
 
 "Finalize the NMFk results"
 function finalize(Wa::AbstractVector, idx::AbstractMatrix)
