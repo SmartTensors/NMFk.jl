@@ -78,12 +78,13 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	local best_totalcost = Inf
 	local best_mean_silhouettes = Inf
 	local best_silhouettes = []
+	Xn = zerostoepsilon(X)
 	for i = 1:repeats
 		local c_new
 		@Suppressor.suppress begin
 			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		end
-		Xd = Distances.pairwise(distance, X; dims=2)
+		Xd = Distances.pairwise(distance, Xn; dims=2)
 		silhouettes = Clustering.silhouettes(c_new, Xd)
 		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)

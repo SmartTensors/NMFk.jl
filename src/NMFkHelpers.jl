@@ -487,3 +487,26 @@ function stringproduct(a::AbstractVector, b::AbstractVector)
 	end
 	return M
 end
+
+function zerostoepsilon(X::AbstractArray)
+	Xn = copy(X)
+	zerostoepsilon!(Xn)
+	return Xn
+end
+
+function zerostoepsilon!(X::AbstractArray)
+	e = eps(eps(eltype(X))) # == esp(eltype(X)) ^ 2
+	X[X .< e] .= e
+	return nothing
+end
+
+function aisnan(X::AbstractArray)
+	Xn = copy(X)
+	aisnan!(Xn)
+	return Xn
+end
+
+function aisnan!(X::AbstractArray, l=1)
+	X[isnan.(X)] .= l
+	return nothing
+end

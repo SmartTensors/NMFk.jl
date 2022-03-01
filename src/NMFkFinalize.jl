@@ -11,7 +11,7 @@ function finalize(Wa::AbstractVector, idx::AbstractMatrix)
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if nk > 1
-		WaDist = Distances.pairwise(Distances.CosineDist(), vcat(Wa...); dims=1)
+		WaDist = Distances.pairwise(Distances.CosineDist(), zerostoepsilon(vcat(Wa...)); dims=1)
 		silhouettes = Clustering.silhouettes(idx_r, WaDist)
 	end
 
@@ -43,13 +43,13 @@ function finalize(Wa::AbstractVector, Ha::AbstractVector, idx::AbstractMatrix, c
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if clusterWmatrix
-		WaDist = Distances.pairwise(Distances.CosineDist(), hcat(Wa...); dims=2)
+		WaDist = Distances.pairwise(Distances.CosineDist(), zerostoepsilon(hcat(Wa...)); dims=2)
 		inanw = isnan.(WaDist)
 		WaDist[inanw] .= 0
 		silhouettes = reshape(Clustering.silhouettes(idx_r, WaDist), nk, nNMF)
 		WaDist[inanw] .= NaN
 	else
-		HaDist = Distances.pairwise(Distances.CosineDist(), vcat(Ha...); dims=1)
+		HaDist = Distances.pairwise(Distances.CosineDist(), zerostoepsilon(vcat(Ha...)); dims=1)
 		inanh = isnan.(HaDist)
 		HaDist[inanh] .= 0
 		silhouettes = reshape(Clustering.silhouettes(idx_r, HaDist), nk, nNMF)
@@ -85,10 +85,10 @@ function finalize(Wa::AbstractMatrix{T}, Ha::AbstractMatrix{T}, nNMF::Integer, i
 
 	idx_r = vec(reshape(idx, nT, 1))
 	if clusterWmatrix
-		WaDist = Distances.pairwise(Distances.CosineDist(), Wa; dims=2)
+		WaDist = Distances.pairwise(Distances.CosineDist(), zerostoepsilon(Wa); dims=2)
 		silhouettes = reshape(Clustering.silhouettes(idx_r, WaDist), nk, nNMF)
 	else
-		HaDist = Distances.pairwise(Distances.CosineDist(), Ha; dims=1)
+		HaDist = Distances.pairwise(Distances.CosineDist(), zerostoepsilon(Ha); dims=1)
 		silhouettes = reshape(Clustering.silhouettes(idx_r, HaDist), nk, nNMF)
 	end
 	clustersilhouettes = Array{T}(undef, nk, 1)

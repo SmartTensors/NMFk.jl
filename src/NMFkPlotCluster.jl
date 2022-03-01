@@ -27,11 +27,7 @@ function Gadfly.Stat.apply_statistic(stat::HeatMapStatistic, scales::Dict{Symbol
 		aes.x = repeat(aes.x; outer=n)
 		aes.y = repeat(aes.y; inner=n)
 		dist = Distances.pairwise(stat.metric, aes.z; dims=stat.dim)
-		if metric == Distances.CosineDist()
-			dist[isnan.(dist)] .= 1
-		else
-			dist[isnan.(dist)] .= 0
-		end
+		aisnan!(dist)
 		aes.color_key_title = string(replace(split(string(typeof(stat.metric)), ".")[end], "Dist"=>""), "\n","distance")
 	end
 	Gadfly.Stat.apply_statistic(Gadfly.Stat.rectbin(), scales, coord, aes)
@@ -83,32 +79,20 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	if guide.raw
 		if userow
 			dist = Distances.pairwise(guide.metric, aes.z; dims=2)
-			if guide.metric == Distances.CosineDist()
-				dist[isnan.(dist)] .= 1
-			else
-				dist[isnan.(dist)] .= 0
-			end
+			aisnan!(dist)
 			hc = Clustering.hclust(dist; linkage=guide.linkage)
 			branches_row, _, pos_row = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		if usecol
 			dist = Distances.pairwise(guide.metric, aes.z; dims=1)
-			if guide.metric == Distances.CosineDist()
-				dist[isnan.(dist)] .= 1
-			else
-				dist[isnan.(dist)] .= 0
-			end
+			aisnan!(dist)
 			hc = Clustering.hclust(dist; linkage=guide.linkage)
 			_, branches_col, pos_col = branches(hc, guide.location, guide.scaleheight, guide.height)
 		end
 		r, c = size(aes.z)
 	else
 		dist = Distances.pairwise(guide.metric, aes.z; dims=guide.dim)
-		if guide.metric == Distances.CosineDist()
-			dist[isnan.(dist)] .= 1
-		else
-			dist[isnan.(dist)] .= 0
-		end
+		aisnan!(dist)
 		hc = Clustering.hclust(dist; linkage=guide.linkage)
 		branches_row, branches_col, pos_col = branches(hc, guide.location, guide.scaleheight, guide.height)
 		pos_row = pos_col
@@ -151,14 +135,18 @@ function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.Cosine
 	else
 		r = c = size(X, dim)
 	end
-	dist = Distances.pairwise(metric, X; dims=dim)
-	dist[isnan.(dist)] .= 0
-	if !LinearAlgebra.issymmetric(dist)
-		@warn "Non symmetric matrix!"
-		display(dist)
-		return nothing
+	if metric == Distances.CosineDist()
+		dist = Distances.pairwise(metric, X; dims=dim)
+		dist[isnan.(dist)] .= 0
+		if !LinearAlgebra.issymmetric(dist)
+			Xz = zerostoepsilon(X)
+		else
+			Xz = X
+		end
+	else
+		Xz = X
 	end
-	p = Gadfly.plot(z=X, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none, minor_label_font_size=minor_label_font_size))
+	p = Gadfly.plot(z=Xz, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none, minor_label_font_size=minor_label_font_size))
 	Mads.display(p)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
