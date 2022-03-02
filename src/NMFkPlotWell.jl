@@ -11,6 +11,7 @@ function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString="
 	j = joinpathcheck(figuredir, filename)
 	recursivemkdir(j)
 	PlotlyJS.savefig(p, j; format="html")
+	return p
 end
 
 function plot_wells(wx::AbstractVector, wy::AbstractVector; kw...)
