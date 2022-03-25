@@ -157,8 +157,6 @@ function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVe
 	end
 end
 
-postprocess = clusterresults
-
 function clusterresults(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) where {T <: Number}
 	k = size(W, 2)
 	@assert size(H, 1) == k
@@ -670,3 +668,5 @@ function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, loc
 		end
 	end
 end
+
+postprocess = clusterresults

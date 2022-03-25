@@ -1,7 +1,7 @@
 name = "NMFk"
 uuid = "e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8"
 authors = ["Velimir V Vesselinov (monty) <velimir.vesselinov@gmail.com>"]
-version = "1.1.42"
+version = "1.1.43"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
@@ -64,7 +64,7 @@ Ipopt = "0.6, 0.7, 0.8, 0.9, 1.0"
 Interpolations = "0.12, 0.13, 0.14"
 JLD = "0.10, 0.11, 0.12, 0.13"
 JLD2 = "0.2, 0.3, 0.4, 0.5"
-JuMP = "0.21, 0.22, 0.23"
+JuMP = "0.21, 0.22, 0.23, 1"
 Mads = "1"
 Measures = "0.3, 0.4"
 MultivariateStats = "0.7, 0.8, 0.9"
