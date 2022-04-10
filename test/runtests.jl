@@ -6,10 +6,10 @@ import LinearAlgebra
 
 @Test.testset "NMFk" begin
 
-function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[])
+function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[], tol::Number=0.0000001)
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
-	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-1), maxiter=5000, verbosity=0, tol=0.0000001, method=:ipopt)
+	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Array{Float32, 2}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-1), maxiter=5000, verbosity=0, tol=tol, method=:ipopt)
 	concs[idxnan] .= 0
 	predictedconcs = mixerestimate * bucketestimate
 	predictedconcs[idxnan] .= 0
@@ -40,7 +40,7 @@ end
 function buckettest()
 	nummixtures = 20
 	numbuckets = 2
-	numconstituents = 3
+	# numconstituents = 3
 	for iternum = 1:10
 		mixer = rand(nummixtures, numbuckets)
 		for i = 1:nummixtures
@@ -70,7 +70,7 @@ end
 function pureratiotest()
 	nummixtures = 20
 	numbuckets = 2
-	numconstituents = 4
+	# numconstituents = 4
 	for iternum = 1:10
 		mixer = rand(nummixtures, numbuckets)
 		for i = 1:nummixtures
@@ -87,14 +87,15 @@ function pureratiotest()
 			end
 		end
 		data = fill(NaN, size(truedata))
-		runtest(convert(Array{Float32, 2}, data), buckets, ratiomatrix; conccomponents=Int[], ratiocomponents=ratiocomponents)
+		tol = Sys.islinux() ? 1e-10 : 1e-7
+		runtest(convert(Array{Float32, 2}, data), buckets, ratiomatrix; conccomponents=Int[], ratiocomponents=ratiocomponents, tol=tol)
 	end
 end
 
 function ratiotest()
 	nummixtures = 20
 	numbuckets = 2
-	numconstituents = 6
+	# numconstituents = 6
 	for iternum = 1:10
 		mixer = rand(nummixtures, numbuckets)
 		for i = 1:nummixtures
