@@ -714,29 +714,5 @@ function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, k
 	return D
 end
 
-"""
-Set image file `format` based on the `filename` extension, or sets the `filename` extension based on the requested `format`. The default `format` is `PNG`. `SVG`, `PDF`, `ESP`, and `PS` are also supported.
-
-$(DocumentFunction.documentfunction(setplotfileformat; argtext=Dict("filename"=>"output file name")))
-
-Returns:
-
-- output file name
-- output plot format (`png`, `pdf`, etc.)
-"""
-function setplotfileformat(filename::AbstractString, format::AbstractString="PNG")
-	d = splitdir(filename)
-	root, extension = splitext(d[end])
-	if extension == ""
-		extension = lowercase(format)
-		filename = joinpath(d[1], root * "." * extension)
-	else
-		format = uppercase(extension[2:end])
-	end
-	if format == "EPS"
-		format = "PS"
-	end
-	return filename, Symbol(format)
-end
-
+setplotfileformat = Mads.setplotfileformat
 plotfileformat = Mads.plotfileformat
