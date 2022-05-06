@@ -1,4 +1,5 @@
 import JLD
+import Mads
 
 function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, quiet::Bool=false, strict::Bool=true, kw...)
 	maxsignals = maximum(collect(nkrange))
@@ -75,51 +76,11 @@ function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; 
 		@warn("File named $filename already exists!")
 	end
 end
-
 @doc """
 Save NMFk analysis results
 """ save
 
-"""
-Create directories recursively (if does not already exist)
-
-$(DocumentFunction.documentfunction(recursivemkdir;
-argtext=Dict("dirname"=>"directory")))
-"""
-function recursivemkdir(s::AbstractString; filename=true)
-	if filename
-		if isfile(s)
-			return
-		end
-	else
-		if isdir(s)
-			return
-		end
-	end
-	d = Vector{String}(undef, 0)
-	sc = deepcopy(s)
-	if !filename && sc!= ""
-		push!(d, sc)
-	end
-	while true
-		sd = splitdir(sc)
-		sc = sd[1]
-		if sc == "" || sc == "/"
-			break;
-		end
-		push!(d, sc)
-	end
-	for i = length(d):-1:1
-		sc = d[i]
-		if isfile(sc)
-			@warn("File $(sc) exists!")
-			return
-		elseif !isdir(sc)
-			mkdir(sc)
-			@info("Make dir $(sc)")
-		end
-	end
-end
+recursivemkdir = Mads.recursivemkdir
 
 function joinpathcheck(path::AbstractString, paths::AbstractString...)
 	if path == "." && paths[1] == '/'

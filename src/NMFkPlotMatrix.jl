@@ -43,7 +43,9 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		if eltype(xticks) <: AbstractString
 			xticks = stringfix.(xticks)
 		end
-		gm = [gm..., Gadfly.Scale.x_discrete(labels=i->xticks[i]), Gadfly.Guide.xticks(label=true)]
+		gm = [gm..., Gadfly.Theme(minor_label_font_size=minor_label_font_size, key_label_font_size=key_label_font_size, key_title_font_size=key_title_font_size, bar_spacing=0Gadfly.mm, key_position=key_position), Gadfly.Scale.x_discrete(labels=i->xticks[i]), Gadfly.Guide.xticks(label=true)]
+	else
+		gm = [gm..., Gadfly.Scale.x_continuous]
 	end
 	if yticks !== nothing
 		if size(X, 1) != length(yticks)
@@ -53,7 +55,9 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		if eltype(yticks) <: AbstractString
 			yticks = stringfix.(yticks)
 		end
-		gm = [gm..., Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]
+		gm = [gm..., Gadfly.Theme(minor_label_font_size=minor_label_font_size, key_label_font_size=key_label_font_size, key_title_font_size=key_title_font_size, bar_spacing=0Gadfly.mm, key_position=key_position), Gadfly.Scale.y_discrete(labels=i->yticks[i]), Gadfly.Guide.yticks(label=true)]
+	else
+		gm = [gm..., Gadfly.Scale.y_continuous]
 	end
 	cs = colorkey ? [Gadfly.Guide.ColorKey(title=key_tilte)] : []
 	cm = colormap === nothing ? [] : [Gadfly.Scale.ContinuousColorScale(colormap..., minvalue=minvalue, maxvalue=maxvalue)]
@@ -119,7 +123,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 		end
 	end
 	# @show ymatrixmin ymatrixmax xmatrixmax xmatrixmin yflip
-	gt = [Gadfly.Guide.title(title), Gadfly.Guide.xlabel(xlabel), Gadfly.Guide.ylabel(ylabel), Gadfly.Theme(major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size, key_label_font_size=key_label_font_size, key_title_font_size=key_title_font_size, bar_spacing=0Gadfly.mm, key_position=key_position, discrete_highlight_color=c->nothing), Gadfly.Coord.cartesian(yflip=yflip, fixed=true, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous, Gadfly.Scale.y_continuous]
+	gt = [Gadfly.Guide.title(title), Gadfly.Guide.xlabel(xlabel), Gadfly.Guide.ylabel(ylabel), Gadfly.Theme(major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size, key_label_font_size=key_label_font_size, key_title_font_size=key_title_font_size, bar_spacing=0Gadfly.mm, key_position=key_position, discrete_highlight_color=c->nothing), Gadfly.Coord.cartesian(yflip=yflip, fixed=true, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)]
 	if defaultcolor === nothing
 		if length(vs) > 0
 			if length(vs) < m * n && !rectbin
@@ -143,7 +147,7 @@ function plotmatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumn
 			for i = 1:nbins
 				id = findall(i->(i > s1 && i <= s2), vs)
 				c = Colors.RGBA(defaultcolor.r, defaultcolor.g, defaultcolor.b, defaultcolor.alpha/i)
-				sum(id) > 0 && (l = [l..., Gadfly.layer(x=xs[id], y=ys[id], Gadfly.Theme(default_color=c, point_size=pointsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt))])
+				sum(id) > 0 && (l = [l..., Gadfly.layer(x=xs[id], y=ys[id], Gadfly.Theme(default_color=c, point_size=pointsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt, ))])
 				s1 += s
 				s2 += s
 			end

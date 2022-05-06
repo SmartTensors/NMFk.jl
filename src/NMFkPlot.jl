@@ -6,6 +6,7 @@ import Colors
 import DataFrames
 import StatsBase
 import Measures
+import Mads
 
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
 ncolors = length(colors)
@@ -738,26 +739,4 @@ function setplotfileformat(filename::AbstractString, format::AbstractString="PNG
 	return filename, Symbol(format)
 end
 
-function plotfileformat(p, filename::AbstractString, hsize, vsize; dpi=imagedpi)
-	if vsize > 20Compose.inch && hsize > 20Compose.inch
-		m = max(hsize, vsize)
-		hsize = 20Compose.inch / m
-		vsize = 20Compose.inch
-	elseif vsize > 20Compose.inch
-		hsize /= vsize / 20
-		vsize = 20Compose.inch
-	elseif hsize > 20Compose.inch
-		vsize /= hsize / 20
-		hsize = 20Compose.inch
-	end
-	filename, format = setplotfileformat(filename)
-	if format == :SVG
-		Gadfly.draw(Gadfly.eval(format)(filename, hsize, vsize), p)
-	elseif isdefined(Main, :Cairo)
-		if format == :PNG
-			Gadfly.draw(Gadfly.PNG(filename, hsize, vsize; dpi=dpi), p)
-		else
-			Gadfly.draw(Gadfly.eval(format)(filename, hsize, vsize), p)
-		end
-	end
-end
+plotfileformat = Mads.plotfileformat
