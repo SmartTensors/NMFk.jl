@@ -57,7 +57,7 @@ end
 
 "Normalize matrix"
 function normalizematrix(a::AbstractMatrix, dim::Integer; kw...)
-	normalizematrix!(copy(a), dim; kw)
+	normalizematrix!(copy(a), dim; kw...)
 end
 
 function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=matrixmin(a, dim), amax::AbstractArray=matrixmax(a, dim), rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
