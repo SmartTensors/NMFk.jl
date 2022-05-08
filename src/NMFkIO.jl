@@ -27,7 +27,7 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5,
 	end
 	kopt = getk(nkrange, robustness[nkrange], cutoff; strict=strict)
 	if !quiet
-		if kopt != nothing
+		if kopt !== nothing
 			@info("Optimal solution: $kopt signals")
 		else
 			@info("No optimal solution: $kopt signals")
