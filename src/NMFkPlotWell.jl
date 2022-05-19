@@ -1,5 +1,29 @@
 import Plotly
 import PlotlyJS
+import Colors
+import ColorSchemes
+
+function colorscale(scheme::Symbol, N = 101)
+	x = permutedims(0.0:(1.0/(N - 1)):1.0)
+	cs = get(ColorSchemes.colorschemes[scheme], x, :clamp)
+	cs_rgb = Colors.RGB.(cs)
+	return vcat(x, cs_rgb)
+  end
+
+function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hover=nothing, label=nothing, pointsize=6)
+	if hover !== nothing
+		@assert length(hover) == length(x)
+	end
+	if label !== nothing
+		@assert length(label) == length(x)
+	end
+	@assert length(x) == length(y)
+	@assert length(x) == length(z)
+	l = label === nothing ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
+	h = hover === nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
+	dots = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=Plotly.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow)), h...)
+	return PlotlyJS.plot(dots)
+end
 
 function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, kw...)
 	if plotly === nothing
