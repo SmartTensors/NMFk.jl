@@ -157,31 +157,31 @@ function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVe
 	end
 end
 
-function clusterresults(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) where {T <: Number}
+function postprocess(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) where {T <: Number}
 	k = size(W, 2)
 	@assert size(H, 1) == k
 	Wa = Array{Array{T, 2}}(undef, k)
 	Ha = Array{Array{T, 2}}(undef, k)
 	Wa[k] = W
 	Ha[k] = H
-	NMFk.clusterresults(k, Wa, Ha, aw...; kw...)
+	NMFk.postprocess(k, Wa, Ha, aw...; kw...)
 end
 
-function clusterresults(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; cutoff::Number=0.5, kw...)
-	NMFk.clusterresults(NMFk.getks(nkrange, silhouette[nkrange], cutoff), nkrange, nruns, Wnames, Hnames; kw...)
+function postprocess(nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; cutoff::Number=0.5, kw...)
+	NMFk.postprocess(NMFk.getks(nkrange, silhouette[nkrange], cutoff), nkrange, nruns, Wnames, Hnames; kw...)
 end
 
-function clusterresults(krange::Union{AbstractVector{Int64},Integer}, nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", keyword::AbstractString="", kw...)
+function postprocess(krange::Union{AbstractVector{Int64},Integer}, nkrange::AbstractRange{Int}, nruns::Integer, Wnames::AbstractVector, Hnames::AbstractVector; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", keyword::AbstractString="", kw...)
 
 	W, H, fit, silhouette, aic, kopt = NMFk.load(nkrange, nruns; resultdir=resultdir, casefilename=casefilename)
 	suffix = "$(casefilename)-$(nruns)"
-	NMFk.clusterresults(krange, W, H, Wnames, Hnames; resultdir="results-$(suffix)", figuredir="figures-$(suffix)", kw...)
+	NMFk.postprocess(krange, W, H, Wnames, Hnames; resultdir="results-$(suffix)", figuredir="figures-$(suffix)", kw...)
 end
 
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function clusterresults(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt)
+function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector, Hnames::AbstractVector; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt)
 	if length(krange) == 0
 		@warn("No optimal solutions")
 		return
@@ -669,4 +669,4 @@ function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, loc
 	end
 end
 
-postprocess = clusterresults
+clusterresults = postprocess
