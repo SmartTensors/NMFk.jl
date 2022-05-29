@@ -21,7 +21,7 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 	@assert length(x) == length(z)
 	l = label === nothing ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
 	h = hover === nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
-	dots = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=Plotly.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow)), h...)
+	dots = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=Plotly.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20)), h...)
 	return PlotlyJS.plot(dots)
 end
 
