@@ -412,6 +412,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			dumpcsv = true
 			if plotmap
 				if length(lon) == length(chnew)
+					if hover === nothing
+						hover = Hnames
+					end
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.html", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 					lonlat = [lon lat]
 					DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Hnames lonlat Hm[:,signalmap] chnew], ',')
@@ -512,6 +515,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			dumpcsv = true
 			if plotmap
 				if length(lon) == length(cwnew)
+					if hover === nothing
+						hover = Wnames
+					end
 					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 					lonlat = [lon lat]
 					DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Wnames lonlat Wm[:,signalmap] cwnew], ',')
