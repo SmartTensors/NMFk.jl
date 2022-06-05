@@ -239,7 +239,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	Hnames = Hnames[Horder]
 	if lon !== nothing && lat !== nothing
 		if length(lon) == length(lat)
-			if length(Hnames) != length(lon) || length(Wnames) != length(lat)
+			if length(Hnames) != length(lon) && length(Wnames) != length(lat)
 				plotmap = false
 				@error("Length of lon/lat ($(length(lon))) must be equal to length of Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
 			else
