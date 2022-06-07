@@ -10,7 +10,7 @@ function colorscale(scheme::Symbol, N = 101)
 	return vcat(x, cs_rgb)
   end
 
-function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hover=nothing, label=nothing, pointsize=6)
+function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hover=nothing, label=nothing, title::AbstractString="", pointsize=6)
 	if hover !== nothing
 		@assert length(hover) == length(x)
 	end
@@ -20,16 +20,28 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 	@assert length(x) == length(y)
 	@assert length(x) == length(z)
 	l = label === nothing ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
-	h = hover === nothing ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
-	dots = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=Plotly.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20)), h...)
-	return PlotlyJS.plot(dots)
+	if eltype(z) <: AbstractFloat
+		h = hover === nothing ? Dict() : Dict(:hovertext=>hover, :hoverinfo=>"text")
+		p = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=Plotly.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20)), h...)
+	else
+		dots = []
+		for (j, i) in enumerate(unique(sort(z)))
+			iz = z .== i
+			h = hover === nothing ? Dict() : Dict(:hovertext=>hover[iz], :hoverinfo=>"text")
+			dots_p = PlotlyJS.scatter(;x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
+			push!(dots, dots_p)
+		end
+		p = convert(Array{typeof(dots[1])}, dots)
+	end
+	return PlotlyJS.plot(p, Plotly.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+
 end
 
 function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, kw...)
 	if plotly === nothing
-		p = PlotlyJS.plot(NMFk.plot_wells(ar...; kw...), Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+		p = PlotlyJS.plot(NMFk.plot_wells(ar...; kw...), Plotly.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 	else
-		p = PlotlyJS.plot(plotly, Plotly.Layout(title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+		p = PlotlyJS.plot(plotly, Plotly.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 		p = Plotly.addtraces(p, NMFk.plot_wells(ar...; kw...)...)
 	end
 	j = joinpathcheck(figuredir, filename)
