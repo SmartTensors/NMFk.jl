@@ -3,10 +3,10 @@ import Clustering
 import RDatasets
 
 iris = RDatasets.dataset("datasets", "iris")
-NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], iris[:, :Species], ; hover=iris[:, :Species])
+NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], iris[:, :Species]; hover=iris[:, :Species])
 data = float.(Matrix(iris)[:,1:4])
 
-rkmeans = Clustering.kmeans(permutedims(data), 3)
+rkmeans = Clustering.kmeans(permutedims(data), 2)
 ca = Clustering.assignments(rkmeans)
 NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], ca; hover=iris[:, :Species])
 

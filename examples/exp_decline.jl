@@ -11,6 +11,6 @@ e = rand(10) * .1 .+ s
 W = [a b c d e]
 H = rand(5, 8)
 
-NMFk.plotmatrix(W*H; maxvalue=2., key_position=:none)
+NMFk.plotmatrix(W * H; maxvalue=2., key_position=:none)
 NMFk.plotmatrix(W; maxvalue=2., key_position=:none)
 NMFk.plotmatrix(H; key_position=:none)
