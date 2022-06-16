@@ -332,7 +332,7 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 		if length(kn) == 0
 			inan = isnan.(robustness)
 			robustness[inan] .= -Inf
-			k = nkrange[findmax(robustness)[2]]
+			k = [nkrange[last(findmax(robustness))]]
 			robustness[inan] .= NaN
 		else
 			k = kn
