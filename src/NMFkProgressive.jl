@@ -335,7 +335,7 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 			k = [nkrange[last(findmax(robustness))]]
 			robustness[inan] .= NaN
 		else
-			k = kn
+			k = nkrange[kn]
 		end
 	end
 	return mergeks(k, ks)

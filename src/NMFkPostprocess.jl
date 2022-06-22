@@ -2,6 +2,26 @@ import DelimitedFiles
 import PlotlyJS
 import Mads
 
+function signalrescale!(W::AbstractMatrix, H::AbstractMatrix; Wnormalize::Bool=true, check::Bool=true)
+	check && (X = W * H)
+	if Wnormalize
+		wm = maximum(W; dims=1)
+		W ./= wm
+		H .*= permutedims(wm)
+		wh = maximum(H)
+		H ./= wh
+		W .*= wh
+	else
+		hm = maximum(H; dims=2)
+		H ./= hm
+		W .*= permutedims(hm)
+		wm = maximum(W)
+		W ./= maximum(W)
+		H .*= wm
+	end
+	check && @assert(maximum(abs.((X - W * H))) < 1.)
+end
+
 function signalorder(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector)
 	signal_order = Array{Array{Int64}}(undef, maximum(krange))
 	for k = 1:maximum(krange)
