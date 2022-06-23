@@ -26,7 +26,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=false, veryquiet::Bool=false, kw...) where {T <: Number}
+function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=loadonly, veryquiet::Bool=false, kw...) where {T <: Number}
 	if .*(size(X)...) == 0
 		error("Array has a zero dimension! size(X)=$(size(X))")
 	end

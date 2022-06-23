@@ -16,7 +16,7 @@ function signalrescale!(W::AbstractMatrix, H::AbstractMatrix; Wnormalize::Bool=t
 		H ./= hm
 		W .*= permutedims(hm)
 		wm = maximum(W)
-		W ./= maximum(W)
+		W ./= wm
 		H .*= wm
 	end
 	check && @assert(maximum(abs.((X - W * H))) < 1.)
