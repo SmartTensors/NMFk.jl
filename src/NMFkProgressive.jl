@@ -332,10 +332,16 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 		if length(kn) == 0
 			inan = isnan.(robustness)
 			robustness[inan] .= -Inf
-			k = [nkrange[last(findmax(robustness))]]
+			kn = last(findmax(robustness))
 			robustness[inan] .= NaN
-		else
+		end
+		if length(nkrange) == length(robustness)
 			k = nkrange[kn]
+		else
+			k = kn
+		end
+		if !(typeof(k) <: AbstractVector)
+			k = [k]
 		end
 	end
 	return mergeks(k, ks)
