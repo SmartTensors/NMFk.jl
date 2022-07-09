@@ -10,7 +10,7 @@ rkmeans = Clustering.kmeans(permutedims(data), 3)
 ca = NMFk.labelassignements(rkmeans.assignments)
 NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], ca; hover=iris[:, :Species])
 
-rk, rbkmeans = NMFk.robustkmeans(permutedims(data), 2:5)
+rbkmeans = NMFk.robustkmeans(permutedims(data), 2:5)
 ca = NMFk.labelassignements(rbkmeans.assignments)
 NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], ca; hover=iris[:, :Species])
 

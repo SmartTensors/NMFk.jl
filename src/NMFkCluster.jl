@@ -60,7 +60,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Abstra
 	end
 	k = krange[ki]
 	@info("Best $k - OF: $(totalcosts[ki]) Mean Silhouette: $(mean_silhouette[ki]) Worst Silhouette: $(worst_silhouette[ki]) Cluster Count: $(map(i->sum(cresult[ki].assignments .== i), unique(cresult[ki].assignments))) Cluster Silhouettes: $(cluster_silhouettes[ki])")
-	return k, cresult[ki]
+	return cresult[ki]
 end
 
 function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false)
