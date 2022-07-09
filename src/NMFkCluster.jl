@@ -29,34 +29,38 @@ function remap2count(assignments)
 	return map(mfunc, assignments)
 end
 
-function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},AbstractVector{Int64}}, repeats::Int=1000; kw...)
+function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},AbstractVector{Int64}}, repeats::Int=1000; best_method::Symbol=:worst_cliff, kw...)
 	if krange[1] >= size(X, 2)
 		@info("Cannot be computed (min range is greater than or equal to size(X,2); $krange[1] >= $(size(X, 2)))")
 		return nothing
 	end
-	best_totalcost = Inf
-	best_mean_silhouettes = 0
-	kbest = krange[1]
-	local cbest = nothing
-	local silhouettesbest = nothing
-	for k in krange
+	totalcosts = Vector{Float64}(undef, length(krange))
+	mean_silhouette = Vector{Float64}(undef, length(krange))
+	worst_silhouette = Vector{Float64}(undef, length(krange))
+	cresult = Vector{Any}(undef, length(krange))
+	cluster_silhouettes = Vector{Any}(undef, length(krange))
+	for (i, k) in enumerate(krange)
 		if k >= size(X, 2)
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
-		c, silhouettes = robustkmeans(X, k, repeats; kw...)
-		mean_silhouettes = Statistics.mean(silhouettes)
-		@info("$k: OF: $(c.totalcost) Mean Silhouette: $(mean_silhouettes) Worst Silhouette: $(minimum(silhouettes)) Cluster Count: $(map(i->sum(c.assignments .== i), unique(c.assignments))) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettes[c.assignments .== i]), unique(c.assignments)))")
-		if best_mean_silhouettes < mean_silhouettes
-			best_mean_silhouettes = mean_silhouettes
-			best_totalcost = c.totalcost
-			cbest = deepcopy(c)
-			silhouettesbest = deepcopy(silhouettes)
-			kbest = k
-		end
+		cresult[i], silhouettes = robustkmeans(X, k, repeats; kw...)
+		totalcosts[i] = cresult[i].totalcost
+		mean_silhouette[i] = Statistics.mean(silhouettes)
+		cluster_silhouettes[i] = map(j->Statistics.mean(silhouettes[cresult[i].assignments .== j]), unique(cresult[i].assignments))
+		worst_silhouette[i] = minimum(silhouettes)
+		@info("$k: OF: $(totalcosts[i]) Mean Silhouette: $(mean_silhouette[i]) Worst Silhouette: $(worst_silhouette[i]) Cluster Count: $(map(j->sum(cresult[i].assignments .== j), unique(cresult[i].assignments))) Cluster Silhouettes: $(cluster_silhouettes[i])")
 	end
-	@info("Best $kbest - OF: $best_totalcost Mean Silhouette: $best_mean_silhouettes Worst Silhouette: $(minimum(silhouettesbest)) Cluster Count: $(map(i->sum(cbest.assignments .== i), unique(cbest.assignments))) Cluster Silhouettes: $(map(i->Statistics.mean(silhouettesbest[cbest.assignments .== i]), unique(cbest.assignments)))")
-	return cbest, silhouettesbest
+	if best_method == :worst_cliff
+		ki = last(findmax(map(i->worst_silhouette[i] - worst_silhouette[i+1], 1:length(krange)-1))) + 1
+	elseif best_method == :worst_cluster_cliff
+		ki = last(findmax(map(i->minimum(cluster_silhouettes[i]) - minimum(cluster_silhouettes[i+1]), 1:length(krange)-1))) + 1
+	else
+		@error "Unknown method: best_method must be :worst_cliff or :worst_cluster_cliff"
+	end
+	k = krange[ki]
+	@info("Best $k - OF: $(totalcosts[ki]) Mean Silhouette: $(mean_silhouette[ki]) Worst Silhouette: $(worst_silhouette[ki]) Cluster Count: $(map(i->sum(cresult[ki].assignments .== i), unique(cresult[ki].assignments))) Cluster Silhouettes: $(cluster_silhouettes[ki])")
+	return k, cresult[ki]
 end
 
 function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false)
@@ -76,7 +80,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	end
 	local c = nothing
 	local best_totalcost = Inf
-	local best_mean_silhouettes = Inf
+	local best_mean_silhouette = Inf
 	local best_silhouettes = []
 	Xn = zerostoepsilon(X)
 	for i = 1:repeats
@@ -89,7 +93,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost
-			best_mean_silhouettes = Statistics.mean(silhouettes)
+			best_mean_silhouette = Statistics.mean(silhouettes)
 			best_silhouettes = silhouettes
 		end
 	end
@@ -387,4 +391,61 @@ function clustersolutions_old(W::AbstractMatrix, nNMF::Integer)
 		centroids ./= nNMF
 	end
 	return idx, permutedims(centroids)
+end
+
+struct WeightedPeriodicMinkowski{T, W, P <: Real} <: Distances.UnionMetric 
+	weights:: W
+	periods:: T
+	p:: P
+end
+
+Distances.parameters(wpm::WeightedPeriodicMinkowski) = (wpm.periods, wpm.weights)
+
+@inline function Distances.eval_op(d::WeightedPeriodicMinkowski, ai, bi, Ti, wi)
+	s1 = abs(ai - bi)
+	s2 = mod(s1, Ti)
+	abs(min(s2, Ti - s2))^d.p * wi
+end
+
+@inline Distances.eval_end(d::WeightedPeriodicMinkowski, s) = s^(1/d.p)
+wpminkowski(a, b, w, T, p) = WeightedPeriodicMinkowski(T, w, p)(a, b)
+(w::WeightedPeriodicMinkowski)(a,b) = Distances._evaluate(w, a, b)
+
+Distances.result_type(dist::Distances.UnionMetrics, ::Type{Ta}, ::Type{Tb}, (p1, p2)) where {Ta,Tb} = typeof(Distances._evaluate(dist, oneunit(Ta), oneunit(Tb), oneunit(eltype(p1)), oneunit(eltype(p2))))
+
+function Distances._evaluate(dist::Distances.UnionMetrics, a::Number, b::Number, p1::Number, p2::Number)
+	Distances.eval_end(dist, Distances.eval_op(dist, a, b, p1, p2))
+end 
+	
+Base.@propagate_inbounds function Distances._evaluate(d::Distances.UnionMetrics, a::AbstractArray, b::AbstractArray, (p1, p2)::Tuple{AbstractArray, AbstractArray})
+	@boundscheck if length(a) != length(b)
+		throw(DimensionMismatch("first array has length $(length(a)) which does not match the length of the second, $(length(b))."))
+	end
+	@boundscheck if length(a) != length(p1)
+		throw(DimensionMismatch("arrays have length $(length(a)) but parameter 1 has length $(length(p1))."))
+	end
+	@boundscheck if length(a) != length(p2)
+		throw(DimensionMismatch("arrays have length $(length(a)) but parameter 2 has length $(length(p2))."))
+	end
+	if length(a) == 0
+		return zero(result_type(d, a, b))
+	end
+	@inbounds begin
+		s = eval_start(d, a, b)
+		if (IndexStyle(a, b, p1, p2) === IndexLinear() && eachindex(a) == eachindex(b) == eachindex(p1)) == eachindex(p2)||
+				axes(a) == axes(b) == axes(p) == axes(p2)
+			@simd for I in eachindex(a, b, p1, p2)
+				ai = a[I]
+				bi = b[I]
+				p1i = p1[I]
+				p2i = p2[I]
+				s = eval_reduce(d, s, eval_op(d, ai, bi, p1i, p2i))
+			end
+		else
+			for (ai, bi, p1i, p2i) in zip(a, b, p1, p2)
+				s = eval_reduce(d, s, eval_op(d, ai, bi, p1i, p2i))
+			end
+		end
+		return eval_end(d, s)
+	end
 end
