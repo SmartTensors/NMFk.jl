@@ -44,7 +44,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Abstra
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
-		cresult[i], silhouettes = robustkmeans(X, k, repeats; kw...)
+		cresult[i], silhouettes = robustkmeans(X, k, repeats; kw..., silhouettes_flag=true)
 		totalcosts[i] = cresult[i].totalcost
 		mean_silhouette[i] = Statistics.mean(silhouettes)
 		cluster_silhouettes[i] = map(j->Statistics.mean(silhouettes[cresult[i].assignments .== j]), unique(cresult[i].assignments))
@@ -63,7 +63,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Abstra
 	return cresult[ki]
 end
 
-function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false)
+function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false, silhouettes_flag::Bool=false)
 	if load && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
 		if isfile(filename)
@@ -104,7 +104,11 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 		JLD.save(filename, "assignments", sc, "best_silhouettes", best_silhouettes)
 		@info("Robust k-means analysis results are saved in file $(filename)!")
 	end
-	return sc, best_silhouettes
+	if silhouettes_flag
+		return sc, best_silhouettes
+	else
+		return sc
+	end
 end
 
 function sortclustering(c; rev=true)
@@ -407,45 +411,45 @@ Distances.parameters(wpm::WeightedPeriodicMinkowski) = (wpm.periods, wpm.weights
 	abs(min(s2, Ti - s2))^d.p * wi
 end
 
-@inline Distances.eval_end(d::WeightedPeriodicMinkowski, s) = s^(1/d.p)
-wpminkowski(a, b, w, T, p) = WeightedPeriodicMinkowski(T, w, p)(a, b)
-(w::WeightedPeriodicMinkowski)(a,b) = Distances._evaluate(w, a, b)
+# @inline Distances.eval_end(d::WeightedPeriodicMinkowski, s) = s^(1/d.p)
+# wpminkowski(a, b, w, T, p) = WeightedPeriodicMinkowski(T, w, p)(a, b)
+# (w::WeightedPeriodicMinkowski)(a,b) = Distances._evaluate(w, a, b)
 
-Distances.result_type(dist::Distances.UnionMetrics, ::Type{Ta}, ::Type{Tb}, (p1, p2)) where {Ta,Tb} = typeof(Distances._evaluate(dist, oneunit(Ta), oneunit(Tb), oneunit(eltype(p1)), oneunit(eltype(p2))))
+# Distances.result_type(dist::Distances.UnionMetrics, ::Type{Ta}, ::Type{Tb}, (p1, p2)) where {Ta,Tb} = typeof(Distances._evaluate(dist, oneunit(Ta), oneunit(Tb), oneunit(eltype(p1)), oneunit(eltype(p2))))
 
-function Distances._evaluate(dist::Distances.UnionMetrics, a::Number, b::Number, p1::Number, p2::Number)
-	Distances.eval_end(dist, Distances.eval_op(dist, a, b, p1, p2))
-end 
+# function Distances._evaluate(dist::Distances.UnionMetrics, a::Number, b::Number, p1::Number, p2::Number)
+# 	Distances.eval_end(dist, Distances.eval_op(dist, a, b, p1, p2))
+# end 
 	
-Base.@propagate_inbounds function Distances._evaluate(d::Distances.UnionMetrics, a::AbstractArray, b::AbstractArray, (p1, p2)::Tuple{AbstractArray, AbstractArray})
-	@boundscheck if length(a) != length(b)
-		throw(DimensionMismatch("first array has length $(length(a)) which does not match the length of the second, $(length(b))."))
-	end
-	@boundscheck if length(a) != length(p1)
-		throw(DimensionMismatch("arrays have length $(length(a)) but parameter 1 has length $(length(p1))."))
-	end
-	@boundscheck if length(a) != length(p2)
-		throw(DimensionMismatch("arrays have length $(length(a)) but parameter 2 has length $(length(p2))."))
-	end
-	if length(a) == 0
-		return zero(result_type(d, a, b))
-	end
-	@inbounds begin
-		s = eval_start(d, a, b)
-		if (IndexStyle(a, b, p1, p2) === IndexLinear() && eachindex(a) == eachindex(b) == eachindex(p1)) == eachindex(p2)||
-				axes(a) == axes(b) == axes(p) == axes(p2)
-			@simd for I in eachindex(a, b, p1, p2)
-				ai = a[I]
-				bi = b[I]
-				p1i = p1[I]
-				p2i = p2[I]
-				s = eval_reduce(d, s, eval_op(d, ai, bi, p1i, p2i))
-			end
-		else
-			for (ai, bi, p1i, p2i) in zip(a, b, p1, p2)
-				s = eval_reduce(d, s, eval_op(d, ai, bi, p1i, p2i))
-			end
-		end
-		return eval_end(d, s)
-	end
-end
+# Base.@propagate_inbounds function Distances._evaluate(d::Distances.UnionMetrics, a::AbstractArray, b::AbstractArray, (p1, p2)::Tuple{AbstractArray, AbstractArray})
+# 	@boundscheck if length(a) != length(b)
+# 		throw(DimensionMismatch("first array has length $(length(a)) which does not match the length of the second, $(length(b))."))
+# 	end
+# 	@boundscheck if length(a) != length(p1)
+# 		throw(DimensionMismatch("arrays have length $(length(a)) but parameter 1 has length $(length(p1))."))
+# 	end
+# 	@boundscheck if length(a) != length(p2)
+# 		throw(DimensionMismatch("arrays have length $(length(a)) but parameter 2 has length $(length(p2))."))
+# 	end
+# 	if length(a) == 0
+# 		return zero(result_type(d, a, b))
+# 	end
+# 	@inbounds begin
+# 		s = eval_start(d, a, b)
+# 		if (IndexStyle(a, b, p1, p2) === IndexLinear() && eachindex(a) == eachindex(b) == eachindex(p1)) == eachindex(p2)||
+# 				axes(a) == axes(b) == axes(p) == axes(p2)
+# 			@simd for I in eachindex(a, b, p1, p2)
+# 				ai = a[I]
+# 				bi = b[I]
+# 				p1i = p1[I]
+# 				p2i = p2[I]
+# 				s = eval_reduce(d, s, eval_op(d, ai, bi, p1i, p2i))
+# 			end
+# 		else
+# 			for (ai, bi, p1i, p2i) in zip(a, b, p1, p2)
+# 				s = eval_reduce(d, s, eval_op(d, ai, bi, p1i, p2i))
+# 			end
+# 		end
+# 		return eval_end(d, s)
+# 	end
+# end
