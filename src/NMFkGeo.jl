@@ -27,8 +27,8 @@ function xy_to_latlon(x, y; zone=14, isnorth=true, datum=Geodesy.nad83, utm_map=
 	l = length(x)
 	@assert l == length(y)
 	utm = utm_map.([Geodesy.UTM([x y][i,:]...) for i=1:l])
-	lat = [utm[i].x for i=1:l]
-	lon = [utm[i].y for i=1:l]
+	lat = [utm[i].lat for i=1:l]
+	lon = [utm[i].lon for i=1:l]
 	if l == 1
 		return lat[1], lon[1]
 	else
