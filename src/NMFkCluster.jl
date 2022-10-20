@@ -70,7 +70,11 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 			sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
 			@info("Robust k-means analysis results are loaded from file $(filename)!")
 			if length(best_silhouettes) == size(X, 2)
-				return sc, best_silhouettes
+				if silhouettes_flag
+					return sc, best_silhouettes
+				else
+					return sc
+				end
 			else
 				@warn("File $filename does not contain correct information! Robust k-means analysis will be executed ...")
 			end
@@ -397,7 +401,7 @@ function clustersolutions_old(W::AbstractMatrix, nNMF::Integer)
 	return idx, permutedims(centroids)
 end
 
-struct WeightedPeriodicMinkowski{T, W, P <: Real} <: Distances.UnionMetric 
+struct WeightedPeriodicMinkowski{T, W, P <: Real} <: Distances.UnionMetric
 	weights:: W
 	periods:: T
 	p:: P
@@ -419,8 +423,8 @@ end
 
 # function Distances._evaluate(dist::Distances.UnionMetrics, a::Number, b::Number, p1::Number, p2::Number)
 # 	Distances.eval_end(dist, Distances.eval_op(dist, a, b, p1, p2))
-# end 
-	
+# end
+
 # Base.@propagate_inbounds function Distances._evaluate(d::Distances.UnionMetrics, a::AbstractArray, b::AbstractArray, (p1, p2)::Tuple{AbstractArray, AbstractArray})
 # 	@boundscheck if length(a) != length(b)
 # 		throw(DimensionMismatch("first array has length $(length(a)) which does not match the length of the second, $(length(b))."))
