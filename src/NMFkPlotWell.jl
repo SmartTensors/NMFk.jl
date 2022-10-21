@@ -28,7 +28,7 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 		for (j, i) in enumerate(unique(sort(z)))
 			iz = z .== i
 			h = hover === nothing ? Dict() : Dict(:hovertext=>hover[iz], :hoverinfo=>"text")
-			dots_p = PlotlyJS.scatter(;x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
+			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
 			push!(dots, dots_p)
 		end
 		p = convert(Array{typeof(dots[1])}, dots)
