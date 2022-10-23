@@ -26,9 +26,12 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=loadonly, veryquiet::Bool=false, kw...) where {T <: Number}
+function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=loadonly, veryquiet::Bool=false, kw...) where {T <: Number}
 	if .*(size(X)...) == 0
-		error("Array has a zero dimension! size(X)=$(size(X))")
+		error("Array has a zero dimension! Matrix size=$(size(X))")
+	end
+	if size(X, 1) < size(X, 2) && clusterWmatrix == false
+		@warn("Processed matrix size has more columns than rows (matrix size=$(size(X))). It is recommended in this case to use `clusterWmatrix == true`.")
 	end
 	if loadonly
 		save = false
@@ -64,7 +67,7 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 		end
 	end
 	if runflag
-		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; veryquiet=veryquiet, resultdir=resultdir, casefilename=casefilename, kw...)
+		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; clusterWmatrix=clusterWmatrix, veryquiet=veryquiet, resultdir=resultdir, casefilename=casefilename, kw...)
 	end
 	so = signalorder(W, H)
 	!veryquiet && println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic)) Signal order: $(so)")
@@ -182,8 +185,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	if sum(idxnan) > 0
 		!veryquiet && println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
 		if nk > 1
-			clusterWmatrix = false
-			clusterassignments, M = NMFk.clustersolutions(HBig[idxsort][idxsol], clusterWmatrix)
+			clusterassignments, M = NMFk.clustersolutions(HBig[idxsort][idxsol], false)
 			if !quiet
 				@info("Cluster assignments:")
 				display(clusterassignments)
@@ -202,7 +204,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 					Hbest[i, :] = HBig[bestIdx][c, :]
 				end
 			end
-			Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[idxsort][idxsol], HBig[idxsort][idxsol], clusterassignments, clusterWmatrix)
+			Wa, Ha, clustersilhouettes, Wv, Hv = NMFk.finalize(WBig[idxsort][idxsol], HBig[idxsort][idxsol], clusterassignments, false)
 			minsilhouette = minimum(clustersilhouettes)
 			if !quiet
 				@info("Silhouettes for each of the $nk clusters:" )
