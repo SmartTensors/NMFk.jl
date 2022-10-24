@@ -25,10 +25,18 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 		p = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=Plotly.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20)), h...)
 	else
 		dots = []
-		for (j, i) in enumerate(unique(sort(z)))
+		uz = unique(sort(z))
+		if length(uz) > 21
+			@warn("Z attribute is potentially not categorical!")
+		end
+		if length(uz) > 100
+			@error("Z attribute is not categorical!")
+			throw("Data input error!")
+		end
+		for (j, i) in enumerate(uz)
 			iz = z .== i
 			h = hover === nothing ? Dict() : Dict(:hovertext=>hover[iz], :hoverinfo=>"text")
-			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
+			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker_color=NMFk.colors[j%length(NMFk.colors)], marker=Plotly.attr(; size=pointsize), h...)
 			push!(dots, dots_p)
 		end
 		p = convert(Array{typeof(dots[1])}, dots)
