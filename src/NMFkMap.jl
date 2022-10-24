@@ -2,6 +2,7 @@ import VegaLite
 import VegaDatasets
 import DataFrames
 import Mads
+import PlotlyJS
 
 function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize::Measures.AbsoluteLength=12Compose.inch, vsize::Measures.AbsoluteLength=3Compose.inch, dpi::Integer=150, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
 	@assert size(W, 2) == size(H, 1)
@@ -143,4 +144,62 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	if casefilename != ""
 		VegaLite.save(joinpathcheck("$(figuredir)", "$(casefilename).png"), p)
 	end
+end
+
+function plotmap(x::AbstractVector{T}, y::AbstractVector{T}, c::AbstractVector{T}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text="") where T <: Real
+	trace = PlotlyJS.scattergeo(; locationmode="USA-states",
+	lon=x,
+	lat=y,
+	hoverinfo="text",
+	text=text,
+	marker=Plotly.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20, width=100), line_width=0, line_color="black"))
+	geo = PlotlyJS.attr(scope="usa",
+		projection_type="albers usa",
+		showland=true,
+		landcolor="rgb(217, 217, 217)",
+		subunitwidth=1,
+		countrywidth=1,
+		subunitcolor="rgb(255,255,255)",
+		countrycolor="rgb(255,255,255)")
+	layout = PlotlyJS.Layout(; title=title, showlegend=false, geo=geo)
+	p = PlotlyJS.plot(trace, layout)
+	if filename != ""
+		fn = joinpathcheck(figuredir, filename)
+		recursivemkdir(fn)
+		PlotlyJS.savefig(p, fn; format="html")
+	end
+	return p
+end
+
+function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text="") where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
+	traces = []
+	for (j, i) in enumerate(unique(sort(c)))
+		iz = c .== i
+		jj = j % length(NMFk.colors)
+		k = jj == 0 ? length(NMFk.colors) : jj
+		trace = PlotlyJS.scattergeo(; locationmode="USA-states",
+			lon=x[iz],
+			lat=y[iz],
+			hoverinfo="text",
+			text=text[iz],
+			name="$i $(sum(iz))",
+			marker=Plotly.attr(; size=size, color=NMFk.colors[k]))
+		push!(traces, trace)
+	end
+	geo = PlotlyJS.attr(scope="usa",
+		projection_type="albers usa",
+		showland=true,
+		landcolor="rgb(217, 217, 217)",
+		subunitwidth=1,
+		countrywidth=1,
+		subunitcolor="rgb(255,255,255)",
+		countrycolor="rgb(255,255,255)")
+	layout = PlotlyJS.Layout(; title=title, geo=geo)
+	p = PlotlyJS.plot(convert(Array{typeof(traces[1])}, traces), layout)
+	if filename != ""
+		fn = joinpathcheck(figuredir, filename)
+		recursivemkdir(fn)
+		PlotlyJS.savefig(p, fn; format="html")
+	end
+	return p
 end

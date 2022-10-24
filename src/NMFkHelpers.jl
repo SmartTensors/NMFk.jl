@@ -495,8 +495,12 @@ function zerostoepsilon(X::AbstractArray)
 end
 
 function zerostoepsilon!(X::AbstractArray)
-	e = eps(eps(eltype(X))) # == esp(eltype(X)) ^ 2
-	X[X .< e] .= e
+	if eltype(X) <: Real
+		e = eps(eltype(X)) ^ 2
+		X[X .< e] .= e
+	else
+		@warn("Provided data are not numeric!")
+	end
 	return nothing
 end
 

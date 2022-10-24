@@ -3,7 +3,7 @@ import PlotlyJS
 import Colors
 import ColorSchemes
 
-function colorscale(scheme::Symbol, N = 101)
+function colorscale(scheme::Symbol; N = 101)
 	x = permutedims(0.0:(1.0/(N - 1)):1.0)
 	cs = get(ColorSchemes.colorschemes[scheme], x, :clamp)
 	cs_rgb = Colors.RGB.(cs)
@@ -36,7 +36,9 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 		for (j, i) in enumerate(uz)
 			iz = z .== i
 			h = hover === nothing ? Dict() : Dict(:hovertext=>hover[iz], :hoverinfo=>"text")
-			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker_color=NMFk.colors[j%length(NMFk.colors)], marker=Plotly.attr(; size=pointsize), h...)
+			jj = j % length(NMFk.colors)
+			c = jj == 0 ? length(NMFk.colors) : jj
+			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker=Plotly.attr(; size=pointsize), color=NMFk.colors[c], h...)
 			push!(dots, dots_p)
 		end
 		p = convert(Array{typeof(dots[1])}, dots)

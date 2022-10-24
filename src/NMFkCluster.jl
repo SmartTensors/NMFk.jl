@@ -29,7 +29,7 @@ function remap2count(assignments)
 	return map(mfunc, assignments)
 end
 
-function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},AbstractVector{Int64}}, repeats::Int=1000; best_method::Symbol=:worst_cliff, kw...)
+function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},AbstractVector{Int64}}, repeats::Int=1000; best_method::Symbol=:worst_cliff, distance=Distances.CosineDist(), kw...)
 	if krange[1] >= size(X, 2)
 		@info("Cannot be computed (min range is greater than or equal to size(X,2); $krange[1] >= $(size(X, 2)))")
 		return nothing
@@ -44,7 +44,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Abstra
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
-		cresult[i], silhouettes = robustkmeans(X, k, repeats; kw..., silhouettes_flag=true)
+		cresult[i], silhouettes = robustkmeans(X, k, repeats; distance=distance, kw..., silhouettes_flag=true)
 		totalcosts[i] = cresult[i].totalcost
 		mean_silhouette[i] = Statistics.mean(silhouettes)
 		cluster_silhouettes[i] = map(j->Statistics.mean(silhouettes[cresult[i].assignments .== j]), unique(cresult[i].assignments))
@@ -150,13 +150,14 @@ function labelassignements(c::AbstractVector)
 		types = collect(range('A'; length=nt))
 		cassignments = Vector{Char}(undef, nc)
 	else
-		types = ["T$i" for i=1:nt]
+		nz = convert(Int64, ceil(log10(nt)))
+		types = ["T$(lpad(i, nz, '0'))" for i=1:nt]
 		cassignments = Vector{String}(undef, nc)
 	end
 	for a in t
 		cassignments[c .== a] .= types[a]
 	end
-	@assert types == sort(unique(cassignments))
+	@assert sort(types) == sort(unique(cassignments))
 	return cassignments
 end
 
