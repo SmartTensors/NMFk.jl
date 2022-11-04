@@ -44,10 +44,10 @@ where the points are given by the latitude/longitude pairs `lat1/lon1` and
 $(DocumentFunction.documentfunction(haversine))
 """
 function haversine(lat1, lon1, lat2, lon2; r = 6372.8)
-    lat1, lon1 = deg2rad(lat1), deg2rad(lon1)
-    lat2, lon2 = deg2rad(lat2), deg2rad(lon2)
-    hav(a, b) = sin((b - a) / 2)^2
-    inner_term = hav(lat1, lat2) + cos(lat1) * cos(lat2) * hav(lon1, lon2)
-    d = 2 * r * asin(sqrt(inner_term))
-    return d
+	lat1, lon1 = deg2rad(lat1), deg2rad(lon1)
+	lat2, lon2 = deg2rad(lat2), deg2rad(lon2)
+	hav(a, b) = sin((b - a) / 2)^2
+	inner_term = hav(lat1, lat2) + cos(lat1) * cos(lat2) * hav(lon1, lon2)
+	d = 2 * r * asin(sqrt(inner_term))
+	return d
 end
