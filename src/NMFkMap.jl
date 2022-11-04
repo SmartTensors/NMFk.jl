@@ -146,7 +146,9 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	end
 end
 
-function plotmap(x::AbstractVector{T}, y::AbstractVector{T}, c::AbstractVector{T}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text="") where T <: Real
+function plotmap(x::AbstractVector{T}, y::AbstractVector{T}, c::AbstractVector{T}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text=repeat([""], length(x))) where T <: Real
+	@assert length(x) == length(y)
+	@assert length(x) == length(text)
 	trace = PlotlyJS.scattergeo(; locationmode="USA-states",
 	lon=x,
 	lat=y,
@@ -171,7 +173,9 @@ function plotmap(x::AbstractVector{T}, y::AbstractVector{T}, c::AbstractVector{T
 	return p
 end
 
-function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text="") where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
+function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
+	@assert length(x) == length(y)
+	@assert length(x) == length(text)
 	traces = []
 	for (j, i) in enumerate(unique(sort(c)))
 		iz = c .== i
