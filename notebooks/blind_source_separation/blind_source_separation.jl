@@ -1,11 +1,9 @@
 import NMFk
 import Mads
-import Cairo
-import Fontconfig
 import Gadfly
 import Random
 
-Random.seed!(2021);
+Random.seed!(2021)
 
 a = rand(15)
 b = rand(15)

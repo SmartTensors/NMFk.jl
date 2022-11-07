@@ -23,21 +23,18 @@ The extracted signatures can be also unknown sources, signals or features depend
 This type of analysis is also called **feature extraction**.
 
 In summary, **NMFk** automatically:
-- identifies the number of the unknown mixed signatures in a dataset 
+- identifies the number of the unknown mixed signatures in a dataset
 - estimates the shape of the unknown mixed signatures
 - estimates how the signatures are mixed at each sensor
 
 ## NMFk installation
 
-If **NMFk** is not installed, first execute in the Julia REPL: 
+If **NMFk** is not installed, first execute in the Julia REPL:
 
 ```julia
 import Pkg
 Pkg.add("NMFk")
 Pkg.add("Mads")
-Pkg.add("Cairo")
-Pkg.add("Fontconfig")
-Pkg.add("Gadfly")
 ```
 
 ## Loading NMFk in Julia
@@ -52,7 +49,7 @@ import Gadfly
 import Random
 ```
 
-## Synthetic problem setup 
+## Synthetic problem setup
 
 Let us generate 3 random signals:
 
@@ -93,12 +90,12 @@ Mads.plotseries([a b c])
 ```
 
 
-    
+
 ![png](blind_source_separation_files/blind_source_separation_5_0.png)
-    
 
 
-    
+
+
 
 We can collect the 3 signal vectors into a signal matrix `W`:
 
@@ -160,7 +157,7 @@ The entries of `H` matrix also define the proportions at which the signals are m
 
 For example, the first sensor (column 1 above) detects `Signal 3` three times stronger than `Signal 1`.
 
-The data matrix `X` is formed by multiplying `W` and `H` matrices. 
+The data matrix `X` is formed by multiplying `W` and `H` matrices.
 
 `X` defines the actual dataset observed at the 4 sensors.
 
@@ -196,12 +193,12 @@ Mads.plotseries(X; name="Sensors")
 ```
 
 
-    
+
 ![png](blind_source_separation_files/blind_source_separation_13_0.png)
-    
 
 
-    
+
+
 
 ## NMFk analysis
 
@@ -211,7 +208,7 @@ The `W` and `H` matrices are assumed to be unknown and will be estimated by **NM
 
 **NMFk** analysis of the data matrix `X` will automatically:
 
-- identify the number of the unknown mixed signals in `X` 
+- identify the number of the unknown mixed signals in `X`
 - estimate the shape of the unknown mixed signals (i.e., estimate the entries of `W` matrix)
 - estimate how the signals are mixed at each sensors (i.e., estimate the entries of `H` matrix)
 
@@ -222,7 +219,7 @@ This can be done based only on the information in `X`:
 We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
 ```
 
-    
+
     OF: min 13.938575834075827 max 13.939149136011867 mean 13.939023936576564 std 0.00015978979250667993
     Worst correlation by columns: 0.9089534909911938
     Worst correlation by rows: 0.9138316304619002
@@ -231,7 +228,7 @@ We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, met
     Worst norm by columns: 0.43794006677052216
     Worst norm by rows: 0.7401885751830948
     Signals:  2 Fit:     13.93858 Silhouette:    0.9940184 AIC:    -46.21209 Signal order: [2, 1]
-    
+
     OF: min 2.1911664491732534e-6 max 0.03711703712024368 mean 0.008921756575796008 std 0.012217855601755515
     Worst correlation by columns: 0.9999996871358519
     Worst correlation by rows: 0.9999999467283969
@@ -240,7 +237,7 @@ We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, met
     Worst norm by columns: 0.795184210425011
     Worst norm by rows: 0.7299738316665152
     Signals:  3 Fit: 2.191166e-06 Silhouette:    0.7097371 AIC:    -1181.142 Signal order: [2, 3, 1]
-    
+
     OF: min 2.877455695118232e-7 max 0.007167581000578781 mean 0.001043172561235765 std 0.0022045302570061717
     Worst correlation by columns: 0.9999999966490337
     Worst correlation by rows: 0.9999999750381271
@@ -249,7 +246,7 @@ We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, met
     Worst norm by columns: 0.5126998474538412
     Worst norm by rows: 0.7486400734293462
     Signals:  4 Fit: 2.877456e-07 Silhouette:    0.3770708 AIC:    -1293.401 Signal order: [2, 3, 4, 1]
-    
+
     OF: min 2.2183368055932843e-6 max 0.010281220182692433 mean 0.0023151582431914235 std 0.003832905360228223
     Worst correlation by columns: 0.9999999407042833
     Worst correlation by rows: 0.9999999450480098
@@ -340,12 +337,12 @@ Mads.plotseries(W; title="Original signals")
 ```
 
 
-    
+
 ![png](blind_source_separation_files/blind_source_separation_22_0.png)
-    
 
 
-    
+
+
 
 
 ```julia
@@ -353,12 +350,12 @@ Mads.plotseries(We[kopt] ./ maximum(We[kopt]; dims=1); title="Reconstructed sign
 ```
 
 
-    
+
 ![png](blind_source_separation_files/blind_source_separation_23_0.png)
-    
 
 
-    
+
+
 
 
 ```julia
@@ -3241,7 +3238,7 @@ fig.select("#img-cabf29fe-42")
 - Reduction of data dimensionality
 - Detection of outlier, random and systematic noise
 - Applicable to any dataset with nonnegative entries (if there are nonnegative entries they can removed through transformations)
-- Applicable in a wide range problems: text mining, document clustering, making recommendations, visual pattern recognition, face recognition, gene expression analysis, feature extraction, source separation, etc. 
+- Applicable in a wide range problems: text mining, document clustering, making recommendations, visual pattern recognition, face recognition, gene expression analysis, feature extraction, source separation, etc.
 
 ## NMFk Cons
 - Computationally intensive
