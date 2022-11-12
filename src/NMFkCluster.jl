@@ -115,7 +115,23 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	end
 end
 
-function sortclustering(c; rev=true)
+function sortclustering(c::AbstractVector; rev=true)
+	j = unique(c)
+	counts = Vector{Int64}(undef, length(j))
+	for (k, a) in enumerate(j)
+		ic = c .== a
+		c[ic] .= k
+		counts[k] = sum(ic)
+	end
+	i = sortperm(counts[j]; rev=rev)
+	cnew = similar(c)
+	for (k, a) in enumerate(i)
+		cnew[c .== a] .= k
+	end
+	return cnew
+end
+
+function sortclustering(c::Clustering.KmeansResult; rev=true)
 	cassignments = similar(c.assignments)
 	j = unique(c.assignments)
 	# @show j
