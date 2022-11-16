@@ -182,6 +182,20 @@ function rmsenan(t::AbstractVector, o::AbstractVector)
 	return sqrt( sum( (t[ii] .- o[ii]) .^ 2.) ./ sum(ii) )
 end
 
+function l1nan(t::AbstractVector, o::AbstractVector)
+	it = .!isnan.(t)
+	ot = .!isnan.(o)
+	ii = it .& ot
+	return sum(abs.(t[ii] .- o[ii]))
+end
+
+function ssqrnan(t::AbstractVector, o::AbstractVector) # Distances.euclidean(x, y)
+	it = .!isnan.(t)
+	ot = .!isnan.(o)
+	ii = it .& ot
+	return sqrt(sum( (t[ii] .- o[ii]) .^ 2.))
+end
+
 function ssqrnan(X::AbstractArray)
 	sum(X[.!isnan.(X)].^2)
 end
