@@ -268,6 +268,10 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		ccount[j] = sum(i)
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
+		if !quiet
+			@info("Histogram weights:")
+			display(y)
+		end
 		if length(xaxis) > 2
 			if closed == :left && maxd == xaxis[end-1]
 				ya = y[1:end-1]
