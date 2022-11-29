@@ -198,10 +198,15 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	return nothing
 end
 
-function histogram(data::AbstractMatrix; kw...)
+function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; kw...)
 	for c = 1:size(data, 2)
-		@info "Column $c:"
-		histogram(data[:,c]; kw...)
+		if names[c] == ""
+			@info "Column $(c):"
+			histogram(data[:,c]; kw...)
+		else
+			@info "Attribute $(names[c]):"
+			histogram(data[:,c]; kw..., title=names[c])
+		end
 	end
 end
 
