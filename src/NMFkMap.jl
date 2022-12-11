@@ -34,7 +34,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		if movie && casefilename != ""
 			c = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorderassignments)], code=true, quiet=true)
 			progressbar = NMFk.make_progressbar_2d(c)
-			for i = 1:length(dates)
+			for i = eachindex(dates)
 				p = progressbar(i, true, 1, dates[1])
 				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize, dpi=dpi), p)
 				!quiet && (@info dates[i]; Mads.display(p; gw=hsize, gh=vsize))

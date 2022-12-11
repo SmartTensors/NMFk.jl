@@ -97,7 +97,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		m = sum.(x.^2 .+ y.^2)
 		iorder = sortperm(m; rev=true)
 	else
-		iorder = 1:length(x)
+		iorder = eachindex(x)
 	end
 	if plotmethod == :layers && r < 10000 # Gadfly fails if more than 10000 samples
 		l = Vector{Vector{Gadfly.Layer}}(undef, 0)
@@ -611,7 +611,7 @@ function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::
 			push!(ns, i - 1)
 			push!(nt, s1 + j - 1)
 			c = 0
-			for k = 1:length(c1)
+			for k = eachindex(c1)
 				if c1[k] == i && c2[k] == j
 					c += 1
 				end
@@ -640,7 +640,7 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 			push!(ns, i - 1)
 			push!(nt, s1 + j - 1)
 			c = 0
-			for k = 1:length(c1)
+			for k = eachindex(c1)
 				if c1[k] == i && c2[k] == j
 					c += 1
 				end
@@ -653,7 +653,7 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 			push!(ns, s1 + i - 1)
 			push!(nt, s1 + s2 + j - 1)
 			c = 0
-			for k = 1:length(c3)
+			for k = eachindex(c3)
 				if c2[k] == i && c3[k] == j
 					c += 1
 				end
@@ -670,7 +670,7 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 	@assert length(cc) == length(tt)
 	ss = Array{Int64}(undef, length(cc))
 	nn = Array{Array{String}}(undef, length(cc))
-	for c = 1:length(cc)
+	for c = eachindex(cc)
 		if c > 1
 			@assert length(cc[c-1]) == length(cc[c])
 		end
@@ -682,13 +682,13 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 	nt = Array{Int64}(undef, 0)
 	v = Array{Int64}(undef, 0)
 	local csum = 0
-	for c = 1:length(cc)-1
+	for c = eachindex(cc)-1
 		for i = 1:ss[c]
 			for j = 1:ss[c+1]
 				push!(ns, csum + i - 1)
 				push!(nt, csum + ss[c] + j - 1)
 				z = 0
-				for k = 1:length(cc[c])
+				for k = eachindex(cc[c])
 					if cc[c][k] == i && cc[c+1][k] == j
 						z += 1
 					end

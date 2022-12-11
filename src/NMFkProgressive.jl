@@ -79,12 +79,12 @@ function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{In
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
 		normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i][1:ws,:]), ws), 1:length(X))...)
-		W, H, fitquality, robustness, aic = NMFk.execute(vcat([X[i][1:ws,:] for i = 1:length(X)]...), nkrange, nNMF1; normalizevector=normalizevector,casefilename="$(casefilename)_$(ws)", load=load, kw...)
+		W, H, fitquality, robustness, aic = NMFk.execute(vcat([X[i][1:ws,:] for i = eachindex(X)]...), nkrange, nNMF1; normalizevector=normalizevector,casefilename="$(casefilename)_$(ws)", load=load, kw...)
 		k = getk(nkrange, robustness[nkrange], cutoff; strict=false)
 		push!(window_k, k)
 		# global wws = 1
 		# global wwe = ws
-		# for i = 1:length(X)
+		# for i = eachindex(X)
 		# 	display(X[i][1:ws,:] .- W[k][wws:wwe,:] * H[k])
 		# 	wws += ws
 		# 	wwe += ws
@@ -92,10 +92,10 @@ function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{In
 		if ws < size(X[1], 1)
 			@info("NMFk #2: $(casefilename) Window $ws: Best $k")
 			normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i]), size(X[1], 1)), 1:length(X))...)
-			Wa, Ha, fitquality, robustness, aic = NMFk.execute(vcat([X[i] for i = 1:length(X)]...), k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, normalizevector=normalizevector, casefilename="$(casefilename)_$(ws)_all", load=load, kw...)
+			Wa, Ha, fitquality, robustness, aic = NMFk.execute(vcat([X[i] for i = eachindex(X)]...), k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, normalizevector=normalizevector, casefilename="$(casefilename)_$(ws)_all", load=load, kw...)
 			# global wws = 1
 			# global wwe = size(X[1], 1)
-			# for i = 1:length(X)
+			# for i = eachindex(X)
 			# 	display((X[i] .- Wa[wws:wwe,:] * Ha)
 			# 	wws += size(X[1], 1)
 			# 	wwe += size(X[1], 1)
@@ -177,7 +177,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 		@info("Optimal number of signals: $dk Training window sizes: $ds")
 
 		Mads.mkdir("$(figuredirresults)-$(problem)")
-		for j = 1:length(ds)
+		for j = eachindex(ds)
 			if ds[j] != train_window
 				Wall, Hall, fitquality, robustness, aic = NMFk.load(dk[j], nNMF; resultdir="$(resultdir)-$(problem)", casefilename="gas_$(period)_$(ds[j])_all")
 			else

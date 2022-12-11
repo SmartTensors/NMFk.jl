@@ -135,14 +135,14 @@ function sortclustering(c::Clustering.KmeansResult; rev=true)
 	cassignments = similar(c.assignments)
 	j = unique(c.assignments)
 	# @show j
-	# for j = 1:length(j)
+	# for j = eachindex(j)
 	# 	@show sum(c.assignments .== j)
 	# end
 	for (k, a) in enumerate(j)
 		cassignments[c.assignments .== a] .= k
 	end
 	# @show unique(cassignments)
-	# for j = 1:length(j)
+	# for j = eachindex(j)
 	# 	@show sum(cassignments .== j)
 	# end
 	i = sortperm(c.counts[j]; rev=rev)
@@ -151,7 +151,7 @@ function sortclustering(c::Clustering.KmeansResult; rev=true)
 		cassignments2[cassignments .== a] .= k
 	end
 	# @show unique(cassignments2)
-	# for j = 1:length(i)
+	# for j = eachindex(i)
 	# 	@show sum(cassignments2 .== j)
 	# end
 	r = j[i]

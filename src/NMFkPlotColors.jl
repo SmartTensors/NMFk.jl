@@ -7,7 +7,7 @@ end
 
 function colormap(colors::AbstractVector{String})
 	c = []
-	for i = 1:length(colors)
+	for i = eachindex(colors)
 		push!(c, parse(Colors.Colorant, colors[i]))
 	end
 	cm = [Gadfly.Scale.lab_gradient(c...)]

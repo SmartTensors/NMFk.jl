@@ -7,7 +7,7 @@ function geomap(filename::AbstractString, x::AbstractVector, y::AbstractVector, 
 				lat=x,
 				lon=y,
 				hoverinfo="text",
-				text=["loc" for x = 1:length(x)],
+				text=["loc" for x = eachindex(x)],
 				marker_size=s,
 				marker_line_color="black",
 				marker_line_width=2)

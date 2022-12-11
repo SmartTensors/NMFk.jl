@@ -5,7 +5,7 @@ function inputstring2data(s::AbstractString)
 	rows = split(s, ";")
 	numcols = length(split(rows[1], " "; keepempty=false))
 	data = Array{Float64}(undef, length(rows), numcols)
-	for i = 1:length(rows)
+	for i = eachindex(rows)
 		row = split(rows[i], " "; keepempty=false)
 		if length(row) > numcols
 			return "too many columns in the $(i)th row"

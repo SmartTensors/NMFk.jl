@@ -494,8 +494,8 @@ end
 
 function stringproduct(a::AbstractVector, b::AbstractVector)
 	M = Matrix{eltype(a)}(undef, length(a), length(b))
-	for i = 1:length(a)
-		for j = 1:length(b)
+	for i = eachindex(a)
+		for j = eachindex(b)
 			M[i, j] = a[i] * ":" * b[j]
 		end
 	end

@@ -6,7 +6,7 @@ function normalize!(a::AbstractArray{T, N}; rev::Bool=false, amax=NMFk.maximumna
 	if N == 1 && length(logv) > 0
 		@assert length(logv) == length(a)
 		@assert length(logv) == length(amin)
-		for i = 1:length(logv)
+		for i = eachindex(logv)
 			if logv[i]
 				a[i] = log10s(a[i]; min=amin[i])
 			end
@@ -220,7 +220,7 @@ end
 
 "Normalize array"
 function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), amax=vec(maximumnan(a; dims=dims)), amin=vec(minimumnan(a; dims=dims))) where {T <: Number, N}
-	for i = 1:length(amax)
+	for i = eachindex(amax)
 		dx = amax[i] - amin[i]
 		if dx == 0
 			dx = 1
@@ -247,7 +247,7 @@ function denormalizearray(a::AbstractArray{T,N}, aw...; kw...) where {T <: Numbe
 end
 
 function denormalizearray!(a::AbstractArray{T,N}, amin, amax; dims=(1,2)) where {T <: Number, N}
-	for i = 1:length(amax)
+	for i = eachindex(amax)
 		dx = amax[i] - amin[i]
 		if dx == 0
 			dx = 1
@@ -263,7 +263,7 @@ end
 "Scale array"
 function scalearray!(a::AbstractArray{T,N}; dims=(1,2)) where {T <: Number, N}
 	amax = vec(maximumnan(a; dims=dims))
-	for i = 1:length(amax)
+	for i = eachindex(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			nt = ntuple(k->(k in dims ? Colon() : i), N)
 			a[nt...] ./= amax[i]
@@ -273,7 +273,7 @@ function scalearray!(a::AbstractArray{T,N}; dims=(1,2)) where {T <: Number, N}
 end
 function scalearray!(a::AbstractArray{T,N}, dim::Integer) where {T <: Number, N}
 	_, amax = matrixminmax(a, dim)
-	for i = 1:length(amax)
+	for i = eachindex(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), N)
 			a[nt...] ./= amax[i]
@@ -284,7 +284,7 @@ end
 
 "Descale array"
 function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector; dims=(1,2)) where {T <: Number, N}
-	for i = 1:length(amax)
+	for i = eachindex(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			nt = ntuple(k->(k in dims ? Colon() : i), N)
 			a[nt...] .*= amax[i]
@@ -293,7 +293,7 @@ function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector; dims=(1,2)) 
 	return a
 end
 function descalearray!(a::AbstractArray{T,N}, amax::AbstractVector, dim::Integer) where {T <: Number, N}
-	for i = 1:length(amax)
+	for i = eachindex(amax)
 		if amax[i] != 0 && !isnan(amax[i])
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), N)
 			a[nt...] .*= amax[i]

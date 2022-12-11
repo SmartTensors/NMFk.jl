@@ -109,7 +109,7 @@ function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x
 		hy = heel_y[ic]
 		tx = toe_x[ic]
 		ty = toe_y[ic]
-		for k = 1:length(hx)
+		for k = eachindex(hx)
 			well_trace = PlotlyJS.scatter(;x=[hx[k], tx[k]], y=[ty[k], ty[k]], mode="lines+markers", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]), transform=Plotly.attr(type="groupby", groups=fill(i, length(hx)), styles=Plotly.attr(target="$i $(sum(ic))")), color=NMFk.colors[j])
 			push!(wells, well_trace)
 		end
@@ -132,10 +132,10 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 		hy = heel_y[ic]
 		tx = toe_x[ic]
 		ty = toe_y[ic]
-		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
-		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
+		x = vec(hcat([[hx[i] tx[i] NaN] for i = eachindex(hx)]...))
+		y = vec(hcat([[hy[i] ty[i] NaN] for i = eachindex(hy)]...))
 		if hover !== nothing
-			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
+			h = vec(hcat([[hover[i] hover[i] NaN] for i = eachindex(hover)]...))
 			well_trace = PlotlyJS.scatter(;x=x, y=y, hovertext=h, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
 		else
 			well_trace = PlotlyJS.scatter(;x=x, y=y, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
@@ -162,11 +162,11 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::A
 		tx = toe_x[ic]
 		ty = toe_y[ic]
 		tz = toe_z[ic]
-		x = vec(hcat([[hx[i] tx[i] NaN] for i = 1:length(hx)]...))
-		y = vec(hcat([[hy[i] ty[i] NaN] for i = 1:length(hy)]...))
-		z = vec(hcat([[hz[i] tz[i] NaN] for i = 1:length(hz)]...))
+		x = vec(hcat([[hx[i] tx[i] NaN] for i = eachindex(hx)]...))
+		y = vec(hcat([[hy[i] ty[i] NaN] for i = eachindex(hy)]...))
+		z = vec(hcat([[hz[i] tz[i] NaN] for i = eachindex(hz)]...))
 		if hover !== nothing
-			h = vec(hcat([[hover[i] hover[i] NaN] for i = 1:length(hover)]...))
+			h = vec(hcat([[hover[i] hover[i] NaN] for i = eachindex(hover)]...))
 			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, hovertext=h, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
 		else
 			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))

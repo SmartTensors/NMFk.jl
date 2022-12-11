@@ -188,7 +188,7 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type:
 	T .= 0
 	C .= 0
 	for i = 1:size(z, 2)
-		for j = 1:length(ix)
+		for j = eachindex(ix)
 			if !isnan(zn[j, i])
 				T[ix[j], iy[j], i] += zn[j, i]
 				C[ix[j], iy[j], i] += 1
