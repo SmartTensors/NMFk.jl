@@ -2,6 +2,7 @@ import Gadfly
 import Measures
 import Colors
 import Compose
+import Dates
 
 function progressbar_regular(i::Number, timescale::Bool=false, timestep::Number=1, datestart=nothing, dateend=nothing, dateincrement::AbstractString="Dates.Day")
 	s = timescale ? sprintf("%6.4f", i * timestep) : sprintf("%6d", i)
