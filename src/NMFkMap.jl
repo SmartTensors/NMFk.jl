@@ -150,11 +150,11 @@ function plotmap(x::AbstractVector{T}, y::AbstractVector{T}, c::AbstractVector{T
 	@assert length(x) == length(y)
 	@assert length(x) == length(text)
 	trace = PlotlyJS.scattergeo(; locationmode="USA-states",
-	lon=x,
-	lat=y,
-	hoverinfo="text",
-	text=text,
-	marker=Plotly.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20, width=100), line_width=0, line_color="black"))
+		lon=x,
+		lat=y,
+		hoverinfo="text",
+		text=text,
+		marker=Plotly.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20, width=100), line_width=0, line_color="black"))
 	geo = PlotlyJS.attr(scope="usa",
 		projection_type="albers usa",
 		showland=true,
