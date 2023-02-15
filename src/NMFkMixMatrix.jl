@@ -219,7 +219,7 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 		ratios[ratios.==0] .= NaN32
 	end
 	if normalize
-		bucketval = denormalizematrix_col!(bucketval, mixerval, cmin, cmax)
+		bucketval = denormalizematrix_col!(bucketval, cmin, cmax)
 	elseif scale
 		bucketval = descalematrix!(bucketval, cmax)
 	end
@@ -366,7 +366,7 @@ function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::Abstrac
 	fitquality = ofbest - regularizationweight * sum(log.(1. .+ bucketval).^2) / numbuckets - regularizationweight * sum(log.(1. .+ abs.(bucketdeltasval)).^2) / numbuckets
 	if normalize
 		bucketval = denormalizematrix_cool!(bucketval, cmin, cmax)
-		bucketdeltasval = denormalizematrix_col!(bucketdeltasval, mixerval, dmin, dmax)
+		bucketdeltasval = denormalizematrix_col!(bucketdeltasval, dmin, dmax)
 	elseif scale
 		bucketval = descalematrix!(bucketval, cmax)
 		bucketdeltasval = descalematrix!(bucketdeltasval, dmax)

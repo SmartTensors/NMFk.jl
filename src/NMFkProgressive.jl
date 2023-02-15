@@ -1,5 +1,4 @@
 import Mads
-import NMFk
 import StatsBase
 import Gadfly
 import Plotly

@@ -563,11 +563,11 @@ function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NM
 			if sizeof(deltas) == 0
 				W, H, objvalue = NMFk.mixmatchdata(Xn, nk; method=method, algorithm=algorithm, ratios=ratios, ratioindices=ratioindices, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
 			else
-				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; method=method, algorithm=algorithm, maxiter=maxiter, weightinverse=weightinverse, ratiosweight=ratiosweight, quiet=quiet, tol=tol, kw...)
+				W, Hconc, Hdeltas, objvalue = NMFk.mixmatchdeltas(Xn, deltas, deltaindices, nk; method=method, algorithm=algorithm, maxiter=maxiter, weightinverse=weightinverse, quiet=quiet, tol=tol, kw...)
 				H = [Hconc Hdeltas]
 			end
 		elseif mixture == :matchwaterdeltas
-			W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; method=method, algorithm=algorithm, tol=tol, maxiter=maxiter, kw...)
+			W, H, objvalue = NMFk.mixmatchwaterdeltas(Xn, nk; method=method, algorithm=algorithm, maxiter=maxiter, kw...)
 		end
 	elseif method == :sparsity
 		W, H, objvalue = NMFk.NMFsparsity(Xn, nk; maxiter=maxiter, tol=tol, quiet=quiet, kw...)
@@ -621,8 +621,8 @@ function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NM
 end
 
 function NMFrun(X::AbstractMatrix, nk::Integer; maxiter::Integer=maxiter, normalize::Bool=true)
-	W, H = NMF.randinit(X, nk, normalize = true)
-	NMF.solve!(NMF.MultUpdate(obj = :mse, maxiter=maxiter), X, W, H)
+	W, H = NMF.randinit(X, nk; normalize=normalize)
+	NMF.solve!(NMF.MultUpdate{eltype(X)}(obj=:mse, maxiter=maxiter), X, W, H)
 	if normalize
 		total = sum(W, 1)
 		W ./= total
