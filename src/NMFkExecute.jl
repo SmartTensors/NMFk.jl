@@ -31,7 +31,9 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 		error("Array has a zero dimension! Matrix size=$(size(X))")
 	end
 	if size(X, 1) < size(X, 2) && clusterWmatrix == false
-		@warn("Processed matrix size has more columns than rows (matrix size=$(size(X))). It is recommended in this case to use `clusterWmatrix == true`.")
+		@warn("Processed matrix size has more columns than rows (matrix size=$(size(X)))!")
+		@warn("In this case, it is recommended to use `clusterWmatrix == true`.")
+		@info("It is preferred to cluster the smaller of the matrices!")
 	end
 	if loadonly
 		save = false
