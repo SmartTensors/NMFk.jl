@@ -126,10 +126,11 @@ end
 function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector, X::AbstractMatrix, W::AbstractVector, H::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, kw...)
 	r = normalize_robustness ? robustness[nkrange] ./ maximumnan(robustness[nkrange]) : robustness[nkrange]
 	r2 = similar(robustness)
+	mm = maximum(X)
 	for k in nkrange
 		Xe = W[k] * H[k]
 		r2[k] = NMFk.r2(X, Xe)
-		m = max(maximum(X), maximum(Xe))
+		m = max(mm, maximum(Xe))
 		NMFk.plotscatter(X ./ m, Xe ./ m; filename="$(figuredir)/$(casefilename)-$(k)-scatter.$(plotformat)", title="Number of signals = $k R2 = $(round(r2[k]; sigdigits=3))", ymin=0, xmin=0, ymax=1, xmax=1, xtitle="Truth", ytitle="Estimate")
 	end
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r r2[nkrange]], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], xtitle=xtitle, ytitle=ytitle, names=["Fit", "Robustness", "R2"], kw...)
