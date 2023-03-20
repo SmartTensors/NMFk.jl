@@ -146,7 +146,7 @@ function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.Cosine
 	else
 		Xz = X
 	end
-	p = Gadfly.plot(z=Xz, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none, background_color=background_color, minor_label_font_size=minor_label_font_size))
+	p = Gadfly.plot(z=Xz, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(; location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none, background_color=background_color, minor_label_font_size=minor_label_font_size))
 	Mads.display(p)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)

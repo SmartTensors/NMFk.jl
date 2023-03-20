@@ -204,7 +204,7 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector=["W$i" for i = 1:size(W[krange[1]], 1)], Hnames::AbstractVector=["H$i" for i = 1:size(H[krange[1]], 2)]; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createplots::Bool=true, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt)
+function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector=["W$i" for i = 1:size(W[krange[1]], 1)], Hnames::AbstractVector=["H$i" for i = 1:size(H[krange[1]], 2)]; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt)
 	if length(krange) == 0
 		@warn("No optimal solutions")
 		return
@@ -354,7 +354,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		Wm = Wa ./ maximum(Wa; dims=1)
 		Wm[Wm .< eps(eltype(Wa))] .= 0
 
-		if adjustsize
+		if (createplots || createdendrogramsonly) && adjustsize
 			wr = length(Wnames) / k
 			Wmatrix_hsize = Wmatrix_vsize / wr + 3Gadfly.inch
 			Wdendrogram_hsize = Wdendrogram_vsize / wr + 5Gadfly.inch
@@ -457,16 +457,18 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					yticks = ["$(Hnametypes[i]) $(chnew[i])" for i=1:length(chnew)]
 					NMFk.plotmatrix(Hm[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color)
 				end
-				yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
 				NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, quiet=false, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color)
+				if plottimeseries == :H || plottimeseries == :WH
+					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames)
+				end
+			end
+			if createdendrogramsonly || createplots
 				try
+					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
 					NMFk.plotdendrogram(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, background_color=background_color)
 				catch errmsg
 					println(errmsg)
 					@warn("H matrix dendrogram ploting failed!")
-				end
-				if plottimeseries == :H || plottimeseries == :WH
-					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames)
 				end
 			end
 			if createbiplots
@@ -571,17 +573,20 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				end
 				yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)]
 				NMFk.plotmatrix(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=false, quiet=false, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
-				try
-					NMFk.plotdendrogram(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, background_color=background_color)
-				catch errmsg
-					println(errmsg)
-					@warn("W matrix dendrogram ploting failed!")
-				end
 				# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=1:length(cols)], colorkey=false, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)], colorkey=false, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				if plottimeseries == :W || plottimeseries == :WH
 					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames)
+				end
+			end
+			if createdendrogramsonly || createplots
+				try
+					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)]
+					NMFk.plotdendrogram(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, background_color=background_color)
+				catch errmsg
+					println(errmsg)
+					@warn("W matrix dendrogram ploting failed!")
 				end
 			end
 			if createbiplots
