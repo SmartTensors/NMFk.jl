@@ -129,6 +129,7 @@ function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{I
 	mm = maximum(X)
 	for k in nkrange
 		Xe = W[k] * H[k]
+		@assert size(Xe) == size(X)
 		r2[k] = NMFk.r2(X, Xe)
 		if plotr2
 			m = max(mm, maximum(Xe))
