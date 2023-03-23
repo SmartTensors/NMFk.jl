@@ -57,7 +57,7 @@ end
 
 function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractString=".", loadassignements::Bool=true, Wclusterlabelcasefilename::AbstractString="Wmatrix", Hclusterlabelcasefilename::AbstractString="Hmatrix", repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats)
 	k = size(H, 1)
-	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k; repeats=Wrepeats, resultdir=resultdir, casefilename=Hclusterlabelcasefilename, load=loadassignements, save=true, silhouettes_flag=false).assignments)
+	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k, Wrepeats; resuldir=resultdir, casefilename=Hclusterlabelcasefilename, load=loadassignements, save=true, silhouettes_flag=false).assignments)
 	Hcs = sortperm(Hclusterlabels)
 	clusterlabels = sort(unique(Hclusterlabels))
 	Hsignalmap = NMFk.signalassignments(H, Hclusterlabels; clusterlabels=clusterlabels, dims=2)
@@ -68,7 +68,7 @@ function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir:
 		Hclustermap[Hsignalmap[j]] = i
 		Hsignals[Hclusterlabels .== i] .= "S$(Hsignalmap[j])"
 	end
-	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k; repeats=Wrepeats, resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true, silhouettes_flag=false).assignments)
+	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k, repeats; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true, silhouettes_flag=false).assignments)
 	@assert clusterlabels == sort(unique(Wclusterlabels))
 	Wsignalmap = NMFk.signalassignments(W[:,Hsignalmap], Wclusterlabels; clusterlabels=clusterlabels, dims=1)
 	Wclusterlabelsnew = Vector{eltype(Wclusterlabels)}(undef, length(Wclusterlabels))
@@ -208,7 +208,7 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector=["W$i" for i = 1:size(W[krange[1]], 1)], Hnames::AbstractVector=["H$i" for i = 1:size(H[krange[1]], 2)]; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt, repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats, quiet::Bool=false)
+function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector=["W$i" for i = 1:size(W[krange[1]], 1)], Hnames::AbstractVector=["H$i" for i = 1:size(H[krange[1]], 2)]; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt, repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats, quiet::Bool=false, veryquiet::Bool=true)
 	if length(krange) == 0
 		@warn("No optimal solutions")
 		return
@@ -371,7 +371,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			if Hrepeats > 100 && size(Ha, 2) > 10000
 				@warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))!")
 			end
-			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k; repeats=Hrepeats, resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
+			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
 			clusterlabels = sort(unique(ch))
 			hsignalmap = NMFk.signalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
 		end
@@ -380,7 +380,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			if Wrepeats > 100 && size(Wa, 1) > 10000
 				@warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))!")
 			end
-			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k; repeats=Wrepeats, resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
+			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
 			if clusterH
 				@assert clusterlabels == sort(unique(cw))
 			else
@@ -477,7 +477,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
 					NMFk.plotdendrogram(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, background_color=background_color, quiet=quiet)
 				catch errmsg
-					println(errmsg)
+					!veryquiet && println(errmsg)
 					@warn("H matrix dendrogram ploting failed!")
 				end
 			end
@@ -595,7 +595,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)]
 					NMFk.plotdendrogram(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, background_color=background_color, quiet=quiet)
 				catch errmsg
-					println(errmsg)
+					!veryquiet && println(errmsg)
 					@warn("W matrix dendrogram ploting failed!")
 				end
 			end
