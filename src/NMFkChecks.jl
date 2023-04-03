@@ -176,5 +176,5 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 		end
 	end
 	icor = unique(sort(icor))
-	return ikeep, ilog, inans, izeros, ineg, iconst, icor
+	return ilog, inans, izeros, ineg, iconst, icor
 end
