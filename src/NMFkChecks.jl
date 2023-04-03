@@ -119,9 +119,8 @@ end
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
 checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
-function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false)
+function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name=dim == 2 ? "Column" : "Row", names=["$name $i" for i=1:size(x, dim)])
 	na = size(x, dim)
-	name = dim == 2 ? "column" : "row"
 	inans = Vector{Int64}(undef, 0)
 	izeros = Vector{Int64}(undef, 0)
 	ineg = Vector{Int64}(undef, 0)
@@ -135,36 +134,43 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false)
 		v = x[ns...]
 		skiplog = true
 		if sum(isn) == 0
-			!quiet && @info "Matrix $name $i has only NaNs!"
+			!quiet && @info "$(names[i]) has only NaNs!"
 			push!(inans, i)
 		elseif sum(v) == 0
-			!quiet && @info "Matrix $name $i has only zeros!"
+			!quiet && @info "$(names[i]) has only zeros!"
 			push!(izeros, i)
 		elseif any(v .< 0)
-			!quiet && @info "Matrix $name $i has negative values!"
+			!quiet && @info "$(names[i]) has negative values!"
 			skiplog = false
 			push!(ineg, i)
 		elseif minimum(v) ≈ maximum(v)
-			!quiet && @info "Matrix $name $i is constant!"
+			!quiet && @info "$(names[i]) is constant!"
 			push!(iconst, i)
 		else
+			skiplog = false
 			for j = i+1:na
 				nt2 = ntuple(k->(k == dim ? j : Colon()), 2)
 				jsn = .!isnan.(x[nt2...])
 				ns2 = ntuple(k->(k == dim ? j : jsn), 2)
 				v2 = x[ns2...]
-				c = Statistics.cor(v, v2)
-				if c ≈ 1
-					!quiet && @info "Matrix $name $i and $name $j are correlated!"
+				if v == v2 || Statistics.norm(v .- v2) < norm_cutoff
+					!quiet && @info "$(names[i]) and $(names[j]) are very similar"
+					skiplog = true
 					push!(icor, j)
+				else
+					correlation = abs(Statistics.cor(v, v2))
+					if correlation > correlation_cutoff
+						!quiet && @info "$(names[i]) and $(names[j]) are correlated $(correlation)!"
+						skiplog = true
+						push!(icor, j)
+					end
 				end
 			end
-			skiplog = false
 		end
 		if !skiplog
 			c = abs(StatsBase.skewness(v))
-			if c > 1
-				!quiet && @info "Matrix $name $i is very skewed; log-transformaiton recommended!"
+			if c > skewness_cutoff
+				!quiet && @info "$(names[i]) is very skewed $(c); log-transformaiton recommended!"
 				push!(ilog, i)
 			end
 		end
