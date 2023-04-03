@@ -175,5 +175,8 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 			end
 		end
 	end
-	return inans, izeros, ineg, iconst, unique(sort(icor)), ilog
+	iremove = unique(sort([inans; izeros; ineg; iconst; icor]))
+	ikeep = trues(na)
+	ikeep[iremove] .= false
+	return ikeep, ilog, inans, izeros, ineg, iconst, unique(sort(icor))
 end
