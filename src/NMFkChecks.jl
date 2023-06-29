@@ -153,17 +153,23 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 				jsn = .!isnan.(x[nt2...])
 				ns2 = ntuple(k->(k == dim ? j : jsn), 2)
 				v2 = x[ns2...]
-				if v == v2 || Statistics.norm(v .- v2) < norm_cutoff
-					!quiet && @info "$(names[i]) and $(names[j]) are very similar"
-					skiplog = true
-					push!(icor, j)
-				else
+				if size(v2) == size(v)
 					correlation = abs(Statistics.cor(v, v2))
-					if correlation > correlation_cutoff
+					if v == v2
+						!quiet && @info "$(names[i]) and $(names[j]) are equivalent!"
+						skiplog = true
+						push!(icor, j)
+					elseif Statistics.norm(v .- v2) < norm_cutoff
+						!quiet && @info "$(names[i]) and $(names[j]) are very similar!"
+						skiplog = true
+						push!(icor, j)
+					elseif correlation > correlation_cutoff
 						!quiet && @info "$(names[i]) and $(names[j]) are correlated $(correlation)!"
 						skiplog = true
 						push!(icor, j)
 					end
+				else
+					!quiet && @warn "$(names[i]) and $(names[j]) cannot be compared! They have different number of NaN entries!"
 				end
 			end
 		end
