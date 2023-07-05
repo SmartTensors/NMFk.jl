@@ -1,7 +1,7 @@
 name = "NMFk"
 uuid = "e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8"
 authors = ["Velimir V Vesselinov (monty) <velimir.vesselinov@gmail.com>"]
-version = "1.2.11"
+version = "1.2.12"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
@@ -77,10 +77,10 @@ PlotlyJS = "0.14, 0.15, 0.16, 0.17, 0.18"
 PyCall = "1"
 PyPlot = "2"
 ReusableFunctions = "1"
-StatsBase = "0.32, 0.33"
+StatsBase = "0.32, 0.33, 0.34"
 Suppressor = "0.2, 0.3"
 VegaDatasets = "2"
-VegaLite = "2"
+VegaLite = "2, 3"
 julia = "1.7"
 
 [extras]
