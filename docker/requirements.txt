@@ -16,7 +16,7 @@ rasterio==1.1.2
 requests==2.22.0
 scikit-image==0.16.2
 scikit-learn==0.22.1
-scipy==1.4.1
+scipy==1.10.0
 Shapely==1.6.4.post2
 tensorflow==2.4.2
 torch==1.4.0+cpu
