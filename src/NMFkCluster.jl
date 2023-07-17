@@ -22,7 +22,7 @@ function remap2count(assignments)
 
 	# Now, the highest count classifier will be first entry in assignment_count.
 	# Create a dictionary that maps "1" => "N", where N is the most populated classifier
-	remapper = Dict([(assignment_count[i][1],i) for i in 1:length(unique(assignments))])
+	remapper = Dict([(assignment_count[i][1],i) for i = eachindex(unique(assignments))])
 
 	# Finally, map the assignments to the new ordering and return
 	mfunc(i) = remapper[i]

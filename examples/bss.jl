@@ -5,7 +5,7 @@ import Random
 Random.seed!(2015)
 noise = [0, 0.1, 0.2, 0.5, 1]
 suc = Array{Int}(undef, length(noise))
-for n in 1:length(noise)
+for n = eachindex(noise)
 	suc[n] = 0
 	for i = 1:10
 		s1 = (sin.(0.3:0.3:30) .+ 1) ./ 2

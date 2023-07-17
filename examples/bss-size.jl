@@ -7,7 +7,7 @@ nTests = 10 # number of tests
 noise = [0, 0.1, 0.2, 0.5, 1] # noise levels
 xsize = 1000 # signal size
 suc = Array{Float64}(undef, length(noise))
-for n in 1:length(noise)
+for n = eachindex(noise)
 	suc[n] = 0
 	for i = 1:nTests
 		s1 = (sin.(30/xsize:30/xsize:30) .+ 1) ./ 2 # signal 1

@@ -28,9 +28,7 @@ import FileIO
 import ReusableFunctions
 import DocumentFunction
 
-if isnothing(Base.source_path())
-	const dir = splitdir(splitdir(Base.source_path())[1])[1]
-end
+const dir = Base.pkgdir(NMFk)
 
 global quiet = true
 global restart = false
