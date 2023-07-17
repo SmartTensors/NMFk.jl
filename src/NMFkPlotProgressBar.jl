@@ -6,8 +6,8 @@ import Dates
 
 function progressbar_regular(i::Number, timescale::Bool=false, timestep::Number=1, datestart=nothing, dateend=nothing, dateincrement::AbstractString="Dates.Day")
 	s = timescale ? sprintf("%6.4f", i * timestep) : sprintf("%6d", i)
-	if datestart !== nothing
-		if dateend !== nothing
+	if !isnothing(datestart)
+		if !isnothing(dateend)
 			s = datestart + ((dateend .- datestart) * (i-1) * timestep)
 			if typeof(datestart) <: Integer
 				try
@@ -29,8 +29,8 @@ function make_progressbar_2d(s; vlinecolor="gray", vlinesize=2Gadfly.pt)
 	function progressbar_2d(i::Number, timescale::Bool=false, timestep::Number=1, datestart=nothing, dateend=nothing, dateincrement::AbstractString="Dates.Day")
 		if i > 0
 			xi = timescale ? i * timestep : i
-			if datestart !== nothing
-				if dateend !== nothing
+			if !isnothing(datestart)
+				if !isnothing(dateend)
 					if typeof(datestart) <: Integer
 						try
 							timestep = convert(Int64, timestep)

@@ -16,7 +16,7 @@ Gadfly.Stat.output_aesthetics(stat::HeatMapStatistic) = [:xmin, :xmax, :ymin, :y
 Gadfly.Stat.default_scales(stat::HeatMapStatistic) = [Gadfly.Scale.z_func(), Gadfly.Scale.x_discrete(), Gadfly.Scale.y_discrete(), Gadfly.Scale.color_continuous()]
 
 function Gadfly.Stat.apply_statistic(stat::HeatMapStatistic, scales::Dict{Symbol,Gadfly.ScaleElement}, coord::Gadfly.CoordinateElement, aes::Gadfly.Aesthetics)
-	if stat.metric === nothing
+	if isnothing(stat.metric)
 		r, c = size(aes.z)
 		aes.x = repeat(aes.x; inner=r)
 		aes.y = repeat(aes.y; outer=c)
@@ -115,21 +115,21 @@ end
 function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.AbsoluteLength=0.3Compose.pt, xticks=nothing, yticks=nothing, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", dpi=imagedpi, background_color=nothing, hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch)
 	gm = []
 	r, c = size(X)
-	if xticks === nothing
+	if isnothing(xticks)
 		push!(gm, Gadfly.Guide.xticks(label=false, ticks=nothing))
 	else
 		@assert length(xticks) == c
 		push!(gm, Gadfly.Scale.x_discrete(labels=i->xticks[i]))
 		push!(gm, Gadfly.Guide.xticks(label=true))
 	end
-	if yticks === nothing
+	if isnothing(yticks)
 		push!(gm, Gadfly.Guide.yticks(label=false, ticks=nothing))
 	else
 		@assert length(yticks) == r
 		push!(gm, Gadfly.Scale.y_discrete(labels=i->yticks[i]))
 		push!(gm, Gadfly.Guide.yticks(label=true))
 	end
-	raw = metricheat === nothing
+	raw = isnothing(metricheat)
 	if raw
 		r, c = size(X)
 	else

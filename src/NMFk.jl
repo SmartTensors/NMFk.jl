@@ -28,7 +28,7 @@ import FileIO
 import ReusableFunctions
 import DocumentFunction
 
-if Base.source_path() !== nothing
+if isnothing(Base.source_path())
 	const dir = splitdir(splitdir(Base.source_path())[1])[1]
 end
 

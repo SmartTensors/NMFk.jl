@@ -22,7 +22,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	end
 	signalorderassignments, signalpeakindex = NMFk.signalorderassignments(Ma, odim)
 	nt = dim == 1 ? (Colon(),signalorderassignments) : (signalorderassignments,Colon())
-	if dates !== nothing
+	if !isnothing(dates)
 		@assert length(dates) == size(Ma, 1)
 		ndates = dates[signalpeakindex]
 	else
@@ -59,7 +59,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
 	@assert length(signalorderassignments) == length(signalid)
-	if dates !== nothing
+	if !isnothing(dates)
 		@assert size(X, dim) == length(dates)
 	end
 	recursivemkdir(figuredir; filename=false)
@@ -68,15 +68,15 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 		nt = ntuple(j->(j == dim ? k : Colon()), ndims(X))
 		df[!, :Z] = [vec(X[nt...]); zeros(sum(.!goodcounties))]
 		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], leadingzeros, '0') : signalid[i]
-		if title || (dates !== nothing && titletext != "")
+		if title || (!isnothing(dates) && titletext != "")
 			ttitle = "$(titletext) $(signalidtext)"
-			if dates !== nothing
+			if !isnothing(dates)
 				ttitle *= ": $(datetext): $(dates[k])"
 			end
 			ltitle = ""
 		else
 			ttitle = nothing
-			if dates !== nothing
+			if !isnothing(dates)
 				ltitle = datetext .* "$(dates[k])"
 			else
 				ltitle = "$(titletext) $(signalidtext)"

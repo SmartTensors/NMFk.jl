@@ -138,7 +138,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 		well_y = Array{Float32}(undef, 0)
 		for w in api[existing_wells]
 			iwell = findall((in)(w), df_header[!, :API])
-			if iwell !== nothing
+			if !isnothing(iwell)
 				push!(well_x, df_header[!, :Lon][iwell[1]])
 				push!(well_y, df_header[!, :Lat][iwell[1]])
 			else
@@ -295,7 +295,7 @@ function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::
 		end
 	else
 		kn = findlast(i->i > cutoff, robustness)
-		if kn === nothing
+		if isnothing(kn)
 			if strict
 				k = nothing
 			else
@@ -381,7 +381,7 @@ function mergeks(k::AbstractVector{T}, ks::Nothing) where {T <: Integer}
 end
 
 function mergeks(k::AbstractVector{T1}, ks::Union{T2, AbstractVector{T2}}) where {T1 <: Integer, T2 <: Integer}
-	if ks !== Nothing
+	if !isnothing(ks)
 		return unique(sort([k; ks]))
 	end
 end

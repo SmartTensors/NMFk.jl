@@ -132,7 +132,7 @@ function pkginstalled(modulename::AbstractString)
 	deps = Pkg.dependencies()
 	for (uuid, dep) in deps
 		dep.is_direct_dep || continue
-		dep.version === nothing && continue
+		isnothing(dep.version) && continue
 		if dep.name == modulename
 			found = true
 			break
@@ -145,7 +145,7 @@ function pkginstalled()
 	installs = Dict{String, VersionNumber}()
 	for (uuid, dep) in deps
 		dep.is_direct_dep || continue
-		dep.version === nothing && continue
+		isnothing(dep.version) && continue
 		installs[dep.name] = dep.version
 	end
 	return installs

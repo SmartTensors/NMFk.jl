@@ -60,7 +60,7 @@ function stackmovie(movies...; dir::Symbol=:h, vspeed::Number=1.0, newname="resu
 			break
 		end
 	end
-	if movieall !== nothing
+	if !isnothing(movieall)
 		recursivemkdir(movieall; filename=true)
 		if dir == :h
 			stack = "hstack"

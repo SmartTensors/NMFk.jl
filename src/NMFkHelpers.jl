@@ -50,7 +50,7 @@ function findfirst(v::AbstractVector, func::Function=i->i > 0; zerod::Bool=true,
 end
 
 function maximumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
-	if dims === nothing
+	if isnothing(dims)
 		i = func.(X)
 		v = X[.!i]
 		m = length(v) > 0 ? maximum(v; kw...) : NaN
@@ -65,7 +65,7 @@ function maximumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 end
 
 function minimumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
-	if dims === nothing
+	if isnothing(dims)
 		i = func.(X)
 		v = X[.!i]
 		m = length(v) > 0 ? minimum(v; kw...) : NaN
@@ -80,7 +80,7 @@ function minimumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 end
 
 function sumnan(X::AbstractArray; dims=nothing, kw...)
-	if dims === nothing
+	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = isnan.(X)
 		if sum(I) == ecount
@@ -101,7 +101,7 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 end
 
 function cumsumnan(X::AbstractArray; dims=nothing, kw...)
-	if dims === nothing
+	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = isnan.(X)
 		if sum(I) == ecount
@@ -125,7 +125,7 @@ function cumsumnan(X::AbstractArray; dims=nothing, kw...)
 end
 
 function meannan(X::AbstractArray; dims=nothing, kw...)
-	if dims === nothing
+	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = isnan.(X)
 		if sum(I) == ecount
@@ -147,7 +147,7 @@ function meannan(X::AbstractArray; dims=nothing, kw...)
 end
 
 function varnan(X::AbstractArray; dims=nothing, kw...)
-	if dims === nothing
+	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = isnan.(X)
 		if sum(I) == ecount
@@ -226,7 +226,7 @@ function hardencodelength(x::AbstractVector{T}) where {T <: Number}
 	u = unique(x)
 	i = indexin(x, u)
 	inan = indexin(true, isnan.(u))[1]
-	d = inan !== nothing ? length(u) - 1 : d = length(u)
+	d = !isnothing(inan) ? length(u) - 1 : d = length(u)
 	return d
 end
 
@@ -234,10 +234,10 @@ function hardencode(x::AbstractVector{T}) where {T <: Number}
 	u = unique(x)
 	i = indexin(x, u)
 	inan = indexin(true, isnan.(u))[1]
-	d = inan !== nothing ? length(u) - 1 : d = length(u)
+	d = !isnothing(inan) ? length(u) - 1 : d = length(u)
 	m = zeros(length(x), d)
 	for (j, k) in enumerate(i)
-		if inan !== nothing
+		if !isnothing(inan)
 			if k == inan
 				m[j, :] .= NaN
 			elseif k < inan
@@ -314,7 +314,7 @@ function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Functi
 end
 
 function nanmask!(X::Array, mask::Union{Nothing,Number})
-	if mask !== nothing
+	if !isnothing(mask)
 		X[X .<= mask] .= NaN
 	end
 	return nothing

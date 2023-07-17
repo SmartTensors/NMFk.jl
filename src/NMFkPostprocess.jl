@@ -264,7 +264,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	Wnamesmaxlength = max(length.(Wnames)...)
 	Wnames = Wnames[Worder]
 	Hnames = Hnames[Horder]
-	if lon !== nothing && lat !== nothing
+	if !isnothing(lon) && !isnothing(lat)
 		if length(lon) == length(lat)
 			if length(Hnames) != length(lon) && length(Wnames) != length(lat)
 				plotmap = false
@@ -445,7 +445,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			dumpcsv = true
 			if plotmap
 				if length(lon) == length(chnew)
-					if hover === nothing
+					if isnothing(hover)
 						hover = Hnames
 					end
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.html", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
@@ -550,7 +550,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			dumpcsv = true
 			if plotmap
 				if length(lon) == length(cwnew)
-					if hover === nothing
+					if isnothing(hover)
 						hover = Wnames
 					end
 					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.html", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
@@ -669,7 +669,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				table2 = hcat(table2, map(i->attributesl[Xekm[:,i]], 1:length(Hnames)))
 				table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(Hnames)))
 			end
-			if lon !== nothing && lat !== nothing
+			if !isnothing(lon) && !isnothing(lat)
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_max.csv", [lonlat table], ',')
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_$(cutoff_s).csv", [lonlat table2], ';')
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_count_$(cutoff_s).csv", [lonlat table3], ',')
@@ -703,7 +703,7 @@ function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, loc
 		@info "Location cluster: $c"
 		min, max, std, count = NMFk.datanalytics(X[i,:], attributes; dims=dims, plothistogram=plothistogram, quiet=quiet)
 		@info "Missing attribute measurements:"
-		if attributematrix === nothing
+		if isnothing(attributematrix)
 			display(attributes[count.==0])
 		else
 			p = attributematrix[ic,count.==0]

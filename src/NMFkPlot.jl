@@ -224,7 +224,7 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	@assert ndata == length(classes)
 	mind = minimumnan(data)
 	maxd = maximumnan(data)
-	if edges === nothing
+	if isnothing(edges)
 		histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	else
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
@@ -257,8 +257,8 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		xmina = xaxis
 		xmaxa = xaxis
 	end
-	xminl = xmin === nothing ? xmina[1] : min(xmina[1], xmin)
-	xmaxl = xmax === nothing ? xmaxa[end] : max(xmaxa[end], xmax)
+	xminl = isnothing(xmin) ? xmina[1] : min(xmina[1], xmin)
+	xmaxl = isnothing(xmax) ? xmaxa[end] : max(xmaxa[end], xmax)
 	l = []
 	suc = sort(unique(classes))
 	ccount = Vector{Int64}(undef, length(suc))
@@ -293,9 +293,9 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		end
 		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
-	ymax = ymax !== nothing ? ymax : ymaxl
+	ymax = !isnothing(ymax) ? ymax : ymaxl
 	s = [Gadfly.Coord.Cartesian(xmin=xminl, xmax=xmaxl, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl), Gadfly.Guide.xticks(ticks=collect(xminl:dx:xmaxl)), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
-	if xlabelmap !== nothing
+	if !isnothing(xlabelmap)
 		s = [s..., Gadfly.Scale.x_continuous(minvalue=xminl, maxvalue=xmaxl, labels=xlabelmap)]
 	end
 	m = []
@@ -357,11 +357,11 @@ function plotscatter(x::AbstractArray, y::AbstractArray, aw...; kw...)
 end
 
 function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.AbsoluteLength=2Gadfly.pt, dpi=imagedpi)
-	if polygon !== nothing
-		xmin = xmin !== nothing ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
-		xmax = xmax !== nothing ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
-		ymin = ymin !== nothing ? min(minimumnan(polygon[:,2]), ymin) : minimumnan(polygon[:,2])
-		ymax = ymax !== nothing ? max(maximumnan(polygon[:,2]), ymax) : maximumnan(polygon[:,2])
+	if !isnothing(polygon)
+		xmin = !isnothing(xmin) ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
+		xmax = !isnothing(xmax) ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
+		ymin = !isnothing(ymin) ? min(minimumnan(polygon[:,2]), ymin) : minimumnan(polygon[:,2])
+		ymax = !isnothing(ymax) ? max(maximumnan(polygon[:,2]), ymax) : maximumnan(polygon[:,2])
 		pm = [Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=line_width, default_color=line_color))]
 	else
 		pm = []
@@ -380,8 +380,8 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	if length(color) > 0
 		@assert length(color) == length(x)
 		if eltype(color) <: Number
-			zmin = zmin !== nothing ? zmin : minimumnan(color)
-			zmax = zmax !== nothing ? zmax : maximumnan(color)
+			zmin = !isnothing(zmin) ? zmin : minimumnan(color)
+			zmax = !isnothing(zmax) ? zmax : maximumnan(color)
 			zin = .!isnan.(color)
 			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=color[zin], size=size[zin], Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=zmin, maxvalue=zmax, colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
 		else

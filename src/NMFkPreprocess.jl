@@ -84,7 +84,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 end
 
 function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)
-	if stepvalue !== nothing
+	if !isnothing(stepvalue)
 		if granulate && !quiet
 			@info("Initial: $minvalue $maxvalue")
 		end
@@ -164,7 +164,7 @@ function processdata!(M::AbstractArray; nanstring::AbstractString="NaN", negativ
 end
 
 function griddata(x::AbstractVector, y::AbstractVector; stepvalue=nothing, nbins=nothing, xrev::Bool=false, xnbins::Integer=length(x), xminvalue=minimum(x), xmaxvalue=maximum(x), xstepvalue=stepvalue, yrev::Bool=false, ynbins=length(y), yminvalue=minimum(y), ymaxvalue=maximum(y), ystepvalue=stepvalue, granulate::Bool=true, quiet::Bool=true)
-	if nbins !== nothing
+	if !isnothing(nbins)
 		xnbins = nbins
 		ynbins = nbins
 	end
@@ -201,7 +201,7 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type:
 end
 
 function bincoordinates(v::AbstractVector; rev::Bool=false, nbins=length(v), minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing)
-	if stepvalue !== nothing
+	if !isnothing(stepvalue)
 		if typeof(minvalue) <: Dates.DateTime
 			maxvalue = ceil(maxvalue, stepvalue)
 			minvalue = floor(minvalue, stepvalue)
@@ -284,10 +284,10 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfir
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 		end
 		firstentry = Base.findfirst(funcfirst.(X[nt...]))
-		if firstentry !== nothing
+		if !isnothing(firstentry)
 			afirstentry[i] = firstentry
 			lastentry = findlast(funclast.(X[nt...]))
-			if lastentry !== nothing
+			if !isnothing(lastentry)
 				datasize[i] = lastentry - firstentry + 1
 				alastentry[i] = lastentry
 			else

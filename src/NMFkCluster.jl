@@ -222,7 +222,7 @@ function finduniquesignalsbest(X::AbstractMatrix)
 end
 
 function signalassignments(X::AbstractMatrix{T}, c::AbstractVector; dims=1, clusterlabels=nothing) where {T <: Number}
-	if clusterlabels === nothing
+	if isnothing(clusterlabels)
 		clusterlabels = sort(unique(c))
 	end
 	d = dims == 1 ? 2 : 1
