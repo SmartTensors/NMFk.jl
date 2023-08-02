@@ -28,7 +28,7 @@ end
 
 "Denormalize"
 function denormalize(a::AbstractArray, aw...)
-	denormalize!(copy(a), aw...)
+	return denormalize!(copy(a), aw...)
 end
 function denormalize!(a::AbstractArray, amin, amax)
 	if all(amax .>= amin)
@@ -41,23 +41,23 @@ end
 
 "Normalize matrix (by columns)"
 function normalizematrix_col(a::AbstractMatrix; kw...)
-	normalizematrix!(copy(a), 2; kw...)
+	return normalizematrix!(copy(a), 2; kw...)
 end
 function normalizematrix_col!(a::AbstractMatrix; kw...)
-	normalizematrix!(a, 2; kw...)
+	return normalizematrix!(a, 2; kw...)
 end
 
 "Normalize matrix (by rows)"
 function normalizematrix_row(a::AbstractMatrix; kw...)
-	normalizematrix!(copy(a), 1; kw...)
+	return normalizematrix!(copy(a), 1; kw...)
 end
 function normalizematrix_row!(a::AbstractMatrix; kw...)
-	normalizematrix!(a, 1; kw...)
+	return normalizematrix!(a, 1; kw...)
 end
 
 "Normalize matrix"
 function normalizematrix(a::AbstractMatrix, dim::Integer; kw...)
-	normalizematrix!(copy(a), dim; kw...)
+	return normalizematrix!(copy(a), dim; kw...)
 end
 
 function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=matrixmin(a, dim), amax::AbstractArray=matrixmax(a, dim), rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
@@ -126,7 +126,7 @@ function matrixmax(a::AbstractMatrix, dim::Integer)
 end
 
 function normalizearray(a::AbstractArray, dim::Integer; kw...)
-	normalizearray!(copy(a), dim; kw...)
+	return normalizearray!(copy(a), dim; kw...)
 end
 
 function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::Bool=false)
@@ -156,7 +156,7 @@ function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::B
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
 			a[nt...] .= (amax[i] .- a[nt...]) ./ dx[i]
 		end
-		return a, amax, amin
+		return a, amax, amin, logv
 	else
 		for i = 1:n
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
@@ -174,7 +174,7 @@ end
 
 "Denormalize matrix"
 function denormalizematrix_col(a::AbstractMatrix, at...; kw...)
-	denormalizematrix_col!(copy(a), at...; kw...)
+	return denormalizematrix_col!(copy(a), at...; kw...)
 end
 function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractMatrix, amax::AbstractMatrix; log::Bool=false, logv::AbstractVector=fill(log, size(a, 2)), zflag::AbstractVector=falses(size(a, 2)))
 	dx = amax .- amin
@@ -197,7 +197,7 @@ end
 
 "Denormalize matrix"
 function denormalizematrix_row(a::AbstractMatrix, at...; kw...)
-	denormalizematrix_row!(copy(a), at...; kw...)
+	return denormalizematrix_row!(copy(a), at...; kw...)
 end
 function denormalizematrix_row!(a::AbstractMatrix, amin::AbstractVector, amax::AbstractVector; log::Bool=false, logv::AbstractVector=fill(log, size(a, 1)), zflag::AbstractVector=falses(size(a, 2)))
 	dx = amax .- amin
