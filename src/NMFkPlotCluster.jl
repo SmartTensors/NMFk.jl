@@ -112,7 +112,7 @@ function Gadfly.Guide.render(guide::Dendrogram, theme::Gadfly.Theme, aes::Gadfly
 	return gpg
 end
 
-function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.AbsoluteLength=0.3Compose.pt, xticks=nothing, yticks=nothing, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", dpi=imagedpi, background_color=nothing, hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch)
+function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.CosineDist(), metricheat=metric, linkage::Symbol=:complete, location::Symbol=:both, scaleheight::Number=.1, height::Number=0.1, color::AbstractString="white", linewidth::Measures.AbsoluteLength=0.3Compose.pt, xticks=nothing, yticks=nothing, minor_label_font_size=10Gadfly.pt, figuredir::AbstractString=".", filename::AbstractString="", dpi=imagedpi, background_color=nothing, hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, quiet::Bool=false)
 	gm = []
 	r, c = size(X)
 	if isnothing(xticks)
@@ -147,7 +147,7 @@ function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.Cosine
 		Xz = X
 	end
 	p = Gadfly.plot(z=Xz, x=1:c, y=1:r, heatmap(; metric=metricheat, dim=dim), Gadfly.Geom.rectbin(), Gadfly.Scale.color_continuous(colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Coord.cartesian(yflip=true, fixed=true), dendrogram(; location=location, scaleheight=scaleheight, height=height, color=color, linewidth=linewidth, raw=raw, dim=dim, metric=metric, linkage=linkage), Gadfly.Guide.xlabel(""), Gadfly.Guide.ylabel(""), gm..., Gadfly.Theme(key_position=:none, background_color=background_color, minor_label_font_size=minor_label_font_size))
-	Mads.display(p)
+	!quiet && Mads.display(p)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
 		recursivemkdir(j)
