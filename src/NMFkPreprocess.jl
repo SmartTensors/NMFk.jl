@@ -38,13 +38,12 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 	end
 end
 
-function datanalytics(a::AbstractMatrix; dims::Integer=1, kw...)
+function datanalytics(a::AbstractMatrix; dims::Integer=2, names::AbstractVector=["$name $i" for i = 1:size(a, dims)], kw...)
 	name = dims == 1 ? "Row" : "Column"
-	names = ["$name $i" for i = 1:size(a, dims)]
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=1, quiet::Bool=false, veryquiet::Bool=quiet, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=quiet, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	min = Vector{T}(undef, length(names))
@@ -64,7 +63,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 		if casefilename == ""
 			filename = ""
 		else
-			if splitdir(casefilename)[end] == ""
+			if last(splitdir(casefilename)) == ""
 				filename = casefilename * "histogram-$(n).png"
 			else
 				filename = casefilename * "-$(n).png"

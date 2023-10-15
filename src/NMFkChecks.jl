@@ -119,14 +119,14 @@ end
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
 checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
-function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=1:size(x, dim)])
+function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=1:size(x, dim)], masks::Bool=false)
 	na = size(x, dim)
+	ilog = Vector{Int64}(undef, 0)
 	inans = Vector{Int64}(undef, 0)
 	izeros = Vector{Int64}(undef, 0)
 	ineg = Vector{Int64}(undef, 0)
 	iconst = Vector{Int64}(undef, 0)
 	icor = Vector{Int64}(undef, 0)
-	ilog = Vector{Int64}(undef, 0)
 	for i = 1:na
 		nt = ntuple(k->(k == dim ? i : Colon()), 2)
 		isn = .!isnan.(x[nt...])
@@ -182,5 +182,21 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 		end
 	end
 	icor = unique(sort(icor))
-	return ilog, inans, izeros, ineg, iconst, icor
+	if masks
+		mlog = falses(na)
+		mnans = falses(na)
+		mzeros = falses(na)
+		mneg = falses(na)
+		mconst = falses(na)
+		mcor = falses(na)
+		mlog[ilog] .= true
+		mnans[inans] .= true
+		mzeros[izeros] .= true
+		mneg[ineg] .= true
+		mconst[iconst] .= true
+		mcor[icor] .= true
+		return mlog, mnans, mzeros, mneg, mconst, mcor
+	else
+		return ilog, inans, izeros, ineg, iconst, icor
+	end
 end

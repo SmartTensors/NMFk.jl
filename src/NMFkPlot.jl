@@ -198,14 +198,20 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	return nothing
 end
 
-function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; kw...)
+function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; figuredir::AbstractString=".", save::Bool=false, kw...)
 	for c = 1:size(data, 2)
 		if names[c] == ""
 			@info "Column $(c):"
-			histogram(data[:,c]; kw...)
+			if figuredir != "." || save
+				filename = "histogram_column_$(c)"
+			end
+			histogram(data[:,c]; figuredir=figuredir, kw..., filename=filename)
 		else
 			@info "Attribute $(names[c]):"
-			histogram(data[:,c]; kw..., title=names[c])
+			if figuredir != "." || save
+				filename = "histogram_$(names[c])"
+			end
+			histogram(data[:,c]; figuredir=figuredir, kw..., title=names[c], filename=filename)
 		end
 	end
 end
@@ -588,7 +594,7 @@ function setnewfilename(filename::AbstractString, frame::Integer=0; keyword::Abs
 		filename = "$(fn[1:rm.offset-1])-$(keyword)$(sprintf(f, v)).$(rm.captures[2])"
 		return joinpath(dir, filename)
 	else
-		@warn("setnewfilename failed!")
+		@warn("Setting a new file name has failed!")
 		return ""
 	end
 end
