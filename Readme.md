@@ -4,7 +4,7 @@
     <img src="logo/nmfk-logo.jpg" alt="nmfk" width=50%  max-width=125px;/>
 </div>
 
-**NMFk** is one of the tools in the **SmartTensors** ML framework ([smarttensors.com](https://smarttensors.com)).
+**NMFk** is a module of the **SmartTensors** ML framework ([smarttensors.com](https://smarttensors.com)).
 
 <div style="text-align: left">
     <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
@@ -16,10 +16,10 @@ Classical **NMF** approaches do not allow for automatic estimation of the number
 
 **NMFk** estimates the number of features `k` through *k*-means clustering coupled with regularization constraints (sparsity, physical, mathematical, etc.).
 
-**NMFk** can be applied to perform:
+**SmartTensors** can be applied to perform:
 - Feature extraction (**FE**)
 - Blind source separation (**BSS**)
-- Detection of disruptions / anomalies
+- Detection of disruptions/anomalies
 - Image recognition
 - Text mining
 - Data classification
@@ -27,17 +27,17 @@ Classical **NMF** approaches do not allow for automatic estimation of the number
 - Discovery of unknown dependencies and phenomena
 - Development of reduced-order/surrogate models
 - Identification of dependencies between model inputs and outputs
-- Guiding the development of physics models representing the ML analyzed data
+- Guiding the development of physics models representing the ML-analyzed data
 - Blind predictions
 - Optimization of data acquisition (optimal experimental design)
 - Labeling of datasets for supervised ML analyses
 
 **NMFk** provides high-performance computing capabilities to solve problems with Shared and Distributed Arrays in parallel.
-The parallelization allows for utilization of multi-core / multi-processor environments.
+The parallelization allows for the utilization of multi-core / multi-processor environments.
 GPU and TPU accelerations are available through existing Julia packages.
 
 **NMFk** provides advanced tools for data visualization, pre- and post-processing.
-These tools substantially facilitate utilization of the package in various real-world applications.
+These tools substantially facilitate the utilization of the package in various real-world applications.
 
 **NMFk** methodology and applications are discussed in the research papers and presentations listed below.
 
@@ -104,7 +104,7 @@ Then, mix the signals to produce a data matrix `X` of 5 sensors observing the mi
 X = [a+c*3 a*10+b b b*5+c a+b*2+c*5]
 ```
 
-This is equivalent to generating a mixing matrix `H` and obtain `X` by multiplying `W` and `H`
+This is equivalent to generating a mixing matrix `H` and obtaining `X` by multiplying `W` and `H`
 
 ```julia
 H = [1 10 0 0 1; 0 1 1 5 2; 3 0 0 1 5]
@@ -197,8 +197,8 @@ The analyzed datasets include model outputs, experimental laboratory data, and f
 - Induced seismicity
 - Phase separation of co-polymers
 - Oil / Gas extraction from unconventional reservoirs
-- Geothermal exploration and produciton
-- Geologic carbon storages
+- Geothermal exploration and production
+- Geologic carbon storage
 - Wildfires
 
 ## Videos:
@@ -240,7 +240,7 @@ Alexandrov, B.S., Vesselinov, V.V., Alexandrov, L.B., Stanev, V., Iliev, F.L., S
 - Vesselinov, V.V., Mudunuru, M., Karra, S., O'Malley, D., Alexandrov, B.S., Unsupervised Machine Learning Based on Non-Negative Tensor Factorization for Analyzing Reactive-Mixing, 10.1016/j.jcp.2019.05.039, Journal of Computational Physics, 2019. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Vesselinov%20et%20al%202018%20Unsupervised%20Machine%20Learning%20Based%20on%20Non-Negative%20Tensor%20Factorization%20for%20Analyzing%20Reactive-Mixing.pdf)
 - Vesselinov, V.V., Alexandrov, B.S., O'Malley, D., Nonnegative Tensor Factorization for Contaminant Source Identification, Journal of Contaminant Hydrology, 10.1016/j.jconhyd.2018.11.010, 2018. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Vesselinov%20et%20al%202018%20Nonnegative%20Tensor%20Factorization%20for%20Contaminant%20Source%20Identification.pdf)
 - O'Malley, D., Vesselinov, V.V., Alexandrov, B.S., Alexandrov, L.B., Nonnegative/binary matrix factorization with a D-Wave quantum annealer, PlosOne, 10.1371/journal.pone.0206653, 2018. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/OMalley%20et%20al%202017%20Nonnegative:binary%20matrix%20factorization%20with%20a%20D-Wave%20quantum%20annealer.pdf)
-- Stanev, V., Vesselinov, V.V., Kusne, A.G., Antoszewski, G., Takeuchi,I., Alexandrov, B.A., Unsupervised Phase Mapping of X-ray Diffraction Data by Nonnegative Matrix Factorization Integrated with Custom Clustering, Nature Computational Materials, 10.1038/s41524-018-0099-2, 2018. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Stanev%20et%20al%202018%20Unsupervised%20phase%20mapping%20of%20X-ray%20diffraction%20data%20by%20nonnegative%20matrix%20factorization%20integrated%20with%20custom%20clustering.pdf)
+- Stanev, V., Vesselinov, V.V., Kusne, A.G., Antoszewski, G., Takeuchi, I., Alexandrov, B.A., Unsupervised Phase Mapping of X-ray Diffraction Data by Nonnegative Matrix Factorization Integrated with Custom Clustering, Nature Computational Materials, 10.1038/s41524-018-0099-2, 2018. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Stanev%20et%20al%202018%20Unsupervised%20phase%20mapping%20of%20X-ray%20diffraction%20data%20by%20nonnegative%20matrix%20factorization%20integrated%20with%20custom%20clustering.pdf)
 - Iliev, F.L., Stanev, V.G., Vesselinov, V.V., Alexandrov, B.S., Nonnegative Matrix Factorization for identification of unknown number of sources emitting delayed signals PLoS ONE, 10.1371/journal.pone.0193974. 2018. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Iliev%20et%20al%202018%20Nonnegative%20Matrix%20Factorization%20for%20identification%20of%20unknown%20number%20of%20sources%20emitting%20delayed%20signals.pdf)
 - Stanev, V.G., Iliev, F.L., Hansen, S.K., Vesselinov, V.V., Alexandrov, B.S., Identification of the release sources in advection-diffusion system by machine learning combined with Green function inverse method, Applied Mathematical Modelling, 10.1016/j.apm.2018.03.006, 2018. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Stanev%20et%20al%202018%20Identification%20of%20release%20sources%20in%20advection-diffusion%20system%20by%20machine%20learning%20combined%20with%20Green's%20function%20inverse%20method.pdf)
 - Vesselinov, V.V., O'Malley, D., Alexandrov, B.S., Contaminant source identification using semi-supervised machine learning, Journal of Contaminant Hydrology, 10.1016/j.jconhyd.2017.11.002, 2017. [PDF](https://gitlab.com/monty/monty.gitlab.io/raw/master/papers/Vesselinov%202017%20Contaminant%20source%20identification%20using%20semi-supervised%20machine%20learning.pdf)
@@ -292,7 +292,7 @@ export https_proxy=http://proxyout.lanl.gov:8080
 export no_proxy=.lanl.gov
 ```
 
-Proxies can be also set up directly in the Julia REPL as well:
+Proxies can also be set up directly in the Julia REPL:
 
 ```julia
 ENV["ftp_proxy"] =  "http://proxyout.lanl.gov:8080"
