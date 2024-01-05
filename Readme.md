@@ -10,7 +10,7 @@
     <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
 </div>
 
-**NMFk** is a novel unsupervised machine learning methodology that allows for automatic identification of the optimal number of features (signals/signatures) present in the data.
+**NMFk** is a novel unsupervised machine learning methodology that allows for the automatic identification of the optimal number of features (signals/signatures) present in the data.
 
 Classical **NMF** approaches do not allow for automatic estimation of the number of features.
 
@@ -20,6 +20,8 @@ Classical **NMF** approaches do not allow for automatic estimation of the number
 - Feature extraction (**FE**)
 - Blind source separation (**BSS**)
 - Detection of disruptions/anomalies
+- Data gap discovery
+- Data gap filling and reconstruction
 - Image recognition
 - Text mining
 - Data classification
@@ -32,7 +34,7 @@ Classical **NMF** approaches do not allow for automatic estimation of the number
 - Optimization of data acquisition (optimal experimental design)
 - Labeling of datasets for supervised ML analyses
 
-**NMFk** provides high-performance computing capabilities to solve problems with Shared and Distributed Arrays in parallel.
+**NMFk** provides high-performance computing capabilities to solve problems in parallel using Shared and Distributed Arrays.
 The parallelization allows for the utilization of multi-core / multi-processor environments.
 GPU and TPU accelerations are available through existing Julia packages.
 
@@ -129,7 +131,7 @@ Signals:  5 Fit: 2.598571e-05 Silhouette:   -0.6757581 AIC:    -915.6589
 [ Info: Optimal solution: 3 signals
 ```
 
-The code returns the estimated optimal number of signals `kopt`, which in this case as expected is equal to 3.
+The code returns the estimated optimal number of signals `kopt`, which in this case, as expected, is equal to 3.
 
 The code returns the `fitquality` and `robustness`; they can applied to represent how the solutions change with the increase of `k`:
 
