@@ -1,4 +1,3 @@
-import Plotly
 import PlotlyJS
 
 function geomap(filename::AbstractString, x::AbstractVector, y::AbstractVector, s::AbstractVector=ones(length(x)) * 10; figuredir::AbstractString=".", title::AbstractString="")

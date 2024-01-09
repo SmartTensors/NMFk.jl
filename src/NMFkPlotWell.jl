@@ -1,4 +1,3 @@
-import Plotly
 import PlotlyJS
 import Colors
 import ColorSchemes
@@ -43,16 +42,16 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 		end
 		p = convert(Array{typeof(dots[1])}, dots)
 	end
-	return PlotlyJS.plot(p, Plotly.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+	return PlotlyJS.plot(p, PlotlyJS.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 
 end
 
 function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, kw...)
 	if isnothing(plotly)
-		p = PlotlyJS.plot(NMFk.plot_wells(ar...; kw...), Plotly.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+		p = PlotlyJS.plot(NMFk.plot_wells(ar...; kw...), PlotlyJS.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 	else
-		p = PlotlyJS.plot(plotly, Plotly.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
-		p = Plotly.addtraces(p, NMFk.plot_wells(ar...; kw...)...)
+		p = PlotlyJS.plot(plotly, PlotlyJS.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
+		p = PlotlyJS.addtraces(p, NMFk.plot_wells(ar...; kw...)...)
 	end
 	j = joinpathcheck(figuredir, filename)
 	recursivemkdir(j)

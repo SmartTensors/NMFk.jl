@@ -1,7 +1,6 @@
 import Mads
 import StatsBase
 import Gadfly
-import Plotly
 import PlotlyJS
 
 function progressive(X::AbstractMatrix{T}, windowsize::Int64, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
