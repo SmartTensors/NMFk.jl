@@ -1,5 +1,3 @@
-__precompile__()
-
 """
 NMFk.jl: Nonnegative Matrix Factorization + k-means clustering and physics constraints
 ----
