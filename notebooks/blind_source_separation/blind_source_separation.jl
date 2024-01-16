@@ -1,3 +1,5 @@
+import Pkg
+Pkg.activate()
 import NMFk
 import Mads
 import Gadfly
