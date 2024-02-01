@@ -2,6 +2,7 @@ import Dates
 import DataFrames
 import Statistics
 import StatsBase
+import Mads
 
 function log10s(x::AbstractFloat; min::Number=log10(eps(typeof(x))))
 	x ≈ 0 ? min : log10(x)
