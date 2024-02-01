@@ -452,5 +452,3 @@ function moving_average(m::AbstractMatrix, window::Integer=3; dims::Integer=2)
 	end
 	return ms
 end
-
-decimal_day = Mads.decimal_day
