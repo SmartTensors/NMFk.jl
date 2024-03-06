@@ -198,20 +198,24 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	return nothing
 end
 
-function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; figuredir::AbstractString=".", save::Bool=false, kw...)
+function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; figuredir::AbstractString=".", save::Bool=false, save_data::Bool=false, kw...)
+	filename_plot = ""
+	@assert size(data, 2) == length(names)
 	for c = 1:size(data, 2)
 		if names[c] == ""
 			@info "Column $(c):"
 			if figuredir != "." || save
-				filename = "histogram_column_$(c)"
+				filename_plot = "histogram_column_$(c)"
 			end
-			histogram(data[:,c]; figuredir=figuredir, kw..., filename=filename)
+			filename_data = save_data ? "histogram_column_$(c)_data" : ""
+			histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data)
 		else
 			@info "Attribute $(names[c]):"
 			if figuredir != "." || save
-				filename = "histogram_$(names[c])"
+				filename_plot = "histogram_$(names[c])"
 			end
-			histogram(data[:,c]; figuredir=figuredir, kw..., title=names[c], filename=filename)
+			filename_data = save_data ? "histogram_$(names[c])_data" : ""
+			histogram(data[:,c]; figuredir=figuredir, kw..., title=names[c], filename_plot=filename_plot, filename_data=filename_data)
 		end
 	end
 end
@@ -221,7 +225,7 @@ function histogram(datain::AbstractVector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., joined=false)
 end
 
-function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize::Measures.AbsoluteLength=6Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
+function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize::Measures.AbsoluteLength=6Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, quiet::Bool=false, debug::Bool=false, figuredir::AbstractString=".", filename_plot::AbstractString="", filename_data::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
 	ndata = length(data)
 	if ndata <= 1
 		@warn("Data input is too short to compute histogram (length of data = $ndata)!")
@@ -274,7 +278,7 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		ccount[j] = sum(i)
 		hist = StatsBase.fit(StatsBase.Histogram, data[i], newedges; closed=closed)
 		y = proportion ? hist.weights ./ ndata : hist.weights
-		if !quiet
+		if debug
 			@info("Histogram weights:")
 			display(y)
 		end
@@ -296,6 +300,18 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 			ya = [0, ya[1], 0]
 			xmina = [xmina[1] - dx, xmina...]
 			xmaxa = [xmaxa..., xmaxa[end] + dx]
+		end
+		if debug
+			@info("Histogram weights:")
+			display([xmina xmaxa ya])
+		end
+		if filename_data != ""
+			filename_data_long = joinpathcheck(figuredir, first(splitext(filename_data)) * "_$(ct).csv")
+			recursivemkdir(filename_data_long)
+			if !quiet
+				@info("Saving histogram data to file: $(filename_data_long)")
+			end
+			DelimitedFiles.writedlm(filename_data_long, [xmina xmaxa ya], ',')
 		end
 		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
@@ -319,8 +335,8 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		f = Gadfly.vstack(m...)
 		vsize *= length(suc)
 	end
-	if filename != ""
-		filenamelong = joinpathcheck(figuredir, filename)
+	if filename_plot != ""
+		filenamelong = joinpathcheck(figuredir, filename_plot)
 		recursivemkdir(filenamelong)
 		if separate && length(m) > 1
 			vsize /= length(suc)
