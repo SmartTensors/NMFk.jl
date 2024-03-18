@@ -204,14 +204,14 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:siz
 	for c = 1:size(data, 2)
 		if names[c] == ""
 			@info "Column $(c):"
-			if figuredir != "." || save
+			if figuredir != "." && save
 				filename_plot = "histogram_column_$(c)"
 			end
 			filename_data = save_data ? "histogram_column_$(c)_data" : ""
 			histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data)
 		else
 			@info "Attribute $(names[c]):"
-			if figuredir != "." || save
+			if figuredir != "." && save
 				filename_plot = "histogram_$(names[c])"
 			end
 			filename_data = save_data ? "histogram_$(names[c])_data" : ""
