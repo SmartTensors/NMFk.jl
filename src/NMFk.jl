@@ -75,6 +75,6 @@ include("NMFkWells.jl")
 
 restartoff()
 
-NMFk.welcome()
+# NMFk.welcome()
 
 end
