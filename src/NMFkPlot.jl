@@ -198,24 +198,25 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	return nothing
 end
 
-function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; figuredir::AbstractString=".", save::Bool=false, save_data::Bool=false, kw...)
-	filename_plot = ""
+function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; figuredir::AbstractString=".", filename_prefix::AbstractString="histogram", plot_type::AbstractString="png", save::Bool=false, save_data::Bool=false, quiet::Bool=false, kw...)
 	@assert size(data, 2) == length(names)
+	filename_plot = ""
+	Mads.recursivemkdir(figuredir)
 	for c = 1:size(data, 2)
 		if names[c] == ""
-			@info "Column $(c):"
+			!quiet && @info "Histogram of Column $(c):"
 			if figuredir != "." && save
-				filename_plot = "histogram_column_$(c)"
+				filename_plot = "$(filename_prefix)_column_$(c).$(plot_type)"
 			end
-			filename_data = save_data ? "histogram_column_$(c)_data" : ""
-			histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data)
+			filename_data = save_data ? "$(filename_prefix)_column_$(c)_data" : ""
+			histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
 		else
-			@info "Attribute $(names[c]):"
+			!quiet && @info "Histogram of attribute $(names[c]):"
 			if figuredir != "." && save
-				filename_plot = "histogram_$(names[c])"
+				filename_plot = "$(filename_prefix)_$(names[c]).$(plot_type)"
 			end
-			filename_data = save_data ? "histogram_$(names[c])_data" : ""
-			histogram(data[:,c]; figuredir=figuredir, kw..., title=names[c], filename_plot=filename_plot, filename_data=filename_data)
+			filename_data = save_data ? "$(filename_prefix)_$(names[c])_data" : ""
+			histogram(data[:,c]; figuredir=figuredir, kw..., title=names[c], filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
 		end
 	end
 end
