@@ -1,6 +1,7 @@
 import PlotlyJS
 
-mapbox_token="pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
+mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
+
 PlotlyJS.plot(
 	PlotlyJS.heatmap(;
 		lon=collect(-105.8:0.1:-105.6),
