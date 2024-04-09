@@ -39,6 +39,10 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 	end
 end
 
+function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), kw...)
+	datanalytics(Matrix(d), names; dims=2, kw...)
+end
+
 function datanalytics(a::AbstractMatrix; dims::Integer=2, names::AbstractVector=["$name $i" for i = 1:size(a, dims)], kw...)
 	name = dims == 1 ? "Row" : "Column"
 	datanalytics(a, names; dims=dims, kw...)
@@ -70,7 +74,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 				filename = casefilename * "-$(n).png"
 			end
 		end
-		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename=filename, kw..., title=n)
+		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename_plot=filename, kw..., title=n)
 		!veryquiet && println("$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Skewness $(skewness[i]) Count $(count[i])")
 	end
 	if !quiet
