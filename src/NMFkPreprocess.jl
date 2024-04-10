@@ -87,7 +87,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	return min, max, std, skewness, count
 end
 
-function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, exact::Bool=false, quiet::Bool=false)
+function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)
 	if !isnothing(stepvalue)
 		if !quiet
 			@info("Initial: $minvalue $maxvalue")
