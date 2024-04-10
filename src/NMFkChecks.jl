@@ -1,5 +1,6 @@
 import Statistics
 import StatsBase
+import DataFrames
 
 function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
 	rangeentry = Array{UnitRange{Int64}}(undef, N)
