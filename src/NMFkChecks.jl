@@ -119,6 +119,10 @@ end
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
 checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
+function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
+	return checkmatrix(Matrix(df), 2; names=names, kw...)
+end
+
 function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=1:size(x, dim)], masks::Bool=false)
 	na = size(x, dim)
 	ilog = Vector{Int64}(undef, 0)
