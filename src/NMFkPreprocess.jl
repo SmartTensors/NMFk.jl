@@ -87,9 +87,9 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	return min, max, std, skewness, count
 end
 
-function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)
+function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, exact::Bool=false, quiet::Bool=false)
 	if !isnothing(stepvalue)
-		if granulate && !quiet
+		if !quiet
 			@info("Initial: $minvalue $maxvalue")
 		end
 		if typeof(minvalue) <: Dates.DateTime
@@ -130,24 +130,31 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), 
 	if !quiet
 		us = unique(sort(iv))
 		nb = collect(1:nbins)
+		emptybins = false
 		for k in unique(sort([us; nb]))
 			m = iv .== k
 			s = sum(m)
 			if s == 0
+				emptybins = true
 				@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " "))")
 			else
 				@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " ")) range $(minimum(v[m])) $(maximum(v[m]))")
 			end
 		end
-		if length(us) != nbins
-			@warn "There are empty bins ($(length(us)) vs $(nbins))"
+		if emptybins
+			@warn "There are empty bins ..."
 		end
 	end
 	if rev == true
 		iv = (nbins + 1) .- iv
 	end
 	@assert minimum(iv) >= 1
-	@assert maximum(iv) <= nbins
+	if granulate
+		@assert maximum(iv) <= nbins
+	else
+		nbins += 1
+		@assert maximum(iv) <= nbins
+	end
 	return iv, nbins, minvalue, maxvalue
 end
 
