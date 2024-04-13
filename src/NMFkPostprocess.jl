@@ -368,7 +368,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		end
 
 		if clusterH
-			if Hrepeats > 100 && size(Ha, 2) > 10000
+			if size(Ha, 2) > 100000
+				@warn("The matrix size $(size(Ha)) is too high to compute the distances; the code my run our of memmory!")
+			elseif Hrepeats > 100 && size(Ha, 2) > 10000
 				@warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))!")
 			end
 			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
@@ -377,7 +379,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		end
 
 		if clusterW
-			if Wrepeats > 100 && size(Wa, 1) > 10000
+			if size(Wa, 1) > 100000
+				@warn("The matrix size $(size(Wa)) is too high to compute the distances; the code my run our of memmory!")
+			elseif Wrepeats > 100 && size(Wa, 1) > 10000
 				@warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))!")
 			end
 			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
