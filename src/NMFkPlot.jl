@@ -198,6 +198,10 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	return nothing
 end
 
+function histogram(df::DataFrames.DataFrame, names=names(df); kw...)
+	histogram(Matrix(df), names; kw...)
+end
+
 function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; figuredir::AbstractString=".", filename_prefix::AbstractString="histogram", plot_type::AbstractString="png", save::Bool=false, save_data::Bool=false, quiet::Bool=false, kw...)
 	@assert size(data, 2) == length(names)
 	filename_plot = ""
@@ -226,7 +230,7 @@ function histogram(datain::AbstractVector; kw...)
 	histogram(data, ones(Int8, length(data)); kw..., joined=false)
 end
 
-function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize::Measures.AbsoluteLength=6Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, quiet::Bool=false, debug::Bool=false, figuredir::AbstractString=".", filename_plot::AbstractString="", filename_data::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1)
+function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize::Measures.AbsoluteLength=6Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, quiet::Bool=false, debug::Bool=false, figuredir::AbstractString=".", filename_plot::AbstractString="", filename_data::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1, return_data::Bool=false)
 	ndata = length(data)
 	if ndata <= 1
 		@warn("Data input is too short to compute histogram (length of data = $ndata)!")
@@ -273,6 +277,11 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	l = []
 	suc = sort(unique(classes))
 	ccount = Vector{Int64}(undef, length(suc))
+	if return_data
+		vec_xmina = Vector{Vector{Float64}}(undef, length(suc))
+		vec_xmaxa = Vector{Vector{Float64}}(undef, length(suc))
+		vec_ya = Vector{Vector{Float64}}(undef, length(suc))
+	end
 	local ymaxl = 0
 	for (j, ct) in enumerate(suc)
 		i = classes .== ct
@@ -353,7 +362,15 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	else
 		!quiet && Mads.display(f; gw=hsize, gh=vsize)
 	end
-	return nothing
+	if return_data
+		if length(suc) > 1
+			return vec_xmina, vec_xmina, vec_ya
+		else
+			return vec_xmina[1], vec_xmina[1], vec_ya[1]
+		end
+	else
+		return nothing
+	end
 end
 
 function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, gm=[], dpi=imagedpi)
