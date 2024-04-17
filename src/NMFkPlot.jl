@@ -206,6 +206,9 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:siz
 	@assert size(data, 2) == length(names)
 	filename_plot = ""
 	Mads.recursivemkdir(figuredir)
+	vec_xmina = Vector{Vector{Float64}}(undef, size(data, 2))
+	vec_xmaxa = Vector{Vector{Float64}}(undef, size(data, 2))
+	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))
 	for c = 1:size(data, 2)
 		if names[c] == ""
 			!quiet && @info "Histogram of Column $(c):"
@@ -213,16 +216,17 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:siz
 				filename_plot = "$(filename_prefix)_column_$(c).$(plot_type)"
 			end
 			filename_data = save_data ? "$(filename_prefix)_column_$(c)_data" : ""
-			histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
+			vec_xmina[c], vec_xmaxa[c], vec_ya[c] = histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
 		else
 			!quiet && @info "Histogram of attribute $(names[c]):"
 			if figuredir != "." && save
 				filename_plot = "$(filename_prefix)_$(names[c]).$(plot_type)"
 			end
 			filename_data = save_data ? "$(filename_prefix)_$(names[c])_data" : ""
-			histogram(data[:,c]; figuredir=figuredir, kw..., title=names[c], filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
+			vec_xmina[c], vec_xmina[c], vec_ya[c] = histogram(data[:,c]; figuredir=figuredir, kw..., title=names[c], filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
 		end
 	end
+	return vec_xmina, vec_xmaxa, vec_ya
 end
 
 function histogram(datain::AbstractVector; kw...)
@@ -277,11 +281,9 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	l = []
 	suc = sort(unique(classes))
 	ccount = Vector{Int64}(undef, length(suc))
-	if return_data
-		vec_xmina = Vector{Vector{Float64}}(undef, length(suc))
-		vec_xmaxa = Vector{Vector{Float64}}(undef, length(suc))
-		vec_ya = Vector{Vector{Float64}}(undef, length(suc))
-	end
+	vec_xmina = Vector{Vector{Float64}}(undef, length(suc))
+	vec_xmaxa = Vector{Vector{Float64}}(undef, length(suc))
+	vec_ya = Vector{Vector{Float64}}(undef, length(suc))
 	local ymaxl = 0
 	for (j, ct) in enumerate(suc)
 		i = classes .== ct
@@ -323,6 +325,9 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 			end
 			DelimitedFiles.writedlm(filename_data_long, [xmina xmaxa ya], ',')
 		end
+		vec_xmina[j] = xmina
+		vec_xmaxa[j] = xmaxa
+		vec_ya[j] = ya
 		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
 	ymax = !isnothing(ymax) ? ymax : ymaxl
@@ -362,14 +367,10 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	else
 		!quiet && Mads.display(f; gw=hsize, gh=vsize)
 	end
-	if return_data
-		if length(suc) > 1
-			return vec_xmina, vec_xmina, vec_ya
-		else
-			return vec_xmina[1], vec_xmina[1], vec_ya[1]
-		end
+	if length(suc) > 1
+		return vec_xmina, vec_xmaxa, vec_ya
 	else
-		return nothing
+		return vec_xmina[1], vec_xmaxa[1], vec_ya[1]
 	end
 end
 
