@@ -22,7 +22,6 @@ import Clustering
 import Ipopt
 import JuMP
 import JLD2
-import FileIO
 import ReusableFunctions
 import DocumentFunction
 

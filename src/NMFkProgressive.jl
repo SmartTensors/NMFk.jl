@@ -233,10 +233,10 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 			@info("Window $period: Training size $(ds[j]) Truth size: $(length(gas_t)) Prediction size: $(length(gas_p)) R2 (pred): $r2 R2 (all) $r2a")
 
 			if load && isfile("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2")
-				c_gas = FileIO.load("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas")
+				c_gas = JLD2.load("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas")
 			else
 				c_gas = NMFk.labelassignements(NMFk.robustkmeans(Hall, dk[j]; silhouettes_flag=false).assignments)
-				FileIO.save("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas", c_gas)
+				JLD2.save("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas", c_gas)
 			end
 
 			p = PlotlyJS.plot(NMFk.plot_wells(well_x, well_y, c_gas; hover=hovertext), Plotly.Layout(title="Gas $(period): $(dk[j]) types"))
