@@ -463,3 +463,47 @@ function moving_average(m::AbstractMatrix, window::Integer=3; dims::Integer=2)
 	end
 	return ms
 end
+
+function minmax_dx(x::AbstractVector)
+	minx = Inf
+	maxx = -Inf
+	for i in 2:length(x)
+		dx = x[i] - x[i-1]
+		if dx < minx
+			minx = dx
+		elseif dx > maxx
+			maxx = dx
+		end
+	end
+	return minx, maxx, maxx - minx
+end
+
+function grid_reduction(lon::AbstractVector, lat::AbstractVector; skip::Int=0, sigdigits::Int=8)
+	lon_rounded = round.(lon; sigdigits=sigdigits)
+	lat_rounded = round.(lat; sigdigits=sigdigits)
+	@info("Number of original points       = $(length(lon_rounded))")
+	lon_unique = unique(sort(lon_rounded))
+	lat_unique = unique(sort(lat_rounded))
+	@show minmax_dx(lon_unique)
+	@show minmax_dx(lat_unique)
+	@info("Number of Longitude unique grid points = $(length(lon_unique))")
+	@info("Number of Latitude  unique grid points = $(length(lat_unique))")
+	@info("Number of unique grid points = $(length(lon_unique) * length(lat_unique))")
+	if skip > 0
+		lon_grid = lon_unique[1:skip:end]
+		lat_grid = lat_unique[1:skip:end]
+	else
+		@error("Skip value is zero!")
+	end
+	@info("Number of Longitude grid points = $(length(lon_grid))")
+	@info("Number of Latitude  grid points = $(length(lat_grid))")
+	@info("Number of grid points = $(length(lon_grid) * length(lat_grid))")
+	skip_mask = falses(length(lon_rounded))
+	for i in 1:length(lon_rounded)
+		if lon_rounded[i] in lon_grid && lat_rounded[i] in lat_grid
+			skip_mask[i] = true
+		end
+	end
+	@info("Number of reduced points        = $(sum(skip_mask))")
+	return skip_mask
+end
