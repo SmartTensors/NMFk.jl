@@ -82,7 +82,7 @@ function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=fa
 		!quiet && @info("Dimension $(d) ...")
 		selected_indices = Vector{Int64}(undef, 0)
 		ecount && (acount = Vector{Int64}(undef, 0))
-		for i = 1:size(X, d)
+		for i in axes(X, d)
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			c = sum(func.(X[nt...]))
 			ecount && (push!(acount, c))

@@ -253,7 +253,7 @@ function hardencode(x::AbstractVector{T}) where {T <: Number}
 end
 
 function hardencode(x::AbstractMatrix{T}) where {T <: Number}
-	hcat([hardencode(x[:,i]) for i = 1:size(x, 2)]...)
+	hcat([hardencode(x[:,i]) for i in axes(x, 2)]...)
 end
 
 function gettypes(x::AbstractMatrix{T}, levels=[0.05,0.35]) where {T <: Number}

@@ -48,7 +48,7 @@ end
 
 function signalorderassignments(X::AbstractArray, dim=1)
 	v = Vector{Int64}(undef, size(X, dim))
-	for i = 1:size(X, dim)
+	for i in axes(X, dim)
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
 		v[i] = findmax(X[nt...])[2]
 	end
@@ -88,7 +88,7 @@ function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int6
 		print && (@info "Reconstructed data:"; display([names Xe']))
 		isignalmap = signalorder(W[k], H[k])
 		stata = Vector{eltype(W[k])}(undef, size(Xe, dim))
-		for i = 1:size(Xe, dim)
+		for i in axes(Xe, dim)
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xe))
 			stata[i] = func(Xe[nt...])
 		end
@@ -96,14 +96,14 @@ function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int6
 		statas = Matrix{eltype(W[k])}(undef, size(Xe, dim), k)
 		for s in 1:k
 			Xes = map(W[k][:,s:s] * H[k][s:s,:])
-			for i = 1:size(Xe, dim)
+			for i in axes(Xe, dim)
 				nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xes))
 				statas[i, s] = func(vec(Xes[nt...]))
 			end
 		end
 		print && (@info "Signal statistics:"; display([names statas[:, isignalmap]]))
 		for s in 1:k
-			for i = 1:size(Xe, dim)
+			for i in axes(Xe, dim)
 				if stata[i] != 0
 					statas[i, s] /= stata[i]
 				end
@@ -112,7 +112,7 @@ function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int6
 		print && (@info "Normalized signal statistics:"; display([names statas[:, isignalmap]]))
 		nm = maximum(statas; dims=2)
 		for s in 1:k
-			for i = 1:size(Xe, dim)
+			for i in axes(Xe, dim)
 				if nm[i] != 0
 					statas[i, s] /= nm[i]
 				end
@@ -175,7 +175,7 @@ function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVe
 		@error("Dimensions do not match!")
 		return
 	end
-	for i = 1:size(X, 1)
+	for i in axes(X, 1)
 		@info "Signal $i"
 		is = order(Xm[:,i])
 		ivl = filter_vals(Xm[:,i][is])
@@ -208,7 +208,7 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector=["W$i" for i = 1:size(W[krange[1]], 1)], Hnames::AbstractVector=["H$i" for i = 1:size(H[krange[1]], 2)]; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt, repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats, quiet::Bool=false, veryquiet::Bool=true)
+function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)], Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)]; ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="attributes", Hcasefilename::AbstractString="locations", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt, repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats, quiet::Bool=false, veryquiet::Bool=true)
 	if length(krange) == 0
 		@warn("No optimal solutions")
 		return
@@ -437,7 +437,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				is = sortperm(Hm[ii,signalmap[j]]; rev=true)
 				d = [Hnames[ii] Hm[ii,signalmap[j]]][is,:]
 				display(d)
-				for i = 1:size(d, 1)
+				for i in axes(d, 1)
 					write(io, "$(rpad(d[i,1], Hnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
 				end
 				write(io, '\n')
@@ -541,7 +541,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				is = sortperm(Wm[ii,signalmap[j]]; rev=true)
 				d = [Wnames[ii] Wm[ii,signalmap[j]]][is,:]
 				display(d)
-				for i = 1:size(d, 1)
+				for i in axes(d, 1)
 					write(io, "$(rpad(d[i,1], Wnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
 				end
 				write(io, '\n')

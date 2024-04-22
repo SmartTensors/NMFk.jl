@@ -389,7 +389,7 @@ function mixmatchwaterdeltas(deltas::AbstractMatrix{T}, numbuckets::Int; method:
 		@JuMP.variable(m, buckets[1:numbuckets, 1:numconstituents])
 	end
 	@JuMP.constraint(m, mixer .<= 1.)
-	for i = 1:size(deltas, 1)
+	for i in axes(deltas, 1)
 		@JuMP.constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
 	end
 	concweights = ones(T, size(deltas))

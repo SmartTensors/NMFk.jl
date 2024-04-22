@@ -23,7 +23,7 @@ function processdata(data::AbstractMatrix, n::Int, components::Array{Any, 1})
 	for i = 1:n
 		push!(components, plaintext("Bucket $i: $(buckets[i, :])"))
 	end
-	for i = 1:size(data, 1)
+	for i in axes(data, 1)
 		push!(components, plaintext("Mixture $i: $(mixer[i, :])"))
 	end
 	return vbox(components)

@@ -40,7 +40,7 @@ end
 "Factorize matrix X (X = W * H) using Ipopt for each row of X/H"
 function jumpHrows(X::AbstractMatrix{T}, nk::Int, W::AbstractMatrix{T}, H::AbstractMatrix{T}; quiet::Bool=NMFk.quiet, kw...) where {T <: Float32}
 	fit = 0
-	for i = 1:size(X, 2)
+	for i in axes(X, 2)
 		fitrowold = sum((X[:,i] .- W * H[:,i]).^2)
 		W, H[:,i], fitrow = NMFk.jump(X[:,i], nk; Winit=convert(Array{T, 2}, W), Hinit=convert(Array{T, 1}, H[:,i]), Wfixed=true, quiet=true, kw...)
 		!quiet && println("of: $(fitrowold) -> $(fitrow)")

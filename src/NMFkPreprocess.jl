@@ -43,7 +43,7 @@ function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), k
 	datanalytics(Matrix(d), names; dims=2, kw...)
 end
 
-function datanalytics(a::AbstractMatrix; dims::Integer=2, names::AbstractVector=["$name $i" for i = 1:size(a, dims)], kw...)
+function datanalytics(a::AbstractMatrix; dims::Integer=2, names::AbstractVector=["$name $i" for i in axes(a, dims)], kw...)
 	name = dims == 1 ? "Row" : "Column"
 	datanalytics(a, names; dims=dims, kw...)
 end
@@ -199,7 +199,7 @@ function griddata(x::AbstractVector, y::AbstractVector, z::AbstractMatrix; type:
 	C = Array{Int32}(undef, xbins, ybins, size(z, 2))
 	T .= 0
 	C .= 0
-	for i = 1:size(z, 2)
+	for i in axes(z, 2)
 		for j = eachindex(ix)
 			if !isnan(zn[j, i])
 				T[ix[j], iy[j], i] += zn[j, i]
@@ -459,7 +459,7 @@ end
 
 function moving_average(m::AbstractMatrix, window::Integer=3; dims::Integer=2)
 	ms = similar(m)
-	for i = 1:size(m, dims)
+	for i in axes(m, dims)
 		ms[:,i] = moving_average(m[:,i], window)
 	end
 	return ms

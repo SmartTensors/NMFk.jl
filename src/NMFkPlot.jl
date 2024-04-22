@@ -202,14 +202,14 @@ function histogram(df::DataFrames.DataFrame, names=names(df); kw...)
 	histogram(Matrix(df), names; kw...)
 end
 
-function histogram(data::AbstractMatrix, names::AbstractVector=["" for i = 1:size(data, 2)]; figuredir::AbstractString=".", filename_prefix::AbstractString="histogram", plot_type::AbstractString="png", save::Bool=false, save_data::Bool=false, quiet::Bool=false, kw...)
+function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes(data, 2)]; figuredir::AbstractString=".", filename_prefix::AbstractString="histogram", plot_type::AbstractString="png", save::Bool=false, save_data::Bool=false, quiet::Bool=false, kw...)
 	@assert size(data, 2) == length(names)
 	filename_plot = ""
 	Mads.recursivemkdir(figuredir)
 	vec_xmina = Vector{Vector{Float64}}(undef, size(data, 2))
 	vec_xmaxa = Vector{Vector{Float64}}(undef, size(data, 2))
 	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))
-	for c = 1:size(data, 2)
+	for c in axes(data, 2)
 		if names[c] == ""
 			!quiet && @info "Histogram of Column $(c):"
 			if figuredir != "." && save
@@ -747,8 +747,8 @@ end
 
 function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, kw...)
 	D = Array{Float64}(undef, size(X, 2), size(Y, 2))
-	for i = 1:size(Y, 2)
-		for j = 1:size(X, 2)
+	for i in axes(Y, 2)
+		for j in axes(X, 2)
 			r2 = NMFk.r2(X[:,j], Y[:,i])
 			D[j,i] = ismissing(r2) ? NaN : r2
 		end

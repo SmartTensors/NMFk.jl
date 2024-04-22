@@ -15,7 +15,7 @@ function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Array{F
 	predictedconcs[idxnan] .= 0
 	if length(conccomponents) > 0
 		@Test.test LinearAlgebra.norm(predictedconcs[:, conccomponents] - concs[:, conccomponents], 2) / LinearAlgebra.norm(concs[:, conccomponents], 2) < 1 # fit the data within 1%
-		for j = 1:size(buckets, 1)
+		for j in axes(buckets, 1)
 			@Test.test minimum(map(i->LinearAlgebra.norm(buckets[i, conccomponents] - bucketestimate[j, conccomponents]) / LinearAlgebra.norm(buckets[i, conccomponents], 2), 1:size(buckets, 1))) < 1 # reproduce the buckets within 30%
 		end
 	end
@@ -28,7 +28,7 @@ function checkratios(mixerestimate::AbstractMatrix, bucketestimate::AbstractMatr
 	end
 	predictedconcs = mixerestimate * bucketestimate
 	numberofratios = size(ratiocomponents, 2)
-	for i = 1:size(mixerestimate, 1)
+	for i in axes(mixerestimate, 1)
 		for j = 1:numberofratios
 			ratioratio = predictedconcs[i, ratiocomponents[j, 1]] / predictedconcs[i, ratiocomponents[j, 2]] / ratios[i, j]
 			@Test.test ratioratio > .4 # get the ratio within a factor of 2
@@ -59,7 +59,7 @@ function nmfktest()
 		a = rand(20)
 		b = rand(20)
 		S = [a b]
-		for i = 1:size(S, 1)
+		for i in axes(S, 1)
 			S[i, :] ./= sum(S[i, :])
 		end
 		X = convert(Array{Float32, 2}, S * M)

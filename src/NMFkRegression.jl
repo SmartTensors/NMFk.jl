@@ -12,7 +12,7 @@ function regression(P::Array{T}, Mtrain::AbstractMatrix{T}, Mpredict::AbstractMa
 		if method == :ridge
 			push!(al, r)
 		end
-		for k = 1:size(P, 3)
+		for k in axes(P, 3)
 			Ab = MultivariateStats.eval(method)(Mtrain, P[:,:,k], al...; trans=false, bias=bias)
 			if bias
 				A, b = Ab[1:end-1,:], Ab[end:end,:]
@@ -31,7 +31,7 @@ function regression(P::Array{T}, Mtrain::AbstractMatrix{T}, Mpredict::AbstractMa
 	if improve
 		Xe = Array{T}(undef, size(Mpredict, 1), size(P, 2), size(P, 3))
 		nk = size(Mtrain, 2)+1
-		for k = 1:size(P, 3)
+		for k in axes(P, 3)
 			if isnothing(Ab)
 				ng = size(P, 1)
 				if nk <= ng
