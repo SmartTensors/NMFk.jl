@@ -215,8 +215,8 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	end
 	@assert length(Wnames) == length(Worder)
 	@assert length(Hnames) == length(Horder)
-	@assert any(Worder .== nothing) == false
-	@assert any(Horder .== nothing) == false
+	@assert any(Worder .=== nothing) == false
+	@assert any(Horder .=== nothing) == false
 	if adjustbiplotlabel
 		if length(Wnames) > 100 && length(Hnames) > 100
 			biplotlabel = :none
