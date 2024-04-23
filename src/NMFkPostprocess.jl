@@ -213,6 +213,8 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		@warn("No optimal solutions")
 		return
 	end
+	@assert length(Wnames) > 0
+	@assert length(Hnames) > 0
 	@assert length(Wnames) == length(Worder)
 	@assert length(Hnames) == length(Horder)
 	@assert any(Worder .=== nothing) == false
