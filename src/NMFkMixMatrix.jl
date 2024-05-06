@@ -93,21 +93,21 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 		m = JuMP.Model(NLopt.Optimizer)
 		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter) # "xtol_abs" => tolX, "ftol_abs" => tol
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(T, Winit[i, j]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
+	JuMP.@variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(T, Winit[i, j]))
+	JuMP.@variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
 	if !normalize
-		@JuMP.constraint(m, buckets .>= 0)
+		JuMP.@constraint(m, buckets .>= 0)
 	end
-	@JuMP.constraint(m, mixer .>= 0)
+	JuMP.@constraint(m, mixer .>= 0)
 	for i = 1:nummixtures
-		@JuMP.constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
+		JuMP.@constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
 	end
 	if sizeof(ratios) == 0
-		@JuMP.NLobjective(m, Min,
+		JuMP.@NLobjective(m, Min,
 			regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 			sum(sum(concweights[i, j] * (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 	else
-		@JuMP.NLobjective(m, Min,
+		JuMP.@NLobjective(m, Min,
 			regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 			sum(sum(concweights[i, j] * (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j])^2 for i=1:nummixtures) for j=1:numconstituents) +
 			sum(sum(ratiosweightmatrix[i, j] *
@@ -122,7 +122,7 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 	jumpvariables = JuMP.all_variables(m)
 	jumpvalues = JuMP.start_value.(jumpvariables)
 	if quiet
-		@Suppressor.suppress JuMP.optimize!(m)
+		Suppressor.@suppress JuMP.optimize!(m)
 	else
 		JuMP.optimize!(m)
 	end
@@ -143,7 +143,7 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 	while LinearAlgebra.norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts < maxreattempts
 		jumpvalues = JuMP.value.(jumpvariables)
 		if quiet
-			@Suppressor.suppress JuMP.optimize!(m)
+			Suppressor.@suppress JuMP.optimize!(m)
 		else
 			JuMP.optimize!(m)
 		end
@@ -308,31 +308,31 @@ function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::Abstrac
 		m = JuMP.Model(NLopt.Optimizer)
 		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter, "xtol_abs" => tolX, "ftol_abs" => tol)
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(T, Winit[i, j]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
-	@JuMP.variable(m, bucketdeltas[i=1:numbuckets, j=1:numdeltas], start = convert(T, Hinitd[i, j]))
-	@JuMP.constraint(m, buckets .>= 0)
-	@JuMP.constraint(m, mixer .>= 0)
+	JuMP.@variable(m, mixer[i=1:nummixtures, j=1:numbuckets], start = convert(T, Winit[i, j]))
+	JuMP.@variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start = convert(T, Hinit[i, j]))
+	JuMP.@variable(m, bucketdeltas[i=1:numbuckets, j=1:numdeltas], start = convert(T, Hinitd[i, j]))
+	JuMP.@constraint(m, buckets .>= 0)
+	JuMP.@constraint(m, mixer .>= 0)
 	for i = 1:nummixtures
-		@JuMP.constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
+		JuMP.@constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
 	end
 	#=
 	for i = 1:numbuckets
 		for j = 1:numconstituents
 			if i != 1 || j != 1
-				@JuMP.constraint(m, buckets[i, j] == Hinit[i, j]) # Fix buckets for testing
+				JuMP.@constraint(m, buckets[i, j] == Hinit[i, j]) # Fix buckets for testing
 			end
 		end
 	end
 	for i = 1:numbuckets
 		for j = 1:numdeltas
 			#if i != 1 || j != 1
-				@JuMP.constraint(m, bucketdeltas[i, j] == Hinitd[i, j]) # Fix buckets for testing
+				JuMP.@constraint(m, bucketdeltas[i, j] == Hinitd[i, j]) # Fix buckets for testing
 			#end
 		end
 	end
 	=#
-	@JuMP.NLobjective(m, Min,
+	JuMP.@NLobjective(m, Min,
 		regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 		regularizationweight * sum(sum(log(1. + abs(bucketdeltas[i, j]))^2 for i=1:numbuckets) for j=1:numdeltas) / numbuckets +
 		sum(sum(concweights[i, j] * (concentrations[i, j] - (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets)))^2 for i=1:nummixtures) for j=1:numconstituents) +
@@ -382,21 +382,21 @@ function mixmatchwaterdeltas(deltas::AbstractMatrix{T}, numbuckets::Int; method:
 	m = JuMP.Model(Ipopt.Optimizer)
 	JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity)
 	if random
-		@JuMP.variable(m, mixer[1:nummixtures, 1:numbuckets] >= 0., start=randn(T))
-		@JuMP.variable(m, buckets[1:numbuckets, 1:numconstituents], start=maxdeltaguess * rand(T))
+		JuMP.@variable(m, mixer[1:nummixtures, 1:numbuckets] >= 0., start=randn(T))
+		JuMP.@variable(m, buckets[1:numbuckets, 1:numconstituents], start=maxdeltaguess * rand(T))
 	else
-		@JuMP.variable(m, mixer[1:nummixtures, 1:numbuckets] >= 0.)
-		@JuMP.variable(m, buckets[1:numbuckets, 1:numconstituents])
+		JuMP.@variable(m, mixer[1:nummixtures, 1:numbuckets] >= 0.)
+		JuMP.@variable(m, buckets[1:numbuckets, 1:numconstituents])
 	end
-	@JuMP.constraint(m, mixer .<= 1.)
+	JuMP.@constraint(m, mixer .<= 1.)
 	for i in axes(deltas, 1)
-		@JuMP.constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
+		JuMP.@constraint(m, sum(mixer[i, j] for j=1:numbuckets) == 1.)
 	end
 	concweights = ones(T, size(deltas))
 	nans = isnan(deltas)
 	deltas[nans] = 0
 	concweights[nans] = 0
-	@JuMP.NLobjective(m, Min,
+	JuMP.@NLobjective(m, Min,
 		regularizationweight * sum(sum((buckets[i, j] - bucketmeans[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 		sum(sum(concweights[i, j] * (sum(mixer[i, k] * buckets[k, j] for k=1:numbuckets) - deltas[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 	if method == :ipopt

@@ -82,7 +82,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 				ltitle = "$(titletext) $(signalidtext)"
 			end
 		end
-		p = @VegaLite.vlplot(
+		p = VegaLite.@vlplot(
 			title=ttitle,
 			:geoshape,
 			width=500, height=300,
@@ -119,7 +119,7 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	@assert length(X) == length(fips)
 	nc = length(unique(sort(X))) + 1
 	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]], Z=[X; zeros(sum(.!goodcounties))])
-	p = @VegaLite.vlplot(
+	p = VegaLite.@vlplot(
 		:geoshape,
 		width=500, height=300,
 		data={

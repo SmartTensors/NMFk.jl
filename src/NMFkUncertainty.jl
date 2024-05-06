@@ -18,7 +18,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		!quiet && @info("Uncertainty run $(i) out of $(nreruns):")
 		casefilenamemod = save == true ? casefilename * "_$i" : ""
 		if quiet
-			@Suppressor.suppress W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:window,:], nk, nNMF; kw..., save=save, resultdir=resultdir, casefilename=casefilenamemod)
+			Suppressor.@suppress W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:window,:], nk, nNMF; kw..., save=save, resultdir=resultdir, casefilename=casefilenamemod)
 		else
 			W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:window,:], nk, nNMF; kw..., save=save, resultdir=resultdir, casefilename=casefilenamemod)
 		end
@@ -30,7 +30,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 			@info("Uncertainty results stage #1:")
 		end
 		for i in 1:nreruns
-			println("Run: $(@Printf.sprintf("%5d", i)) Fit: $(@Printf.sprintf("%12.7g", fitquality[i])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[i])) AIC: $(@Printf.sprintf("%12.7g", aic[i]))")
+			println("Run: $(Printf.@sprintf("%5d", i)) Fit: $(Printf.@sprintf("%12.7g", fitquality[i])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[i])) AIC: $(Printf.@sprintf("%12.7g", aic[i]))")
 		end
 	end
 	if window != size(X,1)
@@ -38,7 +38,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 			!quiet && @info("Uncertainty run stage #2 $(i) out of $(nreruns):")
 			casefilenamemod = save == true ? casefilename * "_stage2_$i" : ""
 			if quiet
-				@Suppressor.suppress W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:maxwindow,:], nk; Hinit=convert.(T, H[i]), Hfixed=true, kw..., save=save, resultdir=resultdir, casefilename=casefilenamemod)
+				Suppressor.@suppress W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:maxwindow,:], nk; Hinit=convert.(T, H[i]), Hfixed=true, kw..., save=save, resultdir=resultdir, casefilename=casefilenamemod)
 			else
 				W[i], H[i], fitquality[i], robustness[i], aic[i] = NMFk.execute(X[1:maxwindow,:], nk; Hinit=convert.(T, H[i]), Hfixed=true, kw..., save=save, resultdir=resultdir, casefilename=casefilenamemod)s
 			end
@@ -46,7 +46,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		if !quiet
 			@info("Uncertainty results stage #2:")
 			for i in 1:nreruns
-			println("Run: $(@Printf.sprintf("%5d", i)) Fit: $(@Printf.sprintf("%12.7g", fitquality[i])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[i])) AIC: $(@Printf.sprintf("%12.7g", aic[i]))")
+			println("Run: $(Printf.@sprintf("%5d", i)) Fit: $(Printf.@sprintf("%12.7g", fitquality[i])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[i])) AIC: $(Printf.@sprintf("%12.7g", aic[i]))")
 			end
 		end
 	end

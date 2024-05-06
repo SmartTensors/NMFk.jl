@@ -9,13 +9,13 @@ function mapping_old(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatr
 	np = size(X, 2)
 	local W1, H1, of1, sil1, aic1
 	@info "Mapping matrix size: $nk x $(size(Y, 1))"
-	@Suppressor.suppress W1, H1, of1, sil1, aic1 = NMFk.execute(permutedims(Y), nk, nNNF; Winit=permutedims(X), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...)
+	Suppressor.@suppress W1, H1, of1, sil1, aic1 = NMFk.execute(permutedims(Y), nk, nNNF; Winit=permutedims(X), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...)
 	a = NMFk.normnan(permutedims(B) .- (permutedims(A) * H1))
 	vflip = NMFk.estimateflip_permutedims(X, Y, A, B)
 	Xn = hcat(map(i->vflip[i] ? NMFk.flip(X[:,i]) : X[:,i], 1:np)...)
 	Yn = hcat(map(i->vflip[i] ? NMFk.flip(Y[:,i]) : Y[:,i], 1:np)...)
 	local W2, H2, of2, sil2, aic2
-	@Suppressor.suppress W2, H2, of2, sil2, aic2 = NMFk.execute(permutedims(Yn), nk, nNNF; Winit=permutedims(Xn), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...)
+	Suppressor.@suppress W2, H2, of2, sil2, aic2 = NMFk.execute(permutedims(Yn), nk, nNNF; Winit=permutedims(Xn), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...)
 	b = NMFk.normnan(permutedims(B) .- (permutedims(A) * H2))
 	if a < b
 		return W1, H1, of1, sil1, aic1
@@ -51,7 +51,7 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 	@info "Mapping matrix size: $nk x $(size(Y, 2))"
 	X[inan] .= 0
 	local W1, H1, of1, sil1, aic1
-	@Suppressor.suppress W1, H1, of1, sil1, aic1 = NMFk.execute(Y, nk, nNNF; Winit=X, Wfixed=true, save=save, method=method, kw..., kwx...)
+	Suppressor.@suppress W1, H1, of1, sil1, aic1 = NMFk.execute(Y, nk, nNNF; Winit=X, Wfixed=true, save=save, method=method, kw..., kwx...)
 	iz = vec(NMFk.maximumnan(Y; dims=1) .== 0)
 	H1[:, iz] .= 0
 	if fliptest
@@ -60,7 +60,7 @@ function mapping(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T
 		Xn = permutedims(hcat(map(i->vflip[i] ? NMFk.flip(X[i,:]) : X[i,:], 1:np)...))
 		Yn = permutedims(hcat(map(i->vflip[i] ? NMFk.flip(Y[i,:]) : Y[i,:], 1:np)...))
 		local W2, H2, of2, sil2, aic2
-		@Suppressor.suppress W2, H2, of2, sil2, aic2 = NMFk.execute(Yn, nk, nNNF; Winit=Xn, Wfixed=true, save=save, method=method, kw..., kwx...)
+		Suppressor.@suppress W2, H2, of2, sil2, aic2 = NMFk.execute(Yn, nk, nNNF; Winit=Xn, Wfixed=true, save=save, method=method, kw..., kwx...)
 		iz = vec(NMFk.maximumnan(Yn; dims=1) .== 0)
 		H2[:, iz] .= 0
 		b = NMFk.normnan(B .- (A * H2))

@@ -387,10 +387,10 @@ function estimateflip_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A:
 	vflip = falses(nparam)
 	for i = 1:nparam
 		local H1
-		@Suppressor.suppress W, H1, of, sil, aic = NMFk.execute(permutedims(Y[:,i]), nk, nNNF; Winit=permutedims(X[:,i]), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		Suppressor.@suppress W, H1, of, sil, aic = NMFk.execute(permutedims(Y[:,i]), nk, nNNF; Winit=permutedims(X[:,i]), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
 		a = NMFk.normnan(permutedims(A) .- (permutedims(B) * H1))
 		local H2
-		@Suppressor.suppress W, H2, of, sil, aic = NMFk.execute(permutedims(NMFk.flip(Y[:,i])), nk, nNNF; Winit=permutedims(NMFk.flip(X[:,i])), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		Suppressor.@suppress W, H2, of, sil, aic = NMFk.execute(permutedims(NMFk.flip(Y[:,i])), nk, nNNF; Winit=permutedims(NMFk.flip(X[:,i])), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
 		b = NMFk.normnan(permutedims(A) .- (permutedims(B) * H2))
 		vflip[i] = a < b ? false : true
 	end
@@ -407,10 +407,10 @@ function estimateflip(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMat
 	vflip = falses(nparam)
 	for i = 1:nparam
 		local H1
-		@Suppressor.suppress W, H1, of, sil, aic = NMFk.execute(Y[i:i,:], nk, nNNF; Winit=X[i:i,:], Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		Suppressor.@suppress W, H1, of, sil, aic = NMFk.execute(Y[i:i,:], nk, nNNF; Winit=X[i:i,:], Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
 		a = NMFk.normnan(B .- (A * H1))
 		local H2
-		@Suppressor.suppress W, H2, of, sil, aic = NMFk.execute(NMFk.flip(Y[i:i,:]), nk, nNNF; Winit=NMFk.flip(X[i:i,:]), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
+		Suppressor.@suppress W, H2, of, sil, aic = NMFk.execute(NMFk.flip(Y[i:i,:]), nk, nNNF; Winit=NMFk.flip(X[i:i,:]), Wfixed=true, save=save, method=method, regularizationweight=regularizationweight, kw...);
 		b = NMFk.normnan(B .- (A * H2))
 		vflip[i] = a < b ? false : true
 	end

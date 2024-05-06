@@ -4,7 +4,7 @@ import Random
 import Suppressor
 import LinearAlgebra
 
-@Test.testset "NMFk" begin
+Test.@testset "NMFk" begin
 
 function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Array{Float32, 2}=Array{Float32, 2}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int, 2}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[], tol::Number=0.0000001)
 	numbuckets = size(buckets, 1)
@@ -14,9 +14,9 @@ function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Array{F
 	predictedconcs = mixerestimate * bucketestimate
 	predictedconcs[idxnan] .= 0
 	if length(conccomponents) > 0
-		@Test.test LinearAlgebra.norm(predictedconcs[:, conccomponents] - concs[:, conccomponents], 2) / LinearAlgebra.norm(concs[:, conccomponents], 2) < 1 # fit the data within 1%
+		Test.@test LinearAlgebra.norm(predictedconcs[:, conccomponents] - concs[:, conccomponents], 2) / LinearAlgebra.norm(concs[:, conccomponents], 2) < 1 # fit the data within 1%
 		for j in axes(buckets, 1)
-			@Test.test minimum(map(i->LinearAlgebra.norm(buckets[i, conccomponents] - bucketestimate[j, conccomponents]) / LinearAlgebra.norm(buckets[i, conccomponents], 2), 1:size(buckets, 1))) < 1 # reproduce the buckets within 30%
+			Test.@test minimum(map(i->LinearAlgebra.norm(buckets[i, conccomponents] - bucketestimate[j, conccomponents]) / LinearAlgebra.norm(buckets[i, conccomponents], 2), 1:size(buckets, 1))) < 1 # reproduce the buckets within 30%
 		end
 	end
 	checkratios(mixerestimate, bucketestimate, ratios, ratiocomponents)
@@ -31,8 +31,8 @@ function checkratios(mixerestimate::AbstractMatrix, bucketestimate::AbstractMatr
 	for i in axes(mixerestimate, 1)
 		for j = 1:numberofratios
 			ratioratio = predictedconcs[i, ratiocomponents[j, 1]] / predictedconcs[i, ratiocomponents[j, 2]] / ratios[i, j]
-			@Test.test ratioratio > .4 # get the ratio within a factor of 2
-			@Test.test ratioratio < 4.
+			Test.@test ratioratio > .4 # get the ratio within a factor of 2
+			Test.@test ratioratio < 4.
 		end
 	end
 end
@@ -141,13 +141,13 @@ W = [a b]
 H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
 X = W * H
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:ipopt, tolX=1e-3, tol=1e-12)
-@Test.test isapprox(p, 0; atol=1e-3)
-@Test.test isapprox(s, 1; rtol=1e-1)
-@Test.test isapprox(He[1,2] / He[1,1], 10; rtol=1e-3)
-@Test.test isapprox(He[2,2] / He[2,1], 10; rtol=1e-3)
-@Test.test isapprox(He[2,4] / He[2,3], 5; rtol=1e-3)
-@Test.test isapprox(He[1,4] / He[1,3], 5; rtol=1e-3)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:ipopt, tolX=1e-3, tol=1e-12)
+Test.@test isapprox(p, 0; atol=1e-3)
+Test.@test isapprox(s, 1; rtol=1e-1)
+Test.@test isapprox(He[1,2] / He[1,1], 10; rtol=1e-3)
+Test.@test isapprox(He[2,2] / He[2,1], 10; rtol=1e-3)
+Test.@test isapprox(He[2,4] / He[2,3], 5; rtol=1e-3)
+Test.@test isapprox(He[1,4] / He[1,3], 5; rtol=1e-3)
 
 @info("NMFk: nlopt: 2 sources, 5 sensors, 20 transients")
 Random.seed!(2015)
@@ -157,39 +157,39 @@ W = [a b]
 H = [.1 1 0 0 .1; 0 0 .1 .5 .2]
 X = W * H
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:nlopt, tolX=1e-6, tol=1e-19)
-@Test.test isapprox(p, 0, atol=1e-3)
-@Test.test isapprox(s, 1, rtol=1e-1)
-@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
-@Test.test isapprox(He[2,2] / He[2,1], 10, rtol=1e-3)
-@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
-@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:nlopt, tolX=1e-6, tol=1e-19)
+Test.@test isapprox(p, 0, atol=1e-3)
+Test.@test isapprox(s, 1, rtol=1e-1)
+Test.@test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+Test.@test isapprox(He[2,2] / He[2,1], 10, rtol=1e-3)
+Test.@test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+Test.@test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: ipopt: 2 sources, 5 sensors, 21 transients")
 Random.seed!(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:ipopt, tolX=1e-3, tol=1e-7)
-@Test.test isapprox(p, 0, atol=1e-3)
-@Test.test isapprox(s, 1, rtol=1e-1)
-@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-2)
-@Test.test isapprox(He[2,3] / He[1,3], 0.38, rtol=0.1)
-@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
-@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:ipopt, tolX=1e-3, tol=1e-7)
+Test.@test isapprox(p, 0, atol=1e-3)
+Test.@test isapprox(s, 1, rtol=1e-1)
+Test.@test isapprox(He[1,2] / He[1,1], 10, rtol=1e-2)
+Test.@test isapprox(He[2,3] / He[1,3], 0.38, rtol=0.1)
+Test.@test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+Test.@test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: nlopt: 2 sources, 5 sensors, 100 transients")
 Random.seed!(2015)
 a = exp.(-(0:.5:10))*100
 b = 100 .+ sin.(0:20)*10
 X = [a a*10 b b*5 a+b*2]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:nlopt, tolX=1e-12, tol=1e-19)
-@Test.test isapprox(p, 0, atol=1e-3)
-@Test.test isapprox(s, 1, rtol=1e-1)
-@Test.test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
-@Test.test isapprox(He[1,3] / He[2,3], 3, rtol=0.9)
-@Test.test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
-@Test.test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2, 10; save=false, method=:nlopt, tolX=1e-12, tol=1e-19)
+Test.@test isapprox(p, 0, atol=1e-3)
+Test.@test isapprox(s, 1, rtol=1e-1)
+Test.@test isapprox(He[1,2] / He[1,1], 10, rtol=1e-3)
+Test.@test isapprox(He[1,3] / He[2,3], 3, rtol=0.9)
+Test.@test isapprox(He[2,4] / He[2,3], 5, rtol=1e-3)
+Test.@test isapprox(He[1,4] / He[1,3], 5, rtol=1e-3)
 
 @info("NMFk: 3 sources, 5 sensors, 15 transients")
 Random.seed!(2015)
@@ -198,42 +198,42 @@ b = rand(15)
 c = rand(15)
 X = [a+c*3 a*10 b b*5+c a+b*2+c*5]
 @info("NMFk: ipopt ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, save=false, method=:ipopt)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, save=false, method=:ipopt)
 @info("NMFk: nlopt ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, save=false, method=:nlopt)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, tolX=1e-2, save=false, method=:nlopt)
 @info("NMFk: simple ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:simple)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:simple)
 @info("NMFk: nmf ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:nmf)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:nmf)
 @info("NMFk: with sparsity constraints ...")
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:sparsity)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; maxiter=100, tol=1e-2, save=false, method=:sparsity)
 
 @info("NMFk: 3 sources, 7 sensors, 50 transients (no sparseness)")
 a = exp.(-(0.2:.2:10))
 b = 1 .+ sin.(0:49)
 c = collect(0:49) / 49
 X = [a b c a+c a+b b+c a+b+c]
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; save=false, method=:simple)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; save=false, method=:simple)
 @info("NMFk: 3 sources, 7 sensors, 50 transients (with sparseness)")
 inan = rand(50, 7) .> .8
 X[inan] .= NaN
-@Suppressor.suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; save=false, method=:simple)
+Suppressor.@suppress global We, He, p, s = NMFk.execute(X, 2:4, 10; save=false, method=:simple)
 
 @info("NMFk: concentrations/delta tests ...")
 a0 = Float64[[20,10,1] [5,1,1]]
 b = NMFk.getisotopeconcentration(a0, [0.001,0.002], [[100,10,1] [500,50,5]])
 a = NMFk.getisotopedelta(b, [0.001,0.002], [[100,10,1] [500,50,5]])
-@Test.test a0 ≈ a
+Test.@test a0 ≈ a
 
 a0 = Float64[20,10,1]
 b = NMFk.getisotopeconcentration(a0, 0.001, [100,10,1])
 a = NMFk.getisotopedelta(b, 0.001, [100,10,1])
-@Test.test a0 ≈ a
+Test.@test a0 ≈ a
 
 a0 = 20.0
 b = NMFk.getisotopeconcentration(a0, 0.001, 100)
 a = NMFk.getisotopedelta(b, 0.001, 100)[1]
-@Test.test a0 ≈ a
+Test.@test a0 ≈ a
 
 end
 

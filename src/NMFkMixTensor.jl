@@ -51,24 +51,24 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 		m = JuMP.Model(NLopt.Optimizer)
 		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter) # "xtol_abs" => tolX, "ftol_abs" => tol
 	end
-	@JuMP.variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start=convert(T, Winit[i, j, k]))
-	@JuMP.variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start=convert(T, Hinit[i, j]))
+	JuMP.@variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start=convert(T, Winit[i, j, k]))
+	JuMP.@variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start=convert(T, Hinit[i, j]))
 	if !normalize
-		@JuMP.constraint(m, buckets .>= 0)
+		JuMP.@constraint(m, buckets .>= 0)
 	end
-	@JuMP.constraint(m, mixer .>= 0)
+	JuMP.@constraint(m, mixer .>= 0)
 	for k = 1:ntimes
 		for i = 1:nummixtures
-			@JuMP.constraint(m, sum(mixer[i, j, k] for j=1:numbuckets) == 1.)
+			JuMP.@constraint(m, sum(mixer[i, j, k] for j=1:numbuckets) == 1.)
 		end
 	end
-	@JuMP.NLobjective(m, Min,
+	JuMP.@NLobjective(m, Min,
 		regularizationweight * sum(sum(log(1. + buckets[i, j])^2 for i=1:numbuckets) for j=1:numconstituents) / numbuckets +
 		sum(sum(sum(concweights[i, j, t] * (sum(mixer[i, k, t] * buckets[k, j] for k=1:numbuckets) - concentrations[i, j, t])^2 for i=1:nummixtures) for j=1:numconstituents) for t=1:ntimes))
 	jumpvariables = JuMP.all_variables(m)
 	jumpvalues = JuMP.start_value.(jumpvariables)
 	if quiet
-		@Suppressor.suppress JuMP.optimize!(m)
+		Suppressor.@suppress JuMP.optimize!(m)
 	else
 		JuMP.optimize!(m)
 	end
@@ -84,7 +84,7 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	while LinearAlgebra.norm(jumpvalues - JuMP.value.(jumpvariables)) > tolX && ofbest > tol && baditers < maxbaditers && reattempts < maxreattempts
 		jumpvalues = JuMP.value.(jumpvariables)
 		if quiet
-			@Suppressor.suppress JuMP.optimize!(m)
+			Suppressor.@suppress JuMP.optimize!(m)
 		else
 			JuMP.optimize!(m)
 		end

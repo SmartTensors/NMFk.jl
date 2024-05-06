@@ -122,32 +122,32 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 		W = Winit
 	else
 		constrainW && normalize!(Winit)
-		@JuMP.variable(m, W[i=1:nummixtures, j=1:nk], start=convert(T, Winit[i, j]))
-		Wnonneg && @JuMP.constraint(m, W .>= 0)
-		constrainW && @JuMP.constraint(m, W .<= 1)
+		JuMP.@variable(m, W[i=1:nummixtures, j=1:nk], start=convert(T, Winit[i, j]))
+		Wnonneg && JuMP.@constraint(m, W .>= 0)
+		constrainW && JuMP.@constraint(m, W .<= 1)
 	end
 	if Hfixed
 		H = Hinit
 	else
 		constrainH && normalize!(Hinit)
-		@JuMP.variable(m, H[i=1:nk, j=1:numconstituents], start=convert(T, Hinit[i, j]))
-		Hnonneg && @JuMP.constraint(m, H .>= 0)
-		constrainH && @JuMP.constraint(m, H .<= 1)
+		JuMP.@variable(m, H[i=1:nk, j=1:numconstituents], start=convert(T, Hinit[i, j]))
+		Hnonneg && JuMP.@constraint(m, H .>= 0)
+		constrainH && JuMP.@constraint(m, H .<= 1)
 	end
 	if kullbackleibler
 		smallnumber = eps(Float64)
-		@JuMP.NLobjective(m, Min, sum(X[i, j] * (log(smallnumber + X[i, j]) - log(smallnumber + sum(W[i, k] * H[k, j] for k = 1:nk))) - X[i, j] + sum(W[i, k] * H[k, j] for k = 1:nk) for i=1:nummixtures, j=1:numconstituents))
+		JuMP.@NLobjective(m, Min, sum(X[i, j] * (log(smallnumber + X[i, j]) - log(smallnumber + sum(W[i, k] * H[k, j] for k = 1:nk))) - X[i, j] + sum(W[i, k] * H[k, j] for k = 1:nk) for i=1:nummixtures, j=1:numconstituents))
 	else
 		if regularizationweight == 0.
-			@JuMP.NLobjective(m, Min,
+			JuMP.@NLobjective(m, Min,
 				sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 		else
 			if Hfixed
-				@JuMP.NLobjective(m, Min,
+				JuMP.@NLobjective(m, Min,
 					regularizationweight * sum(sum(log(1. + W[i, j])^2 for i=1:numconstituents) for j=1:nk) / nk +
 					sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 			else
-				@JuMP.NLobjective(m, Min,
+				JuMP.@NLobjective(m, Min,
 					regularizationweight * sum(sum(log(1. + H[i, j])^2 for i=1:nk) for j=1:numconstituents) / nk +
 					sum(sum(obsweights[i, j] * (sum(W[i, k] * H[k, j] for k=1:nk) - X[i, j])^2 for i=1:nummixtures) for j=1:numconstituents))
 			end
@@ -160,7 +160,7 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 	jumpvariables = JuMP.all_variables(m)
 	jumpvalues = JuMP.start_value.(jumpvariables)
 	if quiet
-		@Suppressor.suppress JuMP.optimize!(m)
+		Suppressor.@suppress JuMP.optimize!(m)
 	else
 		JuMP.optimize!(m)
 	end
@@ -194,7 +194,7 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 			frame += 1
 		end
 		if quiet
-			@Suppressor.suppress JuMP.optimize!(m)
+			Suppressor.@suppress JuMP.optimize!(m)
 		else
 			JuMP.optimize!(m)
 		end

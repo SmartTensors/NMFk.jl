@@ -14,7 +14,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 	end
 	@info("Results")
 	for nk in nkrange
-		println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality[nk])) Silhouette: $(@Printf.sprintf("%12.7g", robustness[nk])) AIC: $(@Printf.sprintf("%12.7g", aic[nk]))")
+		println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality[nk])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[nk])) AIC: $(Printf.@sprintf("%12.7g", aic[nk]))")
 	end
 	kopt = getk(nkrange, robustness[nkrange], cutoff)
 	if isnothing(kopt)
@@ -72,7 +72,7 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; clusterWmatrix=clusterWmatrix, veryquiet=veryquiet, resultdir=resultdir, casefilename=casefilename, kw...)
 	end
 	so = signalorder(W, H)
-	!veryquiet && println("Signals: $(@Printf.sprintf("%2d", nk)) Fit: $(@Printf.sprintf("%12.7g", fitquality)) Silhouette: $(@Printf.sprintf("%12.7g", robustness)) AIC: $(@Printf.sprintf("%12.7g", aic)) Signal order: $(so)")
+	!veryquiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 	if save && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		recursivemkdir(filename)

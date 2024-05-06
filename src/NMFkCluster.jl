@@ -89,7 +89,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	Xn = zerostoepsilon(X)
 	for i = 1:repeats
 		local c_new
-		@Suppressor.suppress begin
+		Suppressor.@suppress begin
 			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		end
 		Xd = Distances.pairwise(distance, Xn; dims=2)
