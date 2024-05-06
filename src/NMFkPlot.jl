@@ -498,8 +498,8 @@ function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=f
 	return ff
 end
 
-"Convert `Printf.@sprintf` macro into `sprintf` function"
-sprintf(args...) = eval(:Printf.@sprintf($(args...)))
+"Convert `@Printf.sprintf` macro into `sprintf` function"
+sprintf(args...) = eval(:@Printf.sprintf($(args...)))
 
 "Generate Sankey plots"
 function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::AbstractString; htmlfile::AbstractString="", pdffile::AbstractString="")
