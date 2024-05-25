@@ -158,17 +158,52 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), 
 	return iv, nbins, minvalue, maxvalue
 end
 
+function processdata(df::DataFrames.DataFrame, type::DataType=Float32; kw...)
+	dfn = deepcopy(df)
+	processdata!(dfn, type; kw...)
+	return dfn
+end
+
+function processdata!(df::DataFrames.DataFrame, type::DataType=Float32; kw...)
+	for i in axes(df, 2)
+		v = df[!, i]
+		processdata!(v, type; kw...)
+		df[!, i] .= v
+	end
+end
+
 function processdata(M::AbstractArray, type::DataType=Float32; kw...)
-	Mn = processdata!(copy(M); kw...)
-	Mn = convert(Array{type}, convert.(type, Mn))
+	Mn = processdata!(copy(M), type; kw...)
 	return Mn
 end
 
-function processdata!(M::AbstractArray; nanstring::AbstractString="NaN", negative::Bool=true)
+function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN", negative_ok::Bool=true, string_ok::Bool=true)
 	M[ismissing.(M)] .= NaN
 	M[M .== ""] .= NaN
 	M[M .== nanstring] .= NaN
-	if !negative
+	is = typeof.(M) .<: AbstractString
+	if sum(is) > 0
+		v = tryparse.(type, M[is])
+		if !string_ok
+			M[is] .= v
+			M[isnothing.(M)] .= NaN
+			M = convert(Array{type}, convert.(type, M))
+		else
+			isn = isnothing.(v)
+			if length(v) == sum(isn)
+				M = convert(Array{String}, convert.(String, M))
+			elseif sum(isn) > 0
+				v = convert(Array{Any}, convert.(Any, v))
+				v[isn] .= M[isn]
+				M[is] .= v
+			end
+		end
+		# display(M)
+	else
+		M = convert(Array{type}, convert.(type, M))
+		# display(M)
+	end
+	if !negative_ok
 		M[M .< 0] .= 0
 	end
 	return M
