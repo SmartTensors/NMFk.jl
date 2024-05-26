@@ -168,7 +168,10 @@ function processdata!(df::DataFrames.DataFrame, type::DataType=Float32; kw...)
 	for i in axes(df, 2)
 		v = df[!, i]
 		processdata!(v, type; kw...)
-		df[!, i] .= v
+		if all(typeof.(v) .<: Number)
+			v = convert(Array{type}, convert.(type, v))
+		end
+		df[!, i] = convert(Array{Union{unique(typeof.(v))...}}, v)
 	end
 end
 
@@ -177,35 +180,59 @@ function processdata(M::AbstractArray, type::DataType=Float32; kw...)
 	return Mn
 end
 
-function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN", negative_ok::Bool=true, string_ok::Bool=true)
-	M[ismissing.(M)] .= NaN
-	M[M .== ""] .= NaN
-	M[M .== nanstring] .= NaN
+function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN", enforce_nan::Bool=true, nothing_ok::Bool=false, negative_ok::Bool=true, string_ok::Bool=true)
+	if enforce_nan
+		nothing_ok = false
+		M[ismissing.(M)] .= type(NaN)
+		M[M .== ""] .= type(NaN)
+		M[M .== nanstring] .= type(NaN)
+	else
+		ie = M .== ""
+		ie[ismissing.(ie)] .= false
+		ie = convert(Array{Bool}, convert.(Bool, ie))
+		M[ie] .= missing
+		ie = M .== nanstring
+		ie[ismissing.(ie)] .= false
+		ie = convert(Array{Bool}, convert.(Bool, ie))
+		M[ie] .= missing
+	end
+	if !nothing_ok
+		if enforce_nan
+			M[isnothing.(M)] .= type(NaN)
+		else
+			M[isnothing.(M)] .= missing
+		end
+	end
+
 	is = typeof.(M) .<: AbstractString
 	if sum(is) > 0
 		v = tryparse.(type, M[is])
+		isn = isnothing.(v)
 		if !string_ok
-			M[is] .= v
-			M[isnothing.(M)] .= NaN
-			M = convert(Array{type}, convert.(type, M))
+			v[isn] .= type(NaN)
 		else
-			isn = isnothing.(v)
-			if length(v) == sum(isn)
-				M = convert(Array{String}, convert.(String, M))
-			elseif sum(isn) > 0
-				v = convert(Array{Any}, convert.(Any, v))
-				v[isn] .= M[isn]
+			if sum(isn) > 0
+				v = convert(Array{Any}, v)
+				v[isn] .= M[is][isn]
+				M[is] .= v
+			else
 				M[is] .= v
 			end
 		end
-		# display(M)
+		M[is] .= v
 	else
 		M = convert(Array{type}, convert.(type, M))
-		# display(M)
 	end
 	if !negative_ok
-		M[M .< 0] .= 0
+		M[M .< 0] .= type(0)
 	end
+	if enforce_nan && !string_ok
+		M = convert(Array{type}, convert.(type, M))
+	else
+		id = typeof.(M) .<: Number
+		M[id] .= convert.(type, M[id])
+	end
+	M = convert(Array{Union{unique(typeof.(M))...}}, M)
 	return M
 end
 
