@@ -16,6 +16,9 @@ df2[5, 3] = "1.2"
 df2[6, 4] = "1.3"
 
 df3 = NMFk.processdata(df2)
+NMFk.processdata(df2; enforce_nan=true, string_ok=false)
+NMFk.processdata(df2; enforce_nan=false, string_ok=false)
+NMFk.processdata(df2; enforce_nan=false, string_ok=true)
 
 m = rand(7,4)
 m = convert(Array{Any}, m)
@@ -25,7 +28,6 @@ m[3, 3] = missing
 m[4, 4] = "1.1"
 
 NMFk.processdata(m)
-
 NMFk.processdata(m; enforce_nan=true, string_ok=false)
 NMFk.processdata(m; enforce_nan=false, string_ok=false)
 NMFk.processdata(m; enforce_nan=false, string_ok=true)

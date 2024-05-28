@@ -40,7 +40,13 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 end
 
 function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), kw...)
-	datanalytics(Matrix(d), names; dims=2, kw...)
+	ct = [typeof(d[!, i]) for i in axes(d, 2)]
+	ci = ct .<: Number .|| ct .=== Vector{Union{Missing, Float64}} .|| ct .=== Vector{Union{Missing, Float32}} .|| ct .=== Vector{Union{Missing, Int64}} .|| ct .=== Vector{Union{Missing, Int32}}
+	m = Matrix(d[!, ci])
+	type = first(unique(eltype.(skipmissing(m))))
+	m[ismissing.(m)] .= type(NaN)
+	m = convert(Matrix{type}, m)
+	datanalytics(m, names[ci]; dims=2, kw...)
 end
 
 function datanalytics(a::AbstractMatrix; dims::Integer=2, names::AbstractVector=["$name $i" for i in axes(a, dims)], kw...)
@@ -181,6 +187,9 @@ function processdata(M::AbstractArray, type::DataType=Float32; kw...)
 end
 
 function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::AbstractString="NaN", enforce_nan::Bool=true, nothing_ok::Bool=false, negative_ok::Bool=true, string_ok::Bool=true)
+	if !(type <: Number)
+		enforce_nan = false
+	end
 	if enforce_nan
 		nothing_ok = false
 		M[ismissing.(M)] .= type(NaN)
@@ -188,13 +197,17 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 		M[M .== nanstring] .= type(NaN)
 	else
 		ie = M .== ""
-		ie[ismissing.(ie)] .= false
-		ie = convert(Array{Bool}, convert.(Bool, ie))
-		M[ie] .= missing
+		if sum(ismissing.(ie)) < length(ie)
+			ie[ismissing.(ie)] .= false
+			ie = convert(Array{Bool}, convert.(Bool, ie))
+			M[ie] .= missing
+		end
 		ie = M .== nanstring
-		ie[ismissing.(ie)] .= false
-		ie = convert(Array{Bool}, convert.(Bool, ie))
-		M[ie] .= missing
+		if sum(ismissing.(ie)) < length(ie)
+			ie[ismissing.(ie)] .= false
+			ie = convert(Array{Bool}, convert.(Bool, ie))
+			M[ie] .= missing
+		end
 	end
 	if !nothing_ok
 		if enforce_nan
@@ -204,33 +217,35 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 		end
 	end
 
-	is = typeof.(M) .<: AbstractString
-	if sum(is) > 0
-		v = tryparse.(type, M[is])
-		isn = isnothing.(v)
-		if !string_ok
-			v[isn] .= type(NaN)
-		else
-			if sum(isn) > 0
-				v = convert(Array{Any}, v)
-				v[isn] .= M[is][isn]
-				M[is] .= v
+	if type <: Number
+		is = typeof.(M) .<: AbstractString
+		if sum(is) > 0
+			v = tryparse.(type, M[is])
+			isn = isnothing.(v)
+			if !string_ok
+				v[isn] .= type(NaN)
 			else
-				M[is] .= v
+				if sum(isn) > 0
+					v = convert(Array{Any}, v)
+					v[isn] .= M[is][isn]
+					M[is] .= v
+				else
+					M[is] .= v
+				end
 			end
+			M[is] .= v
 		end
-		M[is] .= v
-	else
-		M = convert(Array{type}, convert.(type, M))
-	end
-	if !negative_ok
-		M[M .< 0] .= type(0)
-	end
-	if enforce_nan && !string_ok
-		M = convert(Array{type}, convert.(type, M))
-	else
+		if !negative_ok
+			M[M .< 0] .= type(0)
+		end
 		id = typeof.(M) .<: Number
 		M[id] .= convert.(type, M[id])
+	elseif type <: AbstractString
+		id = typeof.(M) .<: Number
+		M[id] .= string.(M[id])
+	elseif type <: Dates.DateTime || type <: Dates.Date
+		id = typeof.(M) .<: Dates.DateTime .|| typeof.(M) .<: Dates.Date
+		M[id] .= type.(M[id])
 	end
 	M = convert(Array{Union{unique(typeof.(M))...}}, M)
 	return M
