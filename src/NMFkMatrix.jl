@@ -129,15 +129,16 @@ function normalizearray(a::AbstractArray, dim::Integer; kw...)
 	return normalizearray!(copy(a), dim; kw...)
 end
 
-function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=[])
+function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::Bool=false, logv::AbstractVector=[], min_skewness::Number=1, min_log_range::Number=1.5)
 	n = size(a, dim)
 	if length(logv) == 0
 		logv = falses(n)
 		if log
 			for i = 1:n
 				nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(a))
+				log_range = log10(maximum(a[nt...])) - log10(minimum(a[nt...]))
 				s = StatsBase.skewness(vec(a[nt...]))
-				if s > 1
+				if s > min_skewness || log_range > min_log_range
 					a[nt...] .= NMFk.log10s(a[nt...])
 					logv[i] = true
 				end
