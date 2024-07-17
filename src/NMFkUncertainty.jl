@@ -6,11 +6,11 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			return W, H, fitquality, robustness, aic
 		else
-			@warn("Filename $filename is missing!")
+			@warn("Filename $(filename) is missing!")
 		end
 	end
 	W = Vector{Array{T, N}}(undef, nreruns)
-	H = Vector{Array{T, 2}}(undef, nreruns)
+	H = Vector{Matrix{T}}(undef, nreruns)
 	fitquality = Vector{T}(undef, nreruns)
 	robustness = Vector{T}(undef, nreruns)
 	aic = Vector{T}(undef, nreruns)
@@ -54,7 +54,7 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
 		recursivemkdir(filename)
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
-		@info("Results saved in $filename.")
+		@info("Results saved in $(filename).")
 	end
 	return W, H, fitquality, robustness, aic
 end
@@ -64,7 +64,7 @@ function uncertaintyranges(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10;
 	if loadall && isfile(filename)
 		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
 	else
-		@warn("Filename $filename is missing!")
+		@warn("Filename $(filename) is missing!")
 		NMFk.execute(X, nk, nNMF; kw..., saveall=true, resultdir=resultdir, casefilename="$casefilename-$nk-$nNMF-all.jld")
 		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
 	end

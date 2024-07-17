@@ -6,7 +6,7 @@ Random.seed!(2015)
 nTests = 10 # number of tests
 noise = [0, 0.1, 0.2, 0.5, 1] # noise levels
 xsize = 1000 # signal size
-suc = Array{Float64}(undef, length(noise))
+suc = Vector{Float64}(undef, length(noise))
 for n = eachindex(noise)
 	suc[n] = 0
 	for i = 1:nTests

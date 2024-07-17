@@ -10,13 +10,14 @@ const defaultratiosweight = 1.
 const defaultdeltasweight = 1.
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Array{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), ratiosweight::T=convert(T, defaultratiosweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <: Number}
+function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::Matrix{T}=Matrix{T}(undef, 0, 0), ratioindices::Union{Vector{Int},Matrix{Int}}=Matrix{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), ratiosweight::T=convert(T, defaultratiosweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.global_quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <: Number}
+	!quiet && @info("MixMatch geochemical analysis of two-dimensional data ...")
 	if seed >= 0
 		Random.seed!(seed)
 	end
 	concentrations = copy(concentrations_in)
 	if weightinverse
-		concweights = convert(Array{T, 2}, 1 ./ concentrations)
+		concweights = convert(Matrix{T}, 1 ./ concentrations)
 		zis = concentrations .== 0
 		concweights[zis] .= maximum(concentrations[!zis]) * 10
 	else
@@ -126,8 +127,8 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 	else
 		JuMP.optimize!(m)
 	end
-	mixerval = convert(Array{T, 2}, JuMP.value.(mixer))
-	bucketval = convert(Array{T, 2}, JuMP.value.(buckets))
+	mixerval = convert(Matrix{T}, JuMP.value.(mixer))
+	bucketval = convert(Matrix{T}, JuMP.value.(buckets))
 	of = JuMP.objective_value(m)
 	if movie
 		Xe = mixerval * bucketval
@@ -148,8 +149,8 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 			JuMP.optimize!(m)
 		end
 		if movie
-			We = convert(Array{T, 2}, JuMP.value.(mixer))
-			He = convert(Array{T, 2}, JuMP.value.(buckets))
+			We = convert(Matrix{T}, JuMP.value.(mixer))
+			He = convert(Matrix{T}, JuMP.value.(buckets))
 			Xe = We * He
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie,filename=moviename, frame=frame)
 			frame += 1
@@ -162,8 +163,8 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 				!quiet && @info("Objective function improved substantially (more than $tolOF; $objvalue < $objvalue_best); bad iteration counter reset ...")
 				baditers = 0
 			end
-			mixerval = convert(Array{T, 2}, JuMP.value.(mixer))
-			bucketval = convert(Array{T, 2}, JuMP.value.(buckets))
+			mixerval = convert(Matrix{T}, JuMP.value.(mixer))
+			bucketval = convert(Matrix{T}, JuMP.value.(buckets))
 			ofbest = of
 		else
 			baditers += 1
@@ -231,14 +232,14 @@ function mixmatchdata(concentrations_in::AbstractMatrix{T}, numbuckets::Int; met
 end
 
 "Match data with concentrations and deltas (avoid using deltas; convert to concentrations)"
-function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::AbstractMatrix{T}, deltaindices::AbstractVector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), deltasweight::T=convert(T, defaultdeltasweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinitd::AbstractMatrix{T}=Array{T}(undef, 0, 0), tol::Float64=1e-3, maxbaditers::Int=10, quiet::Bool=NMFk.quiet) where {T <: Number}
+function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::AbstractMatrix{T}, deltaindices::AbstractVector{Int}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_LBFGS, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), deltasweight::T=convert(T, defaultdeltasweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinitd::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), tol::Float64=1e-3, maxbaditers::Int=10, quiet::Bool=NMFk.global_quiet) where {T <: Number}
 	concentrations = copy(concentrations_in) # we may overwrite some of the fields if there are NaN's, so make a copy
 	deltas = copy(deltas_in)
 	numdeltas = size(deltas, 2)
 	nummixtures = size(concentrations, 1)
 	numconstituents = size(concentrations, 2)
 	if weightinverse
-		concweights = convert(Array{T, 2}, 1. ./ concentrations)
+		concweights = convert(Matrix{T}, 1. ./ concentrations)
 		zis = concentrations .== 0
 		concweights[zis] = maximum(concentrations[!zis]) * 10
 	else
@@ -247,7 +248,7 @@ function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::Abstrac
 	nans = isnan.(concentrations)
 	concentrations[nans] .= 0
 	concweights[nans] .= 0
-	deltasweights = convert(Array{T, 2}, ones(T, size(deltas)) * deltasweight)
+	deltasweights = convert(Matrix{T}, ones(T, size(deltas)) * deltasweight)
 	nans = isnan.(deltas)
 	deltas[nans] .= 0
 	deltasweights[nans] .= 0
@@ -294,7 +295,7 @@ function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::Abstrac
 				Hinitd = ones(T, numbuckets, numdeltas) / 2
 			else
 				maxr = vec(maximum(deltas; dims=1))
-				Hinitd = Array{T}(undef, numbuckets, numdeltas)
+				Hinitd = Matrix{T}(undef, numbuckets, numdeltas)
 				for i=1:numbuckets
 					Hinitd[i,:] = maxr
 				end
@@ -341,9 +342,9 @@ function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::Abstrac
 	jumpvariables = JuMP.all_variables(m)
 	jumpvalues = JuMP.start_value.(jumpvariables)
 	JuMP.optimize!(m)
-	mixerval = convert(Array{T, 2}, JuMP.value.(mixer))
-	bucketval = convert(Array{T, 2}, JuMP.value.(buckets))
-	bucketdeltasval = convert(Array{T, 2}, JuMP.value.(bucketdeltas))
+	mixerval = convert(Matrix{T}, JuMP.value.(mixer))
+	bucketval = convert(Matrix{T}, JuMP.value.(buckets))
+	bucketdeltasval = convert(Matrix{T}, JuMP.value.(bucketdeltas))
 	of = JuMP.objective_value(m)
 	ofbest = of
 	iters = 1
@@ -355,9 +356,9 @@ function mixmatchdeltas(concentrations_in::AbstractMatrix{T}, deltas_in::Abstrac
 		!quiet && @info("Iteration: $iters Objective function: $of Best: $ofbest")
 		if of < ofbest
 			iters = 0
-			mixerval = convert(Array{T, 2}, JuMP.value.(mixer))
-			bucketval = convert(Array{T, 2}, JuMP.value.(buckets))
-			bucketdeltasval = convert(Array{T, 2}, JuMP.value.(bucketdeltas))
+			mixerval = convert(Matrix{T}, JuMP.value.(mixer))
+			bucketval = convert(Matrix{T}, JuMP.value.(buckets))
+			bucketdeltasval = convert(Matrix{T}, JuMP.value.(bucketdeltas))
 			ofbest = of
 		end
 		iters += 1
@@ -407,8 +408,8 @@ function mixmatchwaterdeltas(deltas::AbstractMatrix{T}, numbuckets::Int; method:
 		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter, "xtol_abs" => tolX, "ftol_abs" => tol)
 	end
 	JuMP.optimize!(m)
-	mixerval = convert(Array{T,2 }, JuMP.value.(mixer))
-	bucketval = convert(Array{T, 2}, JuMP.value.(buckets))
+	mixerval = convert(Matrix{T}, JuMP.value.(mixer))
+	bucketval = convert(Matrix{T}, JuMP.value.(buckets))
 	fitquality = JuMP.objective_value(m) - regularizationweight * sum((bucketval - bucketmeans).^2) / numbuckets
 	return mixerval, bucketval, fitquality
 end

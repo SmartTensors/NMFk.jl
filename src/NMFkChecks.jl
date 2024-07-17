@@ -2,19 +2,19 @@ import Statistics
 import StatsBase
 import DataFrames
 
-function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
-	rangeentry = Array{UnitRange{Int64}}(undef, N)
-	min_firstentry = Array{Int64}(undef, N)
-	max_lastentry = Array{Int64}(undef, N)
-	max_record_length = Array{Int64}(undef, N)
+function checkarray(X::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
+	rangeentry = Vector{UnitRange{Int64}}(undef, N)
+	min_firstentry = Vector{Int64}(undef, N)
+	max_lastentry = Vector{Int64}(undef, N)
+	max_record_length = Vector{Int64}(undef, N)
 	for d = 1:N
 		@info("Dimension $(d) ...")
 		dd = size(X, d)
 		println("Dimension $(d): size: $(dd)")
-		firstentrys = Array{Int64}(undef, dd)
-		lastentrys = Array{Int64}(undef, dd)
-		record_length = Array{Int64}(undef, dd)
-		bad_indices = Array{Int64}(undef, 0)
+		firstentrys = Vector{Int64}(undef, dd)
+		lastentrys = Vector{Int64}(undef, dd)
+		record_length = Vector{Int64}(undef, dd)
+		bad_indices = Vector{Int64}(undef, 0)
 		for i = 1:dd
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			ix = X[nt...]
@@ -71,11 +71,11 @@ function checkarray(X::Array{T,N}, cutoff::Integer=0; func::Function=i->i>0, fun
 	return rangeentry
 end
 
-checkarray_nans(X::Array; kw...) = checkarrayentries(X; kw...)
-checkarray_zeros(X::Array; kw...) = checkarrayentries(X, i->i>0; kw...)
-checkarray_count(X::Array; kw...) = checkarrayentries(X; ecount=true, kw...)
+checkarray_nans(X::AbstractArray; kw...) = checkarrayentries(X; kw...)
+checkarray_zeros(X::AbstractArray; kw...) = checkarrayentries(X, i->i>0; kw...)
+checkarray_count(X::AbstractArray; kw...) = checkarrayentries(X; ecount=true, kw...)
 
-function checkarrayentries(X::Array{T,N}, func::Function=.!isnan; quiet::Bool=false, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
+function checkarrayentries(X::AbstractArray{T,N}, func::Function=.!isnan; quiet::Bool=false, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
 	local flag = true
 	return_indices = Vector{Vector{Int64}}(undef, N)
 	for d = 1:N

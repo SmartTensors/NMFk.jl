@@ -508,9 +508,9 @@ function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::
 	n1 = ["$t1 $i" for i=1:s1]
 	n2 = ["$t2 $i" for i=1:s2]
 	nn = [n1; n2]
-	ns = Array{Int64}(undef, 0)
-	nt = Array{Int64}(undef, 0)
-	v = Array{Int64}(undef, 0)
+	ns = Vector{Int64}(undef, 0)
+	nt = Vector{Int64}(undef, 0)
+	v = Vector{Int64}(undef, 0)
 	for i = 1:s1
 		for j = 1:s2
 			push!(ns, i - 1)
@@ -537,9 +537,9 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 	n2 = ["$t2 $i" for i=1:s2]
 	n3 = ["$t3 $i" for i=1:s3]
 	nn = [n1; n2; n3]
-	ns = Array{Int64}(undef, 0)
-	nt = Array{Int64}(undef, 0)
-	v = Array{Int64}(undef, 0)
+	ns = Vector{Int64}(undef, 0)
+	nt = Vector{Int64}(undef, 0)
+	v = Vector{Int64}(undef, 0)
 	for i = 1:s1
 		for j = 1:s2
 			push!(ns, i - 1)
@@ -573,8 +573,8 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 end
 function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString="", pdffile::AbstractString="")
 	@assert length(cc) == length(tt)
-	ss = Array{Int64}(undef, length(cc))
-	nn = Array{Array{String}}(undef, length(cc))
+	ss = Vector{Int64}(undef, length(cc))
+	nn = Vector{Vector{String}}(undef, length(cc))
 	for c = eachindex(cc)
 		if c > 1
 			@assert length(cc[c-1]) == length(cc[c])
@@ -583,9 +583,9 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 		nn[c] = ["$(tt[c]) $i" for i=1:ss[c]]
 	end
 	nn = vcat(nn...)
-	ns = Array{Int64}(undef, 0)
-	nt = Array{Int64}(undef, 0)
-	v = Array{Int64}(undef, 0)
+	ns = Vector{Int64}(undef, 0)
+	nt = Vector{Int64}(undef, 0)
+	v = Vector{Int64}(undef, 0)
 	local csum = 0
 	for c = eachindex(cc)-1
 		for i = 1:ss[c]
@@ -610,7 +610,7 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 end
 
 function r2matrix(X::AbstractArray, Y::AbstractArray; normalize::Symbol=:none, kw...)
-	D = Array{Float64}(undef, size(X, 2), size(Y, 2))
+	D = Matrix{Float64}(undef, size(X, 2), size(Y, 2))
 	for i in axes(Y, 2)
 		for j in axes(X, 2)
 			r2 = NMFk.r2(X[:,j], Y[:,i])

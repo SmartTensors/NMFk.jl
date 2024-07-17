@@ -167,7 +167,7 @@ Make NMFk quiet
 $(DocumentFunction.documentfunction(quieton))
 """
 function quieton()
-	global quiet = true;
+	global global_quiet = true;
 end
 
 """
@@ -176,5 +176,5 @@ Make NMFk not quiet
 $(DocumentFunction.documentfunction(quietoff))
 """
 function quietoff()
-	global quiet = false;
+	global global_quiet = false;
 end

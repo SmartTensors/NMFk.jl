@@ -4,7 +4,7 @@ import Random
 @info("Reconstruction of sin/rand disturbance signal ...")
 Random.seed!(2015)
 noise = [0, 0.1, 0.2, 0.5, 1]
-suc = Array{Int}(undef, length(noise))
+suc = Vector{Int}(undef, length(noise))
 for n = eachindex(noise)
 	suc[n] = 0
 	for i = 1:10

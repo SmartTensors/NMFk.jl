@@ -1,4 +1,4 @@
-function NMFsparsity(X::AbstractMatrix{T}, k::Int; cost_function::Symbol=:ed, beta_divergence::Number=-1, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, lambda::Number=1e-9, w_ind::AbstractVector=trues(k), h_ind::AbstractVector=trues(k), Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), quiet::Bool=NMFk.quiet) where {T <: Number}
+function NMFsparsity(X::AbstractMatrix{T}, k::Int; cost_function::Symbol=:ed, beta_divergence::Number=-1, sparsity::Number=1, maxiter::Int=100000, tol::Number=1e-19, seed::Number=-1, lambda::Number=1e-9, w_ind::AbstractVector=trues(k), h_ind::AbstractVector=trues(k), Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), quiet::Bool=NMFk.global_quiet) where {T <: Number}
 	# inan, izero = NMFpreprocessing!(X; lambda=lambda)
 
 	sparse_text = sparsity == 0 ? "" : "Sparse "

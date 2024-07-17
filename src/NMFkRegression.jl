@@ -1,6 +1,6 @@
 import MultivariateStats
 
-function regression(P::Array{T}, Mtrain::AbstractMatrix{T}, Mpredict::AbstractMatrix{T}; method::Union{Symbol,Nothing}=:ridge, improve::Bool=true, bias::Bool=true, r::Number=0.1, showerror::Bool=false) where {T <: Number}
+function regression(P::AbstractArray{T}, Mtrain::AbstractMatrix{T}, Mpredict::AbstractMatrix{T}; method::Union{Symbol,Nothing}=:ridge, improve::Bool=true, bias::Bool=true, r::Number=0.1, showerror::Bool=false) where {T <: Number}
 	if isnothing(method)
 		method = :ridge
 	end

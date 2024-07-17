@@ -27,7 +27,7 @@ import DocumentFunction
 
 const dir = Base.pkgdir(NMFk)
 
-global quiet = true
+global global_quiet = true
 global restart = false
 global imagedpi = 300
 

@@ -4,7 +4,7 @@ using Escher
 function inputstring2data(s::AbstractString)
 	rows = split(s, ";")
 	numcols = length(split(rows[1], " "; keepempty=false))
-	data = Array{Float64}(undef, length(rows), numcols)
+	data = Matrix{Float64}(undef, length(rows), numcols)
 	for i = eachindex(rows)
 		row = split(rows[i], " "; keepempty=false)
 		if length(row) > numcols
@@ -17,7 +17,7 @@ function inputstring2data(s::AbstractString)
 	return data
 end
 
-function processdata(data::AbstractMatrix, n::Int, components::Array{Any, 1})
+function processdata(data::AbstractMatrix, n::Int, components::AbstractVector{Any})
 	mixer, buckets, objectiveeval = NMFk.mixmatchdata(data, n)
 	push!(components, plaintext("Fit quality (lower is better): $objectiveeval"))
 	for i = 1:n
@@ -29,7 +29,7 @@ function processdata(data::AbstractMatrix, n::Int, components::Array{Any, 1})
 	return vbox(components)
 end
 
-function processdata(s::AbstractString, n::Int, components::Array{Any, 1})
+function processdata(s::AbstractString, n::Int, components::AbstractVector{Any})
 	push!(components, plaintext(s))
 	return vbox(components)
 end

@@ -199,7 +199,7 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 		subunitcolor="rgb(255,255,255)",
 		countrycolor="rgb(255,255,255)")
 	layout = PlotlyJS.Layout(; title=title, geo=geo)
-	p = PlotlyJS.plot(convert(Array{typeof(traces[1])}, traces), layout)
+	p = PlotlyJS.plot(convert(Vector{typeof(traces[1])}, traces), layout)
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		recursivemkdir(fn)

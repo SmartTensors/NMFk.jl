@@ -4,12 +4,13 @@ import LinearAlgebra
 import Suppressor
 
 "Match data with concentrations and an option for ratios (avoid using ratios; convert to concentrations)"
-function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{Array{Int, 1},Array{Int, 2}}=Array{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), ratiosweight::T=convert(T, defaultratiosweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <: Float32}
+function mixmatchdata(concentrations::AbstractArray{T,3}, numbuckets::Int; method::Symbol=:ipopt, algorithm::Symbol=:LD_SLSQP, normalize::Bool=false, scale::Bool=false, maxH::Bool=false, ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0), seed::Number=-1, random::Bool=true, maxiter::Int=defaultmaxiter, verbosity::Int=defaultverbosity, regularizationweight::T=convert(T, defaultregularizationweight), ratiosweight::T=convert(T, defaultratiosweight), weightinverse::Bool=false, Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), tolX::Float64=1e-3, tol::Float64=1e-3, tolOF::Float64=1e-3, maxreattempts::Int=1, maxbaditers::Int=5, quiet::Bool=NMFk.global_quiet, movie::Bool=false, moviename::AbstractString="", movieorder=1:numbuckets) where {T <: Float32}
+	!quiet && @info("MixMatch geochemical analysis of three-dimensional data ...")
 	if seed >= 0
 		Random.seed!(seed)
 	end
 	if weightinverse
-		concweights = convert(Array{T,2}, 1. ./ concentrations)
+		concweights = convert(Matrix{T}, 1. ./ concentrations)
 		zis = concentrations .== 0
 		concweights[zis] = maximum(concentrations[!zis]) * 10
 	else
@@ -50,6 +51,9 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	elseif method == :nlopt
 		m = JuMP.Model(NLopt.Optimizer)
 		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter) # "xtol_abs" => tolX, "ftol_abs" => tol
+	else
+		@error("Method $(method) not recognized!")
+		throw()
 	end
 	JuMP.@variable(m, mixer[i=1:nummixtures, j=1:numbuckets, k=1:ntimes], start=convert(T, Winit[i, j, k]))
 	JuMP.@variable(m, buckets[i=1:numbuckets, j=1:numconstituents], start=convert(T, Hinit[i, j]))
@@ -72,8 +76,8 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 	else
 		JuMP.optimize!(m)
 	end
-	W = convert(Array{T, 3}, JuMP.value.(mixer))
-	H = convert(Array{T, 2}, JuMP.value.(buckets))
+	W = convert(Array{T,3}, JuMP.value.(mixer))
+	H = convert(Matrix{T}, JuMP.value.(buckets))
 	of = JuMP.objective_value(m)
 	ofbest = of
 	iters = 1
@@ -97,8 +101,8 @@ function mixmatchdata(concentrations::AbstractArray{T, 3}, numbuckets::Int; meth
 				!quiet && @info("Objective function improved substantially (more than $tolOF; $objvalue < $objvalue_best); bad iteration counter reset ...")
 				baditers = 0
 			end
-			W = convert(Array{T, 3}, JuMP.value.(mixer))
-			H = convert(Array{T, 2}, JuMP.value.(buckets))
+			W = convert(Array{T,3}, JuMP.value.(mixer))
+			H = convert(Matrix{T}, JuMP.value.(buckets))
 			ofbest = of
 		else
 			baditers += 1
@@ -144,7 +148,7 @@ function setbadmixerelements!(X::AbstractArray, W::AbstractArray, H::AbstractArr
 	end
 end
 
-function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::AbstractArray{T, 2}, isn=isnan.(X)) where {T <: Number}
+function mixmatchcompute(X::AbstractArray{T,3}, W::AbstractArray{T,3}, H::AbstractMatrix{T}, isn=isnan.(X)) where {T <: Number}
 	nummixtures, numconstituents, ntimes = size(X)
 	nummixtures2, numbuckets, ntimes2 = size(W)
 	numbuckets2, numconstituents2 = size(H)
@@ -163,10 +167,10 @@ function mixmatchcompute(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}, H::Abst
 		end
 	end
 	Xe[isn] .= NaN
-	return convert(AbstractArray{T, 3}, Xe)
+	return convert(AbstractArray{T,3}, Xe)
 end
 
-function mixmatchcompute(W::AbstractArray{T, 3}, H::AbstractArray{T, 2}) where {T <: Number}
+function mixmatchcompute(W::AbstractArray{T,3}, H::AbstractMatrix{T}) where {T <: Number}
 	nummixtures, numbuckets, ntimes = size(W)
 	numbuckets2, numconstituents = size(H)
 	@assert numbuckets == numbuckets2
@@ -180,10 +184,10 @@ function mixmatchcompute(W::AbstractArray{T, 3}, H::AbstractArray{T, 2}) where {
 			end
 		end
 	end
-	return convert(Array{T, 3}, Xe)
+	return convert(Array{T,3}, Xe)
 end
 
-function fixmixers!(X::AbstractArray{T, 3}, W::AbstractArray{T, 3}) where {T <: Number}
+function fixmixers!(X::AbstractArray{T,3}, W::AbstractArray{T,3}) where {T <: Number}
 	nw, nc, nt = size(X)
 	for t = 1:nt
 		for w = 1:nw

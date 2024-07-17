@@ -1,6 +1,6 @@
 import DistributedArrays
 
-function NMFmultiplicativemovie(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1, normalizevector::AbstractVector{T}=Vector{T}(undef, 0)) where {T <: Number}
+function NMFmultiplicativemovie(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.global_quiet, tol::Number=1e-19, tolOF::Number=1e-3, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, movie::Bool=false, moviename::AbstractString="", movieorder=1:k, moviecheat::Integer=0, cheatlevel::Number=1, normalizevector::AbstractVector{T}=Vector{T}(undef, 0)) where {T <: Number}
 	if minimum(X) < 0
 		error("All matrix entries must be nonnegative!")
 	end
@@ -58,7 +58,7 @@ function NMFmultiplicativemovie(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.q
 	end
 
 	objvalue_best = Inf
-	index = Array{Int}(undef, m)
+	index = Vector{Int}(undef, m)
 	iters = 0
 	baditers = 0
 	reattempts = 0

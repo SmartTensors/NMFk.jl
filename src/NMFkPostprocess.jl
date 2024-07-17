@@ -23,9 +23,9 @@ function signalrescale!(W::AbstractMatrix, H::AbstractMatrix; Wnormalize::Bool=t
 end
 
 function signalorder(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector)
-	signal_order = Array{Array{Int64}}(undef, maximum(krange))
+	signal_order = Vector{Vector{Int64}}(undef, maximum(krange))
 	for k = 1:maximum(krange)
-		signal_order[k] = Array{Int64}(undef, 0)
+		signal_order[k] = Vector{Int64}(undef, 0)
 	end
 	for k in krange
 		@info("Number of signals: $k")
@@ -37,7 +37,7 @@ end
 function signalorder(W::AbstractMatrix, H::AbstractMatrix; quiet::Bool=true)
 	k = size(W, 2)
 	@assert k == size(H, 1)
-	signal_sum = Array{eltype(W)}(undef, k)
+	signal_sum = Vector{eltype(W)}(undef, k)
 	for i = 1:k
 		signal_sum[i] = sum(W[:,i:i] * H[i:i,:])
 	end
@@ -187,8 +187,8 @@ end
 function postprocess(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) where {T <: Number}
 	k = size(W, 2)
 	@assert size(H, 1) == k
-	Wa = Array{Array{T, 2}}(undef, k)
-	Ha = Array{Array{T, 2}}(undef, k)
+	Wa = Vector{Matrix{T}}(undef, k)
+	Ha = Vector{Matrix{T}}(undef, k)
 	Wa[k] = W
 	Ha[k] = H
 	NMFk.postprocess(k, Wa, Ha, aw...; kw...)

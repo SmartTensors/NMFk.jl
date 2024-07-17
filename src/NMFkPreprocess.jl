@@ -175,9 +175,9 @@ function processdata!(df::DataFrames.DataFrame, type::DataType=Float32; kw...)
 		v = df[!, i]
 		processdata!(v, type; kw...)
 		if all(typeof.(v) .<: Number)
-			v = convert(Array{type}, convert.(type, v))
+			v = convert(Vector{type}, convert.(type, v))
 		end
-		df[!, i] = convert(Array{Union{unique(typeof.(v))...}}, v)
+		df[!, i] = convert(Vector{Union{unique(typeof.(v))...}}, v)
 	end
 end
 
@@ -199,13 +199,13 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 		ie = M .== ""
 		if sum(ismissing.(ie)) < length(ie)
 			ie[ismissing.(ie)] .= false
-			ie = convert(Array{Bool}, convert.(Bool, ie))
+			ie = convert(Vector{Bool}, convert.(Bool, ie))
 			M[ie] .= missing
 		end
 		ie = M .== nanstring
 		if sum(ismissing.(ie)) < length(ie)
 			ie[ismissing.(ie)] .= false
-			ie = convert(Array{Bool}, convert.(Bool, ie))
+			ie = convert(Vector{Bool}, convert.(Bool, ie))
 			M[ie] .= missing
 		end
 	end
@@ -334,7 +334,7 @@ function remap(v::AbstractVector{T}, mapping::AbstractVector; func::Function=!is
 end
 
 function remap(v::AbstractMatrix{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
-	o = Array{T}(undef, length(mapping), size(v, 2))
+	o = Matrix{T}(undef, length(mapping), size(v, 2))
 	o .= NaN
 	if typeof(T) <: Integer
 		o .= 0
@@ -356,7 +356,7 @@ function slopes(v::AbstractVector)
 	return s
 end
 
-function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::AbstractVector{Int64}=Vector{Int64}(undef, 0)) where {T <: Number, N}
+function getdatawindow(X::AbstractArray{T,N}, d::Integer; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func, start::AbstractVector{Int64}=Vector{Int64}(undef, 0)) where {T <: Number, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	if length(start) > 0
@@ -389,13 +389,13 @@ function getdatawindow(X::Array{T,N}, d::Integer; func::Function=i->i>0, funcfir
 	return afirstentry, alastentry, datasize
 end
 
-function shiftarray(X::Array{T,N}, d::Integer, start::AbstractVector{Int64}, finish::AbstractVector{Int64}, datasize::AbstractVector{Int64}) where {T <: Number, N}
+function shiftarray(X::AbstractArray{T,N}, d::Integer, start::AbstractVector{Int64}, finish::AbstractVector{Int64}, datasize::AbstractVector{Int64}) where {T <: Number, N}
 	@assert d >= 1 && d <= N
 	dd = size(X, d)
 	@assert length(start) == dd
 	@assert length(finish) == dd
 	@assert length(datasize) == dd
-	Y = Array{T}(undef, maximum(datasize), dd)
+	Y = Matrix{T}(undef, maximum(datasize), dd)
 	Y .= NaN
 	for i = 1:dd
 		nty = ntuple(k->(k == d ? i : Base.Slice(1:datasize[i])), N)
@@ -408,9 +408,9 @@ end
 """
 Extract a matrix from a dataframe
 """
-function df2matrix(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
+function df2matrix(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{StepRange{Dates.Date,Dates.Month},Vector{Dates.Date}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
 	nw = length(id)
-	matrix = Array{Float32}(undef, length(dates), nw)
+	matrix = Matrix{Float32}(undef, length(dates), nw)
 	matrix .= NaN32
 	fwells = falses(nw)
 	local k = 0
@@ -439,19 +439,19 @@ end
 """
 Extract a time shifted matrix from a dataframe
 """
-function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; kw...)
+function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{StepRange{Dates.Date,Dates.Month},Vector{Dates.Date}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; kw...)
 	matrix, startdates, enddates = df2matrix_shifted(df, id, length(dates), dates, dfattr, dfdate, dfapi; kw...)
 	recordlength = findlast(i->!isnan(i), NMFk.sumnan(matrix; dims=2))[1]
-	matrixn = Array{Float32}(undef, recordlength, size(matrix, 2))
+	matrixn = Matrix{Float32}(undef, recordlength, size(matrix, 2))
 	matrixn .= matrix[1:recordlength, :]
 	return matrixn, startdates, enddates
 end
-function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, recordlength::Integer, dates::Union{StepRange{Dates.Date,Dates.Month},Array{Dates.Date,1}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
+function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, recordlength::Integer, dates::Union{StepRange{Dates.Date,Dates.Month},Vector{Dates.Date}}, dfattr::Symbol, dfdate::Symbol=:ReportDate, dfapi::Symbol=:API; addup::Bool=false, checkzero::Bool=true)
 	nw = length(id)
-	matrix = Array{Float32}(undef, recordlength, nw)
+	matrix = Matrix{Float32}(undef, recordlength, nw)
 	matrix .= NaN32
-	startdates = Array{Dates.Date}(undef, nw)
-	enddates = Array{Dates.Date}(undef, nw)
+	startdates = Vector{Dates.Date}(undef, nw)
+	enddates = Vector{Dates.Date}(undef, nw)
 	for (i, w) in enumerate(id)
 		iwell = df[!, dfapi] .== w
 		attr = df[!, dfattr][iwell]

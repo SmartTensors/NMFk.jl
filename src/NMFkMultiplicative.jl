@@ -17,7 +17,7 @@ function NMFpreprocessing!(X::AbstractMatrix; lambda::Number=1e-32)
 	return inan, izero
 end
 
-function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.quiet, tol::Number=1e-19, tolOF::Number=1e-3, lambda::Number=1e-32, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=10000, Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, seed::Int=-1, normalizevector::AbstractVector{T}=Vector{T}(undef, 0)) where {T <: Number}
+function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.global_quiet, tol::Number=1e-19, tolOF::Number=1e-3, lambda::Number=1e-32, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=1000, Wfixed::Bool=false, Hfixed::Bool=false, Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), seed::Int=-1, normalizevector::AbstractVector{T}=Vector{T}(undef, 0), kw...) where {T <: Number}
 	inan, izero = NMFpreprocessing!(X; lambda=lambda)
 
 	n, m = size(X)
@@ -54,7 +54,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 	consold = falses(m, m)
 	inc = 0
 	objvalue_best = Inf
-	index = Array{Int}(undef, m)
+	index = Vector{Int}(undef, m)
 	iters = 0
 	baditers = 0
 	reattempts = 0
@@ -66,14 +66,14 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 		if mod(iters, 10) == 0
 			objvalue = sum((((X - W * H) .* weight)[.!inan]).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
 			if objvalue < tol
-				!quiet && println("Converged by tolerance: number of iterations $(iters) $(objvalue)")
+				!quiet && @info("Converged by tolerance! Number of iterations: $(iters) Objective function: $(objvalue) < $(tol)!")
 				break
 			end
 			if objvalue < objvalue_best
 				if (objvalue_best - objvalue) < tolOF
 					baditers += 1
 				else
-					!quiet && @info("Objective function improved substantially (more than $tolOF; $objvalue < $objvalue_best); bad iteration counter reset ...")
+					!quiet && println("Objective function improved substantially (more than $(tolOF); $(objvalue) < $(objvalue_best)); bad iteration counter reset ...")
 					baditers = 0
 				end
 				objvalue_best = objvalue
@@ -83,11 +83,11 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 			if baditers >= maxbaditers
 				reattempts += 1
 				if reattempts >= maxreattempts
-					!quiet && @info("Objective function does not improve substantially ($objvalue)! Maximum number of reattempts ($maxreattempts) has been reached; quit!")
+					!quiet && @info("Objective function does not improve substantially ($(objvalue))! Maximum number of reattempts ($(maxreattempts)) has been reached; quit!")
 				end
 				baditers = 0
 			else
-				!quiet && @info("Objective function does not improve substantially ($objvalue)! Reattempts $reattempts Bad iterations $baditers")
+				!quiet && println("Objective function does not improve substantially ($(objvalue))! Reattempts: $(reattempts) Bad iterations: $(baditers)")
 			end
 			H = max.(H, eps())
 			W = max.(W, eps())
@@ -103,7 +103,7 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 				inc = 0
 			end
 			if inc > stopconv # this criteria is almost never achieved
-				!quiet && println("Converged by consistency: number of iterations $(i) $(inc) $(objvalue)")
+				!quiet && @info("Converged by consistency! Number of iterations: $(iters) Objective function: $(objvalue)")
 				break
 			end
 			consold = cons
@@ -119,9 +119,8 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 	return W, H, objvalue
 end
 
-function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; Winit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Array{T}(undef, 0, 0), Wfixed::Bool=false, Hfixed::Bool=false, quiet::Bool=NMFk.quiet, tol::Float64=1e-19, lambda::Number=1e-32, maxiter::Int=1000000, stopconv::Int=10000, seed::Int=-1) where {T <: Number, N}
+function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), quiet::Bool=NMFk.global_quiet, tol::Float64=1e-19, lambda::Number=1e-32, maxiter::Int=1000000, stopconv::Int=10000, seed::Int=-1, kw...) where {T <: Number, N}
 	inan, izero = NMFpreprocessing!(X; lambda=lambda)
-
 	if seed >= 0
 		Random.seed!(seed)
 	end
@@ -149,7 +148,7 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 
 	consold = falses(m, m)
 	inc = 0
-	index = Array{Int}(undef, m)
+	index = Vector{Int}(undef, m)
 	for i = 1:maxiter
 		a = permutedims(collect(sum(W; dims=1)))
 		da = DistributedArrays.distribute(a)
@@ -160,9 +159,9 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 		HaT = DistributedArrays.distribute(HlT)
 		W = W .* ((X ./ (W * H)) * HaT) ./ da
 		if mod(i, 10) == 0
-			objvalue = sum(((X - W * H)).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother
+			objvalue = sum(((X - W * H)).^2)
 			if objvalue < tol
-				!quiet && println("Converged by tolerance: number of iterations $(i) $(objvalue)")
+				!quiet && @info("Converged by tolerance: number of iterations $(i) $(objvalue)")
 				break
 			end
 			H = max.(H, eps())
@@ -178,7 +177,7 @@ function NMFmultiplicative(X::DistributedArrays.DArray{T,N,Array{T,N}}, k::Int; 
 				inc = 0
 			end
 			if inc > stopconv # this criteria is almost never achieved
-				!quiet && println("Converged by consistency: number of iterations $(i) $(inc) $(objvalue)")
+				!quiet && @info("Converged by consistency: number of iterations $(i) $(inc) $(objvalue)")
 				break
 			end
 			consold = cons

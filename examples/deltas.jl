@@ -5,7 +5,7 @@ import Random
 Random.seed!(2015)
 nWells = 20
 nSources = 2
-wellmixing = convert(Array{Float32,2}, rand(nWells, nSources))
+wellmixing = convert(Matrix{Float32}, rand(nWells, nSources))
 for i = 1:nWells
 	wellmixing[i, :] /= sum(wellmixing[i, :])
 end

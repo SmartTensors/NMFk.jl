@@ -63,7 +63,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Abstra
 	return cresult[ki]
 end
 
-function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", save::Bool=false, load::Bool=false, silhouettes_flag::Bool=false)
+function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", load::Bool=false, save::Bool=false, silhouettes_flag::Bool=false)
 	if load && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
 		if isfile(filename)
@@ -76,10 +76,10 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 					return sc
 				end
 			else
-				@warn("File $filename does not contain correct information! Robust k-means analysis will be executed ...")
+				@warn("File $(filename) does not contain correct information! Robust k-means analysis will be executed ...")
 			end
 		else
-			@warn("File $filename does not exist! Robust k-means analysis will be executed ...")
+			@warn("File $(filename) does not exist! Robust k-means analysis will be executed ...")
 		end
 	end
 	local c = nothing
@@ -337,7 +337,7 @@ function clustersolutions_old(W::AbstractVector, clusterWmatrix::Bool=false)
 	nk = clusterWmatrix ? nr : nc
 
 	centroids = W[1]
-	idx = Array{Int}(undef, nk, nNMF)
+	idx = Matrix{Int}(undef, nk, nNMF)
 
 	for clusterIt = 1:nNMF
 		for globalIterID = 1:nNMF
@@ -384,7 +384,7 @@ function clustersolutions_old(W::AbstractMatrix, nNMF::Integer)
 	nk = convert(Int, nT / nNMF)
 
 	centroids = W[:, 1:nk]
-	idx = Array{Int}(undef, nk, nNMF)
+	idx = Matrix{Int}(undef, nk, nNMF)
 
 	for clusterIt = 1:nNMF
 		for globalIterID = 1:nNMF

@@ -47,7 +47,7 @@ function functions(m::Union{Symbol, Module}, re::Regex; stdout::Bool=false, quie
 	n = 0
 	try
 		f = names(eval(m); all=true)
-		functions = Array{String}(undef, 0)
+		functions = Vector{String}(undef, 0)
 		for i = eachindex(f)
 			functionname = "$(f[i])"
 			if occursin("eval", functionname) || occursin("#", functionname) || occursin("__", functionname) || functionname == "$m"
@@ -80,7 +80,7 @@ function functions(m::Union{Symbol, Module}, string::AbstractString=""; stdout::
 	end
 	try
 		f = names(Core.eval(NMFk, m); all=true)
-		functions = Array{String}(undef, 0)
+		functions = Vector{String}(undef, 0)
 		for i = eachindex(f)
 			functionname = "$(f[i])"
 			if occursin("eval", functionname) || occursin("#", functionname) || occursin("__", functionname) || functionname == "$m"

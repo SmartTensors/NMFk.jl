@@ -12,7 +12,7 @@ S = [s1 s2 s3]
 H = [[1,1,1] [0,2,1] [1,0,2] [1,2,0]]
 Mads.plotseries(S, "rand_original_sources.svg", title="Original sources", name="Source", combined=false)
 Mads.display("rand_original_sources.svg")
-X = convert(Array{Float32, 2}, S * H)
+X = convert(Matrix{Float32}, S * H)
 Mads.plotseries(X, "rand_mixed_signals.svg", title="Mixed signals", name="Signal", combined=false)
 Mads.display("rand_mixed_signals.svg")
 @info("Reconstruction of random signals using NMFk ...")
@@ -34,7 +34,7 @@ S = [s1 s2 s3]
 H = [[1,1,1] [0,2,1] [1,0,2] [1,2,0]]
 Mads.plotseries(S, "sin_original_sources.svg", title="Original sources", name="Source", combined=true)
 Mads.display("sin_original_sources.svg")
-X = convert(Array{Float32, 2}, S * H)
+X = convert(Matrix{Float32}, S * H)
 Mads.plotseries(X, "sin_mixed_signals.svg", title="Mixed signals", name="Mixtures", combined=true)
 Mads.display("sin_mixed_signals.svg")
 @info("Reconstruction of sin signals using NMF ...")
@@ -60,7 +60,7 @@ S = [s1 s2 s3]
 H = [[1,1,1] [0,2,1] [1,0,2] [1,2,0]]
 Mads.plotseries(S, "sig_original_sources.svg", title="Original sources", name="Source", combined=true)
 Mads.display("sig_original_sources.svg")
-X = convert(Array{Float32, 2}, S * H)
+X = convert(Matrix{Float32}, S * H)
 Mads.plotseries(X, "sig_mixed_signals.svg", title="Mixed signals", name="Signal", combined=true)
 Mads.display("sig_mixed_signals.svg")
 @info("Reconstruction of sin/rand signals using NMF ...")

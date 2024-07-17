@@ -1,18 +1,84 @@
 import Distributed
 import JLD
 
+function check_methods!(X::AbstractArray{T,N}, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false) where {T <: Number, N}
+	if mixture != :null
+		clusterWmatrix = true
+		method = :ipopt
+	elseif N > 2
+		@error("NMFk analysis can be executed for matrices!")
+		@info("For multi-dimensional arrays (tensors), use NMFk.tensorfactorization or NTFk!")
+		throw(ArgumentError("NMFk analysis can be executed for matrices!"))
+	end
+	if any(isnan.(X))
+		@info("Analyzed matrix has NaN's.")
+		if method != :simple && method != :ipopt && method != :nlopt
+			@warn("Analyzed matrix has NaN's! NMF method $(method)) cannot be used! Simple multiplicative NMF will be performed!")
+			method = :simple
+		end
+	end
+	if method == :nlopt && algorithm == :multdiv
+		algorithm = :LD_SLSQP
+	end
+	if method == :multdiv
+		algorithm = method
+		method = :nmf
+	elseif method == :multmse
+		algorithm = method
+		method = :nmf
+	elseif method == :alspgrad
+		algorithm = method
+		method = :nmf
+	end
+	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])[ Info: $(Base.text_colors[:normal])")
+	if mixture == :mixmatch
+		method = :ipopt
+		print("MixMatch geochemical analysis using ")
+	elseif mixture == :matchwaterdeltas
+		print("MixMatchDeltas geochemical analysis using ")
+	else
+		print("NMFk analysis using ")
+	end
+	if method == :ipopt
+		println("Ipopt ...")
+	elseif method == :nlopt
+		println("NLopt ...")
+	elseif method == :nmf
+		if algorithm == :multdiv
+			println("Multiplicative update using divergence ...")
+		elseif algorithm == :multmse
+			println("Multiplicative update using mean-squared-error ...")
+		elseif algorithm == :alspgrad
+			println("Alternate Least Square using Projected Gradient Descent ...")
+		end
+	elseif method == :sparsity
+		println("Sparsity penalty ...")
+	elseif method == :simple
+		println("Simple NMF multiplicative ...")
+	end
+end
+
 "Execute NMFk analysis for a range of number of signals"
-function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, casefilename::AbstractString="", clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, load::Bool=true, save::Bool=true, kw...) where {T <: Number, N}
 	maxk = maximum(collect(nkrange))
-	W = Array{Array{T, N}}(undef, maxk)
-	H = Array{Array{T, 2}}(undef, maxk)
+	W = Vector{Array{T, N}}(undef, maxk)
+	H = Vector{Matrix{T}}(undef, maxk)
 	fitquality = zeros(T, maxk)
 	robustness = zeros(T, maxk)
 	aic = zeros(T, maxk)
-	for nk in nkrange
-		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; kw...)
+	if load && casefilename == ""
+		@info("Loading of existing results is requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
+		casefilename = "nmfk"
 	end
-	@info("Results")
+	if save && casefilename == ""
+		@info("Saving of obtained results is requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
+		casefilename = "nmfk"
+	end
+	check_methods!(X, mixture, method, algorithm, clusterWmatrix)
+	for nk in nkrange
+		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; load=load, save=save, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, check_metods=false, kw...)
+	end
+	@info("Results:")
 	for nk in nkrange
 		println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality[nk])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[nk])) AIC: $(Printf.@sprintf("%12.7g", aic[nk]))")
 	end
@@ -26,13 +92,13 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", save::Bool=true, loadonly::Bool=false, load::Bool=loadonly, veryquiet::Bool=false, kw...) where {T <: Number}
+function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=true, check_metods::Bool=true, kw...) where {T <: Number, N}
 	if .*(size(X)...) == 0
-		error("Array has a zero dimension! Matrix size=$(size(X))")
+		error("Input array has a zero dimension! Array size=$(size(X))")
 	end
-	if size(X, 1) < size(X, 2) && clusterWmatrix == false
+	if N == 2 && size(X, 1) < size(X, 2) && clusterWmatrix == false
 		@warn("Processed matrix size has more columns than rows (matrix size=$(size(X)))!")
-		@warn("In this case, it is recommended to use `clusterWmatrix == true`.")
+		@info("In this case, it is recommended to use `clusterWmatrix == true`.")
 		@info("It is preferred to cluster the smaller of the matrices!")
 	end
 	if loadonly
@@ -42,51 +108,57 @@ function execute(X::Union{AbstractMatrix{T},AbstractArray{T}}, nk::Integer, nNMF
 		runflag = true
 	end
 	if load && casefilename == ""
-		@info("Loading requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
-		casefilename = "nmfk"
-	elseif save && casefilename == ""
-		@info("Saving requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
+		@info("Loading of existing results is requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
 		casefilename = "nmfk"
 	end
-	if load && casefilename != ""
+	if save && casefilename == ""
+		@info("Saving of obtained results is requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
+		casefilename = "nmfk"
+	end
+	check_metods && check_methods!(X, mixture, method, algorithm, clusterWmatrix)
+	if load
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if isfile(filename)
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			if size(W) == (size(X, 1), nk) && size(H) == (nk, size(X, 2))
+				!quiet && @info("Results are loaded from $(filename)!")
 				save = false
 				runflag = false
 			else
-				@warn("File $filename contains inconsistent data; runs will be executed!")
+				@warn("File $(filename) contains inconsistent results; runs will be executed!")
 				println("W matrix - Expected size: $((size(X, 1), nk)) Actual size: $(size(W))")
 				println("H matrix - Expected size: $((nk, size(X, 2))) Actual size: $(size(H))")
 			end
 		else
 			if loadonly
-				W = Array{T,2}(undef, 0, 0); H = Array{T,2}(undef, 0, 0); fitquality = Inf; robustness = -1; aic = -Inf;
+				W = Matrix{T}(undef, 0, 0);
+				H = Matrix{T}(undef, 0, 0);
+				fitquality = Inf;
+				robustness = -1;
+				aic = -Inf;
 			else
-				@info("File $filename is missing; runs will be executed!")
+				@info("File $(filename) is missing; runs will be executed!")
 			end
 		end
 	end
 	if runflag
-		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; clusterWmatrix=clusterWmatrix, veryquiet=veryquiet, resultdir=resultdir, casefilename=casefilename, kw...)
+		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; clusterWmatrix=clusterWmatrix, resultdir=resultdir, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, quiet=quiet, kw...)
 	end
 	so = signalorder(W, H)
-	!veryquiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
-	if save && casefilename != ""
+	!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
+	if save
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		recursivemkdir(filename)
 		JLD.save(filename, "W", W[:,so], "H", H[so,:], "fit", fitquality, "robustness", robustness, "aic", aic)
+		!quiet && @info("Results are saved in $(filename)!")
 	end
 	return W[:,so], H[so,:], fitquality, robustness, aic
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, veryquiet::Bool=false, best::Bool=true, serial::Bool=false, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, loadall::Bool=false, saveall::Bool=false, kw...) where {T <: Number, N}
-	quiet = veryquiet ? true : quiet
+function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.global_quiet, veryquiet::Bool=true, best::Bool=true, serial::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, loadall::Bool=false, saveall::Bool=false, kw...) where {T <: Number, N}
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
-	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
-	indexnan = isnan.(X)
+	!quiet && @info("Mixmatch geochemical analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	if loadonly
 		saveall = false
 		runflag = false
@@ -96,13 +168,17 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	if loadall && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		if isfile(filename)
+			@info("All tesults are loaded from $(filename)!")
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
 			saveall = false
 			runflag = false
+		else
+			@warn("File $(filename) with ALL results is missing; runs will be executed!")
 		end
 	end
 	if runflag
 		if Distributed.nprocs() > 1 && !serial
+			!quiet && println("Parallel execution of $nNMF NMF runs ...")
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
@@ -122,9 +198,10 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			end
 			objvalue = map(i->convert(T, r[i][3]), 1:nNMF)
 		else
+			!quiet && println("Serial execution of $nNMF NMF runs ...")
 			WBig = Vector{Array{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
-			objvalue = Array{T}(undef, nNMF)
+			objvalue = Vector{T}(undef, nNMF)
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
@@ -187,7 +264,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	if sum(idxnan) > 0
 		!veryquiet && println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
 		if nk > 1
-			clusterassignments, M = NMFk.clustersolutions(HBig[idxsort][idxsol], false)
+			clusterassignments, clustercentroids = NMFk.clustersolutions(HBig[idxsort][idxsol], false)
 			if !quiet
 				@info("Cluster assignments:")
 				display(clusterassignments)
@@ -222,6 +299,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		if saveall && casefilename != ""
 			filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 			JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
+			@info("All results are saved in $(filename)!")
 		end
 	end
 	if best
@@ -229,7 +307,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		Ha = Hbest
 	end
 	phi_final = ssqrnan(X .- Xe)
-	numobservations = length(vec(X[.!indexnan]))
+	numobservations = sum(.!isnan.(X))
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	numparameters -= (size(Wa)[1] + size(Wa)[3])
 	aic = 2 * numparameters + numobservations * log(phi_final/numobservations)
@@ -237,7 +315,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximumnan(E), " Min error = ", minimumnan(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.quiet, veryquiet::Bool=false, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:null, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, weight=1, kw...) where {T <: Number}
+function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.global_quiet, veryquiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), mixture::Symbol=:null, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, weight=1, kw...) where {T <: Number}
 	@assert typeof(weight) <: Number || length(weight) == size(X, 1) || size(weight, 2) == size(X, 2) || size(weight) == size(X)
 	quiet = veryquiet ? true : quiet
 	kw_dict = Dict()
@@ -250,61 +328,6 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
-	indexnan = isnan.(X)
-	if any(indexnan)
-		if method == :null
-			method = :simple
-		elseif method != :simple && method != :ipopt && method != :nlopt
-			@warn("The analyzed matrix has NaN's! NMF method $(method)) cannot be used! Simple multiplicative NMF will be performed!")
-			method = :simple
-		end
-	else
-		if method == :null
-			method = :simple
-		end
-	end
-	if mixture != :null
-		clusterWmatrix = true
-		method = :ipopt
-	end
-	if method == :nlopt && algorithm == :multdiv
-		algorithm = :LD_SLSQP
-	end
-	if method == :multdiv
-		method = :nmf
-		algorithm = :multdiv
-	elseif method == :multmse
-		method = :nmf
-		algorithm = :multmse
-	elseif method == :alspgrad
-		method = :nmf
-		algorithm = :alspgrad
-	end
-	if !quiet
-		if mixture == :mixmatch
-			method = :ipopt
-			print("MixMatch using ")
-		elseif mixture == :matchwaterdeltas
-			print("MixMatchDeltas using ")
-		end
-		if method == :ipopt
-			println("Ipopt ...")
-		elseif method == :nlopt
-			println("NLopt ...")
-		elseif method == :nmf
-			if algorithm == :multdiv
-				println("NMF Multiplicative update using divergence ...")
-			elseif algorithm == :multmse
-				println("NMF Multiplicative update using mean-squared-error ...")
-			elseif algorithm == :alspgrad
-				println("NMF Alternate Least Square using Projected Gradient Descent ...")
-			end
-		elseif method == :sparsity
-			println("NMF with sparsity penalty ...")
-		elseif method == :simple
-			println("Simple NMF multiplicative ...")
-		end
-	end
 	if transpose
 		nC, nP = size(X) # number of observed components/transients, number of observation points
 	else
@@ -315,13 +338,17 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	if loadall && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		if isfile(filename)
+			@info("All results are loaded from $(filename)!")
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
 			saveall = false
 			runflag = false
+		else
+			@warn("File $(filename) with ALL results is missing; runs will be executed!")
 		end
 	end
 	if runflag
 		if Distributed.nprocs() > 1 && !serial
+			!quiet && println("Parallel execution of $(nNMF) NMF runs ...")
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
@@ -329,9 +356,9 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			if haskey(kw_dict, :seed)
 				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, weight=weight, seed=kwseed+i, kw_dict...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw_dict...)), 1:nNMF)
 			else
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, weight=weight, kw...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)), 1:nNMF)
 			end
 			WBig = Vector{Matrix{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
@@ -341,9 +368,10 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			end
 			objvalue = map(i->convert(T, r[i][3]), 1:nNMF)
 		else
+			!quiet && println("Serial execution of $(nNMF) NMF runs ...")
 			WBig = Vector{Matrix{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
-			objvalue = Array{T}(undef, nNMF)
+			objvalue = Vector{T}(undef, nNMF)
 			kw_dict = Dict()
 			for (key, value) in kw
 				kw_dict[key] = value
@@ -352,11 +380,11 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 				kwseed = kw_dict[:seed]
 				delete!(kw_dict, :seed)
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=quiet, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, weight=weight, seed=kwseed+i, kw_dict...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw_dict...)
 				end
 			else
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=quiet, best=best, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, weight=weight, kw...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)
 				end
 			end
 		end
@@ -469,6 +497,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	if saveall && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
 		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
+		@info("All results are saved in $(filename)!")
 	end
 	if best
 		Wa = Wbest
@@ -512,7 +541,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		println("Ratio reconstruction = $ratiosreconstruction")
 		phi_final += ratiosreconstruction
 	end
-	numobservations = length(vec(X[.!indexnan]))
+	numobservations = sum(.!isnan.(X))
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
 	if mixture != :null
 		numparameters -= size(Wa)[1]
@@ -531,19 +560,20 @@ end
 "Execute single NMF run"
 function execute_singlerun(x...; kw...)
 	if restart
+		@info("NMF runs with efficient restarts ...")
 		return execute_singlerun_r3(x...; kw...)
 	else
 		return execute_singlerun_compute(x...; kw...)
 	end
 end
 
-"Execute single NTF run without restart"
+"Execute single NMF run without restart"
 function execute_singlerun_compute(X::AbstractArray, nk::Int; kw...)
 	NMFk.mixmatchdata(X, nk; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NMFk.quiet, ratios::AbstractArray{T, 2}=Array{T}(undef, 0, 0), ratioindices::Union{AbstractArray{Int, 1},AbstractArray{Int, 2}}=Array{Int}(undef, 0, 0), deltas::AbstractArray{T, 2}=Array{T}(undef, 0, 0), deltaindices::AbstractArray{Int, 1}=Array{Int}(undef, 0), best::Bool=true, normalize::Bool=false, scale::Bool=false, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::T=convert(T, 1), weightinverse::Bool=false, transpose::Bool=false, mixture::Symbol=:null, rescalematrices::Bool=true, method::Symbol=:simple, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false, bootstrap::Bool=false, weight=1, kw...) where {T <: Number}
+function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NMFk.global_quiet, ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0), deltas::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), deltaindices::AbstractVector{Int}=Vector{Int}(undef, 0), transpose::Bool=false, scale::Bool=false, rescalematrices::Bool=true, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::T=convert(T, 1), weightinverse::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false, bootstrap::Bool=false, weight=1, kw...) where {T <: Number}
 	if scale
 		if transpose
 			Xn, Xmax = NMFk.scalematrix_row!(permutedims(X))

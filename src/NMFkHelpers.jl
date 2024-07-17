@@ -313,14 +313,14 @@ function movingwindow(A::AbstractArray{T, N}, windowsize::Number=1; func::Functi
 	return B
 end
 
-function nanmask!(X::Array, mask::Union{Nothing,Number})
+function nanmask!(X::AbstractArray, mask::Union{Nothing,Number})
 	if !isnothing(mask)
 		X[X .<= mask] .= NaN
 	end
 	return nothing
 end
 
-function nanmask!(X::Array{T, N}, mask::BitArray{M}, dim::Integer) where {T, N, M}
+function nanmask!(X::AbstractArray{T, N}, mask::BitArray{M}, dim::Integer) where {T, N, M}
 	if N == M
 		X[mask] .= NaN
 	else
@@ -329,7 +329,7 @@ function nanmask!(X::Array{T, N}, mask::BitArray{M}, dim::Integer) where {T, N, 
 	return nothing
 end
 
-function nanmask!(X::Array{T, N}, mask::BitArray{M}) where {T, N, M}
+function nanmask!(X::AbstractArray{T, N}, mask::BitArray{M}) where {T, N, M}
 	if N == M
 		X[mask] .= NaN
 	else
@@ -357,7 +357,7 @@ function remask(sm, repeats::Tuple)
 	return reshape(repeat(sm, 1, *(repeats...)), (size(sm)..., repeats...))
 end
 
-function remask(sm, repeats::Union{Vector{Int64},Vector{Int32}})
+function remask(sm, repeats::Union{AbstractVector{Int64},AbstractVector{Int32}})
 	return reshape(repeat(sm, 1, *(repeats...)), (size(sm)..., repeats...))
 end
 
@@ -420,7 +420,7 @@ end
 function flatten(X::AbstractArray{T,N}, mask::BitArray{M}) where {T,N,M}
 	@assert N - 1 == M
 	sz = size(X)
-	A = Array{T}(undef, sum(.!mask), sz[end])
+	A = Matrix{T}(undef, sum(.!mask), sz[end])
 	for i = 1:sz[end]
 		nt = ntuple(k->(k == N ? i : Colon()), N)
 		A[:, i] = X[nt...][.!mask]
@@ -436,7 +436,7 @@ function flatten(X::AbstractArray{T,N}, dim::Number=1) where {T <: Number, N}
 			push!(nt, k)
 		end
 	end
-	A = Array{T}(undef, *(sz[nt]...), sz[dim])
+	A = Matrix{T}(undef, *(sz[nt]...), sz[dim])
 	for i = 1:sz[dim]
 		nt = ntuple(k->(k == dim ? i : Colon()), N)
 		A[:, i] = vec(X[nt...])
@@ -461,18 +461,6 @@ function flattenindex(X::AbstractArray{T,N}, dim::Number=1; order=[1,2]) where {
 		error("Order must be [1,2] or [2,1]")
 	end
 	return I
-end
-
-if VERSION < v"1.7"
-	import Base.replace
-
-	function replace(str::AbstractString, old_new::Pair...)
-		mapping = Dict(old_new)
-		for k in keys(mapping)
-			str = Base.replace(str, Pair(k, mapping[k]))
-		end
-		return str
-	end
 end
 
 function stringfix(str::AbstractString)

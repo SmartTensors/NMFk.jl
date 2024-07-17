@@ -16,8 +16,8 @@ function finalize(Wa::AbstractVector, idx::AbstractMatrix)
 	end
 
 	clustersilhouettes = Vector{type}(undef, nk)
-	W = Array{type}(undef, nk, nP)
-	Wvar = Array{type}(undef, nk, nP)
+	W = Matrix{type}(undef, nk, nP)
+	Wvar = Matrix{type}(undef, nk, nP)
 	for k = 1:nk
 		if nk > 1
 			idxk = findall((in)(k), idx_r)
@@ -56,11 +56,11 @@ function finalize(Wa::AbstractVector, Ha::AbstractVector, idx::AbstractMatrix, c
 		HaDist[inanh] .= NaN
 	end
 	silhouettes[isnan.(silhouettes)] .= 0
-	clustersilhouettes = Array{type}(undef, nk, 1)
-	W = Array{type}(undef, nP, nk)
-	H = Array{type}(undef, nk, nC)
-	Wvar = Array{type}(undef, nP, nk)
-	Hvar = Array{type}(undef, nk, nC)
+	clustersilhouettes = Matrix{type}(undef, nk, 1)
+	W = Matrix{type}(undef, nP, nk)
+	H = Matrix{type}(undef, nk, nC)
+	Wvar = Matrix{type}(undef, nP, nk)
+	Hvar = Matrix{type}(undef, nk, nC)
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
 		clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])
@@ -91,11 +91,11 @@ function finalize(Wa::AbstractMatrix{T}, Ha::AbstractMatrix{T}, nNMF::Integer, i
 		HaDist = Distances.pairwise(Distances.CosineDist(), zerostoepsilon(Ha); dims=1)
 		silhouettes = reshape(Clustering.silhouettes(idx_r, HaDist), nk, nNMF)
 	end
-	clustersilhouettes = Array{T}(undef, nk, 1)
-	W = Array{T}(undef, nP, nk)
-	H = Array{T}(undef, nk, nC)
-	Wvar = Array{T}(undef, nP, nk)
-	Hvar = Array{T}(undef, nk, nC)
+	clustersilhouettes = Matrix{T}(undef, nk, 1)
+	W = Matrix{T}(undef, nP, nk)
+	H = Matrix{T}(undef, nk, nC)
+	Wvar = Matrix{T}(undef, nP, nk)
+	Hvar = Matrix{T}(undef, nk, nC)
 	for k = 1:nk
 		idxk = findall((in)(k), idx)
 		clustersilhouettes[k] = Statistics.mean(silhouettes[idxk])

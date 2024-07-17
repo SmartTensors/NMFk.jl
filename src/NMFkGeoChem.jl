@@ -46,7 +46,7 @@ end
 function computedeltas(mixer::AbstractMatrix, buckets::AbstractMatrix, bucketdeltas::AbstractMatrix{T}, deltaindices::AbstractVector; compute_contributions::Bool=false) where {T <: Number}
 	numwells = size(mixer, 1)
 	numdeltas = length(deltaindices)
-	deltas = Array{T}(undef, numwells, numdeltas)
+	deltas = Matrix{T}(undef, numwells, numdeltas)
 	for i = 1:numwells
 		for j = 1:numdeltas
 			v = vec(mixer[i, :]) .* vec(buckets[:, deltaindices[j]])

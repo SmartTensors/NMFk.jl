@@ -40,7 +40,7 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker=Plotly.attr(; size=pointsize), color=NMFk.colors[c], h...)
 			push!(dots, dots_p)
 		end
-		p = convert(Array{typeof(dots[1])}, dots)
+		p = convert(Vector{typeof(dots[1])}, dots)
 	end
 	return PlotlyJS.plot(p, PlotlyJS.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 
@@ -80,7 +80,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; h
 		well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], l..., name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
-	return convert(Array{typeof(wells[1])}, wells)
+	return convert(Vector{typeof(wells[1])}, wells)
 end
 
 function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, c::AbstractVector; hover=nothing, pointsize=6)
@@ -97,7 +97,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, 
 		well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
-	return convert(Array{typeof(wells[1])}, wells)
+	return convert(Vector{typeof(wells[1])}, wells)
 end
 
 function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, c::AbstractVector; hover=nothing)
@@ -113,7 +113,7 @@ function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x
 			push!(wells, well_trace)
 		end
 	end
-	return convert(Array{typeof(wells[1])}, wells)
+	return convert(Vector{typeof(wells[1])}, wells)
 end
 
 function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, c::AbstractVector; hover=nothing)
@@ -141,7 +141,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 		end
 		push!(traces, well_trace)
 	end
-	return convert(Array{typeof(traces[1])}, traces)
+	return convert(Vector{typeof(traces[1])}, traces)
 end
 
 function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, toe_z::AbstractVector, c::AbstractVector; hover=nothing)
@@ -172,5 +172,5 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::A
 		end
 		push!(traces, well_trace)
 	end
-	return convert(Array{typeof(traces[1])}, traces)
+	return convert(Vector{typeof(traces[1])}, traces)
 end

@@ -12,13 +12,13 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5,
 	end
 	dim = ndims(Wl)
 	type = eltype(Wl)
-	W = Array{Array{type, dim}}(undef, maxsignals)
-	H = Array{Array{type, 2}}(undef, maxsignals)
-	fitquality = Array{type}(undef, maxsignals)
-	robustness = Array{type}(undef, maxsignals)
-	aic = Array{type}(undef, maxsignals)
+	W = Vector{Array{type, dim}}(undef, maxsignals)
+	H = Vector{Matrix{type}}(undef, maxsignals)
+	fitquality = Vector{type}(undef, maxsignals)
+	robustness = Vector{type}(undef, maxsignals)
+	aic = Vector{type}(undef, maxsignals)
 	for k = 1:nkrange[igood]
-		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{type, dim}(undef, [0 for i=1:dim]...), Array{type, 2}(undef, 0, 0), NaN, NaN, NaN
+		W[k], H[k], fitquality[k], robustness[k], aic[k] = Array{type, dim}(undef, [0 for i=1:dim]...), Matrix{type}(undef, 0, 0), NaN, NaN, NaN
 	end
 	k = nkrange[igood]
 	W[k], H[k], fitquality[k], robustness[k], aic[k] = Wl, Hl, fitqualityl, robustnessl, aicl
@@ -45,8 +45,8 @@ function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Intege
 		!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 		return W[:,so], H[so,:], fitquality, robustness, aic
 	else
-		!quiet && @warn("File named $filename is missing!")
-		return Array{type, dim}(undef, [0 for i=1:dim]...), Array{type, 2}(undef, 0, 0), NaN, NaN, NaN
+		!quiet && @warn("File named $(filename) is missing!")
+		return Array{type, dim}(undef, [0 for i=1:dim]...), Matrix{type}(undef, 0, 0), NaN, NaN, NaN
 	end
 end
 
@@ -70,10 +70,10 @@ function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; 
 	end
 	recursivemkdir(filename)
 	if !isfile(filename)
-		@info("Results saved in $filename ...")
+		@info("Results saved in $(filename) ...")
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 	else
-		@warn("File named $filename already exists!")
+		@warn("File named $(filename) already exists!")
 	end
 end
 @doc """

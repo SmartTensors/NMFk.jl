@@ -12,7 +12,7 @@ function progressive(X::AbstractMatrix{T}, windowsize::Int64, nkrange::AbstractR
 	@info("NMFk #1: $(casefilename) Window $windowsize")
 	W, H, fitquality, robustness, aic = NMFk.execute(X[1:windowsize,:], nkrange, nNMF1; casefilename="$(casefilename)_$(windowsize)", load=load, kw...)
 	if windowsize < size(X, 1)
-		robustness = Array{T}(undef, 0)
+		robustness = Vector{T}(undef, 0)
 		for k in nkrange
 			@info("NMFk #2: $(casefilename) Window $windowsize Signals $k")
 			_, _, _, r, _ = NMFk.execute(X, k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, casefilename="$(casefilename)_$(windowsize)_all", load=load, kw...)
@@ -58,7 +58,7 @@ function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nk
 	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, 1:size(X, 2)))
 	# @show map(i->sum(.!isnan.(X[i, :])), 1:size(X, 1))
 	# @show map(i->sum(.!isnan.(X[:, i])), 1:size(X, 2))
-	window_k = Array{Int64}(undef, 0)
+	window_k = Vector{Int64}(undef, 0)
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
 		W, H, fitquality, robustness, aic = NMFk.execute(X[1:ws,:], nkrange, nNMF1; casefilename="$(casefilename)_$(ws)", load=load, kw...)
@@ -73,7 +73,7 @@ function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nk
 end
 
 function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
-	window_k = Array{Int64}(undef, 0)
+	window_k = Vector{Int64}(undef, 0)
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
 		normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i][1:ws,:]), ws), 1:length(X))...)
@@ -133,8 +133,8 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 
 		@info "$(period): Number of wells $nw"
 
-		well_x = Array{Float32}(undef, 0)
-		well_y = Array{Float32}(undef, 0)
+		well_x = Vector{Float32}(undef, 0)
+		well_y = Vector{Float32}(undef, 0)
 		for w in api[existing_wells]
 			iwell = findall((in)(w), df_header[!, :API])
 			if !isnothing(iwell)
