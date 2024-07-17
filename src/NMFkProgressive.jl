@@ -239,7 +239,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 				JLD2.save("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas", c_gas)
 			end
 
-			p = PlotlyJS.plot(NMFk.plot_wells(well_x, well_y, c_gas; hover=hovertext), Plotly.Layout(title="Gas $(period): $(dk[j]) types"))
+			p = PlotlyJS.plot(NMFk.plot_wells(well_x, well_y, c_gas; hover=hovertext), PlotlyJS.Layout(title="Gas $(period): $(dk[j]) types"))
 			PlotlyJS.savehtml(p, "$(figuredirresults)-$(problem)/data-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred).html", :remote)
 
 			for ct in sort(unique(c_gas))

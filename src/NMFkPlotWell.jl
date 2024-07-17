@@ -21,7 +21,7 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 	l = isnothing(label) ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
 	if eltype(z) <: AbstractFloat
 		h = isnothing(hover) ? Dict() : Dict(:hovertext=>hover, :hoverinfo=>"text")
-		p = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=Plotly.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20)), h...)
+		p = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=PlotlyJS.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20)), h...)
 	else
 		dots = []
 		uz = unique(sort(z))
@@ -37,7 +37,7 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 			h = isnothing(hover) ? Dict() : Dict(:hovertext=>hover[iz], :hoverinfo=>"text")
 			jj = j % length(NMFk.colors)
 			c = jj == 0 ? length(NMFk.colors) : jj
-			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker=Plotly.attr(; size=pointsize), color=NMFk.colors[c], h...)
+			dots_p = PlotlyJS.scatter(; x=x[iz], y=y[iz], l..., name="$i $(sum(iz))", marker=PlotlyJS.attr(; size=pointsize), color=NMFk.colors[c], h...)
 			push!(dots, dots_p)
 		end
 		p = convert(Vector{typeof(dots[1])}, dots)
@@ -77,7 +77,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; h
 		ic = c .== i
 		l = isnothing(label) ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
 		h = isnothing(hover) ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
-		well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], l..., name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
+		well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], l..., name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=PlotlyJS.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
 	return convert(Vector{typeof(wells[1])}, wells)
@@ -94,7 +94,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, 
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		h = isnothing(hover) ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
-		well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(; size=pointsize), h...)
+		well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=PlotlyJS.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
 	return convert(Vector{typeof(wells[1])}, wells)
@@ -109,7 +109,7 @@ function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x
 		tx = toe_x[ic]
 		ty = toe_y[ic]
 		for k = eachindex(hx)
-			well_trace = PlotlyJS.scatter(;x=[hx[k], tx[k]], y=[ty[k], ty[k]], mode="lines+markers", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]), transform=Plotly.attr(type="groupby", groups=fill(i, length(hx)), styles=Plotly.attr(target="$i $(sum(ic))")), color=NMFk.colors[j])
+			well_trace = PlotlyJS.scatter(;x=[hx[k], tx[k]], y=[ty[k], ty[k]], mode="lines+markers", marker_color=NMFk.colors[j], marker=PlotlyJS.attr(size=6), line=PlotlyJS.attr(width=2, color=NMFk.colors[j]), transform=PlotlyJS.attr(type="groupby", groups=fill(i, length(hx)), styles=PlotlyJS.attr(target="$i $(sum(ic))")), color=NMFk.colors[j])
 			push!(wells, well_trace)
 		end
 	end
@@ -135,9 +135,9 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 		y = vec(hcat([[hy[i] ty[i] NaN] for i = eachindex(hy)]...))
 		if !isnothing(hover)
 			h = vec(hcat([[hover[i] hover[i] NaN] for i = eachindex(hover)]...))
-			well_trace = PlotlyJS.scatter(;x=x, y=y, hovertext=h, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
+			well_trace = PlotlyJS.scatter(;x=x, y=y, hovertext=h, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=PlotlyJS.attr(size=6), line=PlotlyJS.attr(width=2, color=NMFk.colors[j]))
 		else
-			well_trace = PlotlyJS.scatter(;x=x, y=y, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=Plotly.attr(size=6), line=Plotly.attr(width=2, color=NMFk.colors[j]))
+			well_trace = PlotlyJS.scatter(;x=x, y=y, mode="lines+markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=PlotlyJS.attr(size=6), line=PlotlyJS.attr(width=2, color=NMFk.colors[j]))
 		end
 		push!(traces, well_trace)
 	end
@@ -166,9 +166,9 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::A
 		z = vec(hcat([[hz[i] tz[i] NaN] for i = eachindex(hz)]...))
 		if !isnothing(hover)
 			h = vec(hcat([[hover[i] hover[i] NaN] for i = eachindex(hover)]...))
-			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, hovertext=h, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
+			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, hovertext=h, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=PlotlyJS.attr(width=6, color=NMFk.colors[j]))
 		else
-			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=Plotly.attr(width=6, color=NMFk.colors[j]))
+			well_trace = PlotlyJS.scatter3d(;x=x, y=y, z=z, mode="lines", name="$i $(sum(ic))", marker_color=NMFk.colors[j], line=PlotlyJS.attr(width=6, color=NMFk.colors[j]))
 		end
 		push!(traces, well_trace)
 	end

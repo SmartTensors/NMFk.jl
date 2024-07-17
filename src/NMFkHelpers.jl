@@ -481,10 +481,10 @@ function remap(v::AbstractVector, vi::Union{AbstractVector,AbstractUnitRange,Ste
 end
 
 function stringproduct(a::AbstractVector, b::AbstractVector)
-	M = Matrix{eltype(a)}(undef, length(a), length(b))
+	M = Matrix{String}(undef, length(a), length(b))
 	for i = eachindex(a)
 		for j = eachindex(b)
-			M[i, j] = a[i] * ":" * b[j]
+			M[i, j] = string(a[i]) * ":" * string(b[j])
 		end
 	end
 	return M

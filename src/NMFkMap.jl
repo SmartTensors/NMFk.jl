@@ -154,7 +154,7 @@ function plotmap(x::AbstractVector{T}, y::AbstractVector{T}, c::AbstractVector{T
 		lat=y,
 		hoverinfo="text",
 		text=text,
-		marker=Plotly.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=Plotly.attr(; thickness=20, width=100), line_width=0, line_color="black"))
+		marker=PlotlyJS.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, width=100), line_width=0, line_color="black"))
 	geo = PlotlyJS.attr(scope="usa",
 		projection_type="albers usa",
 		showland=true,
@@ -187,7 +187,7 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 			hoverinfo="text",
 			text=text[iz],
 			name="$i $(sum(iz))",
-			marker=Plotly.attr(; size=size, color=NMFk.colors[k]))
+			marker=PlotlyJS.attr(; size=size, color=NMFk.colors[k]))
 		push!(traces, trace)
 	end
 	geo = PlotlyJS.attr(scope="usa",
