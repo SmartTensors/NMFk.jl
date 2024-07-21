@@ -61,6 +61,9 @@ function normalizematrix(a::AbstractMatrix, dim::Integer; kw...)
 end
 
 function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=matrixmin(a, dim), amax::AbstractArray=matrixmax(a, dim), rev::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), offset::Number=1)
+	@assert length(amin) == size(a, dim)
+	@assert length(amax) == size(a, dim)
+	@assert length(logv) == size(a, dim)
 	zflag = falses(length(amin))
 	lamin = copy(amin)
 	lamax = copy(amax)
