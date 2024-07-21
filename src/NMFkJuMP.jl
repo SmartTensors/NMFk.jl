@@ -113,7 +113,7 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 	elseif method == :nlopt
 		m = JuMP.Model(NLopt.Optimizer)
 		JuMP.set_optimizer_attributes(m, "algorithm" => algorithm, "maxeval" => maxiter, "xtol_abs" => tolX, "ftol_abs" => tol)
-		# @warn "NLopt does not work with JuMP; Ipopt will be used!"
+		# @warn("NLopt does not work with JuMP; Ipopt will be used!")
 		# m = JuMP.Model(Ipopt.Optimizer)
 		# JuMP.set_optimizer_attributes(m, "max_iter" => maxiter, "print_level" => verbosity, "tol" => tol)
 	end

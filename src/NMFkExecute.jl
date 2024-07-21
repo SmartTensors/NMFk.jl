@@ -98,7 +98,7 @@ function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integ
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=true, check_inputs::Bool=true, kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=false, check_inputs::Bool=true, kw...) where {T <: Number, N}
 	if .*(size(X)...) == 0
 		error("Input array has a zero dimension! Array size=$(size(X))")
 	end
@@ -110,21 +110,22 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 		runflag = true
 	end
 	check_inputs && (load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix))
+	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])NMFk run with $(nk) signals: $(Base.text_colors[:normal])")
 	if load
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if isfile(filename)
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			if size(W) == (size(X, 1), nk) && size(H) == (nk, size(X, 2))
-				!quiet && @info("Results are loaded from $(filename)!")
+				print("Results are loaded from $(filename)!")
 				save = false
 				runflag = false
 			else
-				@warn("File $(filename) contains inconsistent results; runs will be executed!")
+				print("File $(filename) contains  $(Base.text_colors[:yellow])$(Base.text_colors[:bold])inconsistent results$(Base.text_colors[:normal]); runs will be executed ...")
 				println("W matrix - Expected size: $((size(X, 1), nk)) Actual size: $(size(W))")
 				println("H matrix - Expected size: $((nk, size(X, 2))) Actual size: $(size(H))")
 			end
 		else
-			@info("File $(filename) is missing; runs will be executed!")
+			print("File $(filename) is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal]); runs will be executed ...")
 			if loadonly
 				W = Matrix{T}(undef, 0, 0);
 				H = Matrix{T}(undef, 0, 0);
@@ -134,6 +135,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 			end
 		end
 	end
+	println()
 	if runflag
 		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; clusterWmatrix=clusterWmatrix, resultdir=resultdir, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, quiet=quiet, kw...)
 	end

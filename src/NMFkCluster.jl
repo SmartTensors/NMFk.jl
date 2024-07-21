@@ -56,7 +56,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Abstra
 	elseif best_method == :worst_cluster_cliff
 		ki = last(findmax(map(i->minimum(cluster_silhouettes[i]) - minimum(cluster_silhouettes[i+1]), 1:length(krange)-1))) + 1
 	else
-		@error "Unknown method: best_method must be :worst_cliff or :worst_cluster_cliff"
+		@error("Unknown method: best_method must be :worst_cliff or :worst_cluster_cliff")
 	end
 	k = krange[ki]
 	@info("Best $k - OF: $(totalcosts[ki]) Mean Silhouette: $(mean_silhouette[ki]) Worst Silhouette: $(worst_silhouette[ki]) Cluster Count: $(map(i->sum(cresult[ki].assignments .== i), unique(cresult[ki].assignments))) Cluster Silhouettes: $(cluster_silhouettes[ki])")
@@ -185,7 +185,7 @@ function finduniquesignals(X::AbstractMatrix)
 	failed = false
 	while any(signalmap .== 0)
 		if all(Xc .== 0.)
-			@warn "Procedure to find unique signals could not identify a solution ..."
+			@warn("Procedure to find unique signals could not identify a solution ...")
 			failed = true
 			break
 		end

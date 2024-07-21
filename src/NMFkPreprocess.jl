@@ -40,7 +40,7 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 end
 
 function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), kw...)
-	ct = [typeof(d[!, i]) for i in axes(d, 2)]
+	ct = eltype.(eachcol(d))
 	ci = ct .<: Number .|| ct .=== Vector{Union{Missing, Float64}} .|| ct .=== Vector{Union{Missing, Float32}} .|| ct .=== Vector{Union{Missing, Int64}} .|| ct .=== Vector{Union{Missing, Int32}}
 	m = Matrix(d[!, ci])
 	type = first(unique(eltype.(skipmissing(m))))
@@ -49,14 +49,15 @@ function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), k
 	datanalytics(m, names[ci]; dims=2, kw...)
 end
 
-function datanalytics(a::AbstractMatrix; dims::Integer=2, names::AbstractVector=["$name $i" for i in axes(a, dims)], kw...)
-	name = dims == 1 ? "Row" : "Column"
+function datanalytics(a::AbstractMatrix; dims::Integer=2, name = dims == 1 ? "Row" : "Column", names::AbstractVector=["$name $i" for i in axes(a, dims)], kw...)
+	@assert length(names) == size(a, dims)
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=quiet, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
+	mlength = maximum(length.(names))
 	min = Vector{T}(undef, length(names))
 	max = Vector{T}(undef, length(names))
 	std = Vector{T}(undef, length(names))
@@ -65,10 +66,8 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	for (i, n) in enumerate(names)
 		nt = ntuple(k->(k == dims ? i : Colon()), ndims(a))
 		if logv[i]
-			!veryquiet && @info("$n: log10-transformed")
 			v = log10s(vec(a[nt...]))
 		else
-			!veryquiet && @info n
 			v = vec(a[nt...])
 		end
 		if casefilename == ""
@@ -81,14 +80,8 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			end
 		end
 		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename_plot=filename, kw..., title=n)
-		!veryquiet && println("$n: Min $(min[i]) Max $(max[i]) StdDev $(std[i]) Skewness $(skewness[i]) Count $(count[i])")
-	end
-	if !quiet
-		@info "Attributes"
-		println("Name Min Max StdDev Count (non-NaN's)")
-		for (i, n) in enumerate(names)
-			println("$n $(min[i]) $(max[i]) $(std[i]) $(skewness[i]) $(count[i])")
-		end
+		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) min: $(Printf.@sprintf("%12.7g", min[i])) max: $(Printf.@sprintf("%12.7g", max[i])) std.dev: $(Printf.@sprintf("%12.7g", std[i])) skewness: $(Printf.@sprintf("%12.7g", skewness[i])) count: $(Printf.@sprintf("%12d", count[i]))")
+		!quiet && logv[i] ? println("<- log-transformed") : println()
 	end
 	return min, max, std, skewness, count
 end
@@ -148,7 +141,7 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), 
 			end
 		end
 		if emptybins
-			@warn "There are empty bins ..."
+			@warn("There are empty bins ...")
 		end
 	end
 	if rev == true

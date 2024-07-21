@@ -137,11 +137,11 @@ function setbadmixerelements!(X::AbstractArray, W::AbstractArray, H::AbstractArr
 			@show X[w, :, t]
 			@show Xe[w, :, t]
 			if all(isnan.(X[w, :, t]))
-				@info "bad"
+				@info("bad")
 				@show W[w, :, t]
 				W[w, :, t] .= NaN
 			else
-				@info "good"
+				@info("good")
 				@show W[w, :, t]
 			end
 		end

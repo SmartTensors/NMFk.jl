@@ -20,7 +20,7 @@ function typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
 			typecolors[types .== t] .= colors[j]
 		end
 	else
-		@info "Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c)); Gray color will be used!"
+		@info("Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c)); Gray color will be used!")
 		typecolors .= "gray"
 	end
 	return typecolors
@@ -38,7 +38,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 			typecolors = NMFk.colors[1:c]
 			ncolors = c
 		else
-			@info "Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c))!"
+			@info("Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c))!")
 		end
 	else
 		@assert length(typecolors) == r || length(typecolors) == c
@@ -210,14 +210,14 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes
 	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))
 	for c in axes(data, 2)
 		if names[c] == ""
-			!quiet && @info "Histogram of Column $(c):"
+			!quiet && @info("Histogram of Column $(c):")
 			if figuredir != "." && save
 				filename_plot = "$(filename_prefix)_column_$(c).$(plot_type)"
 			end
 			filename_data = save_data ? "$(filename_prefix)_column_$(c)_data" : ""
 			vec_xmina[c], vec_xmaxa[c], vec_ya[c] = histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
 		else
-			!quiet && @info "Histogram of attribute $(names[c]):"
+			!quiet && @info("Histogram of attribute $(names[c]):")
 			if figuredir != "." && save
 				filename_plot = "$(filename_prefix)_$(names[c]).$(plot_type)"
 			end

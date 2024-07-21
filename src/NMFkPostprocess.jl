@@ -85,14 +85,14 @@ end
 function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, dim::Integer=2; figuredir::AbstractString=".", casefilename::AbstractString="", plotformat::AbstractString="png", names::AbstractVector, print::Bool=true, func::Function=Statistics.var, map::Function=i->i, kw...)
 	for k in nkrange
 		Xe = map(W[k] * H[k])
-		print && (@info "Reconstructed data:"; display([names Xe']))
+		print && (@info("Reconstructed data:"); display([names Xe']))
 		isignalmap = signalorder(W[k], H[k])
 		stata = Vector{eltype(W[k])}(undef, size(Xe, dim))
 		for i in axes(Xe, dim)
 			nt = ntuple(k->(k == dim ? (i:i) : Colon()), ndims(Xe))
 			stata[i] = func(Xe[nt...])
 		end
-		print && (@info "Total statistics:"; display([names stata]))
+		print && (@info("Total statistics:"); display([names stata]))
 		statas = Matrix{eltype(W[k])}(undef, size(Xe, dim), k)
 		for s in 1:k
 			Xes = map(W[k][:,s:s] * H[k][s:s,:])
@@ -101,7 +101,7 @@ function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int6
 				statas[i, s] = func(vec(Xes[nt...]))
 			end
 		end
-		print && (@info "Signal statistics:"; display([names statas[:, isignalmap]]))
+		print && (@info("Signal statistics:"); display([names statas[:, isignalmap]]))
 		for s in 1:k
 			for i in axes(Xe, dim)
 				if stata[i] != 0
@@ -109,7 +109,7 @@ function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int6
 				end
 			end
 		end
-		print && (@info "Normalized signal statistics:"; display([names statas[:, isignalmap]]))
+		print && (@info("Normalized signal statistics:"); display([names statas[:, isignalmap]]))
 		nm = maximum(statas; dims=2)
 		for s in 1:k
 			for i in axes(Xe, dim)
@@ -176,7 +176,7 @@ function showsignals(X::AbstractMatrix, Xnames::AbstractVector; Xmap::AbstractVe
 		return
 	end
 	for i in axes(X, 1)
-		@info "Signal $i"
+		@info("Signal $i")
 		is = order(Xm[:,i])
 		ivl = filter_vals(Xm[:,i][is])
 		inm = filter_names(Xnames[is][1:ivl])
@@ -326,7 +326,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		if cutoff > 0
 			ia = (Ha ./ maximum(Ha; dims=2)) .> cutoff
 			for i in 1:k
-				@info "Signal $i (max-normalized elements > $cutoff)"
+				@info("Signal $i (max-normalized elements > $cutoff)")
 				display(Hnames[ia[i,:]])
 			end
 		end
@@ -402,7 +402,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		elseif ordersignal == :Wcount && clusterW
 			signalmap = wsignalmap
 		else
-			@warn "Unknown signal order requested $(ordersignal); Signal importance will be used!"
+			@warn("Unknown signal order requested $(ordersignal); Signal importance will be used!")
 			signalmap = isignalmap
 		end
 		Sorder[ki] = signalmap
@@ -416,24 +416,24 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				ii = indexin(ch, [clusterlabels[signalhmap[j]]]) .== true
 				chnew[ii] .= i
 				cassgined[ii] .+= 1
-				@info "Signal $(clusterlabels[signalhmap[j]]) -> $(i) Count: $(sum(ii))"
+				@info("Signal $(clusterlabels[signalhmap[j]]) -> $(i) Count: $(sum(ii))")
 			end
 			Hclusters[ki] = chnew
 			if any(cassgined .== 0)
-				@warn "$(uppercasefirst(Hcasefilename)) not assigned to any cluster:"
+				@warn("$(uppercasefirst(Hcasefilename)) not assigned to any cluster:")
 				display(Hnames[cassgined .== 0])
-				@error "Something is wrong!"
+				@error("Something is wrong!")
 			end
 			if any(cassgined .> 1)
-				@warn "$(uppercasefirst(Hcasefilename)) assigned to more than cluster:"
+				@warn("$(uppercasefirst(Hcasefilename)) assigned to more than cluster:")
 				display([Hnames[cassgined .> 1] cassgined[cassgined .> 1]])
-				@error "Something is wrong!"
+				@error("Something is wrong!")
 			end
 			clustermap = Vector{Char}(undef, k)
 			clustermap .= ' '
 			io = open("$resultdir/$(Hcasefilename)-$(k)-groups.txt", "w")
 			for (j, i) in enumerate(clusterlabels)
-				@info "Signal $i (S$(signalmap[j])) (k-means clustering)"
+				@info("Signal $i (S$(signalmap[j])) (k-means clustering)")
 				write(io, "Signal $i (S$(signalmap[j]))\n")
 				ii = indexin(chnew, [i]) .== true
 				is = sortperm(Hm[ii,signalmap[j]]; rev=true)
@@ -504,7 +504,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		if cutoff > 0
 			ia = (Wa ./ maximum(Wa; dims=1)) .> cutoff
 			for i in 1:k
-				@info "Signal $i (max-normalized elements > $cutoff)"
+				@info("Signal $i (max-normalized elements > $cutoff)")
 				display(Wnames[ia[:,i]])
 			end
 		end
@@ -512,7 +512,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		if clusterW
 			for (j, i) in enumerate(clusterlabels)
 				ii = indexin(cw, [i]) .== true
-				@info "Signal $i (S$(wsignalmap[j])) Count: $(sum(ii))"
+				@info("Signal $i (S$(wsignalmap[j])) Count: $(sum(ii))")
 			end
 			signalwmap = indexin(signalmap, wsignalmap)
 			cassgined = zeros(Int64, length(Wnames))
@@ -522,22 +522,22 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				ii = indexin(cw, [clusterlabels[signalwmap[j]]]) .== true
 				cwnew[ii] .= i
 				cassgined[ii] .+= 1
-				@info "Signal $(clusterlabels[signalwmap[j]]) -> $(i) Count: $(sum(ii))"
+				@info("Signal $(clusterlabels[signalwmap[j]]) -> $(i) Count: $(sum(ii))")
 			end
 			Wclusters[ki] = cwnew
 			if any(cassgined .== 0)
-				@warn "$(uppercasefirst(Wcasefilename)) not assigned to any cluster:"
+				@warn("$(uppercasefirst(Wcasefilename)) not assigned to any cluster:")
 				display(Wnames[cassgined .== 0])
-				@error "Something is wrong!"
+				@error("Something is wrong!")
 			end
 			if any(cassgined .> 1)
-				@warn "$(uppercasefirst(Wcasefilename)) assigned to more than cluster:"
+				@warn("$(uppercasefirst(Wcasefilename)) assigned to more than cluster:")
 				display([Wnames[cassgined .> 1] cassgined[cassgined .> 1]])
-				@error "Something is wrong!"
+				@error("Something is wrong!")
 			end
 			io = open("$resultdir/$(Wcasefilename)-$(k)-groups.txt", "w")
 			for (j, i) in enumerate(clusterlabels)
-				@info "Signal $i (remapped k-means clustering)"
+				@info("Signal $i (remapped k-means clustering)")
 				write(io, "Signal $i\n")
 				ii = indexin(cwnew, [i]) .== true
 				is = sortperm(Wm[ii,signalmap[j]]; rev=true)
@@ -706,9 +706,9 @@ end
 function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, locationclusters::AbstractVector; locationmatrix::Union{Nothing,AbstractMatrix}=nothing, attributematrix::Union{Nothing,AbstractMatrix}=nothing, dims::Integer=2, plothistogram::Bool=false, quiet::Bool=true)
 	for (ic, c) in enumerate(unique(sort(locationclusters)))
 		i = locationclusters .== c
-		@info "Location cluster: $c"
+		@info("Location cluster: $c")
 		min, max, std, count = NMFk.datanalytics(X[i,:], attributes; dims=dims, plothistogram=plothistogram, quiet=quiet)
-		@info "Missing attribute measurements:"
+		@info("Missing attribute measurements:")
 		if isnothing(attributematrix)
 			display(attributes[count.==0])
 		else

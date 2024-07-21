@@ -67,7 +67,7 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 	end
 	if !isnothing(xticks)
 		if size(X, 2) != length(xticks)
-			@warn "Number of x-axis ticks ($(length(xticks))) is inconsistent with the matrix size ($(size(X, 2)))"
+			@warn("Number of x-axis ticks ($(length(xticks))) is inconsistent with the matrix size ($(size(X, 2)))")
 			return
 		end
 		if eltype(xticks) <: AbstractString
@@ -79,7 +79,7 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 	end
 	if !isnothing(yticks)
 		if size(X, 1) != length(yticks)
-			@warn "Number of y-axis ticks ($(length(yticks))) is inconsistent with the matrix size ($(size(X, 1)))"
+			@warn("Number of y-axis ticks ($(length(yticks))) is inconsistent with the matrix size ($(size(X, 1)))")
 			return
 		end
 		if eltype(yticks) <: AbstractString

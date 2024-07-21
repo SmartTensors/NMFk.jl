@@ -146,7 +146,7 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	end
 end
 
-function plotmap(x::AbstractVector{T}, y::AbstractVector{T}, c::AbstractVector{T}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text=repeat([""], length(x))) where T <: Real
+function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Real}
 	@assert length(x) == length(y)
 	@assert length(x) == length(text)
 	trace = PlotlyJS.scattergeo(; locationmode="USA-states",

@@ -131,7 +131,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 		nw = sum(existing_wells)
 		Mads.plotseries(gas_data, "$(figuredirdata)-$(problem)/data_$(period).png"; xaxis=dates)
 
-		@info "$(period): Number of wells $nw"
+		@info("$(period): Number of wells $nw")
 
 		well_x = Vector{Float32}(undef, 0)
 		well_y = Vector{Float32}(undef, 0)
@@ -244,18 +244,18 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 
 			for ct in sort(unique(c_gas))
 				i = c_gas .== ct
-				@info "Type $(ct) wells: $(sum(i))"
+				@info("Type $(ct) wells: $(sum(i))")
 				Mads.plotseries(gas_train[:, i], "$(figuredirresults)-$(problem)/data-$(ds[j])-$(dk[j])-$(nNMF)-$(period_pred)_type_$(ct).png")
 			end
 
 			for ct in sort(unique(c_gas))
 				i = c_gas .== ct
-				@info "Type $(ct) wells: $(sum(i))"
-				@info "Formation"
+				@info("Type $(ct) wells: $(sum(i))")
+				@info("Formation")
 				display(NMFk.bincount(df_header[!, :Formation][findall((in)(api[existing_wells][i]), df_header[!, :API])]; cutoff=1))
-				@info "Operator"
+				@info("Operator")
 				display(NMFk.bincount(df_header[!, :Operator][findall((in)(api[existing_wells][i]), df_header[!, :API])]; cutoff=1))
-				@info "Well type"
+				@info("Well type")
 				display(NMFk.bincount(df_header[!, :Orientation][findall((in)(api[existing_wells][i]), df_header[!, :API])]; cutoff=1))
 			end
 

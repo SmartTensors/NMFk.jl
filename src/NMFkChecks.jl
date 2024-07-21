@@ -62,8 +62,8 @@ function checkarray(X::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->
 		println("Dimension $(d): Maximum entry counts: $(mrl)")
 		println("Dimension $(d): Minimum first  entry: $(mfe)")
 		println("Dimension $(d): Maximum last   entry: $(mle)")
-		# @info "Dimension $(d): First entry: $(firstentrys)"
-		# @info "Dimension $(d): Last  entry: $(lastentrys)"
+		# @info("Dimension $(d): First entry: $(firstentrys)")
+		# @info("Dimension $(d): Last  entry: $(lastentrys)")
 		# md[d] = length(bad_indices) > 0 ? bad_indices[1] : 0
 		max_record_length[d] = mrl
 		rangeentry[d] = mfe:mle
@@ -121,10 +121,14 @@ checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
 checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
 function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
-	return checkmatrix(Matrix(df), 2; names=names, kw...)
+	@assert length(names) == DataFrames.ncol(df)
+	ct = eltype.(eachcol(df))
+	ci = ct .<: Number .|| ct .=== Vector{Union{Missing, Float64}} .|| ct .=== Vector{Union{Missing, Float32}} .|| ct .=== Vector{Union{Missing, Int64}} .|| ct .=== Vector{Union{Missing, Int32}}
+	return checkmatrix(Matrix(df[!, ci]), 2; names=names[ci], kw...)
 end
 
 function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=1:size(x, dim)], masks::Bool=false)
+	mlength = maximum(length.(names))
 	na = size(x, dim)
 	ilog = Vector{Int64}(undef, 0)
 	inans = Vector{Int64}(undef, 0)
@@ -132,34 +136,47 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 	ineg = Vector{Int64}(undef, 0)
 	iconst = Vector{Int64}(undef, 0)
 	icor = Vector{Int64}(undef, 0)
-	for i = 1:na
+	for i = axes(x, dim)
+		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
 		nt = ntuple(k->(k == dim ? i : Colon()), 2)
 		isn = .!isnan.(x[nt...])
 		ns = ntuple(k->(k == dim ? i : isn), 2)
 		v = x[ns...]
-		skiplog = true
+		vmin = minimum(v)
+		vmax = maximum(v)
+		skew = StatsBase.skewness(v)
+		luv = length(unique(v))
+		print("min: $(Printf.@sprintf("%12.7g", vmin)) max: $(Printf.@sprintf("%12.7g", vmax)) skewness: $(Printf.@sprintf("%12.7g", skew)) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
+		skip_corr_test = false
 		if sum(isn) == 0
-			!quiet && @info "$(names[i]) has only NaNs!"
+			!quiet && print(" <- has only NaNs!")
+			skip_log_test = true
 			push!(inans, i)
 		elseif sum(v) == 0
-			!quiet && @info "$(names[i]) has only zeros!"
+			!quiet && print(" <- only zeros!")
+			skip_corr_test = true
 			push!(izeros, i)
 		elseif any(v .< 0)
-			!quiet && @info "$(names[i]) has negative values!"
-			skiplog = false
+			!quiet && print(" <- has negative values!")
 			push!(ineg, i)
-		elseif minimum(v) ≈ maximum(v)
-			!quiet && @info "$(names[i]) is constant!"
+		elseif vmin ≈ vmax
+			!quiet && print(" <- constant!")
+			skip_corr_test = true
 			push!(iconst, i)
-		else
-			skiplog = false
+		elseif length(unique(v)) == 2
+			!quiet && print(" <- boolean?!")
+		elseif abs(skew) > skewness_cutoff && length(unique(v)) > 2
+			!quiet && print(" <- very skewed; log-transformaiton recommended!")
+			push!(ilog, i)
+		end
+		println()
+		if !skip_corr_test
 			for j = i+1:na
 				nt2 = ntuple(k->(k == dim ? j : Colon()), 2)
 				jsn = .!isnan.(x[nt2...])
 				ns2 = ntuple(k->(k == dim ? j : jsn), 2)
 				v2 = x[ns2...]
 				if size(v2) != size(v)
-					!quiet && @warn "$(names[i]) and $(names[j]) have different number of NaN entries!"
 					ijsn = isn .|| jsn
 					ns = ntuple(k->(k == dim ? i : ijsn), 2)
 					ns2 = ntuple(k->(k == dim ? j : ijsn), 2)
@@ -167,25 +184,15 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 					v2 = x[ns2...]
 				end
 				if v == v2
-					!quiet && @info "$(names[i]) and $(names[j]) are equivalent!"
-					skiplog = true
+					!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal])!")
 					push!(icor, j)
-				elseif Statistics.norm(v .- v2) < norm_cutoff
-					!quiet && @info "$(names[i]) and $(names[j]) are very similar!"
-					skiplog = true
+				elseif Statistics.norm(v .- v2) < norm_cutoff || all(v .≈ v2)
+					!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal])!")
 					push!(icor, j)
 				elseif (correlation = abs(Statistics.cor(v, v2))) > correlation_cutoff
-					!quiet && @info "$(names[i]) and $(names[j]) are correlated $(correlation)!"
-					skiplog = true
+					!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal])  (correlation = $(correlation))!")
 					push!(icor, j)
 				end
-			end
-		end
-		if !skiplog
-			c = abs(StatsBase.skewness(v))
-			if c > skewness_cutoff
-				!quiet && @info "$(names[i]) is very skewed $(c); log-transformaiton recommended!"
-				push!(ilog, i)
 			end
 		end
 	end
