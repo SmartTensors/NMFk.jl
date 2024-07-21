@@ -19,7 +19,6 @@ end
 
 function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=NMFk.global_quiet, tol::Number=1e-19, tolOF::Number=1e-3, lambda::Number=1e-32, maxreattempts::Int=2, maxbaditers::Int=10, maxiter::Int=1000000, stopconv::Int=1000, Wfixed::Bool=false, Hfixed::Bool=false, Winit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), Hinit::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), seed::Int=-1, normalizevector::AbstractVector{T}=Vector{T}(undef, 0), kw...) where {T <: Number}
 	inan, izero = NMFpreprocessing!(X; lambda=lambda)
-
 	n, m = size(X)
 	if length(normalizevector) == n
 		X ./= normalizevector
