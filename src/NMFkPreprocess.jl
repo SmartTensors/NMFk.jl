@@ -57,6 +57,7 @@ end
 function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
+	names = String.(names)
 	mlength = maximum(length.(names))
 	min = Vector{T}(undef, length(names))
 	max = Vector{T}(undef, length(names))
