@@ -516,3 +516,6 @@ function aisnan!(X::AbstractArray, l=1)
 	X[isnan.(X)] .= l
 	return nothing
 end
+
+"Convert `@Printf.sprintf` macro into `sprintf` function"
+sprintf(args...) = eval(:@Printf.sprintf($(args...)))

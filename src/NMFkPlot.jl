@@ -498,11 +498,8 @@ function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=f
 	return ff
 end
 
-"Convert `@Printf.sprintf` macro into `sprintf` function"
-sprintf(args...) = eval(:@Printf.sprintf($(args...)))
-
 "Generate Sankey plots"
-function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::AbstractString; htmlfile::AbstractString="", pdffile::AbstractString="")
+function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::AbstractString; filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end])
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	n1 = ["$t1 $i" for i=1:s1]
@@ -525,11 +522,13 @@ function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::
 		end
 	end
 	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
-	htmlfile !="" && PlotlyJS.savefig(s, htmlfile; format="html")
-	pdffile != "" && PlotlyJS.savefig(s, pdffile; format="pdf")
+	if filename != ""
+		recursivemkdir(ffilenamen)
+		PlotlyJS.savefig(p, filename; format=format)
+	end
 	return s
 end
-function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString, t2::AbstractString, t3::AbstractString; htmlfile::AbstractString="", pdffile::AbstractString="")
+function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::AbstractString, t2::AbstractString, t3::AbstractString; filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end])
 	s1 = length(unique(c1))
 	s2 = length(unique(c2))
 	s3 = length(unique(c3))
@@ -567,11 +566,13 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 		end
 	end
 	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
-	htmlfile !="" && PlotlyJS.savefig(s, htmlfile; format="html")
-	pdffile != "" && PlotlyJS.savefig(s, pdffile; format="pdf")
+	if filename != ""
+		recursivemkdir(ffilenamen)
+		PlotlyJS.savefig(p, filename; format=format)
+	end
 	return s
 end
-function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString="", pdffile::AbstractString="")
+function sankey(cc::AbstractVector, tt::AbstractVector; filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end])
 	@assert length(cc) == length(tt)
 	ss = Vector{Int64}(undef, length(cc))
 	nn = Vector{Vector{String}}(undef, length(cc))
@@ -604,8 +605,10 @@ function sankey(cc::AbstractVector, tt::AbstractVector; htmlfile::AbstractString
 		csum += ss[c]
 	end
 	s = PlotlyJS.plot(PlotlyJS.sankey(node_label=nn, link_source=ns, link_target=nt, link_value=v))
-	htmlfile !="" && PlotlyJS.savefig(s, htmlfile; format="html")
-	pdffile != "" && PlotlyJS.savefig(s, pdffile; format="pdf")
+	if filename != ""
+		recursivemkdir(ffilenamen)
+		PlotlyJS.savefig(p, filename; format=format)
+	end
 	return s
 end
 

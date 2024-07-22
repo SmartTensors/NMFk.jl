@@ -43,19 +43,20 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 		p = convert(Vector{typeof(dots[1])}, dots)
 	end
 	return PlotlyJS.plot(p, PlotlyJS.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
-
 end
 
-function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString=".", title::AbstractString="", plotly=nothing, kw...)
+function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", plotly=nothing, kw...)
 	if isnothing(plotly)
 		p = PlotlyJS.plot(NMFk.plot_wells(ar...; kw...), PlotlyJS.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 	else
 		p = PlotlyJS.plot(plotly, PlotlyJS.Layout(; title=title, hovermode="closest", yaxis_scaleanchor="x", yaxis_scaleratio=1))
 		p = PlotlyJS.addtraces(p, NMFk.plot_wells(ar...; kw...)...)
 	end
-	j = joinpathcheck(figuredir, filename)
-	recursivemkdir(j)
-	PlotlyJS.savefig(p, j; format="html")
+	if filename != ""
+		fn = joinpathcheck(figuredir, filename)
+		recursivemkdir(fn)
+		PlotlyJS.savefig(p, fn; format=format)
+	end
 	return p
 end
 

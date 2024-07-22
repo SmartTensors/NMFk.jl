@@ -146,7 +146,7 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	end
 end
 
-function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Real}
+function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Real}
 	@assert length(x) == length(y)
 	@assert length(x) == length(text)
 	trace = PlotlyJS.scattergeo(; locationmode="USA-states",
@@ -168,12 +168,12 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		recursivemkdir(fn)
-		PlotlyJS.savefig(p, fn; format="html")
+		PlotlyJS.savefig(p, fn; format=format)
 	end
 	return p
 end
 
-function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
+function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
 	@assert length(x) == length(y)
 	@assert length(x) == length(text)
 	traces = []
@@ -203,7 +203,7 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		recursivemkdir(fn)
-		PlotlyJS.savefig(p, fn; format="html")
+		PlotlyJS.savefig(p, fn; format=format)
 	end
 	return p
 end
