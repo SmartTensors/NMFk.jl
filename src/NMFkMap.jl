@@ -146,18 +146,20 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	end
 end
 
-function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Real}
+function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(x)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Real}
 	@assert length(x) == length(y)
 	@assert length(x) == length(text)
-	trace = PlotlyJS.scattergeo(; locationmode="USA-states",
+	trace = PlotlyJS.scattergeo(;
+		locationmode="USA-states",
 		lon=x,
 		lat=y,
 		hoverinfo="text",
 		text=text,
-		marker=PlotlyJS.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, width=100), line_width=0, line_color="black"))
-	geo = PlotlyJS.attr(scope="usa",
-		projection_type="albers usa",
-		showland=true,
+		marker=PlotlyJS.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100), line_width=0, line_color="black"))
+	geo = PlotlyJS.attr(;
+		scope=scope,
+		projection_type=projection_type,
+		showland=showland,
 		landcolor="rgb(217, 217, 217)",
 		subunitwidth=1,
 		countrywidth=1,
@@ -168,12 +170,12 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		recursivemkdir(fn)
-		PlotlyJS.savefig(p, fn; format=format)
+		PlotlyJS.savefig(p, fn; format=format, kw...)
 	end
 	return p
 end
 
-function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", size=5, text=repeat([""], length(x))) where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
+function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(x)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
 	@assert length(x) == length(y)
 	@assert length(x) == length(text)
 	traces = []
@@ -181,7 +183,8 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 		iz = c .== i
 		jj = j % length(NMFk.colors)
 		k = jj == 0 ? length(NMFk.colors) : jj
-		trace = PlotlyJS.scattergeo(; locationmode="USA-states",
+		trace = PlotlyJS.scattergeo(;
+			locationmode="USA-states",
 			lon=x[iz],
 			lat=y[iz],
 			hoverinfo="text",
@@ -190,9 +193,10 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 			marker=PlotlyJS.attr(; size=size, color=NMFk.colors[k]))
 		push!(traces, trace)
 	end
-	geo = PlotlyJS.attr(scope="usa",
-		projection_type="albers usa",
-		showland=true,
+	geo = PlotlyJS.attr(
+		scope=scope,
+		projection_type=projection_type,
+		showland=showland,
 		landcolor="rgb(217, 217, 217)",
 		subunitwidth=1,
 		countrywidth=1,
@@ -203,7 +207,7 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		recursivemkdir(fn)
-		PlotlyJS.savefig(p, fn; format=format)
+		PlotlyJS.savefig(p, fn; format=format, kw...)
 	end
 	return p
 end
