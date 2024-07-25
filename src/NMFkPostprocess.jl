@@ -206,7 +206,34 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)], Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)], ordersignal::Symbol=:importance, clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true, Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[], Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)), lon=nothing, lat=nothing, hover=nothing, resultdir::AbstractString=".", figuredir::AbstractString=resultdir, Wcasefilename::AbstractString="locations", Hcasefilename::AbstractString="attributes", Htypes::AbstractVector=[], Wtypes::AbstractVector=[], Hcolors=NMFk.colors, Wcolors=NMFk.colors, background_color="black", createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots, Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20), plottimeseries::Symbol=:none, adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH, plotmap_scope::Symbol=:well, map_format::AbstractString="html", map_dict::Union{Base.Pairs,AbstractDict}=Dict(:showland=>false, :size=>5, :scale=>2), cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2, Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt, adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch, W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize, Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize, Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize, plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png", sortmag::Bool=false, point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt, biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt, repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats, quiet::Bool=false, veryquiet::Bool=true)
+function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
+		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
+		ordersignal::Symbol=:importance,
+		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
+		Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[],
+		Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)),
+		lon=nothing, lat=nothing, hover=nothing,
+		resultdir::AbstractString=".", figuredir::AbstractString=resultdir,
+		Wcasefilename::AbstractString="locations", Hcasefilename::AbstractString="attributes",
+		Wtypes::AbstractVector=[], Htypes::AbstractVector=[],
+		Wcolors=NMFk.colors, Hcolors=NMFk.colors, background_color="black",
+		createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots,
+		Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20),
+		adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH,
+		plottimeseries::Symbol=:none, plotmap_scope::Symbol=:well, map_format::AbstractString="html",
+		map_dict::Union{Base.Pairs,AbstractDict}=Dict(:showland=>false, :size=>5, :scale=>2),
+		cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2,
+		Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt,
+		adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch,
+		W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize,
+		Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize,
+		Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize,
+		plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png",
+		sortmag::Bool=false,
+		point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt,
+		biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt,
+		repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats,
+		quiet::Bool=false, veryquiet::Bool=true)
 	if length(krange) == 0
 		@warn("No optimal solutions")
 		return
