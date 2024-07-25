@@ -2,13 +2,17 @@ import DistributedArrays
 
 function NMFpreprocessing!(X::AbstractMatrix; lambda::Number=1e-32)
 	if minimum(X) < 0
-		error("All matrix entries must be nonnegative!")
+		@error("All matrix entries must be nonnegative!")
+		throw(ErrorException("All matrix entries must be nonnegative!"))
 	end
-	if minimum(sum(X; dims=2)) == 0
-		@warn("All matrix entries in a row should not be 0!")
-	end
-	if minimum(sum(X; dims=1)) == 0
-		@warn("All matrix entries in a column should not be 0!")
+	if first_warning
+		if minimum(sum(X; dims=2)) == 0
+			@warn("All matrix entries in a row should not be 0!")
+		end
+		if minimum(sum(X; dims=1)) == 0
+			@warn("All matrix entries in a column should not be 0!")
+		end
+		global first_warning = false
 	end
 	izero = X .<= 0
 	X[izero] .= lambda

@@ -2,7 +2,8 @@ import PlotlyJS
 
 function geomap(filename::AbstractString, x::AbstractVector, y::AbstractVector, s::AbstractVector=ones(length(x)) * 10; figuredir::AbstractString=".", title::AbstractString="")
 	layout = PlotlyJS.Layout(; title=title, showlegend=false, geo=geo)
-	trace = PlotlyJS.scattergeo(; locationmode="USA-states",
+	trace = PlotlyJS.scattergeo(;
+				locationmode="USA-states",
 				lat=x,
 				lon=y,
 				hoverinfo="text",

@@ -2,6 +2,7 @@ import Distributed
 import JLD
 
 function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilename::AbstractString, mixture::Symbol, method::Symbol, algorithm::Symbol, clusterWmatrix::Bool) where {T <: Number, N}
+	global first_warning = true
 	if load && casefilename == ""
 		@info("Loading of existing results is requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
 		casefilename = "nmfk"

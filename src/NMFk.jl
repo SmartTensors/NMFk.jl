@@ -30,6 +30,7 @@ const dir = Base.pkgdir(NMFk)
 global global_quiet = true
 global restart = false
 global imagedpi = 300
+global first_warning = true
 
 modules = ["NMFk"]
 
