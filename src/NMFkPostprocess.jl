@@ -474,19 +474,19 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			@assert signalmap == sortperm(clustermap)
 			@assert clustermap[signalmap] == clusterlabels
 			dumpcsv = true
-			if length(lon) == length(chnew)
-				if plotmap
-					if isnothing(hover)
-						hover = Hnames
-					end
-					if plotmap_scope == :well
-						NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
-					else
-						NMFk.plotmap(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
-					end
+			if plotmap && length(lon) == length(chnew)
+				if isnothing(hover)
+					hover = Hnames
+				end
+				if plotmap_scope == :well
+					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
+				else
+					NMFk.plotmap(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
 				end
 				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Hnames lon lat Hm[:,signalmap] chnew], ',')
-			else
+				dumpcsv = false
+			end
+			if dumpcsv
 				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Hnames Hm[:,signalmap] chnew], ',')
 			end
 			cs = sortperm(chnew)
@@ -580,24 +580,23 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			# 	snew2[snew .== "S$(i)"] .= "S$(ws[i])"
 			# end
 			dumpcsv = true
-			if length(lon) == length(cwnew)
-				if plotmap
-					if isnothing(hover)
-						hover = Wnames
-					end
-					if plotmap_scope == :well
-						NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
-					else
-						NMFk.plotmap(lon, lat, cwnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
-					end
+			if plotmap && length(lon) == length(cwnew)
+				if isnothing(hover)
+					hover = Wnames
+				end
+				if plotmap_scope == :well
+					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
+				else
+					NMFk.plotmap(lon, lat, cwnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
 				end
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Wnames lon lat Wm[:,signalmap] cwnew], ',')
 				dumpcsv = false
-			elseif length(lon) != length(chnew)
-				@warn("Lat/Lon data ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 			end
 			if dumpcsv
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Wnames Wm[:,signalmap] cwnew], ',')
+			end
+			if !isnothing(lon) && (lonlength(lon) != length(chnew)) && (lonlength(lon) != length(cwnew))
+				@warn("Lat/Lon data ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 			end
 			cs = sortperm(cwnew)
 			if createplots
