@@ -110,7 +110,9 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	else
 		runflag = true
 	end
-	check_inputs && (load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix))
+	if check_inputs
+		load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
+	end
 	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])NMFk run with $(nk) signals: $(Base.text_colors[:normal])")
 	if load
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
