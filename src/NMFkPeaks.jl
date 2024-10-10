@@ -56,16 +56,22 @@ function subset(x, y)
 	if lenx == 1
 		return findnext(i->i==first, y, 1)
 	end
-	leny = length(y)
-	lim = length(y) - length(x) + 1
+	lim = length(y) - lenx + 1
 	cur = 1
 	while (cur = findnext(i->i==first, y, cur)) !== nothing
-		cur > lim && break
+		if cur > lim
+			break
+		end
 		beg = cur
 		@inbounds for i = 2:lenx
-			y[beg += 1] != x[i] && (beg = 0; break)
+			if y[beg += 1] != x[i]
+				beg = 0
+				break
+			end
 		end
-		beg != 0 && return cur + 1
+		if beg != 0
+			return cur + 1
+		end
 		cur += 1
 	end
 	return nothing

@@ -15,7 +15,9 @@ end
 function log10s!(x::AbstractArray; offset::Number=1)
 	iz = x .<= 0
 	siz = sum(iz)
-	siz > 0 && (x[iz] .= NaN)
+	if siz > 0
+		x[iz] .= NaN
+	end
 	x .= log10.(x)
 	if siz > 0
 		min = minimumnan(x[.!iz]) - offset
@@ -424,9 +426,13 @@ function df2matrix(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{St
 			matrix[iwelldates[iwelldates3], k] .= 0
 			for (a, b) in enumerate(attr[innattr][iwelldates3])
 				matrix[iwelldates[iwelldates3][a], k] += b
-				!addup && (c[a] += 1)
+				if !addup
+					c[a] += 1
+				end
 			end
-			!addup && (matrix[iwelldates[iwelldates3], k] ./= c)
+			if !addup
+				matrix[iwelldates[iwelldates3], k] ./= c
+			end
 		end
 	end
 	return matrix, fwells
@@ -476,7 +482,9 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, recordl
 		end
 		for (a, b) in enumerate(iattrfirst:iattrlast)
 			matrix[iwelldates2[a], i] += attr[innattr][isortedwelldates][b]
-			!addup && (c[a] += 1)
+			if !addup
+				c[a] += 1
+			end
 		end
 		if !addup
 			matrix[iwelldates2, i] ./= c

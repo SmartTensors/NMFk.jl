@@ -3,7 +3,9 @@ import PlotlyJS
 import Mads
 
 function signalrescale!(W::AbstractMatrix, H::AbstractMatrix; Wnormalize::Bool=true, check::Bool=true)
-	check && (X = W * H)
+	if check
+		X = W * H
+	end
 	if Wnormalize
 		wm = maximum(W; dims=1)
 		W ./= wm

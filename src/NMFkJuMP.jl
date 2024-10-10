@@ -271,7 +271,11 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 		Hinit[nansh] .= NaN
 		Hbest[nansh] .= NaN
 	end
-	Hnonneg && (Hbest[Hbest .< 0] .= 0)
-	Wnonneg && (Wbest[Wbest .< 0] .= 0)
+	if Hnonneg
+		Hbest[Hbest .< 0] .= 0
+	end
+	if Wnonneg
+		Wbest[Wbest .< 0] .= 0
+	end
 	return convert(Matrix{T}, Wbest), convert(Matrix{T}, Hbest), convert(T, fitquality)
 end

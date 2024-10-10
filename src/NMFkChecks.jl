@@ -87,7 +87,9 @@ function checkarrayentries(X::AbstractArray{T,N}, func::Function=.!isnan; quiet:
 		for i in axes(X, d)
 			nt = ntuple(k->(k == d ? i : Colon()), N)
 			c = sum(func.(X[nt...]))
-			ecount && (push!(acount, c))
+			if ecount
+				push!(acount, c)
+			end
 			flagi = c > cutoff
 			if good
 				flagi && push!(selected_indices, i)

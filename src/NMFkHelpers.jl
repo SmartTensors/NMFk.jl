@@ -476,7 +476,9 @@ function remap(v::AbstractVector, vi::Union{AbstractVector,AbstractUnitRange,Ste
 	itp = Interpolations.interpolate((vi[isn],), v[isn], sp...)
 	etp = Interpolations.extrapolate(itp, ep...)
 	f1 = etp.(ve)
-	nonneg && (f1[f1.<0] .= 0)
+	if nonneg
+		f1[f1.<0] .= 0
+	end
 	return f1
 end
 
