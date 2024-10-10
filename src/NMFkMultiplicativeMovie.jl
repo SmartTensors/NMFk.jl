@@ -65,7 +65,9 @@ function NMFmultiplicativemovie(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.g
 	while iters < maxiter && baditers < maxbaditers && reattempts < maxreattempts
 		iters += 1
 		# X1 = repmat(sum(W, 1)', 1, m)
-		!Hfixed && (H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1)))
+		if !Hfixed
+			H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1))
+		end
 		if movie
 			for mcheat = 1:moviecheat
 				We = copy(W)
@@ -81,7 +83,9 @@ function NMFmultiplicativemovie(X::AbstractMatrix{T}, k::Int; quiet::Bool=NMFk.g
 			NMFk.plotnmf(Xe, W[:,movieorder], H[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 		end
 		# X2 = repmat(sum(H, 2)', n, 1)
-		!Wfixed && (W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2)))
+		if !Wfixed
+			W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2))
+		end
 		if movie
 			for mcheat = 1:moviecheat
 				We = copy(W)

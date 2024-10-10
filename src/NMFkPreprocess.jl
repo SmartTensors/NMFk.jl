@@ -418,7 +418,9 @@ function df2matrix(df::DataFrames.DataFrame, id::AbstractVector, dates::Union{St
 		if sum(iwelldates3) != 0 && (checkzero == false || sum(attr[innattr][iwelldates3]) > 0)
 			fwells[i] = true
 			k += 1
-			!addup && (c = zeros(length(attr[innattr][iwelldates3])))
+			if !addup
+				c = zeros(length(attr[innattr][iwelldates3]))
+			end
 			matrix[iwelldates[iwelldates3], k] .= 0
 			for (a, b) in enumerate(attr[innattr][iwelldates3])
 				matrix[iwelldates[iwelldates3][a], k] += b
@@ -469,12 +471,16 @@ function df2matrix_shifted(df::DataFrames.DataFrame, id::AbstractVector, recordl
 		enddates[i] = welldates[isortedwelldates][iwelldates3][iattrlast]
 		iwelldates2 = iwelldates[iwelldates3][iattrfirst:iattrlast] .- iwelldates[iwelldates3][iattrfirst] .+ 1
 		matrix[iwelldates2, i] .= 0
-		!addup && (c = zeros(length(iattrfirst:iattrlast)))
+		if !addup
+			c = zeros(length(iattrfirst:iattrlast))
+		end
 		for (a, b) in enumerate(iattrfirst:iattrlast)
 			matrix[iwelldates2[a], i] += attr[innattr][isortedwelldates][b]
 			!addup && (c[a] += 1)
 		end
-		!addup && (matrix[iwelldates2, i] ./= c)
+		if !addup
+			matrix[iwelldates2, i] ./= c
+		end
 		de = length(iwelldates2) - length(unique(iwelldates2))
 		er = abs(NMFk.sumnan(matrix[:, i]) - sumattr) ./ sumattr > eps(Float32)
 		if de > 0 && er

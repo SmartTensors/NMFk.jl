@@ -63,8 +63,12 @@ function NMFmultiplicative(X::AbstractMatrix{T}, k::Int; weight=1, quiet::Bool=N
 	reattempts = 0
 	while iters < maxiter && baditers < maxbaditers && reattempts < maxreattempts
 		iters += 1
-		!Hfixed && (H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1)))
-		!Wfixed && (W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2)))
+		if !Hfixed
+			H = H .* (permutedims(W) * (X ./ (W * H))) ./ permutedims(sum(W; dims=1))
+		end
+		if !Wfixed
+			W = W .* ((X ./ (W * H)) * permutedims(H)) ./ permutedims(sum(H; dims=2))
+		end
 		X[inan] = (W * H)[inan]
 		if mod(iters, 10) == 0
 			objvalue = sum((((X - W * H) .* weight)[.!inan]).^2) # Frobenius norm is sum((X - W * H).^2)^(1/2) but why bother

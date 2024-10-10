@@ -37,7 +37,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 			for i = eachindex(dates)
 				p = progressbar(i, true, 1, dates[1])
 				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize, dpi=dpi), p)
-				!quiet && (@info dates[i]; Mads.display(p; gw=hsize, gh=vsize))
+				!quiet && (Mads.display(p; gw=hsize, gh=vsize))
 			end
 			makemovie(; moviedir=moviedir, prefix=casefilename * "-progressbar", keyword="", numberofdigits=6, cleanup=cleanup, vspeed=vspeed)
 		end

@@ -201,7 +201,9 @@ function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractMatrix, amax::A
 	for (i, m) in enumerate(amin)
 		av = view(a, :, i)
 		if logv[i]
-			zflag[i] && (iz = av .== m)
+			if zflag[i]
+				iz = av .== m
+			end
 			av .= 10. .^ av
 			zflag[i] && (av[iz] .= 0)
 		end

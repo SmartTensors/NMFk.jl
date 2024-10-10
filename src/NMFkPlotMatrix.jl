@@ -172,7 +172,9 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 			for i = 1:nbins
 				id = findall(i->(i > s1 && i <= s2), vs)
 				c = Colors.RGBA(defaultcolor.r, defaultcolor.g, defaultcolor.b, defaultcolor.alpha/i)
-				sum(id) > 0 && (l = [l..., Gadfly.layer(x=xs[id], y=ys[id], Gadfly.Theme(default_color=c, point_size=pointsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt))])
+				if sum(id) > 0
+					l = [l..., Gadfly.layer(x=xs[id], y=ys[id], Gadfly.Theme(default_color=c, point_size=pointsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt))]
+				end
 				s1 += s
 				s2 += s
 			end

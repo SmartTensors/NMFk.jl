@@ -187,8 +187,12 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 				NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 				frame += 1
 			end
-			!Wfixed && (We = JuMP.value.(W))
-			!Hfixed && (He = JuMP.value.(H))
+			if !Wfixed
+				We = JuMP.value.(W)
+			end
+			if !Hfixed
+				He = JuMP.value.(H)
+			end
 			Xe = We * He
 			NMFk.plotnmf(Xe, We[:,movieorder], He[movieorder,:]; movie=movie, filename=moviename, frame=frame)
 			frame += 1
@@ -207,8 +211,12 @@ function jump(X::AbstractArray{T}, nk::Int; method::Symbol=:nlopt, algorithm::Sy
 				!quiet && @info("Objective function improved substantially (more than $tolOF; $objvalue < $objvalue_best); bad iteration counter reset ...")
 				baditers = 0
 			end
-			!Wfixed && (Wbest = JuMP.value.(W))
-			!Hfixed && (Hbest = JuMP.value.(H))
+			if !Wfixed
+				Wbest = JuMP.value.(W)
+			end
+			if !Hfixed
+				Hbest = JuMP.value.(H)
+			end
 			ofbest = of
 			objvalue = regularizationweight > 0. ? ofbest - regularizationweight * sum(log.(1. .+ Hbest).^2) / nk : ofbest
 		else
