@@ -255,7 +255,7 @@ function griddata(x::AbstractVector, y::AbstractVector; stepvalue=nothing, nbins
 	ix, xbins, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate, quiet=quiet)
 	iy, ybins, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate, quiet=quiet)
 	@info("Number of bins: $(xbins) $(ybins)")
-	return range(gxmin; stop=gxmax, length=xbins), range(gymin; stop=gymax, length=ybins)
+	return range(gxmin, gxmax; step=stepvalue), range(gymin, gymax; step=stepvalue)
 end
 
 function griddata(x::AbstractVector, y::AbstractVector, z::AbstractVector; kw...)
