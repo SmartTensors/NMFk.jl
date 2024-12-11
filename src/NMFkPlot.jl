@@ -420,18 +420,24 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	if length(color) > 0
 		@assert length(color) == length(x)
 		if eltype(color) <: Number
+			if isnothing(zmax) && isnothing(zmin)
+				vcolor = color
+			else
+				vcolor = copy(color)
+			end
 			if isnothing(zmin)
 				zmin = minimumnan(color)
+				vcolor = color
 			else
-				color[color .< zmin] .= zmin
+				vcolor[vcolor .< zmin] .= zmin
 			end
 			if isnothing(zmax)
 				zmax = maximumnan(color)
 			else
-				color[color .> zmax] .= zmax
+				vcolor[vcolor .> zmax] .= zmax
 			end
-			zin = .!isnan.(color)
-			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=color[zin], size=size[zin], Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=zmin, maxvalue=zmax, colormap=colormap), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
+			zin = .!isnan.(vcolor)
+			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=vcolor[zin], size=size[zin], Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=zmin, maxvalue=zmax, colormap=colormap), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
 		else
 			palette = Gadfly.parse_colorant(colors)
 			colormap = function(nc)
