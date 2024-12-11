@@ -10,7 +10,7 @@ function colormap(colors::AbstractVector{String})
 	for i = eachindex(colors)
 		push!(c, parse(Colors.Colorant, colors[i]))
 	end
-	cm = [Gadfly.Scale.lab_gradient(c...)]
+	cm = Gadfly.Scale.lab_gradient(c...)
 end
 
 colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
@@ -661,20 +661,19 @@ gist_ncar = [0  0 128;
  254 248 254;
  255 255 255];
 
-colormap_rbwlong = [Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rbwlong_ncar[i, :]...) for i=1:size(rbwlong_ncar, 1)]...)]
-colormap_ncar = [Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rgb_ncar[i, :]./255...) for i=1:size(rgb_ncar, 1)]...)]
-colormap_gist = [Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(gist_ncar[i, :]./255...) for i=1:size(gist_ncar, 1)]...)]
-colormap_hsv2 = [Gadfly.Scale.lab_gradient(Colors.RGB{Colors.N0f8}(42/255, 28/255, 14/255), parse(Colors.Colorant, "coral"), parse(Colors.Colorant, "darkmagenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "darkblue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))]
-colormap_hsv = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "magenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))]
-colormap_rbw2 = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"), parse(Colors.Colorant, "darkmagenta"))]
-colormap_rbw = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))]
-colormap_gyr = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))]
-colormap_gy = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"))]
-colormap_ry = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "red"), parse(Colors.Colorant, "yellow"))]
-colormap_by = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "yellow"))]
-colormap_g = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightgreen"), parse(Colors.Colorant, "green"))]
-colormap_r = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "pink"), parse(Colors.Colorant, "red"))]
-colormap_b = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightblue"), parse(Colors.Colorant, "blue"))]
-colormap_array_rgb = [colormap_r, colormap_b, colormap_g]
-colormap_wb = [Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "white"), parse(Colors.Colorant, "black"))]
-# colormap_g_ = [Gadfly.Scale.lab_gradient(Colors.RGBA{Colors.N0f8}(0,1,0,0), Colors.RGBA{Colors.N0f8}(0,1,0,1))]
+colormap_rbwlong = Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rbwlong_ncar[i, :]...) for i=1:size(rbwlong_ncar, 1)]...)
+colormap_ncar = Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rgb_ncar[i, :]./255...) for i=1:size(rgb_ncar, 1)]...)
+colormap_gist = Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(gist_ncar[i, :]./255...) for i=1:size(gist_ncar, 1)]...)
+colormap_hsv2 = Gadfly.Scale.lab_gradient(Colors.RGB{Colors.N0f8}(42/255, 28/255, 14/255), parse(Colors.Colorant, "coral"), parse(Colors.Colorant, "darkmagenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "darkblue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))
+colormap_hsv = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "magenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))
+colormap_rbw2 = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"), parse(Colors.Colorant, "darkmagenta"))
+colormap_rbw = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))
+colormap_gyr = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"))
+colormap_gy = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"))
+colormap_ry = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "red"), parse(Colors.Colorant, "yellow"))
+colormap_by = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "yellow"))
+colormap_g = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightgreen"), parse(Colors.Colorant, "green"))
+colormap_r = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "pink"), parse(Colors.Colorant, "red"))
+colormap_b = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightblue"), parse(Colors.Colorant, "blue"))
+colormap_wb = Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "white"), parse(Colors.Colorant, "black"))
+# colormap_g_ = Gadfly.Scale.lab_gradient(Colors.RGBA{Colors.N0f8}(0,1,0,0), Colors.RGBA{Colors.N0f8}(0,1,0,1))]

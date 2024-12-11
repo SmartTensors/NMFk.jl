@@ -396,7 +396,7 @@ function plotscatter(x::AbstractArray, y::AbstractArray, aw...; kw...)
 	plotscatter(vec(x), vec(y), aw...; kw...)
 end
 
-function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:none, keytitle="", polygon=nothing, point_color="red", line_color="gray", line_width::Measures.AbsoluteLength=2Gadfly.pt, dpi=imagedpi)
+function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector=[], size::AbstractVector=[]; quiet::Bool=false, hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", line::Bool=false, xmin=nothing, xmax=nothing, ymin=nothing, ymax=nothing, zmin=nothing, zmax=nothing, gm=[], point_size=2Gadfly.pt, key_position::Symbol=:right, keytitle="", colormap=Gadfly.Scale.lab_gradient("green","yellow","red"), polygon=nothing, point_color="red", line_color="gray", line_width::Measures.AbsoluteLength=2Gadfly.pt, dpi=imagedpi)
 	if !isnothing(polygon)
 		xmin = !isnothing(xmin) ? min(minimumnan(polygon[:,1]), xmin) : minimumnan(polygon[:,1])
 		xmax = !isnothing(xmax) ? max(maximumnan(polygon[:,1]), xmax) : maximumnan(polygon[:,1])
@@ -420,10 +420,18 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	if length(color) > 0
 		@assert length(color) == length(x)
 		if eltype(color) <: Number
-			zmin = !isnothing(zmin) ? zmin : minimumnan(color)
-			zmax = !isnothing(zmax) ? zmax : maximumnan(color)
+			if isnothing(zmin)
+				zmin = minimumnan(color)
+			else
+				color[color .< zmin] .= zmin
+			end
+			if isnothing(zmax)
+				zmax = maximumnan(color)
+			else
+				color[color .> zmax] .= zmax
+			end
 			zin = .!isnan.(color)
-			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=color[zin], size=size[zin], Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=zmin, maxvalue=zmax, colormap=Gadfly.Scale.lab_gradient("green","yellow","red")), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
+			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=color[zin], size=size[zin], Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=zmin, maxvalue=zmax, colormap=colormap), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
 		else
 			palette = Gadfly.parse_colorant(colors)
 			colormap = function(nc)

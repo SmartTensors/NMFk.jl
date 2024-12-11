@@ -39,7 +39,7 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 	else
 		cs = [Gadfly.Guide.ColorKey(title=key_title)]
 	end
-	cm = isnothing(colormap) ? [] : [Gadfly.Scale.ContinuousColorScale(colormap..., minvalue=minvalue, maxvalue=maxvalue)]
+	cm = isnothing(colormap) ? [] : [Gadfly.Scale.ContinuousColorScale(colormap, minvalue=minvalue, maxvalue=maxvalue)]
 	cs = isnothing(colormap) ? [] : cs
 
 	if permute
