@@ -597,7 +597,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			if dumpcsv
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Wnames Wm[:,signalmap] cwnew], ',')
 			end
-			if !isnothing(lon) && (lonlength(lon) != length(chnew)) && (lonlength(lon) != length(cwnew))
+			if !isnothing(lon) && (length(lon) != length(chnew)) && (length(lon) != length(cwnew))
 				@warn("Lat/Lon data ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 			end
 			cs = sortperm(cwnew)
