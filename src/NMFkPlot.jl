@@ -437,6 +437,10 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 				vcolor[vcolor .> zmax] .= zmax
 			end
 			zin = .!isnan.(vcolor)
+			if sum(zin) == 0
+				@warn("No valid values to plot! All values are NaN!")
+				return nothing
+			end
 			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=vcolor[zin], size=size[zin], Gadfly.Theme(highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(minvalue=zmin, maxvalue=zmax, colormap=colormap), Gadfly.Guide.ColorKey(title=keytitle), Gadfly.Theme(key_position=key_position), gm...)
 		else
 			palette = Gadfly.parse_colorant(colors)
