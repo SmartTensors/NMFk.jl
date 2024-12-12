@@ -585,11 +585,30 @@ function grid_reduction(lon::AbstractVector, lat::AbstractVector; skip::Int=0, s
 	@info("Number of Latitude  grid points = $(length(lat_grid))")
 	@info("Number of grid points = $(length(lon_grid) * length(lat_grid))")
 	skip_mask = falses(length(lon_rounded))
-	for i in 1:length(lon_rounded)
+	for i in eachindex(lon_rounded)
 		if lon_rounded[i] in lon_grid && lat_rounded[i] in lat_grid
 			skip_mask[i] = true
 		end
 	end
 	@info("Number of reduced points        = $(sum(skip_mask))")
 	return skip_mask
+end
+
+function dataframe_rename!(df::DataFrames.DataFrame, df_names::AbstractDict)
+	for k in keys(df_names)
+		if k in names(df)
+			println("Renamed: $(k) => $(df_names[k])")
+			DataFrames.rename!(df, k => df_names[k])
+		end
+	end
+end
+
+function dataframe_rename!(df::DataFrames.DataFrame, oldnames::AbstractVector, newnames::AbstractVector)
+	@assert length(oldnames) == length(newnames)
+	for i in eachindex(oldnames)
+		if oldnames[i] in names(df)
+			println("Renamed: $(oldnames[i]) => $(newnames[i])")
+			DataFrames.rename!(df, oldnames[i] => newnames[i])
+		end
+	end
 end
