@@ -594,21 +594,37 @@ function grid_reduction(lon::AbstractVector, lat::AbstractVector; skip::Int=0, s
 	return skip_mask
 end
 
-function dataframe_rename!(df::DataFrames.DataFrame, df_names::AbstractDict)
-	for k in keys(df_names)
-		if k in names(df)
-			println("Renamed: $(k) => $(df_names[k])")
-			DataFrames.rename!(df, k => df_names[k])
-		end
-	end
+function dataframe_rename!(df::DataFrames.DataFrame, df_names::AbstractDict; matchtype::Symbol=:exact)
+	dataframe_rename!(df, collect(keys(df_names)), collect(values(df_names)); matchtype=matchtype)
 end
 
-function dataframe_rename!(df::DataFrames.DataFrame, oldnames::AbstractVector, newnames::AbstractVector)
+function dataframe_rename!(df::DataFrames.DataFrame, oldnames::AbstractVector, newnames::AbstractVector; matchtype::Symbol=:exact)
 	@assert length(oldnames) == length(newnames)
-	for i in eachindex(oldnames)
-		if oldnames[i] in names(df)
-			println("Renamed: $(oldnames[i]) => $(newnames[i])")
-			DataFrames.rename!(df, oldnames[i] => newnames[i])
+	names_df = names(df)
+	for i in eachindex(names_df)
+		oldname = names_df[i]
+		newname = oldname
+		if matchtype == :exact
+			m = oldnames .== names_df[i]
+			if any(m)
+				newname = first(newnames[m])
+			end
+		elseif matchtype == :startswith
+			m = startswith.(names_df[i], oldnames)
+			if any(m)
+				j = sum(m) > 1 ? argmax(length.(oldnames[m])) : 1
+				newname = replace(oldname, oldnames[m][j] => newnames[m][j])
+			end
+		elseif matchtype == :endswith
+			m = endswith.(names_df[i], oldnames)
+			if any(m)
+				j = sum(m) > 1 ? argmax(length.(oldnames[m])) : 1
+				newname = replace(oldname, oldnames[m][j] => newnames[m][j])
+			end
+		end
+		if oldname != newname
+			DataFrames.rename!(df, oldname => newname)
+			println("Renamed: $(oldname) => $(newname)")
 		end
 	end
 end
