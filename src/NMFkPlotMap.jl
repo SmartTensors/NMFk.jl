@@ -245,7 +245,7 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 			if !(occursin(regex_lon, a) || occursin(regex_lat, a))
 				println("Ploting $a ...")
 				if filename != ""
-					f = filenameroot * "_" * string(column) * fileext
+					f = filenameroot * "_" * string(a) * fileext
 				else
 					f = ""
 				end
@@ -259,12 +259,12 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true) where {T1 <: Real, T2 <: Any}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow) where {T1 <: Real, T2 <: Any}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
 	if legend
-		marker = PlotlyJS.attr(; size=dot_size, color=color, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, title=title), line_width=0, line_color="black")
+		marker = PlotlyJS.attr(; size=dot_size, color=color, colorscale=NMFk.colorscale(colorscale), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, title=title), line_width=0, line_color="black")
 	else
 		marker = PlotlyJS.attr(; size=dot_size, color=color)
 	end

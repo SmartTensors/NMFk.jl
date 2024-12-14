@@ -88,5 +88,6 @@ function joinpathcheck(path::AbstractString, paths::AbstractString...)
 	else
 		filenamelong = joinpath(path, paths...)
 	end
+	recursivemkdir(filenamelong)
 	return filenamelong
 end
