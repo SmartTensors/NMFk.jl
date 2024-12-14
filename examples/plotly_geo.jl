@@ -1,4 +1,5 @@
 import PlotlyJS
+import PlotlyBase
 
 mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
 
@@ -10,8 +11,8 @@ PlotlyJS.plot(
 		colorscale = "Portland",
 	),
 	PlotlyJS.Layout(
-		margin = PlotlyBase.attr(r=0, t=0, b=0, l=0),
-		mapbox = PlotlyBase.attr(accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12")
+		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
+		mapbox = PlotlyJS.attr(accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12")
 		)
 )
 
@@ -19,7 +20,7 @@ df = CSV.read(download("https://raw.githubusercontent.com/plotly/datasets/master
 PlotlyJS.plot(
 	PlotlyJS.densitymapbox(df, lat =:Latitude, lon = :Longitude, z = :Magnitude, zoom = 6),
 	PlotlyJS.Layout(
-		margin = PlotlyBase.attr(r=0, t=0, b=0, l=0),
-		mapbox = PlotlyBase.attr(accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12")
+		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
+		mapbox = PlotlyJS.attr(accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12")
 	)
 )
