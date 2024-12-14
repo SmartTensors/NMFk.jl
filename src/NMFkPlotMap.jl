@@ -35,8 +35,8 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		fn = casefilename == "" ? "" : joinpathcheck(figuredir, casefilename * "-waves.png")
 		Mads.plotseries(S[nt...] ./ maximum(S), fn; xaxis=dates, names=["$name $(ndates[i])" for i in signalorderassignments])
 		if movie && casefilename != ""
-			c = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorderassignments)], code=true, quiet=true)
-			progressbar = NMFk.make_progressbar_2d(c)
+			color = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorderassignments)], code=true, quiet=true)
+			progressbar = NMFk.make_progressbar_2d(color)
 			for i = eachindex(dates)
 				p = progressbar(i, true, 1, dates[1])
 				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize, dpi=dpi), p)
@@ -155,17 +155,19 @@ function plotmap(df::DataFrames.DataFrame; kw...)
 	plotmap(df.Lon, df.Lat, df[!, 3]; kw...)
 end
 
-# Plot a scatter map (continuous color scale)
-function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(x)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Real}
-	@assert length(x) == length(y)
-	@assert length(x) == length(text)
-	trace = PlotlyJS.scattermapbox(;
+# Plot a scatter geo map (continuous color scale)
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Real}
+	@assert length(lon) == length(lat)
+	@assert length(lon) == length(color)
+	@assert length(lon) == length(text)
+	trace = PlotlyJS.scattergeo(;
 		locationmode="USA-states",
-		lon=x,
-		lat=y,
+		lon=lon
+,
+		lat=lat,
 		hoverinfo="text",
 		text=text,
-		marker=PlotlyJS.attr(; size=size, color=c, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100), line_width=0, line_color="black"))
+		marker=PlotlyJS.attr(; size=size, color=color, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100), line_width=0, line_color="black"))
 	geo = PlotlyJS.attr(;
 		scope=scope,
 		projection_type=projection_type,
@@ -182,25 +184,25 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 	p = PlotlyJS.plot(trace, layout)
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
-		recursivemkdir(fn)
-		PlotlyJS.savefig(p, fn; format=format, kw...)
+		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 	return p
 end
 
-# Plot a scatter map (categorical)
-function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(x)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
-	@assert length(x) == length(y)
-	@assert length(x) == length(text)
+# Plot a scatter geo map (categorical)
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Union{Integer,AbstractString,AbstractChar}}
+	@assert length(lon) == length(lat)
+	@assert length(lon) == length(color)
+	@assert length(lon) == length(text)
 	traces = []
-	for (j, i) in enumerate(unique(sort(c)))
-		iz = c .== i
+	for (j, i) in enumerate(unique(sort(color)))
+		iz = color .== i
 		jj = j % length(NMFk.colors)
 		k = jj == 0 ? length(NMFk.colors) : jj
 		trace = PlotlyJS.scattergeo(;
 			locationmode="USA-states",
-			lon=x[iz],
-			lat=y[iz],
+			lon=lon[iz],
+			lat=lat[iz],
 			hoverinfo="text",
 			text=text[iz],
 			name="$i $(sum(iz))",
@@ -220,8 +222,84 @@ function plotmap(x::AbstractVector{T1}, y::AbstractVector{T1}, c::AbstractVector
 	p = PlotlyJS.plot(convert(Vector{typeof(traces[1])}, traces), layout)
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
-		recursivemkdir(fn)
-		PlotlyJS.savefig(p, fn; format=format, kw...)
+		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 	return p
+end
+
+function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", figuredir::AbstractString=".", kw...)
+	regex_lon = r"^[Xx]$|^[Ll]on" # regex for longitude
+	regex_lat = r"^[Yy]$|^[Ll]at" # regex for latitude
+	rlon = occursin.(regex_lon, names(df))
+	rlat = occursin.(regex_lat, names(df))
+	if any(rlon) && any(rlat)
+		lon = df[!, first(names(df)[rlon])]
+		lat = df[!, first(names(df)[rlat])]
+	else
+		@error("No longitude or latitude column found in the dataframe!")
+		return nothing
+	end
+	if column == ""
+		filenameroot, fileext = splitext(filename)
+		for a in names(df)
+			if !(occursin(regex_lon, a) || occursin(regex_lat, a))
+				println("Ploting $a ...")
+				if filename != ""
+					f = filenameroot * "_" * string(column) * fileext
+				else
+					f = ""
+				end
+				p = mapbox(lon, lat, df[!, a]; filename=f, figuredir=figuredir, title=a, kw...)
+				display(p)
+			end
+		end
+	else
+		p = mapbox(lon, lat, df[!, column]; filename=filename, figuredir=figuredir, title=column, kw...)
+		display(p)
+	end
+end
+
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true) where {T1 <: Real, T2 <: Any}
+	@assert length(lon) == length(lat)
+	@assert length(lon) == length(color)
+	@assert length(lon) == length(text)
+	if legend
+		marker = PlotlyJS.attr(; size=dot_size, color=color, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, title=title), line_width=0, line_color="black")
+	else
+		marker = PlotlyJS.attr(; size=dot_size, color=color)
+	end
+	plot = PlotlyJS.scattermapbox(
+		lon=lon,
+		lat=lat,
+		mode="markers",
+		hoverinfo="text",
+		text=text,
+		marker=marker,
+		attributionControl=false
+	)
+	p = PlotlyJS.plot(plot, map_plotly_layout(lonc, latc, zoom; style=style, mapbox_token=mapbox_token), config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	if filename != ""
+		fn = joinpathcheck(figuredir, filename)
+		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+	end
+	return p
+end
+
+function map_dot(lon::AbstractFloat=-105.9378, lat::AbstractFloat=35.6870; color::AbstractString="purple", text::AbstractString="EnviTrace LLC", dot_size::Number=12, kw...)
+	mapbox([lon], [lat], [color]; text=[text], dot_size=dot_size, legend=false, kw...)
+end
+
+# Plotly map layout
+function map_plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
+	layout = PlotlyJS.Layout(
+		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
+		paper_bgcolor="#FFF",
+		mapbox = PlotlyJS.attr(
+			accesstoken=mapbox_token,
+			style=style,
+			center=PlotlyJS.attr(lon=lonc, lat=latc),
+			zoom=zoom
+		)
+	)
+	return layout
 end

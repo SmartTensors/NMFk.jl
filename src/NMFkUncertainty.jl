@@ -52,7 +52,6 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 	end
 	if saveall
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nreruns-$nNMF-all.jld")
-		recursivemkdir(filename)
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)
 		@info("Results saved in $(filename).")
 	end

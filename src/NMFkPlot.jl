@@ -66,7 +66,6 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 				ff = splitext(filename)
 				filename_long = ff[1] * "_$(c1)_$(c2)" * ff[end]
 				fl = joinpathcheck(figuredir, filename_long)
-				recursivemkdir(fl)
 				plotfileformat(pp, fl, hsize, vsize; dpi=dpi)
 			end
 		end
@@ -76,7 +75,6 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	!quiet && Mads.display(p; gwo=hsize * (c-1), gho=vsize * (c-1), gw=100Compose.mm * (c-1), gh=100Compose.mm * (c-1))
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		recursivemkdir(j)
 		plotfileformat(p, j, hsize * (c-1), vsize * (c-1); dpi=dpi)
 	end
 	return nothing
@@ -191,7 +189,6 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	end
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		recursivemkdir(j)
 		plotfileformat(p, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing
@@ -204,7 +201,7 @@ end
 function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes(data, 2)]; figuredir::AbstractString=".", filename_prefix::AbstractString="histogram", plot_type::AbstractString="png", save::Bool=false, save_data::Bool=false, quiet::Bool=false, kw...)
 	@assert size(data, 2) == length(names)
 	filename_plot = ""
-	Mads.recursivemkdir(figuredir)
+	recursivemkdir(figuredir)
 	vec_xmina = Vector{Vector{Float64}}(undef, size(data, 2))
 	vec_xmaxa = Vector{Vector{Float64}}(undef, size(data, 2))
 	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))
@@ -351,7 +348,6 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	end
 	if filename_plot != ""
 		filenamelong = joinpathcheck(figuredir, filename_plot)
-		recursivemkdir(filenamelong)
 		if separate && length(m) > 1
 			vsize /= length(suc)
 			fp = splitext(filenamelong)
@@ -386,7 +382,6 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize::Measure
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing
@@ -455,7 +450,6 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing
@@ -477,7 +471,6 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return ff
@@ -510,7 +503,6 @@ function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=f
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		recursivemkdir(j)
 		plotfileformat(ff, j, hsize, vsize; dpi=dpi)
 	end
 	return ff

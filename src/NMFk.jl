@@ -70,7 +70,6 @@ include("NMFkPreprocess.jl")
 include("NMFkPostprocess.jl")
 include("NMFkProgressive.jl")
 include("NMFkGeo.jl")
-include("NMFkMap.jl")
 include("NMFkWells.jl")
 
 restartoff()

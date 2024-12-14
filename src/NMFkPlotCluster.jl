@@ -150,7 +150,6 @@ function plotdendrogram(X::AbstractMatrix; dim::Int64=1, metric=Distances.Cosine
 	!quiet && Mads.display(p)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		recursivemkdir(j)
 		plotfileformat(p, j, hsize, vsize; dpi=dpi)
 	end
 	return nothing

@@ -146,7 +146,6 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 	if save
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
-		recursivemkdir(filename)
 		JLD.save(filename, "W", W[:,so], "H", H[so,:], "fit", fitquality, "robustness", robustness, "aic", aic)
 		!quiet && @info("Results are saved in $(filename)!")
 	end
