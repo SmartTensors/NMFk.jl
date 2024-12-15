@@ -222,8 +222,8 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots,
 		Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20),
 		adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH,
-		plottimeseries::Symbol=:none, plotmap_scope::Symbol=:well, map_format::AbstractString="html",
-		map_dict::Union{Base.Pairs,AbstractDict}=Dict(:showland=>false, :size=>5, :scale=>2),
+		plottimeseries::Symbol=:none, plotmap_scope::Symbol=:mapbox, map_format::AbstractString="png",
+		map_dict::Union{Base.Pairs,AbstractDict}=Dict(),
 		cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2,
 		Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt,
 		adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch,
@@ -246,6 +246,11 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	@assert length(Hnames) == length(Horder)
 	@assert any(Worder .=== nothing) == false
 	@assert any(Horder .=== nothing) == false
+	if map_dict == Dict()
+		if plotmap_scope == :well
+			map_dict = Dict(:showland=>false, :size=>5, :scale=>2)
+		end
+	end
 	if adjustbiplotlabel
 		if length(Wnames) > 100 && length(Hnames) > 100
 			biplotlabel = :none
@@ -482,6 +487,8 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				end
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
+				elseif plotmap_scope == :mapbox
+					NMFk.mapbox(lon, lat, chnew; text=hover, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_dict...)
 				else
 					NMFk.plotmap(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
 				end
@@ -588,6 +595,8 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				end
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
+				elseif plotmap_scope == :mapbox
+					NMFk.mapbox(lon, lat, cwnew; text=hover, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_dict...)
 				else
 					NMFk.plotmap(lon, lat, cwnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
 				end
