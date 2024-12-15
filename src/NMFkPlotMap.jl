@@ -227,7 +227,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	return p
 end
 
-function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", figuredir::AbstractString=".", kw...)
+function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", kw...)
 	regex_lon = r"^[Xx]$|^[Ll]on" # regex for longitude
 	regex_lat = r"^[Yy]$|^[Ll]at" # regex for latitude
 	rlon = occursin.(regex_lon, names(df))
@@ -249,12 +249,25 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 				else
 					f = ""
 				end
-				p = mapbox(lon, lat, df[!, a]; filename=f, figuredir=figuredir, title=a, kw...)
+				p = mapbox(lon, lat, df[!, a]; filename=f, title=a, kw...)
 				display(p)
 			end
 		end
 	else
-		p = mapbox(lon, lat, df[!, column]; filename=filename, figuredir=figuredir, title=column, kw...)
+		p = mapbox(lon, lat, df[!, column]; filename=filename, title=column, kw...)
+		display(p)
+	end
+end
+
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names=["Column $i" for i = eachcol(M)]; filename::AbstractString="", kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+	for i in eachindex(names)
+		println("Ploting $(names[i]) ...")
+		if filename != ""
+			f = filenameroot * "_" * string(a) * fileext
+		else
+			f = ""
+		end
+		p = mapbox(lon, lat, M[:,i]; filename=f, title=a, kw...)
 		display(p)
 	end
 end

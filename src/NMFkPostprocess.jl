@@ -223,7 +223,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20),
 		adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH,
 		plottimeseries::Symbol=:none, plotmap_scope::Symbol=:mapbox, map_format::AbstractString="png",
-		map_dict::Union{Base.Pairs,AbstractDict}=Dict(),
+		map_kw::Union{Base.Pairs,AbstractDict}=Dict(),
 		cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2,
 		Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt,
 		adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch,
@@ -246,9 +246,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	@assert length(Hnames) == length(Horder)
 	@assert any(Worder .=== nothing) == false
 	@assert any(Horder .=== nothing) == false
-	if map_dict == Dict()
+	if map_kw == Dict()
 		if plotmap_scope == :well
-			map_dict = Dict(:showland=>false, :size=>5, :scale=>2)
+			map_kw = Dict(:showland=>false, :size=>5, :scale=>2)
 		end
 	end
 	if adjustbiplotlabel
@@ -403,7 +403,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 
 		if clusterH
 			if size(Ha, 2) > 100000
-				@warn("The matrix size $(size(Ha)) is too high to compute the distances; the code my run our of memmory!")
+				@warn("The matrix size $(size(Ha)) is too high to compute the distances; the code may run our of memmory!")
 			elseif Hrepeats > 100 && size(Ha, 2) > 10000
 				@warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))!")
 			end
@@ -414,7 +414,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 
 		if clusterW
 			if size(Wa, 1) > 100000
-				@warn("The matrix size $(size(Wa)) is too high to compute the distances; the code my run our of memmory!")
+				@warn("The matrix size $(size(Wa)) is too high to compute the distances; the code may run our of memmory!")
 			elseif Wrepeats > 100 && size(Wa, 1) > 10000
 				@warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))!")
 			end
@@ -488,9 +488,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 				elseif plotmap_scope == :mapbox
-					NMFk.mapbox(lon, lat, chnew; text=hover, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_dict...)
+					NMFk.mapbox(lon, lat, chnew; text=hover, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_kw...)
 				else
-					NMFk.plotmap(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
+					NMFk.plotmap(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
 				end
 				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Hnames lon lat Hm[:,signalmap] chnew], ',')
 				dumpcsv = false
@@ -596,9 +596,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 				elseif plotmap_scope == :mapbox
-					NMFk.mapbox(lon, lat, cwnew; text=hover, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_dict...)
+					NMFk.mapbox(lon, lat, cwnew; text=hover, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_kw...)
 				else
-					NMFk.plotmap(lon, lat, cwnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_dict...)
+					NMFk.plotmap(lon, lat, cwnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
 				end
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Wnames lon lat Wm[:,signalmap] cwnew], ',')
 				dumpcsv = false
