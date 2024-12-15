@@ -240,12 +240,12 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 		return nothing
 	end
 	if column == ""
-		filenameroot, fileext = splitext(filename)
+		fileroot, fileext = splitext(filename)
 		for a in names(df)
 			if !(occursin(regex_lon, a) || occursin(regex_lat, a))
 				println("Ploting $a ...")
 				if filename != ""
-					f = filenameroot * "_" * string(a) * fileext
+					f = fileroot * "_" * string(a) * fileext
 				else
 					f = ""
 				end
@@ -260,14 +260,15 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 end
 
 function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names=["Column $i" for i = eachcol(M)]; filename::AbstractString="", kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
 		println("Ploting $(names[i]) ...")
 		if filename != ""
-			f = filenameroot * "_" * string(a) * fileext
+			f = fileroot * "_" * string(names[i]) * fileext
 		else
 			f = ""
 		end
-		p = mapbox(lon, lat, M[:,i]; filename=f, title=a, kw...)
+		p = mapbox(lon, lat, M[:,i]; filename=f, title=names[i], kw...)
 		display(p)
 	end
 end
@@ -314,7 +315,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			lat=lat[iz],
 			hoverinfo="text",
 			text=text[iz],
-			name="$i [$(sum(iz))]",
+			name="$(string(i)) [$(sum(iz))]",
 			marker=marker,
 			showlegend=legend,
 			attributionControl=false)

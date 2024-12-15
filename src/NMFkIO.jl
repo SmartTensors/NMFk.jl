@@ -67,8 +67,9 @@ end
 function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
+	else
+		recursivemkdir(filename)
 	end
-	recursivemkdir(filename)
 	if !isfile(filename)
 		@info("Results saved in $(filename) ...")
 		JLD.save(filename, "W", W, "H", H, "fit", fitquality, "robustness", robustness, "aic", aic)

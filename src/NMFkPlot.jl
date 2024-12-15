@@ -315,7 +315,6 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		end
 		if filename_data != ""
 			filename_data_long = joinpathcheck(figuredir, first(splitext(filename_data)) * "_$(ct).csv")
-			recursivemkdir(filename_data_long)
 			if !quiet
 				@info("Saving histogram data to file: $(filename_data_long)")
 			end
