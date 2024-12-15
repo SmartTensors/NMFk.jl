@@ -259,7 +259,7 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names=["Column $i" for i = eachcol(M)]; filename::AbstractString="", kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i = eachcol(M)]; filename::AbstractString="", kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
 		println("Ploting $(names[i]) ...")
@@ -268,12 +268,12 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 		else
 			f = ""
 		end
-		p = mapbox(lon, lat, M[:,i]; filename=f, title=names[i], kw...)
+		p = mapbox(lon, lat, M[:,i]; filename=f, title=string(names[i]), kw...)
 		display(p)
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -285,9 +285,9 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	plot = PlotlyJS.scattermapbox(
 		lon=lon,
 		lat=lat,
+		text=text,
 		mode="markers",
 		hoverinfo="text",
-		text=text,
 		marker=marker,
 		attributionControl=false
 	)
@@ -300,7 +300,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", dot_size::Number=3,  text::AbstractVector=string.(color), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", dot_size::Number=3,  text::AbstractVector=string.(color), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -310,12 +310,13 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		jj = j % length(NMFk.colors)
 		k = jj == 0 ? length(NMFk.colors) : jj
 		marker = PlotlyJS.attr(; size=dot_size, color=NMFk.colors[k])
+		name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
 		trace = PlotlyJS.scattermapbox(;
 			lon=lon[iz],
 			lat=lat[iz],
-			hoverinfo="text",
 			text=text[iz],
-			name="$(string(i)) [$(sum(iz))]",
+			hoverinfo="text",
+			name=name,
 			marker=marker,
 			showlegend=legend,
 			attributionControl=false)
