@@ -245,7 +245,8 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 			if !(occursin(regex_lon, a) || occursin(regex_lat, a))
 				println("Ploting $a ...")
 				if filename != ""
-					f = fileroot * "_" * string(a) * fileext
+					aa = replace(string(a), '/' => Char(0x2215))
+					f = fileroot * "_" * aa * fileext
 				else
 					f = ""
 				end
