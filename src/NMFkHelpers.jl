@@ -374,7 +374,7 @@ function flip!(X)
 end
 
 function flip(X)
-	-X .+ NMFk.maximumnan(X) .+ NMFk.minimumnan(X)
+	return -X .+ NMFk.maximumnan(X) .+ NMFk.minimumnan(X)
 end
 
 function estimateflip_permutedims(X::AbstractMatrix{T}, Y::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}, nNNF=10; save=false, method=:ipopt, regularizationweight=1e-8, kw...) where {T <: Number}

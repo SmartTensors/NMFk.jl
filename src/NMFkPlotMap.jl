@@ -259,7 +259,7 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow) where {T1 <: Real, T2 <: Any}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -277,7 +277,8 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		marker=marker,
 		attributionControl=false
 	)
-	p = PlotlyJS.plot(plot, map_plotly_layout(lonc, latc, zoom; style=style, mapbox_token=mapbox_token), config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	layout = plotly_layout(lonc, latc, zoom; title=title, style=style, mapbox_token=mapbox_token)
+	p = PlotlyJS.plot(plot, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
@@ -285,14 +286,46 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	return p
 end
 
-function map_dot(lon::AbstractFloat=-105.9378, lat::AbstractFloat=35.6870; color::AbstractString="purple", text::AbstractString="EnviTrace LLC", dot_size::Number=12, kw...)
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", dot_size::Number=3,  text::AbstractVector=string.(color), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+	@assert length(lon) == length(lat)
+	@assert length(lon) == length(color)
+	@assert length(lon) == length(text)
+	traces = []
+	for (j, i) in enumerate(unique(sort(color)))
+		iz = color .== i
+		jj = j % length(NMFk.colors)
+		k = jj == 0 ? length(NMFk.colors) : jj
+		marker = PlotlyJS.attr(; size=dot_size, color=NMFk.colors[k])
+		trace = PlotlyJS.scattermapbox(;
+			lon=lon[iz],
+			lat=lat[iz],
+			hoverinfo="text",
+			text=text[iz],
+			name="$i [$(sum(iz))]",
+			marker=marker,
+			showlegend=legend,
+			attributionControl=false)
+		push!(traces, trace)
+	end
+	traces = convert(Vector{typeof(traces[1])}, traces)
+	layout = plotly_layout(lonc, latc, zoom; title=title, style=style, mapbox_token=mapbox_token)
+	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	if filename != ""
+		fn = joinpathcheck(figuredir, filename)
+		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+	end
+	return p
+end
+
+function mapbox(lon::AbstractFloat=-105.9378, lat::AbstractFloat=35.6870; color::AbstractString="purple", text::AbstractString="EnviTrace LLC", dot_size::Number=12, kw...)
 	mapbox([lon], [lat], [color]; text=[text], dot_size=dot_size, legend=false, kw...)
 end
 
 # Plotly map layout
-function map_plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
+function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; title::AbstractString="", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
 	layout = PlotlyJS.Layout(
 		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
+		title=title,
 		paper_bgcolor="#FFF",
 		mapbox = PlotlyJS.attr(
 			accesstoken=mapbox_token,
