@@ -489,7 +489,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 				elseif plotmap_scope == :mapbox
 					NMFk.mapbox(lon, lat, chnew; text=hover, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_kw...)
-					NMFk.mapbox(lon, lat, Hm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", map_kw...)
+					NMFk.mapbox(lon, lat, Hm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), map_kw...)
 				else
 					NMFk.plotmap(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
 				end
