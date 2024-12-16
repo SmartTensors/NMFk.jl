@@ -266,12 +266,12 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 	for i in eachindex(names)
 		println("Ploting $(names[i]) ...")
 		if filename != ""
-			aa = replace(string(a), '/' => '\u2215')
+			aa = replace(string(names[i]), '/' => '\u2215')
 			f = fileroot * "_" * aa * fileext
 		else
 			f = ""
 		end
-		aa = replace(string(a), ' ' => "<br>")
+		aa = replace(string(names[i]), ' ' => "<br>")
 		p = mapbox(lon, lat, M[:,i]; filename=f, title=aa, kw...)
 		display(p)
 	end
