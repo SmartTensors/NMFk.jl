@@ -250,7 +250,8 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 				else
 					f = ""
 				end
-				p = mapbox(lon, lat, df[!, a]; filename=f, title=a, kw...)
+				aa = replace(string(a), ' ' => "<br>")
+				p = mapbox(lon, lat, df[!, a]; filename=f, title=aa, kw...)
 				display(p)
 			end
 		end
@@ -265,11 +266,13 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 	for i in eachindex(names)
 		println("Ploting $(names[i]) ...")
 		if filename != ""
-			f = fileroot * "_" * string(names[i]) * fileext
+			aa = replace(string(a), '/' => '\u2215')
+			f = fileroot * "_" * aa * fileext
 		else
 			f = ""
 		end
-		p = mapbox(lon, lat, M[:,i]; filename=f, title=string(names[i]), kw...)
+		aa = replace(string(a), ' ' => "<br>")
+		p = mapbox(lon, lat, M[:,i]; filename=f, title=aa, kw...)
 		display(p)
 	end
 end
