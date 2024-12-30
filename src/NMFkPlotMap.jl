@@ -180,7 +180,9 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	layout = PlotlyJS.Layout(;
 		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
 		mapbox = PlotlyJS.attr(accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12"),
-		title=title, showlegend=false, geo=geo)
+		title = title,
+		showlegend=false,
+		geo=geo)
 	p = PlotlyJS.plot(trace, layout)
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
@@ -277,10 +279,37 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size_fig::Number=28, font_color_fig::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
+	if filename != ""
+		if legend
+			marker = PlotlyJS.attr(;
+				size=dot_size_fig,
+				line_width=0,
+				line_color="black",
+				color=color,
+				colorscale=NMFk.colorscale(colorscale),
+				colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, title=title, titlefont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig))
+			)
+		else
+			marker = PlotlyJS.attr(; size=dot_size_fig, color=color)
+		end
+		plot = PlotlyJS.scattermapbox(
+			lon=lon,
+			lat=lat,
+			text=text,
+			mode="markers",
+			hoverinfo="text",
+			marker=marker,
+			attributionControl=false
+		)
+		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, style=style, mapbox_token=mapbox_token)
+		p = PlotlyJS.plot(plot, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+		fn = joinpathcheck(figuredir, filename)
+		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+	end
 	if legend
 		marker = PlotlyJS.attr(; size=dot_size, color=color, colorscale=NMFk.colorscale(colorscale), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, title=title), line_width=0, line_color="black")
 	else
@@ -297,14 +326,10 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	)
 	layout = plotly_layout(lonc, latc, zoom; title=title, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot(plot, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
-	if filename != ""
-		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
-	end
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", dot_size::Number=3,  text::AbstractVector=string.(color), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", dot_size::Number=3, text::AbstractVector=string.(color), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -341,16 +366,19 @@ function mapbox(lon::AbstractFloat=-105.9378, lat::AbstractFloat=35.6870; color:
 end
 
 # Plotly map layout
-function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; title::AbstractString="", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
+function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, title::AbstractString="", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
 	layout = PlotlyJS.Layout(
 		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
-		title=title,
-		paper_bgcolor="#FFF",
+		title = title,
+		autosize = true,
+		width = width,
+		height = height,
+		paper_bgcolor = "#FFF",
 		mapbox = PlotlyJS.attr(
-			accesstoken=mapbox_token,
-			style=style,
-			center=PlotlyJS.attr(lon=lonc, lat=latc),
-			zoom=zoom
+			accesstoken = mapbox_token,
+			style = style,
+			center = PlotlyJS.attr(lon=lonc, lat=latc),
+			zoom = zoom
 		)
 	)
 	return layout
