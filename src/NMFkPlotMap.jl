@@ -229,7 +229,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	return p
 end
 
-function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", kw...)
+function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", title_length::Number=0, kw...)
 	regex_lon = r"^[Xx]$|^[Ll]on" # regex for longitude
 	regex_lat = r"^[Yy]$|^[Ll]at" # regex for latitude
 	rlon = occursin.(regex_lon, names(df))
@@ -252,7 +252,8 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 				else
 					f = ""
 				end
-				aa = replace(string(a), ' ' => "<br>")
+				tv = split(string(a), ' ')
+				aa = join([t * repeat("&nbsp;", max(0, title_length-length(t))) for t in tv], "<br>")
 				p = mapbox(lon, lat, df[!, a]; filename=f, title=aa, kw...)
 				display(p)
 			end
@@ -279,7 +280,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size_fig::Number=28, font_color_fig::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3,  dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color_fig::AbstractString="black", line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -288,10 +289,10 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			marker = PlotlyJS.attr(;
 				size=dot_size_fig,
 				line_width=0,
-				line_color="black",
+				line_color=line_color,
 				color=color,
 				colorscale=NMFk.colorscale(colorscale),
-				colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, title=title, titlefont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig))
+				colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=title, titlefont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig))
 			)
 		else
 			marker = PlotlyJS.attr(; size=dot_size_fig, color=color)
@@ -311,7 +312,14 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 	if legend
-		marker = PlotlyJS.attr(; size=dot_size, color=color, colorscale=NMFk.colorscale(colorscale), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, title=title), line_width=0, line_color="black")
+		marker = PlotlyJS.attr(;
+		size=dot_size,
+		line_width=0,
+		line_color=line_color,
+		color=color,
+		colorscale=NMFk.colorscale(colorscale),
+		colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=title, titlefont=PlotlyJS.attr(size=font_size, color=font_color_fig), tickfont=PlotlyJS.attr(size=font_size, color=font_color_fig))
+	)
 	else
 		marker = PlotlyJS.attr(; size=dot_size, color=color)
 	end
