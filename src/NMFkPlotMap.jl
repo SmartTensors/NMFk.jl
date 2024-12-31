@@ -253,7 +253,7 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 					f = ""
 				end
 				tv = split(string(a), ' ')
-				pushfirst!(tv, repeat("&nbsp;", title_length))
+				pushfirst!(tv, repeat("&nbsp;", title_length)) # adding nonbreaking spaces to control the colorbar size/position
 				aa = join(tv, "<br>")
 				p = mapbox(lon, lat, df[!, a]; filename=f, title=aa, kw...)
 				display(p)
