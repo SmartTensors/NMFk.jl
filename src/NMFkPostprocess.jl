@@ -218,7 +218,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		resultdir::AbstractString=".", figuredir::AbstractString=resultdir,
 		Wcasefilename::AbstractString="locations", Hcasefilename::AbstractString="attributes",
 		Wtypes::AbstractVector=[], Htypes::AbstractVector=[],
-		Wcolors=NMFk.colors, Hcolors=NMFk.colors, background_color="white",
+		Wcolors::AbstractVector=NMFk.colors, Hcolors::AbstractVector=NMFk.colors,
+		dendrogram_color::AbstractString="black",
+		background_color::AbstractString="white",
 		createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots,
 		Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20),
 		adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH,
@@ -512,6 +514,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 						yticks = ["$(Hnametypes[i]) $(chnew[i])" for i=1:length(chnew)]
 						NMFk.plotmatrix(Hm[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 					end
+					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
 					NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
@@ -522,7 +525,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				@info("Dendrogram ploting ...")
 				try
 					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
-					NMFk.plotdendrogram(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, background_color=background_color, quiet=quiet)
+					NMFk.plotdendrogram(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
 					@warn("H matrix dendrogram ploting failed!")
@@ -650,7 +653,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				@info("Dendrogram ploting ...")
 				try
 					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)]
-					NMFk.plotdendrogram(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, background_color=background_color, quiet=quiet)
+					NMFk.plotdendrogram(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
 					@warn("W matrix dendrogram ploting failed!")
