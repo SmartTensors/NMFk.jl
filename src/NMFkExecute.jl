@@ -74,7 +74,7 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 end
 
 "Execute NMFk analysis for a range of number of signals"
-function execute(X::AbstractArray{T,N}, nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, load::Bool=true, save::Bool=true, casefilename::AbstractString="", kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, load::Bool=true, save::Bool=true, casefilename::AbstractString="", kw...) where {T <: Number, N}
 	load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
 	maxk = maximum(collect(nkrange))
 	W = Vector{Array{T, N}}(undef, maxk)
