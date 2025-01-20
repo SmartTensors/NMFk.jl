@@ -229,7 +229,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	return p
 end
 
-function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", title_length::Number=0, kw...)
+function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, kw...)
 	regex_lon = r"^[Xx]$|^[Ll]on" # regex for longitude
 	regex_lat = r"^[Yy]$|^[Ll]at" # regex for latitude
 	rlon = occursin.(regex_lon, names(df))
@@ -241,8 +241,8 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 		@error("No longitude or latitude column found in the dataframe!")
 		return nothing
 	end
+	fileroot, fileext = splitext(filename)
 	if column == ""
-		fileroot, fileext = splitext(filename)
 		for a in names(df)
 			if !(occursin(regex_lon, a) || occursin(regex_lat, a))
 				println("Ploting $a ...")
@@ -252,17 +252,27 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 				else
 					f = ""
 				end
-				p = mapbox(lon, lat, df[!, a]; filename=f, title=plotly_title_length(a, title_length), kw...)
+				if title_colorbar == ""
+					t = plotly_title_length(a, title_length)
+				else
+					t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(a, title_length)
+				end
+				p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, kw...)
 				display(p)
 			end
 		end
 	else
-		p = mapbox(lon, lat, df[!, column]; filename=filename, title=column, kw...)
+		if filename != ""
+			f = fileroot * "_" * column * fileext
+		else
+			f = ""
+		end
+		p = mapbox(lon, lat, df[!, column]; filename=f, title_colorbar=plotly_title_length(column, title_length), kw...)
 		display(p)
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i = eachcol(M)]; filename::AbstractString="", title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i = eachcol(M)]; filename::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
 		println("Ploting $(names[i]) ...")
@@ -272,12 +282,17 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 		else
 			f = ""
 		end
-		p = mapbox(lon, lat, M[:,i]; filename=f, title=plotly_title_length(string(names[i]), title_length), kw...)
+		if title_colorbar == ""
+			t = plotly_title_length(string(names[i]), title_length)
+		else
+			t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(string(names[i]), title_length)
+		end
+		p = mapbox(lon, lat, M[:,i]; filename=f, title_colorbar=t, kw...)
 		display(p)
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3, dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true, title_length::Number=0) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3, dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -291,7 +306,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 				colorscale=NMFk.colorscale(colorscale),
 				cmin=zmin,
 				cmax=zmax,
-				colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title, title_length), titlefont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig))
+				colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig))
 			)
 		else
 			marker = PlotlyJS.attr(; size=dot_size_fig, color=color)
@@ -317,7 +332,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			line_color=line_color,
 			color=color,
 			colorscale=NMFk.colorscale(colorscale),
-			colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title, title_length), titlefont=PlotlyJS.attr(size=font_size, color=font_color), tickfont=PlotlyJS.attr(size=font_size, color=font_color))
+			colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(size=font_size, color=font_color), tickfont=PlotlyJS.attr(size=font_size, color=font_color))
 		)
 	else
 		marker = PlotlyJS.attr(; size=dot_size, color=color)
@@ -336,7 +351,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3, dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true, title_length::Number=0) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3, dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
