@@ -473,10 +473,11 @@ end
 
 function compute_dot_size(x::AbstractVector, y::AbstractVector, zoom::Number)
 	coordmask = .!isnan.(x) .| .!isnan.(y)
-	coord = [x[coordmask]'; y[coordmask]']
+	coord = unique([x[coordmask]'; y[coordmask]']; dims=2)
 	kd = NearestNeighbors.KDTree(coord)
 	d = [i[2] for i in NearestNeighbors.knn(kd, coord, 2, true)[2]]
 	d_metric = Statistics.mean(d)
-	dot_size = 3 + Int(ceil(d_metric * zoom * zoom * zoom))
+	dot_size = 3 + Int(ceil(d_metric * zoom * zoom * zoom)) / 2
+	# @show d_metric, dot_size, zoom
 	return dot_size
 end
