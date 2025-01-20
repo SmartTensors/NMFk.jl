@@ -3,6 +3,8 @@ import VegaDatasets
 import DataFrames
 import Mads
 import PlotlyJS
+import Interpolations
+import NearestNeighbors
 
 mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
 
@@ -229,7 +231,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	return p
 end
 
-function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, kw...)
+function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...)
 	regex_lon = r"^[Xx]$|^[Ll]on" # regex for longitude
 	regex_lat = r"^[Yy]$|^[Ll]at" # regex for latitude
 	rlon = occursin.(regex_lon, names(df))
@@ -257,7 +259,7 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 				else
 					t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(a, title_length)
 				end
-				p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, kw...)
+				p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, title=title, kw...)
 				display(p)
 			end
 		end
@@ -267,12 +269,12 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 		else
 			f = ""
 		end
-		p = mapbox(lon, lat, df[!, column]; filename=f, title_colorbar=plotly_title_length(column, title_length), kw...)
+		p = mapbox(lon, lat, df[!, column]; filename=f, title_colorbar=plotly_title_length(column, title_length), title=title, kw...)
 		display(p)
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i = eachcol(M)]; filename::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i = eachcol(M)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
 		println("Ploting $(names[i]) ...")
@@ -287,15 +289,18 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 		else
 			t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(string(names[i]), title_length)
 		end
-		p = mapbox(lon, lat, M[:,i]; filename=f, title_colorbar=t, kw...)
+		p = mapbox(lon, lat, M[:,i]; filename=f, title_colorbar=t, title=title, kw...)
 		display(p)
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3, dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
+	if title == title_colorbar
+		title = ""
+	end
 	if filename != ""
 		if legend
 			marker = PlotlyJS.attr(;
@@ -351,10 +356,13 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), dot_size::Number=3, dot_size_fig::Number=dot_size, lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=4, zoom_fig::Number=zoom, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
+	if title == title_colorbar
+		title = ""
+	end
 	if filename != ""
 		traces = []
 		for (j, i) in enumerate(unique(sort(color)))
@@ -438,4 +446,37 @@ function plotly_title_length(title::AbstractString, length::Number)
 		title_adjusted = join(title_vector, "<br>")
 		return title_adjusted
 	end
+end
+
+function compute_zoom_dot_size(x::AbstractVector, y::AbstractVector)
+	zoom = compute_zoom(x, y)
+	dot_size = compute_dot_size(x, y, zoom)
+	return zoom, dot_size
+end
+
+function compute_zoom(x::AbstractVector, y::AbstractVector)
+	coordmask = .!isnan.(x) .| .!isnan.(y)
+	lonmin = minimum(x[coordmask])
+	latmin = minimum(y[coordmask])
+	lonmax = maximum(x[coordmask])
+	latmax = maximum(y[coordmask])
+	lonr = lonmax - lonmin
+	latr = latmax - latmin
+	coord_range = max(lonr, latr)
+	dx_range = [0.0007, 0.0014, 0.003, 0.006, 0.012, 0.024, 0.048, 0.096, 0.192, 0.3712, 0.768, 1.536, 3.072, 6.144, 11.8784, 23.7568, 47.5136, 98.304, 190.0544, 360.0]
+	zoom_range = 19:-1:0
+	marker_range = range(3, 20; length=length(zoom_range))
+	zoom_itp = Interpolations.interpolate((dx_range,), zoom_range, Interpolations.Gridded(Interpolations.Linear()))
+	zoom = zoom_itp[coord_range]
+	return zoom
+end
+
+function compute_dot_size(x::AbstractVector, y::AbstractVector, zoom::Number)
+	coordmask = .!isnan.(x) .| .!isnan.(y)
+	coord = [x[coordmask]'; y[coordmask]']
+	kd = NearestNeighbors.KDTree(coord)
+	d = [i[2] for i in NearestNeighbors.knn(kd, coord, 2, true)[2]]
+	d_metric = Statistics.mean(d)
+	dot_size = 3 + Int(ceil(d_metric * zoom * zoom * zoom))
+	return dot_size
 end
