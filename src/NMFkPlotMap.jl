@@ -336,6 +336,8 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			line_width=0,
 			line_color=line_color,
 			color=color,
+			cmin=zmin,
+			cmax=zmax,
 			colorscale=NMFk.colorscale(colorscale),
 			colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(size=font_size, color=font_color), tickfont=PlotlyJS.attr(size=font_size, color=font_color))
 		)
