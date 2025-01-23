@@ -375,20 +375,21 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		title = ""
 	end
 	if filename != ""
+		traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 		for t in traces
 			if haskey(t.fields, :line)
 				t.fields[:line][:color] = line_color
 				t.fields[:line][:width] = line_width_fig
 			end
+			push!(traces_, t)
 		end
-		traces_ = [traces...]
 		for (j, i) in enumerate(unique(sort(color)))
 			iz = color .== i
 			jj = j % length(NMFk.colors)
 			k = jj == 0 ? length(NMFk.colors) : jj
 			marker = PlotlyJS.attr(; size=dot_size_fig, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(size=font_size_fig, color=paper_bgcolor), tickfont=PlotlyJS.attr(size=font_size_fig, color=paper_bgcolor)))
 			name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
-			traces = PlotlyJS.scattermapbox(;
+			t = PlotlyJS.scattermapbox(;
 				lon=lon[iz],
 				lat=lat[iz],
 				text=text[iz],
@@ -397,27 +398,28 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 				marker=marker,
 				showlegend=legend,
 				attributionControl=false)
-			push!(traces_, traces)
+			push!(traces_, t)
 		end
 		layout = plotly_layout(lonc, latc, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
+	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for t in traces
 		if haskey(t.fields, :line)
 			t.fields[:line][:color] = line_color
 			t.fields[:line][:width] = line_width
 		end
+		push!(traces_, t)
 	end
-	traces_ = [traces...]
 	for (j, i) in enumerate(unique(sort(color)))
 		iz = color .== i
 		jj = j % length(NMFk.colors)
 		k = jj == 0 ? length(NMFk.colors) : jj
 		marker = PlotlyJS.attr(; size=dot_size, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(size=font_size, color=paper_bgcolor), tickfont=PlotlyJS.attr(size=font_size, color=paper_bgcolor)))
 		name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
-		traces = PlotlyJS.scattermapbox(;
+		t = PlotlyJS.scattermapbox(;
 			lon=lon[iz],
 			lat=lat[iz],
 			text=text[iz],
@@ -426,7 +428,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			marker=marker,
 			showlegend=true,
 			attributionControl=false)
-		push!(traces_, traces)
+		push!(traces_, t)
 	end
 	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
