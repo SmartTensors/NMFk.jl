@@ -198,7 +198,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
-	traces = []
+	traces = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(color)))
 		iz = color .== i
 		jj = j % length(NMFk.colors)
@@ -223,7 +223,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 		subunitcolor="rgb(255,255,255)",
 		countrycolor="rgb(255,255,255)")
 	layout = PlotlyJS.Layout(; title=title, geo=geo)
-	p = PlotlyJS.plot(convert(Vector{typeof(traces[1])}, traces), layout)
+	p = PlotlyJS.plot(traces, layout)
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
@@ -294,7 +294,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, trace::AbstractVector=[], colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, traces::Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}=Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0), colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -327,7 +327,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			showlegend=false
 		)
 		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, style=style, mapbox_token=mapbox_token)
-		p = PlotlyJS.plot([plot, trace...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
@@ -356,11 +356,11 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		showlegend=false
 	)
 	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, style=style, mapbox_token=mapbox_token)
-	p = PlotlyJS.plot([plot, trace...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, trace::AbstractVector=[], colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="black", latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, traces::Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}=Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0), colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -368,14 +368,14 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		title = ""
 	end
 	if filename != ""
-		traces = [trace...]
+		traces_ = [traces...]
 		for (j, i) in enumerate(unique(sort(color)))
 			iz = color .== i
 			jj = j % length(NMFk.colors)
 			k = jj == 0 ? length(NMFk.colors) : jj
 			marker = PlotlyJS.attr(; size=dot_size_fig, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(size=font_size_fig, color=paper_bgcolor), tickfont=PlotlyJS.attr(size=font_size_fig, color=paper_bgcolor)))
 			name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
-			trace = PlotlyJS.scattermapbox(;
+			traces = PlotlyJS.scattermapbox(;
 				lon=lon[iz],
 				lat=lat[iz],
 				text=text[iz],
@@ -385,22 +385,22 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 				line_color=line_color,
 				showlegend=legend,
 				attributionControl=false)
-			push!(traces, trace)
+			push!(traces_, traces)
 		end
-		traces = convert(Vector{typeof(traces[1])}, traces)
+		traces_ = convert(Vector{eltype(traces_)}, traces_)
 		layout = plotly_layout(lonc, latc, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
-		p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
-	traces = [trace...]
+	traces_ = [traces...]
 	for (j, i) in enumerate(unique(sort(color)))
 		iz = color .== i
 		jj = j % length(NMFk.colors)
 		k = jj == 0 ? length(NMFk.colors) : jj
 		marker = PlotlyJS.attr(; size=dot_size, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(size=font_size, color=paper_bgcolor), tickfont=PlotlyJS.attr(size=font_size, color=paper_bgcolor)))
 		name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
-		trace = PlotlyJS.scattermapbox(;
+		traces = PlotlyJS.scattermapbox(;
 			lon=lon[iz],
 			lat=lat[iz],
 			text=text[iz],
@@ -409,11 +409,11 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			marker=marker,
 			showlegend=true,
 			attributionControl=false)
-		push!(traces, trace)
+		push!(traces_, traces)
 	end
-	traces = convert(Vector{typeof(traces[1])}, traces)
+	traces_ = convert(Vector{eltype(traces_)}, traces_)
 	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token)
-	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	return p
 end
 

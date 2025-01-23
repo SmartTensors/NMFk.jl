@@ -72,7 +72,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; h
 	end
 	@assert length(wx) == length(wy)
 	@assert length(wx) == length(c)
-	wells = []
+	wells = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		l = isnothing(label) ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
@@ -80,7 +80,7 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, c::AbstractVector; h
 		well_p = PlotlyJS.scatter(;x=wx[ic], y=wy[ic], l..., name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=PlotlyJS.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
-	return convert(Vector{typeof(wells[1])}, wells)
+	return wells
 end
 
 function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, c::AbstractVector; hover=nothing, pointsize=6)
@@ -90,18 +90,18 @@ function plot_wells(wx::AbstractVector, wy::AbstractVector, wz::AbstractVector, 
 	@assert length(wx) == length(wy)
 	@assert length(wx) == length(wz)
 	@assert length(wx) == length(c)
-	wells = []
+	wells = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		h = isnothing(hover) ? Dict() : Dict(:hovertext=>hover[ic], :hoverinfo=>"text")
 		well_p = PlotlyJS.scatter3d(;x=wx[ic], y=wy[ic], z=wz[ic], mode="markers", name="$i $(sum(ic))", marker_color=NMFk.colors[j], marker=PlotlyJS.attr(; size=pointsize), h...)
 		push!(wells, well_p)
 	end
-	return convert(Vector{typeof(wells[1])}, wells)
+	return wells
 end
 
 function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, c::AbstractVector; hover=nothing)
-	wells = []
+	wells = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		hx = heel_x[ic]
@@ -113,7 +113,7 @@ function plot_heel_toe_bad(heel_x::AbstractVector, heel_y::AbstractVector, toe_x
 			push!(wells, well_trace)
 		end
 	end
-	return convert(Vector{typeof(wells[1])}, wells)
+	return wells
 end
 
 function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, c::AbstractVector; hover=nothing)
@@ -124,7 +124,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 	@assert length(heel_x) == length(toe_x)
 	@assert length(heel_x) == length(toe_y)
 	@assert length(heel_x) == length(c)
-	traces = []
+	traces = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		hx = heel_x[ic]
@@ -141,7 +141,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, toe_x::Ab
 		end
 		push!(traces, well_trace)
 	end
-	return convert(Vector{typeof(traces[1])}, traces)
+	return traces
 end
 
 function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::AbstractVector, toe_x::AbstractVector, toe_y::AbstractVector, toe_z::AbstractVector, c::AbstractVector; hover=nothing)
@@ -152,7 +152,7 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::A
 	@assert length(heel_x) == length(toe_x)
 	@assert length(heel_x) == length(toe_y)
 	@assert length(heel_x) == length(c)
-	traces = []
+	traces = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(c)))
 		ic = c .== i
 		hx = heel_x[ic]
@@ -172,5 +172,5 @@ function plot_heel_toe(heel_x::AbstractVector, heel_y::AbstractVector, heel_z::A
 		end
 		push!(traces, well_trace)
 	end
-	return convert(Vector{typeof(traces[1])}, traces)
+	return traces
 end
