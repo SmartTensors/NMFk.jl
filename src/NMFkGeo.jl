@@ -6,12 +6,11 @@ Convert LAT/LON to Cartesian coordinates (x,y)
 $(DocumentFunction.documentfunction(latlon_to_xy))
 """
 function latlon_to_xy(lat, lon; zone_isnorth::Tuple=Geodesy.utm_zone(lat[1], lon[1]), zone::Integer=zone_isnorth[1], isnorth::Bool=zone_isnorth[2], datum=Geodesy.nad83, utm_map=Geodesy.UTMfromLLA(zone, isnorth, datum))
-	l = length(lat)
-	@assert l == length(lon)
-	utm = utm_map.([Geodesy.LLA([lat lon][i,:]...) for i=1:l])
-	x = [utm[i].x for i=1:l]
-	y = [utm[i].y for i=1:l]
-	if l == 1
+	@assert length(lat) == length(lon)
+	utm = utm_map.([Geodesy.LLA([lat lon][i,:]...) for i=eachindex(lat)])
+	x = [utm[i].x for i=eachindex(utm)]
+	y = [utm[i].y for i=eachindex(utm)]
+	if length(lat) == 1
 		return x[1], y[1]
 	else
 		return x, y
@@ -24,12 +23,11 @@ Convert Cartesian coordinates (x,y) to LAT/LON
 $(DocumentFunction.documentfunction(xy_to_latlon))
 """
 function xy_to_latlon(x, y; zone_isnorth::Tuple=Geodesy.utm_zone(lat[1], lon[1]), zone::Integer=zone_isnorth[1], isnorth::Bool=zone_isnorth[2], datum=Geodesy.nad83, utm_map=Geodesy.LLAfromUTM(zone, isnorth, datum))
-	l = length(x)
-	@assert l == length(y)
-	utm = utm_map.([Geodesy.UTM([x y][i,:]...) for i=1:l])
-	lat = [utm[i].lat for i=1:l]
-	lon = [utm[i].lon for i=1:l]
-	if l == 1
+	@assert length(x) == length(y)
+	utm = utm_map.([Geodesy.UTM([x y][i,:]...) for i=eachindex(x)])
+	lat = [utm[i].lat for i=eachindex(utm)]
+	lon = [utm[i].lon for i=eachindex(utm)]
+	if length(x) == 1
 		return lat[1], lon[1]
 	else
 		return lat, lon
