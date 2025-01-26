@@ -313,6 +313,9 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			end
 			if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
 				show_colorbar = !legend
+				if !legend
+					t.fields[:showlegend] = false
+				end
 			end
 		end
 		if colorbar && show_colorbar
@@ -355,6 +358,9 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		end
 		if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
 			show_colorbar = !legend
+			if !legend
+				t.fields[:showlegend] = false
+			end
 		end
 	end
 	if colorbar && show_colorbar
