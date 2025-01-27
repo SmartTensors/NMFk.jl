@@ -341,7 +341,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			attributionControl=false,
 			showlegend=false
 		)
-		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
+		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
@@ -481,7 +481,7 @@ function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Numbe
 		autosize = true,
 		width = width,
 		height = height,
-		legend = PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", font=PlotlyJS.attr(size=font_size, color=font_color), bgcolor=paper_bgcolor),
+		legend = PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", itemwidth=font_size, itemheight=font_size, font=PlotlyJS.attr(size=font_size, color=font_color), bgcolor=paper_bgcolor),
 		paper_bgcolor = paper_bgcolor,
 		mapbox = PlotlyJS.attr(
 			accesstoken = mapbox_token,
