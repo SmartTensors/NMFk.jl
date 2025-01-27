@@ -481,7 +481,7 @@ function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Numbe
 		autosize = true,
 		width = width,
 		height = height,
-		legend = PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", itemwidth=font_size, itemheight=font_size, font=PlotlyJS.attr(size=font_size, color=font_color), bgcolor=paper_bgcolor),
+		legend = PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", font=PlotlyJS.attr(size=font_size, color=font_color), bgcolor=paper_bgcolor),
 		paper_bgcolor = paper_bgcolor,
 		mapbox = PlotlyJS.attr(
 			accesstoken = mapbox_token,
