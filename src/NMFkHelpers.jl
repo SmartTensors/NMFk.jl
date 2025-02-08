@@ -230,8 +230,7 @@ function hardencodelength(x::AbstractVector{T}) where {T <: Number}
 	return d
 end
 
-function hardencode(x::AbstractVector{T}) where {T <: Number}
-	u = unique(x)
+function hardencode(x::AbstractVector{T}, u::AbstractVector{T}=unique(x)) where {T <: Number}
 	i = indexin(x, u)
 	inan = indexin(true, isnan.(u))[1]
 	d = !isnothing(inan) ? length(u) - 1 : d = length(u)
@@ -252,13 +251,14 @@ function hardencode(x::AbstractVector{T}) where {T <: Number}
 	return m
 end
 
-function hardencode(x::AbstractVector{T}) where {T <: Any}
-	u = unique(x)
+function hardencode(x::AbstractVector{T}, u::AbstractVector{T}=unique(x)) where {T <: Any}
 	i = indexin(x, u)
 	d = length(u)
 	m = zeros(length(x), d)
 	for (j, k) in enumerate(i)
-		m[j, k] = 1
+		if !isnothing(k)
+			m[j, k] = 1
+		end
 	end
 	return m
 end
