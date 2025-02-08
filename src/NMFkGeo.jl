@@ -1,13 +1,15 @@
 import Geodesy
+import Statistics
 
 """
 Convert LAT/LON to Cartesian coordinates (x,y)
 
 $(DocumentFunction.documentfunction(latlon_to_xy))
 """
-function latlon_to_xy(lat, lon; zone_isnorth::Tuple=Geodesy.utm_zone(lat[1], lon[1]), zone::Integer=zone_isnorth[1], isnorth::Bool=zone_isnorth[2], datum=Geodesy.nad83, utm_map=Geodesy.UTMfromLLA(zone, isnorth, datum))
+function latlon_to_xy(lat, lon; zone_isnorth::Tuple=Geodesy.utm_zone(Statistics.median(lat),  Statistics.median(lon)), zone::Integer=zone_isnorth[1], isnorth::Bool=zone_isnorth[2], datum=Geodesy.nad83, utm_map=Geodesy.UTMfromLLA(zone, isnorth, datum))
 	@assert length(lat) == length(lon)
 	utm = utm_map.([Geodesy.LLA([lat lon][i,:]...) for i=eachindex(lat)])
+	println("Zone = $zone")
 	x = [utm[i].x for i=eachindex(utm)]
 	y = [utm[i].y for i=eachindex(utm)]
 	if length(lat) == 1
