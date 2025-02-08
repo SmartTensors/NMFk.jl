@@ -252,6 +252,17 @@ function hardencode(x::AbstractVector{T}) where {T <: Number}
 	return m
 end
 
+function hardencode(x::AbstractVector{T}) where {T <: Any}
+	u = unique(x)
+	i = indexin(x, u)
+	d = length(u)
+	m = zeros(length(x), d)
+	for (j, k) in enumerate(i)
+		m[j, k] = 1
+	end
+	return m
+end
+
 function hardencode(x::AbstractMatrix{T}) where {T <: Number}
 	hcat([hardencode(x[:,i]) for i in axes(x, 2)]...)
 end
