@@ -457,15 +457,15 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		Sorder[ki] = signalmap
 
 		if clusterH
-			signalhmap = indexin(signalmap, hsignalmap)
+			hsignalremap = indexin(signalmap, hsignalmap)
 			cassgined = zeros(Int64, length(Hnames))
 			chnew = Vector{eltype(ch)}(undef, length(ch))
 			chnew .= ' '
 			for (j, i) in enumerate(clusterlabels)
-				ii = indexin(ch, [clusterlabels[signalhmap[j]]]) .== true
+				ii = indexin(ch, [clusterlabels[hsignalremap[j]]]) .== true
 				chnew[ii] .= i
 				cassgined[ii] .+= 1
-				@info("Signal $(clusterlabels[signalhmap[j]]) -> $(i) Count: $(sum(ii))")
+				@info("Signal $(clusterlabels[hsignalremap[j]]) -> $(i) Count: $(sum(ii))")
 			end
 			Hclusters[ki] = chnew
 			if any(cassgined .== 0)
@@ -574,15 +574,15 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				ii = indexin(cw, [i]) .== true
 				@info("Signal $i (S$(wsignalmap[j])) Count: $(sum(ii))")
 			end
-			signalwmap = indexin(signalmap, wsignalmap)
+			wsignalremap = indexin(signalmap, wsignalmap)
 			cassgined = zeros(Int64, length(Wnames))
 			cwnew = Vector{eltype(cw)}(undef, length(cw))
 			cwnew .= ' '
 			for (j, i) in enumerate(clusterlabels)
-				ii = indexin(cw, [clusterlabels[signalwmap[j]]]) .== true
+				ii = indexin(cw, [clusterlabels[wsignalremap[j]]]) .== true
 				cwnew[ii] .= i
 				cassgined[ii] .+= 1
-				@info("Signal $(clusterlabels[signalwmap[j]]) -> $(i) Count: $(sum(ii))")
+				@info("Signal $(clusterlabels[wsignalremap[j]]) -> $(i) Count: $(sum(ii))")
 			end
 			Wclusters[ki] = cwnew
 			if any(cassgined .== 0)
