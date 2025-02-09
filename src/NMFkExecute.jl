@@ -99,7 +99,7 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractRange
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=false, check_inputs::Bool=true, kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=false, check_inputs::Bool=true, ordersignals::Bool=true, kw...) where {T <: Number, N}
 	if .*(size(X)...) == 0
 		error("Input array has a zero dimension! Array size=$(size(X))")
 	end
@@ -139,10 +139,19 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 		end
 	end
 	println()
+	if haskey(kw, :Wfixed) || haskey(kw, :Hfixed)
+		ordersignals = false
+	end
 	if runflag
 		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; clusterWmatrix=clusterWmatrix, resultdir=resultdir, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, quiet=quiet, kw...)
 	end
-	so = signalorder(W, H)
+	if ordersignals
+		@info("Ordering signals based on their contribution ...")
+		so = signalorder(W, H)
+	else
+		@warn("Signals are not orered ...")
+		so = 1:size(W, 2)
+	end
 	!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 	if save
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
@@ -176,14 +185,10 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	if runflag
 		if Distributed.nprocs() > 1 && !serial
 			!quiet && println("Parallel execution of $nNMF NMF runs ...")
-			kw_dict = Dict()
-			for (key, value) in kw
-				kw_dict[key] = value
-			end
-			if haskey(kw_dict, :seed)
-				kwseed = kw_dict[:seed]
-				delete!(kw_dict, :seed)
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw_dict...)), 1:nNMF)
+			if haskey(kw, :seed)
+				kwseed = kw[:seed]
+				delete!(kw, :seed)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw...)), 1:nNMF)
 			else
 				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, kw...)), 1:nNMF)
 			end
@@ -199,16 +204,12 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			WBig = Vector{Array{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
 			objvalue = Vector{T}(undef, nNMF)
-			kw_dict = Dict()
-			for (key, value) in kw
-				kw_dict[key] = value
-			end
-			if haskey(kw_dict, :seed)
-				kwseed = kw_dict[:seed]
-				delete!(kw_dict, :seed)
+			if haskey(kw, :seed)
+				kwseed = kw[:seed]
+				delete!(kw, :seed)
 				for i = 1:nNMF
 					!quiet && @info("NMF run #$(i)")
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, seed=kwseed+i, kw_dict...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, seed=kwseed+i, kw...)
 				end
 			else
 				for i = 1:nNMF
@@ -315,13 +316,9 @@ end
 function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.global_quiet, veryquiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), mixture::Symbol=:null, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, weight=1, kw...) where {T <: Number}
 	@assert typeof(weight) <: Number || length(weight) == size(X, 1) || size(weight, 2) == size(X, 2) || size(weight) == size(X)
 	quiet = veryquiet ? true : quiet
-	kw_dict = Dict()
-	for (key, value) in kw
-		kw_dict[key] = value
-	end
-	rescalematrices = true
-	if haskey(kw_dict, :Wfixed) || haskey(kw_dict, :Hfixed)
-		rescalematrices = false
+	modifymatrices = true
+	if haskey(kw, :Wfixed) || haskey(kw, :Hfixed)
+		modifymatrices = false
 	end
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("NMFk analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
@@ -346,16 +343,12 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	if runflag
 		if Distributed.nprocs() > 1 && !serial
 			!quiet && println("Parallel execution of $(nNMF) NMF runs ...")
-			kw_dict = Dict()
-			for (key, value) in kw
-				kw_dict[key] = value
-			end
-			if haskey(kw_dict, :seed)
-				kwseed = kw_dict[:seed]
-				delete!(kw_dict, :seed)
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw_dict...)), 1:nNMF)
+			if haskey(kw, :seed)
+				kwseed = kw[:seed]
+				delete!(kw, :seed)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw...)), 1:nNMF)
 			else
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)), 1:nNMF)
 			end
 			WBig = Vector{Matrix{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
@@ -369,19 +362,15 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			WBig = Vector{Matrix{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
 			objvalue = Vector{T}(undef, nNMF)
-			kw_dict = Dict()
-			for (key, value) in kw
-				kw_dict[key] = value
-			end
-			if haskey(kw_dict, :seed)
-				kwseed = kw_dict[:seed]
-				delete!(kw_dict, :seed)
+			if haskey(kw, :seed)
+				kwseed = kw[:seed]
+				delete!(kw, :seed)
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw_dict...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw...)
 				end
 			else
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; rescalematrices=rescalematrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)
 				end
 			end
 		end
@@ -570,7 +559,7 @@ function execute_singlerun_compute(X::AbstractArray, nk::Int; kw...)
 end
 
 "Execute single NMF run without restart"
-function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NMFk.global_quiet, ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0), deltas::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), deltaindices::AbstractVector{Int}=Vector{Int}(undef, 0), transpose::Bool=false, scale::Bool=false, rescalematrices::Bool=true, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::T=convert(T, 1), weightinverse::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false, bootstrap::Bool=false, weight=1, kw...) where {T <: Number}
+function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NMFk.global_quiet, ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0), deltas::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), deltaindices::AbstractVector{Int}=Vector{Int}(undef, 0), transpose::Bool=false, scale::Bool=false, modifymatrices::Bool=true, maxiter::Int=10000, tol::Float64=1e-19, ratiosweight::T=convert(T, 1), weightinverse::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, clusterWmatrix::Bool=false, bootstrap::Bool=false, weight=1, kw...) where {T <: Number}
 	if scale
 		if transpose
 			Xn, Xmax = NMFk.scalematrix_row!(permutedims(X))
@@ -635,7 +624,7 @@ function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NM
 		E = X - W * H
 	end
 	!quiet && println("Objective function = $(objvalue)")
-	if mixture == :null && rescalematrices
+	if mixture == :null && modifymatrices
 		if clusterWmatrix
 			total = sum(W; dims=1)
 			W ./= total

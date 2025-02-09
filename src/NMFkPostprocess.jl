@@ -205,12 +205,21 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	NMFk.postprocess(krange, W, H; resultdir="results-$(suffix)", figuredir="figures-$(suffix)", kw...)
 end
 
+function postprocess(W::AbstractMatrix, H::AbstractMatrix; kw...)
+	kopt = size(H, 1)
+	Wvector = Vector{Matrix}(undef, kopt)
+	Hvector = Vector{Matrix}(undef, kopt)
+	Wvector[kopt] = W
+	Hvector[kopt] = H
+	NMFk.postprocess(kopt, Wvector, Hvector; kw...)
+end
+
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
 function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
-		ordersignal::Symbol=:importance,
+		ordersignals::Symbol=:importance,
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
 		Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[],
 		Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)),
@@ -429,14 +438,20 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			wsignalmap = NMFk.signalassignments(Wa, cw; clusterlabels=clusterlabels, dims=1)
 		end
 
-		if ordersignal == :importance
+		if ordersignals == :importance
+			@info("Signal importance based on the contribution: $isignalmap")
 			signalmap = isignalmap
-		elseif ordersignal == :Hcount && clusterH
+		elseif ordersignals == :Hcount && clusterH
+			@info("Signal importance based on H matrix clustering: $hsignalmap")
 			signalmap = hsignalmap
-		elseif ordersignal == :Wcount && clusterW
+		elseif ordersignals == :Wcount && clusterW
+			@info("Signal importance based on W matrix clustering: $wsignalmap")
 			signalmap = wsignalmap
+		elseif ordersignals == :none
+			@info("No signal importance order requested!")
+			signalmap = 1:k
 		else
-			@warn("Unknown signal order requested $(ordersignal); Signal importance will be used!")
+			@warn("Unknown signal order requested $(ordersignals); Signal importance based on the contribution will be used!")
 			signalmap = isignalmap
 		end
 		Sorder[ki] = signalmap
@@ -532,6 +547,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				end
 			end
 			if createbiplots
+				@info("Biploting ...")
 				P = permutedims(Ha) ./ maximum(Ha)
 				Pm = vec(sum(P; dims=2))
 				biplotlabels = copy(Hnames)
@@ -660,6 +676,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				end
 			end
 			if createbiplots
+				@info("Biploting ...")
 				P = Wa ./ maximum(Wa)
 				Pm = vec(sum(P; dims=2))
 				biplotlabels = copy(Wnames)

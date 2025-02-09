@@ -35,13 +35,19 @@ function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5,
 	end
 	return W, H, fitquality, robustness, aic, kopt
 end
-function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false)
+function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false, ordersignals::Bool=true)
 	if casefilename != "" && filename == ""
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 	end
 	if isfile(filename)
 		W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
-		so = signalorder(W, H)
+		if ordersignals
+			@info("Ordering signals ...")
+			so = signalorder(W, H)
+		else
+			@warn("Signals are not orered ...")
+			so = 1:size(W, 2)
+		end
 		!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 		return W[:,so], H[so,:], fitquality, robustness, aic
 	else
