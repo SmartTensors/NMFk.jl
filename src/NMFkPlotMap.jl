@@ -293,7 +293,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="purple", line_width::Number=4, line_width_fig::Number=line_width * 2, marker_color::AbstractString="purple", marker_size::Number=4, marker_size_fig::Number=marker_size * 2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorbar::Bool=legend, traces::Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}=Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0), colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="purple", line_width::Number=0, line_width_fig::Number=line_width * 2, marker_color::AbstractString="purple", marker_size::Number=0, marker_size_fig::Number=marker_size * 2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorbar::Bool=legend, traces::Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}=Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0), colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -304,16 +304,12 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		show_colorbar = true
 		for t in traces
 			if haskey(t.fields, :line)
-				if line_color != ""
-					t.fields[:line][:color] = line_color
-				end
-				t.fields[:line][:width] = line_width
+				(line_color != "") && (t.fields[:line][:color] = line_color)
+				(line_width_fig > 0) && (t.fields[:line][:width] = line_width_fig)
 			end
 			if haskey(t.fields, :marker)
-				if marker_color != ""
-					t.fields[:marker][:color] = marker_color
-				end
-				t.fields[:marker][:size] = marker_size_fig
+				(marker_color != "") && (t.fields[:marker][:color] = marker_color)
+				(marker_size_fig > 0) && (t.fields[:marker][:size] = marker_size_fig)
 			end
 			if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
 				show_colorbar = !legend
@@ -353,16 +349,12 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	show_colorbar = true
 	for t in traces
 		if haskey(t.fields, :line)
-			if line_color != ""
-				t.fields[:line][:color] = line_color
-			end
-			t.fields[:line][:width] = line_width
+			(line_color != "") && (t.fields[:line][:color] = line_color)
+			(line_width > 0) && (t.fields[:line][:width] = line_width)
 		end
 		if haskey(t.fields, :marker)
-			if marker_color != ""
-				t.fields[:marker][:color] = marker_color
-			end
-			t.fields[:marker][:size] = marker_size
+			(marker_color != "") && (t.fields[:marker][:color] = marker_color)
+			(marker_size > 0) && (t.fields[:marker][:size] = marker_size)
 		end
 		if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
 			show_colorbar = !legend
@@ -399,7 +391,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="purple", line_width::Number=4, line_width_fig::Number=line_width * 2, marker_color::AbstractString="purple", marker_size::Number=4, marker_size_fig::Number=marker_size * 2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorbar::Bool=legend, traces::Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}=Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0), colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="purple", line_width::Number=0, line_width_fig::Number=line_width * 2, marker_color::AbstractString="purple", marker_size::Number=0, marker_size_fig::Number=marker_size * 2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorbar::Bool=legend, traces::Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}=Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0), colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -410,15 +402,13 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		@show traces
 		traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 		for t in traces
-			@show t
 			if haskey(t.fields, :line)
-				t.fields[:line][:color] = line_color
-				t.fields[:line][:width] = line_width_fig
+				(line_color != "") && (t.fields[:line][:color] = line_color)
+				(line_width_fig > 0) && (t.fields[:line][:width] = line_width_fig)
 			end
 			if haskey(t.fields, :marker)
-				t.fields[:marker][:color] = marker_color
-				t.fields[:marker][:size] = marker_size_fig
-				@show t.fields
+				(marker_color != "") && (t.fields[:marker][:color] = marker_color)
+				(marker_size_fig > 0) && (t.fields[:marker][:size] = marker_size_fig)
 			end
 			push!(traces_, t)
 		end
@@ -448,12 +438,12 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for t in traces
 		if haskey(t.fields, :line)
-			t.fields[:line][:color] = line_color
-			t.fields[:line][:width] = line_width
+			(line_color != "") && (t.fields[:line][:color] = line_color)
+			(line_width > 0) && (t.fields[:line][:width] = line_width)
 		end
 		if haskey(t.fields, :marker)
-			t.fields[:marker][:color] = marker_color
-			t.fields[:marker][:size] = marker_size
+			(marker_color != "") && (t.fields[:marker][:color] = marker_color)
+			(marker_size > 0) && (t.fields[:marker][:size] = marker_size)
 		end
 		push!(traces_, t)
 	end
