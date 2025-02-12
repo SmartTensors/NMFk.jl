@@ -303,12 +303,16 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	if filename != ""
 		show_colorbar = true
 		for t in traces
-			if haskey(t.fields, :line) && line_color != ""
-				t.fields[:line][:color] = line_color
+			if haskey(t.fields, :line)
+				if line_color != ""
+					t.fields[:line][:color] = line_color
+				end
 				t.fields[:line][:width] = line_width
 			end
-			if haskey(t.fields, :marker) && marker_color != ""
-				t.fields[:marker][:color] = marker_color
+			if haskey(t.fields, :marker)
+				if marker_color != ""
+					t.fields[:marker][:color] = marker_color
+				end
 				t.fields[:marker][:size] = marker_size_fig
 			end
 			if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
@@ -348,13 +352,17 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	end
 	show_colorbar = true
 	for t in traces
-		if haskey(t.fields, :line) && line_color != ""
-			t.fields[:line][:color] = line_color
+		if haskey(t.fields, :line)
+			if line_color != ""
+				t.fields[:line][:color] = line_color
+			end
 			t.fields[:line][:width] = line_width
 		end
-		if haskey(t.fields, :marker) && marker_color != ""
-			t.fields[:marker][:color] = marker_color
-			t.fields[:marker][:size] = marker_size_fig
+		if haskey(t.fields, :marker)
+			if marker_color != ""
+				t.fields[:marker][:color] = marker_color
+			end
+			t.fields[:marker][:size] = marker_size
 		end
 		if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
 			show_colorbar = !legend
@@ -399,8 +407,10 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		title = ""
 	end
 	if filename != ""
+		@show traces
 		traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 		for t in traces
+			@show t
 			if haskey(t.fields, :line)
 				t.fields[:line][:color] = line_color
 				t.fields[:line][:width] = line_width_fig
@@ -408,6 +418,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			if haskey(t.fields, :marker)
 				t.fields[:marker][:color] = marker_color
 				t.fields[:marker][:size] = marker_size_fig
+				@show t.fields
 			end
 			push!(traces_, t)
 		end
@@ -442,7 +453,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		end
 		if haskey(t.fields, :marker)
 			t.fields[:marker][:color] = marker_color
-			t.fields[:marker][:size] = marker_size_fig
+			t.fields[:marker][:size] = marker_size
 		end
 		push!(traces_, t)
 	end
