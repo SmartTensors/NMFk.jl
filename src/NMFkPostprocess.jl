@@ -306,7 +306,13 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 	else
 		Wnametypes = Wnames[Worder]
 	end
-	Wnamesmaxlength = max(length.(Wnames)...)
+	if eltype(Wnames) <: AbstractString
+		Wnamesmaxlength = max(length.(Wnames)...)
+	elseif eltype(Wnames) <: Dates.AbstractDateTime
+		Wnamesmaxlength = max(length.(string.(Wnames))...)
+	else
+		Wnamesmaxlength = 0
+	end
 	Wnames = Wnames[Worder]
 	Hnames = Hnames[Horder]
 	if !isnothing(lon) && !isnothing(lat)
@@ -603,8 +609,15 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				is = sortperm(Wm[ii,signalmap[j]]; rev=true)
 				d = [Wnames[ii] Wm[ii,signalmap[j]]][is,:]
 				display(d)
-				for i in axes(d, 1)
-					write(io, "$(rpad(d[i,1], Wnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
+				if Wnamesmaxlength > 0
+					for i in axes(d, 1)
+						write(io, "$(rpad(d[i,1], Wnamesmaxlength))\t$(round(d[i,2]; sigdigits=3))\n")
+					end
+				else
+					for i in axes(d, 1)
+						write(io, "$(d[i,1])\t$(round(d[i,2]; sigdigits=3))\n")
+					end
+
 				end
 				write(io, '\n')
 			end
