@@ -319,7 +319,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		if length(lon) == length(lat)
 			if length(Hnames) != length(lon) && length(Wnames) != length(lat)
 				plotmap = false
-				@error("Length of lon/lat ($(length(lon))) must be equal to length of Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
+				@error("Length of lon/lat coordinates ($(length(lon))) must be equal to length of Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
 			else
 				plotmap = true
 			end
@@ -420,7 +420,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 
 		if clusterH
 			if size(Ha, 2) > 100000
-				@warn("The matrix size $(size(Ha)) is too high to compute the distances; the code may run our of memmory!")
+				@warn("The matrix size $(size(Ha)) is too high to compute the distances; the code may run our of memory!")
 			elseif Hrepeats > 100 && size(Ha, 2) > 10000
 				@warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))!")
 			end
@@ -431,7 +431,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 
 		if clusterW
 			if size(Wa, 1) > 100000
-				@warn("The matrix size $(size(Wa)) is too high to compute the distances; the code may run our of memmory!")
+				@warn("The matrix size $(size(Wa)) is too high to compute the distances; the code may run our of memory!")
 			elseif Wrepeats > 100 && size(Wa, 1) > 10000
 				@warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))!")
 			end
@@ -646,7 +646,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Wnames Wm[:,signalmap] cwnew], ',')
 			end
 			if !isnothing(lon) && (length(lon) != length(chnew)) && (length(lon) != length(cwnew))
-				@warn("Lat/Lon data ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
+				@warn("Length of lat/lon coordinates ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 			end
 			cs = sortperm(cwnew)
 			if createplots
