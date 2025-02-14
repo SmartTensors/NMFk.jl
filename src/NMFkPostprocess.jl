@@ -570,7 +570,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				@info("Biploting ...")
 				P = permutedims(Ha) ./ maximum(Ha)
 				Pm = vec(sum(P; dims=2))
-				biplotlabels = copy(Hnames)
+				biplotlabels = string.(copy(Hnames))
 				ilabel = Pm .< cutoff_label
 				biplotlabels[ilabel] .= ""
 				NMFk.biplots(P, biplotlabels, collect(1:k); filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
@@ -706,7 +706,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				@info("Biploting ...")
 				P = Wa ./ maximum(Wa)
 				Pm = vec(sum(P; dims=2))
-				biplotlabels = copy(Wnames)
+				biplotlabels = string.(copy(Wnames))
 				ilabel = Pm .< cutoff_label
 				biplotlabels[ilabel] .= ""
 				NMFk.biplots(P, biplotlabels, collect(1:k); filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
