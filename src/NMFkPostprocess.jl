@@ -222,7 +222,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		ordersignals::Symbol=:importance,
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
 		Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[],
-		Worder::AbstractVector=collect(1:length(Wnames)), Horder::AbstractVector=collect(1:length(Hnames)),
+		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
 		lon=nothing, lat=nothing, hover=nothing,
 		resultdir::AbstractString=".", figuredir::AbstractString=resultdir,
 		Wcasefilename::AbstractString="locations", Hcasefilename::AbstractString="attributes",
@@ -542,14 +542,14 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					@warn("H ($(Hcasefilename)) matrix has too many attributes to plot as a matrix!")
 				else
 					xticks = ["S$i" for i=1:k]
-					yticks = ["$(Hnames[i]) $(chnew[i])" for i=1:length(chnew)]
+					yticks = ["$(Hnames[i]) $(chnew[i])" for i=eachindex(chnew)]
 					NMFk.plotmatrix(Hm; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=xticks, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 					NMFk.plotmatrix(Hm[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 					if length(Htypes) > 0
-						yticks = ["$(Hnametypes[i]) $(chnew[i])" for i=1:length(chnew)]
+						yticks = ["$(Hnametypes[i]) $(chnew[i])" for i=eachindex(chnew)]
 						NMFk.plotmatrix(Hm[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 					end
-					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
+					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=eachindex(chnew)]
 					NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
@@ -559,7 +559,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			if (createdendrogramsonly || createplots) && length(chnew) < 100
 				@info("Dendrogram ploting ...")
 				try
-					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=1:length(chnew)]
+					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=eachindex(chnew)]
 					NMFk.plotdendrogram(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
@@ -668,25 +668,25 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					@warn("W ($(Wcasefilename)) matrix has too many attributes to plot as a matrix!")
 				else
 					xticks = ["S$i" for i=1:k]
-					yticks = ["$(Wnames[i]) $(cw[i])" for i=1:length(cw)]
+					yticks = ["$(Wnames[i]) $(cw[i])" for i=eachindex(cw)]
 					NMFk.plotmatrix(Wm; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=xticks, yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
 					# sorted by Wa magnitude
 					# ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
-					# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cw)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
+					# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cw)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 					cws = sortperm(cw)
-					yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=1:length(cw)]
+					yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=eachindex(cw)]
 					NMFk.plotmatrix(Wm[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=xticks, yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
-					yticks = ["$(Wnames[i]) $(cwnew[i])" for i=1:length(cwnew)]
+					yticks = ["$(Wnames[i]) $(cwnew[i])" for i=eachindex(cwnew)]
 					NMFk.plotmatrix(Wm[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
 					if length(Wtypes) > 0
-						yticks = ["$(Wnametypes[i]) $(cwnew[i])" for i=1:length(cwnew)]
+						yticks = ["$(Wnametypes[i]) $(cwnew[i])" for i=eachindex(cwnew)]
 						NMFk.plotmatrix(Wm[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, quiet=quiet)
 					end
-					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)]
+					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)]
 					NMFk.plotmatrix(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
-					# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=1:length(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
-					# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=1:length(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
-					# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
+					# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
+					# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
+					# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				end
 				if plottimeseries == :W || plottimeseries == :WH
 					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
@@ -695,7 +695,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 			if (createdendrogramsonly || createplots) && length(cw) < 100
 				@info("Dendrogram ploting ...")
 				try
-					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)]
+					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)]
 					NMFk.plotdendrogram(Wm[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
@@ -769,9 +769,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				Xek = (W[k][:,i:i] * Ha[i:i,:]) ./ Xe
 				Xekm = Xek .> cutoff_s
 				o = findmax(Xek; dims=1)
-				table = hcat(table, map(i->attributesl[i], map(i->o[2][i][1], 1:length(Hnames))))
-				table2 = hcat(table2, map(i->attributesl[Xekm[:,i]], 1:length(Hnames)))
-				table3 = hcat(table3, map(i->sum(Xekm[:,i]), 1:length(Hnames)))
+				table = hcat(table, map(i->attributesl[i], map(i->o[2][i][1], eachindex(Hnames))))
+				table2 = hcat(table2, map(i->attributesl[Xekm[:,i]], eachindex(Hnames)))
+				table3 = hcat(table3, map(i->sum(Xekm[:,i]), eachindex(Hnames)))
 			end
 			if !isnothing(lon) && !isnothing(lat)
 				DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_max.csv", [lon lat table], ',')
@@ -789,9 +789,9 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 				Xek = (W[k][:,i:i] * Ha[i:i,:]) ./ Xe
 				Xekm = Xek .> cutoff_s
 				o = findmax(Xek; dims=2)
-				table = hcat(table, map(i->Hnames[i], map(i->o[2][i][2], 1:length(attributesl))))
-				table2 = hcat(table2, map(i->Hnames[Xekm[i,:]], 1:length(attributesl)))
-				table3 = hcat(table3, map(i->sum(Xekm[i,:]), 1:length(attributesl)))
+				table = hcat(table, map(i->Hnames[i], map(i->o[2][i][2], eachindex(attributesl))))
+				table2 = hcat(table2, map(i->Hnames[Xekm[i,:]], eachindex(attributesl)))
+				table3 = hcat(table3, map(i->sum(Xekm[i,:]), eachindex(attributesl)))
 			end
 			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k)-table_max.csv", table, ',')
 			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k)-table_$(cutoff_s).csv", table2, ';')

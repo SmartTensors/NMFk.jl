@@ -332,7 +332,7 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	end
 	m = []
 	if joined
-		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=1:length(suc)], [colors[i] for i = eachindex(suc)]))
+		f = Gadfly.plot(l..., s..., Gadfly.Guide.title(title * ": Count $(ndata)"), Gadfly.Guide.manual_color_key("", ["Type $(suc[i]): $(ccount[i])" for i=eachindex(suc)], [colors[i] for i = eachindex(suc)]))
 	else
 		for (i, g) in enumerate(l)
 			if title != ""
