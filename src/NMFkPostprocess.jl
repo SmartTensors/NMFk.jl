@@ -419,22 +419,36 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		end
 
 		if clusterH
-			if size(Ha, 2) > 100000
-				@warn("The matrix size $(size(Ha)) is too high to compute the distances; the code may run our of memory!")
-			elseif Hrepeats > 100 && size(Ha, 2) > 10000
-				@warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))!")
+			reduced = false
+			if size(Ha, 1) > 100_000
+				reduced = true
+				Hrepeats = 1
+			elseif Hrepeats > 10 && size(Ha, 1) > 10_000
+				reduced = true
+				Hrepeats = 10
+			elseif Hrepeats > 100 && size(Ha, 1) > 1_000
+				reduced = true
+				Hrepeats = 100
 			end
+			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
 			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
 			clusterlabels = sort(unique(ch))
 			hsignalmap = NMFk.signalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
 		end
 
 		if clusterW
-			if size(Wa, 1) > 100000
-				@warn("The matrix size $(size(Wa)) is too high to compute the distances; the code may run our of memory!")
-			elseif Wrepeats > 100 && size(Wa, 1) > 10000
-				@warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))!")
+			reduced = false
+			if size(Wa, 1) > 100_000
+				reduced = true
+				Wrepeats = 1
+			elseif Wrepeats > 10 && size(Wa, 1) > 10_000
+				reduced = true
+				Wrepeats = 10
+			elseif Wrepeats > 100 && size(Wa, 1) > 1_000
+				reduced = true
+				Wrepeats = 100
 			end
+			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
 			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
 			if clusterH
 				@assert clusterlabels == sort(unique(cw))
@@ -539,7 +553,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
-					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames)
+					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(chnew) < 100
@@ -675,7 +689,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=1:length(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				end
 				if plottimeseries == :W || plottimeseries == :WH
-					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames)
+					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(cw) < 100
