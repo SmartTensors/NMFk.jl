@@ -238,8 +238,12 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 		Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt,
 		adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch,
 		W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize,
-		Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize, Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize,
-		Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize, Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize,
+		Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize,
+		Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize,
+		Wtimeseries_vsize=W_vsize, Wtimeseries_hsize=W_hsize,
+		Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize,
+		Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize,
+		Htimeseries_vsize=H_vsize, Htimeseries_hsize=H_hsize,
 		plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png",
 		sortmag::Bool=false,
 		point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt,
@@ -552,7 +556,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
-					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize)
+					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames, vsize=Htimeseries_vsize, hsize=Htimeseries_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(chnew) < 100
@@ -688,7 +692,7 @@ function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Inte
 					# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				end
 				if plottimeseries == :W || plottimeseries == :WH
-					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
+					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames, vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(cw) < 100
