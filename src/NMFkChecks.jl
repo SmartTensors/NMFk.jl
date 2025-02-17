@@ -3,7 +3,7 @@ import StatsBase
 import DataFrames
 
 function checkarray(X::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
-	rangeentry = Vector{UnitRange{Int64}}(undef, N)
+	rangeentry = Vector{AbstractUnitRange{Int64}}(undef, N)
 	min_firstentry = Vector{Int64}(undef, N)
 	max_lastentry = Vector{Int64}(undef, N)
 	max_record_length = Vector{Int64}(undef, N)
@@ -131,7 +131,7 @@ function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
 	return checkmatrix(Matrix(df[!, ci]), 2; names=names[ci], kw...)
 end
 
-function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=1:size(x, dim)], masks::Bool=false)
+function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=false)
 	names = String.(names)
 	mlength = maximum(length.(names))
 	na = size(x, dim)

@@ -29,7 +29,7 @@ function remap2count(assignments)
 	return map(mfunc, assignments)
 end
 
-function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},AbstractVector{Int64}}, repeats::Int=1000; best_method::Symbol=:worst_cliff, distance=Distances.CosineDist(), kw...)
+function robustkmeans(X::AbstractMatrix, krange::Union{AbstractUnitRange{Int},AbstractVector{Int64}}, repeats::Int=1000; best_method::Symbol=:worst_cliff, distance=Distances.CosineDist(), kw...)
 	if krange[1] >= size(X, 2)
 		@info("Cannot be computed (min range is greater than or equal to size(X,2); $krange[1] >= $(size(X, 2)))")
 		return nothing
@@ -52,9 +52,9 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractRange{Int},Abstra
 		@info("$k: OF: $(totalcosts[i]) Mean Silhouette: $(mean_silhouette[i]) Worst Silhouette: $(worst_silhouette[i]) Cluster Count: $(map(j->sum(cresult[i].assignments .== j), unique(cresult[i].assignments))) Cluster Silhouettes: $(cluster_silhouettes[i])")
 	end
 	if best_method == :worst_cliff
-		ki = last(findmax(map(i->worst_silhouette[i] - worst_silhouette[i+1], 1:length(krange)-1))) + 1
+		ki = last(findmax(map(i->worst_silhouette[i] - worst_silhouette[i+1], eachindex(krange)[begin:end-1]))) + 1
 	elseif best_method == :worst_cluster_cliff
-		ki = last(findmax(map(i->minimum(cluster_silhouettes[i]) - minimum(cluster_silhouettes[i+1]), 1:length(krange)-1))) + 1
+		ki = last(findmax(map(i->minimum(cluster_silhouettes[i]) - minimum(cluster_silhouettes[i+1]), eachindex(krange)[begin:end-1]))) + 1
 	else
 		@error("Unknown method: best_method must be :worst_cliff or :worst_cluster_cliff")
 	end

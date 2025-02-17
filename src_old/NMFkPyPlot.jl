@@ -107,7 +107,7 @@ function setnewfilename(filename::AbstractString, frame::Integer=0; keyword::Abs
 		root = fs[1]
 		ext = ""
 	else
-		root = join(fs[1:end-1], ".")
+		root = join(fs[begin:end-1], ".")
 		ext = fs[end]
 	end
 	if ext == ""

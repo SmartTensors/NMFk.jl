@@ -103,8 +103,8 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 end
 
 function matrixminmax(a::AbstractMatrix, dim::Integer)
-	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
-	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), axes(a, dim))
+	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), axes(a, dim))
 	if dim == 2
 		amax = permutedims(amax)
 		amin = permutedims(amin)
@@ -113,7 +113,7 @@ function matrixminmax(a::AbstractMatrix, dim::Integer)
 end
 
 function matrixmin(a::AbstractMatrix, dim::Integer)
-	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), axes(a, dim))
 	if dim == 2
 		amin = permutedims(amin)
 	end
@@ -121,7 +121,7 @@ function matrixmin(a::AbstractMatrix, dim::Integer)
 end
 
 function matrixmax(a::AbstractMatrix, dim::Integer)
-	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), axes(a, dim))
 	if dim == 2
 		amax = permutedims(amax)
 	end
@@ -181,8 +181,8 @@ function normalizearray!(a::AbstractArray, dim::Integer; rev::Bool=false, log::B
 end
 
 function arrayminmax(a::AbstractArray, dim::Integer)
-	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
-	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), 1:size(a, dim))
+	amax = map(i->NMFk.maximumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), axes(a, dim))
+	amin = map(i->NMFk.minimumnan(a[ntuple(k->(k == dim ? i : Colon()), ndims(a))...]), axes(a, dim))
 	return amin, amax
 end
 
@@ -320,14 +320,14 @@ end
 
 "Scale matrix (by rows)"
 function scalematrix_row!(a::AbstractMatrix)
-	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), 1:size(a, 2)))
+	amax = permutedims(map(i->NMFk.maximumnan(a[:,i]), axes(a, 2)))
 	a ./= amax
 	return a, amax
 end
 
 "Scale matrix (by columns)"
 function scalematrix_col!(a::AbstractMatrix)
-	amax = map(i->NMFk.maximumnan(a[i,:]), 1:size(a, 1))
+	amax = map(i->NMFk.maximumnan(a[i,:]), axes(a, 1))
 	a = a ./ amax
 	return a, amax
 end

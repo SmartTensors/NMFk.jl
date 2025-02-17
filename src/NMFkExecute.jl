@@ -74,7 +74,7 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 end
 
 "Execute NMFk analysis for a range of number of signals"
-function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, load::Bool=true, save::Bool=true, casefilename::AbstractString="", kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, load::Bool=true, save::Bool=true, casefilename::AbstractString="", kw...) where {T <: Number, N}
 	load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
 	maxk = maximum(collect(nkrange))
 	W = Vector{Array{T, N}}(undef, maxk)
@@ -150,7 +150,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 		so = signalorder(W, H)
 	else
 		@warn("Signals are not orered ...")
-		so = 1:size(W, 2)
+		so = axes(W, 2)
 	end
 	!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 	if save
@@ -441,12 +441,12 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	Xe = Wbest * Hbest
 	fn = normnan(X .- Xe)
 	if !veryquiet
-		println("Worst correlation by columns: $(minimumnan(map(i->cornan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
-		println("Worst correlation by rows: $(minimumnan(map(i->cornan(X[:, i], Xe[:, i]), 1:size(X, 2))))")
-		println("Worst covariance by columns: $(minimumnan(map(i->covnan(X[i, :], Xe[i, :]), 1:size(X, 1))))")
-		println("Worst covariance by rows: $(minimumnan(map(i->covnan(X[:, i], Xe[:, i]), 1:size(X, 2))))")
-		println("Worst norm by columns: $(maximumnan(map(i->(normnan(X[i, :] - Xe[i, :]) / fn), 1:size(X, 1))))")
-		println("Worst norm by rows: $(maximumnan(map(i->(normnan(X[:, i] - Xe[:, i]) / fn), 1:size(X, 2))))")
+		println("Worst correlation by columns: $(minimumnan(map(i->cornan(X[i, :], Xe[i, :]), axes(X, 1))))")
+		println("Worst correlation by rows: $(minimumnan(map(i->cornan(X[:, i], Xe[:, i]), axes(X, 2))))")
+		println("Worst covariance by columns: $(minimumnan(map(i->covnan(X[i, :], Xe[i, :]), axes(X, 1))))")
+		println("Worst covariance by rows: $(minimumnan(map(i->covnan(X[:, i], Xe[:, i]), axes(X, 2))))")
+		println("Worst norm by columns: $(maximumnan(map(i->(normnan(X[i, :] - Xe[i, :]) / fn), axes(X, 1))))")
+		println("Worst norm by rows: $(maximumnan(map(i->(normnan(X[:, i] - Xe[:, i]) / fn), axes(X, 2))))")
 	end
 	minsilhouette = 1
 	if nk > 1
@@ -513,7 +513,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
-		for (j, c1, c2) in zip(1:length(ratioindices[1,:]), ratioindices[1,:], ratioindices[2,:])
+		for (j, c1, c2) in zip(eachindex(ratioindices[1,:]), ratioindices[1,:], ratioindices[2,:])
 			for i = 1:nP
 				s1 = 0
 				s2 = 0

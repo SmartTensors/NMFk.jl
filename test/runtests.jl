@@ -6,7 +6,7 @@ import LinearAlgebra
 
 Test.@testset "NMFk" begin
 
-function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Matrix{Float32}=Matrix{Float32}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0); conccomponents=collect(1:size(concs, 2)), ratiocomponents=Int[], tol::Number=0.0000001)
+function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Matrix{Float32}=Matrix{Float32}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0); conccomponents=collect(axes(concs, 2)), ratiocomponents=Int[], tol::Number=0.0000001)
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
 	mixerestimate, bucketestimate, objfuncval = NMFk.mixmatchdata(convert(Matrix{Float32}, concs), numbuckets; random=false, ratios=ratios, ratioindices=ratiocomponents, regularizationweight=convert(Float32, 1e-1), maxiter=5000, verbosity=0, tol=tol, method=:ipopt)
@@ -16,7 +16,7 @@ function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Matrix{
 	if length(conccomponents) > 0
 		Test.@test LinearAlgebra.norm(predictedconcs[:, conccomponents] - concs[:, conccomponents], 2) / LinearAlgebra.norm(concs[:, conccomponents], 2) < 1 # fit the data within 1%
 		for j in axes(buckets, 1)
-			Test.@test minimum(map(i->LinearAlgebra.norm(buckets[i, conccomponents] - bucketestimate[j, conccomponents]) / LinearAlgebra.norm(buckets[i, conccomponents], 2), 1:size(buckets, 1))) < 1 # reproduce the buckets within 30%
+			Test.@test minimum(map(i->LinearAlgebra.norm(buckets[i, conccomponents] - bucketestimate[j, conccomponents]) / LinearAlgebra.norm(buckets[i, conccomponents], 2), axes(buckets, 1))) < 1 # reproduce the buckets within 30%
 		end
 	end
 	checkratios(mixerestimate, bucketestimate, ratios, ratiocomponents)

@@ -15,7 +15,7 @@ function regression(P::AbstractArray{T}, Mtrain::AbstractMatrix{T}, Mpredict::Ab
 		for k in axes(P, 3)
 			Ab = MultivariateStats.eval(method)(Mtrain, P[:,:,k], al...; trans=false, bias=bias)
 			if bias
-				A, b = Ab[1:end-1,:], Ab[end:end,:]
+				A, b = Ab[begin:end-1,:], Ab[end:end,:]
 				# @show NMFk.normnan((Mtrain * A .+ b) .- P[:,:,k])
 				Xe[:,:,k] = Mpredict * A .+ b
 				# @show NMFk.normnan((Ab' * [Mtrain ones(size(Mtrain, 1))]')' .- P[:,:,k])

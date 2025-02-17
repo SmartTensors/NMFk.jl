@@ -44,7 +44,7 @@ function branches(hc::Clustering.Hclust, location::Symbol, scaleheight::Number=0
 	useheight = height == 0
 	userow = location == :both || location == :top
 	usecol = location == :both || location == :right
-	for i in 1:size(hc.merges, 1)
+	for i in axes(hc.merges, 1)
 		x1, y1 = nodepos[hc.merges[i, 1]]
 		x2, y2 = nodepos[hc.merges[i, 2]]
 

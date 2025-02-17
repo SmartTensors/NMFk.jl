@@ -197,7 +197,7 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 			push!(c, Gadfly.layer(x=dots[:,1], y=dots[:,2], Gadfly.Theme(point_size=dotsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt, default_color=dotcolor)))
 		end
 		if !isnothing(contour)
-			push!(c, Gadfly.layer(z=permutedims(contour .* (maxvalue - minvalue) .+ minvalue), x=collect(1:size(contour, 2)), y=collect(1:size(contour, 1)), Gadfly.Geom.contour(levels=[minvalue]), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
+			push!(c, Gadfly.layer(z=permutedims(contour .* (maxvalue - minvalue) .+ minvalue), x=collect(axes(contour, 2)), y=collect(axes(contour, 1)), Gadfly.Geom.contour(levels=[minvalue]), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
 		end
 		if !isnothing(l)
 			if !isnothing(mask)

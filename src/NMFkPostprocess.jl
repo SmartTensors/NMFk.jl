@@ -24,7 +24,7 @@ function signalrescale!(W::AbstractMatrix, H::AbstractMatrix; Wnormalize::Bool=t
 	check && @assert(maximum(abs.((X - W * H))) < 1.)
 end
 
-function signalorder(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector)
+function signalorder(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector)
 	signal_order = Vector{Vector{Int64}}(undef, maximum(krange))
 	for k = 1:maximum(krange)
 		signal_order[k] = Vector{Int64}(undef, 0)
@@ -84,7 +84,7 @@ function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir:
 	return Wclusterlabelsnew, Wsignals, Hclusterlabels, Hsignals
 end
 
-function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, dim::Integer=2; figuredir::AbstractString=".", casefilename::AbstractString="", plotformat::AbstractString="png", names::AbstractVector, print::Bool=true, func::Function=Statistics.var, map::Function=i->i, kw...)
+function signal_statistics(nkrange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, dim::Integer=2; figuredir::AbstractString=".", casefilename::AbstractString="", plotformat::AbstractString="png", names::AbstractVector, print::Bool=true, func::Function=Statistics.var, map::Function=i->i, kw...)
 	for k in nkrange
 		Xe = map(W[k] * H[k])
 		print && (@info("Reconstructed data:"); display([names Xe']))
@@ -125,7 +125,7 @@ function signal_statistics(nkrange::Union{AbstractRange{Int},AbstractVector{Int6
 	end
 end
 
-function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector, X::AbstractMatrix, W::AbstractVector, H::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, plotr2::Bool=true, kw...)
+function plot_signal_selecton(nkrange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector, X::AbstractMatrix, W::AbstractVector, H::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, plotr2::Bool=true, kw...)
 	r = normalize_robustness ? robustness[nkrange] ./ maximumnan(robustness[nkrange]) : robustness[nkrange]
 	r2 = similar(robustness)
 	mm = maximum(X)
@@ -141,7 +141,7 @@ function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{I
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r r2[nkrange]], "$(figuredir)/$(casefilename)_r2.$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], xtitle=xtitle, ytitle=ytitle, names=["Fit", "Robustness", "R2"], kw...)
 	return r2
 end
-function plot_signal_selecton(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, kw...)
+function plot_signal_selecton(nkrange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, fitquality::AbstractVector, robustness::AbstractVector; figuredir::AbstractString=".", casefilename::AbstractString="signal_selection", title::AbstractString="", xtitle::AbstractString="Number of signals", ytitle::AbstractString="Normalized metrics", plotformat::AbstractString="png", normalize_robustness::Bool=true, kw...)
 	r = normalize_robustness ? robustness[nkrange] ./ maximumnan(robustness[nkrange]) : robustness[nkrange]
 	Mads.plotseries([fitquality[nkrange] ./ maximumnan(fitquality[nkrange]) r], "$(figuredir)/$(casefilename).$(plotformat)"; title=title, ymin=0, xaxis=nkrange, xmin=nkrange[1], xtitle=xtitle, ytitle=ytitle, names=["Fit", "Robustness"], kw...)
 end
@@ -195,11 +195,11 @@ function postprocess(W::AbstractMatrix{T}, H::AbstractMatrix{T}, aw...; kw...) w
 	NMFk.postprocess(k, Wa, Ha, aw...; kw...)
 end
 
-function postprocess(nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, nruns::Integer; cutoff::Number=0.5, kw...)
+function postprocess(nkrange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, nruns::Integer; cutoff::Number=0.5, kw...)
 	NMFk.postprocess(NMFk.getks(nkrange, silhouette[nkrange], cutoff), nkrange, nruns; kw...)
 end
 
-function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, nkrange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, nruns::Integer; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", suffix::AbstractString="$(casefilename)-$(nruns)", kw...)
+function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, nkrange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, nruns::Integer; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", suffix::AbstractString="$(casefilename)-$(nruns)", kw...)
 	W, H, fit, silhouette, aic, kopt = NMFk.load(nkrange, nruns; resultdir=resultdir, casefilename=casefilename)
 	NMFk.postprocess(krange, W, H; resultdir="results-$(suffix)", figuredir="figures-$(suffix)", kw...)
 end
@@ -216,7 +216,7 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function postprocess(krange::Union{AbstractRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
+function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
 		ordersignals::Symbol=:importance,
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,

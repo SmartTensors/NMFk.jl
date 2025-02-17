@@ -3,7 +3,7 @@ import StatsBase
 import Gadfly
 import PlotlyJS
 
-function progressive(X::AbstractMatrix{T}, windowsize::Int64, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
+function progressive(X::AbstractMatrix{T}, windowsize::Int64, nkrange::AbstractUnitRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
 		@warn("Input matrix contains rows or columns with only NaNs!")
@@ -32,10 +32,10 @@ function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, wi
 		@warn("Input matrix contains rows or columns with only NaNs!")
 		@show checknans
 	end
-	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, 1:size(X, 1)))
-	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, 1:size(X, 2)))
-	# @show map(i->sum(.!isnan.(X[i, :])), 1:size(X, 1))
-	# @show map(i->sum(.!isnan.(X[:, i])), 1:size(X, 2))
+	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, axes(X, 1)))
+	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, axes(X, 2)))
+	# @show map(i->sum(.!isnan.(X[i, :])), axes(X, 1))
+	# @show map(i->sum(.!isnan.(X[:, i])), axes(X, 2))
 	for (i, ws) in enumerate(windowsize)
 		k = window_k[i]
 		@info("NMFk #1: $(casefilename) Window $ws Signals $k")
@@ -48,16 +48,16 @@ function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, wi
 	return window_k
 end
 
-function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
+function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nkrange::AbstractUnitRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
 		@warn("Input matrix contains rows or columns with only NaNs!")
 		@show checknans
 	end
-	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, 1:size(X, 1)))
-	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, 1:size(X, 2)))
-	# @show map(i->sum(.!isnan.(X[i, :])), 1:size(X, 1))
-	# @show map(i->sum(.!isnan.(X[:, i])), 1:size(X, 2))
+	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, axes(X, 1)))
+	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, axes(X, 2)))
+	# @show map(i->sum(.!isnan.(X[i, :])), axes(X, 1))
+	# @show map(i->sum(.!isnan.(X[:, i])), axes(X, 2))
 	window_k = Vector{Int64}(undef, 0)
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
@@ -72,11 +72,11 @@ function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nk
 	return window_k
 end
 
-function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{Int64}, nkrange::AbstractRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
+function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{Int64}, nkrange::AbstractUnitRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	window_k = Vector{Int64}(undef, 0)
 	for ws in windowsize
 		@info("NMFk #1: $(casefilename) Window $ws")
-		normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i][1:ws,:]), ws), 1:length(X))...)
+		normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i][1:ws,:]), ws), eachindex(X))...)
 		W, H, fitquality, robustness, aic = NMFk.execute(vcat([X[i][1:ws,:] for i = eachindex(X)]...), nkrange, nNMF1; normalizevector=normalizevector,casefilename="$(casefilename)_$(ws)", load=load, kw...)
 		k = getk(nkrange, robustness[nkrange], cutoff; strict=false)
 		push!(window_k, k)
@@ -89,7 +89,7 @@ function progressive(X::AbstractVector{Matrix{T}}, windowsize::AbstractVector{In
 		# end
 		if ws < size(X[1], 1)
 			@info("NMFk #2: $(casefilename) Window $ws: Best $k")
-			normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i]), size(X[1], 1)), 1:length(X))...)
+			normalizevector = vcat(map(i->fill(NMFk.maximumnan(X[i]), size(X[1], 1)), eachindex(X))...)
 			Wa, Ha, fitquality, robustness, aic = NMFk.execute(vcat([X[i] for i = eachindex(X)]...), k, nNMF2; Hinit=convert.(T, H[k]), Hfixed=true, normalizevector=normalizevector, casefilename="$(casefilename)_$(ws)_all", load=load, kw...)
 			# global wws = 1
 			# global wwe = size(X[1], 1)
@@ -275,7 +275,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 	end
 end
 
-function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; strict::Bool=true) where {T1 <: Integer, T2 <: Number}
+function getk(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; strict::Bool=true) where {T1 <: Integer, T2 <: Number}
 	if length(nkrange) != length(robustness)
 		robustness = robustness[nkrange]
 	end
@@ -311,7 +311,7 @@ function getk(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::
 	return k
 end
 
-function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing, strict::Bool=true) where {T1 <: Integer, T2 <: Number, T3 <: Integer}
+function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing, strict::Bool=true) where {T1 <: Integer, T2 <: Number, T3 <: Integer}
 	if all(isnan.(robustness))
 		return []
 	end
@@ -345,7 +345,7 @@ function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, robustness:
 	return mergeks(k, ks)
 end
 
-function getks(nkrange::Union{AbstractRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing, strict::Bool=true) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
+function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing, strict::Bool=true) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
 	@assert length(nkrange) == length(F)
 	if all(isnan.(robustness))
 		return []

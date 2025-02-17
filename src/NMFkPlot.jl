@@ -111,7 +111,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		p = Gadfly.plot(l..., Gadfly.Theme(background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
 	elseif plotmethod == :frame
 		# palette = ncolors == length(x) ? Gadfly.parse_colorant(NMFk.colors) : Gadfly.parse_colorant(colors)
-		cv = ncolors == length(x) ? vec(1:length(x)) : colors
+		cv = ncolors == length(x) ? vec(eachindex(x)) : colors
 		l = Vector{Vector{Gadfly.Layer}}(undef, 0)
 		if plotlabel
 			inl = label .== ""
@@ -174,7 +174,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		colormap = function(nc)
 						palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
 					end
-		cv = ncolors == length(x) ? vec(1:length(x)) : colors
+		cv = ncolors == length(x) ? vec(eachindex(x)) : colors
 		if plotlabel
 			p = Gadfly.plot([x y label cv], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), label=Gadfly.Col.value(3), color=Gadfly.Col.value(4), Gadfly.Geom.point(), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(xmin=0, xmax=1, ymin=0, ymax=1), gm...)
 		else
@@ -259,13 +259,13 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 	dx = xaxis[2] - xaxis[1]
 	if length(xaxis) > 2
 		if closed == :left && maxd == xaxis[end-1]
-			xmina = xaxis[1:end-2]
+			xmina = xaxis[begin:end-2]
 			xmaxa = xaxis[2:end-1]
 		elseif closed == :right && mind == xaxis[2]
 			xmina = xaxis[2:end-1]
 			xmaxa = xaxis[3:end]
 		else
-			xmina = xaxis[1:end-1]
+			xmina = xaxis[begin:end-1]
 			xmaxa = xaxis[2:end]
 		end
 	else
@@ -292,7 +292,7 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		end
 		if length(xaxis) > 2
 			if closed == :left && maxd == xaxis[end-1]
-				ya = y[1:end-1]
+				ya = y[begin:end-1]
 				ya[end] += y[end]
 			elseif closed == :right && mind == xaxis[2]
 				ya = y[2:end]

@@ -358,7 +358,7 @@ function slopes(v::AbstractVector)
 	s = similar(v)
 	s[1] = v[2] - v[1]
 	s[end] = v[end] - v[end-1]
-	for i = 2:length(v)-1
+	for i = eachindex(v)[begin+1:end-1]
 		s[i] = (v[i+1] - v[i-1]) ./ 2
 	end
 	return s
@@ -565,7 +565,7 @@ end
 function minmax_dx(x::AbstractVector)
 	minx = Inf
 	maxx = -Inf
-	for i in 2:length(x)
+	for i in eachindex(x)[begin+1:end]
 		dx = x[i] - x[i-1]
 		if dx < minx
 			minx = dx

@@ -1,7 +1,7 @@
 import JLD
 import Mads
 
-function load(nkrange::AbstractRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, quiet::Bool=false, strict::Bool=true, kw...)
+function load(nkrange::AbstractUnitRange{Int}, nNMF::Integer=10; cutoff::Number=0.5, quiet::Bool=false, strict::Bool=true, kw...)
 	maxsignals = maximum(collect(nkrange))
 	aicl = NaN
 	igood = 0
@@ -46,7 +46,7 @@ function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Intege
 			so = signalorder(W, H)
 		else
 			@warn("Signals are not orered ...")
-			so = 1:size(W, 2)
+			so = axes(W, 2)
 		end
 		!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 		return W[:,so], H[so,:], fitquality, robustness, aic
@@ -63,7 +63,7 @@ Load NMFk analysis results
 function save(t::Tuple, o...; kw...)
 	save(t..., o...; kw...)
 end
-function save(W, H, fitquality, robustness, aic, nkrange::AbstractRange{Int}=1:length(W), nNMF::Integer=10; kw...)
+function save(W, H, fitquality, robustness, aic, nkrange::AbstractUnitRange{Int}=eachindex(W), nNMF::Integer=10; kw...)
 	for nk in nkrange
 		if isassigned(W, nk)
 			save(W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk], nk, nNMF; kw...)

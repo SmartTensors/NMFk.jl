@@ -8,7 +8,7 @@ function bootstrapping(X::AbstractMatrix{T}, scaling::Number=1.0, epsilon::Numbe
 end
 
 function bootstrapping!(X::AbstractMatrix{T}, scaling::Number=1.0, epsilon::Number=sqrt(eps())) where {T <: Number}
-	for i in 1:size(X, 2)
+	for i in axes(X, 2)
 		v = convert(Vector{Int64}, round.(X[:, i] .* scaling))
 		n = sum(v)
 		p = v ./ n
@@ -24,7 +24,7 @@ function bootstrapping(X::AbstractMatrix{Int64})
 end
 
 function bootstrapping!(X::AbstractMatrix{Int64})
-	for i in 1:size(X, 2)
+	for i in axes(X, 2)
 		n = sum(X[:, i])
 		p = X[:, i] ./ n
 		v = Distributions.Multinomial(n, p)

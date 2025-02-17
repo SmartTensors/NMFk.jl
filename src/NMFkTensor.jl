@@ -1,6 +1,6 @@
 import DocumentFunction
 
-function tensorfactorization(X::AbstractArray{T,N}, range::Union{AbstractRange{Int},Integer}, dims::Union{AbstractRange{Int},Integer}=1:N, aw...; casefilename::AbstractString="nmfk-tensor", kw...) where {T <: Number, N}
+function tensorfactorization(X::AbstractArray{T,N}, range::Union{AbstractUnitRange{Int},Integer}, dims::Union{AbstractUnitRange{Int},Integer}=1:N, aw...; casefilename::AbstractString="nmfk-tensor", kw...) where {T <: Number, N}
 	@assert maximum(dims) <= N
 	R = Vector{Tuple}(undef, N)
 	@info("Analyzed Dimensions: $dims")
