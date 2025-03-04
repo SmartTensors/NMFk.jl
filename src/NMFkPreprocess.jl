@@ -257,7 +257,7 @@ function griddata(x::AbstractVector, y::AbstractVector; stepvalue=nothing, nbins
 	if .!isnothing(nbins)
 		!quiet && @info("Grid data: Number of bins x=$(xbins) y=$(ybins)")
 		return range(gxmin, gxmax; length=xbins), range(gymin, gymax; length=ybins)
-	elseif .!isnothing(stepvalue)
+	elseif .!isnothing(xstepvalue) .&& .!isnothing(ystepvalue)
 		!quiet && @info("Grid data: Step x=$(xstepvalue) y=$(ystepvalue)")
 		return range(gxmin, gxmax; step=xstepvalue), range(gymin, gymax; step=ystepvalue)
 	else
