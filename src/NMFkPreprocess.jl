@@ -255,10 +255,10 @@ function griddata(x::AbstractVector, y::AbstractVector; stepvalue=nothing, nbins
 	ix, xbins, gxmin, gxmax = NMFk.indicize(x; rev=xrev, nbins=xnbins, minvalue=xminvalue, maxvalue=xmaxvalue, stepvalue=xstepvalue, granulate=granulate, quiet=quiet)
 	iy, ybins, gymin, gymax = NMFk.indicize(y; rev=yrev, nbins=ynbins, minvalue=yminvalue, maxvalue=ymaxvalue, stepvalue=ystepvalue, granulate=granulate, quiet=quiet)
 	if .!isnothing(nbins)
-		!quiet && @info("Grid data: Number of bins x=$(xbins) y=$(ybins)")
+		@info("Grid data: Step x=$(xstepvalue) y=$(ystepvalue) Number of bins x=$(xbins) y=$(ybins)")
 		return range(gxmin, gxmax; length=xbins), range(gymin, gymax; length=ybins)
 	elseif .!isnothing(xstepvalue) .&& .!isnothing(ystepvalue)
-		!quiet && @info("Grid data: Step x=$(xstepvalue) y=$(ystepvalue)")
+		@info("Grid data: Step x=$(xstepvalue) y=$(ystepvalue) Number of bins x=$(xbins) y=$(ybins)")
 		return range(gxmin, gxmax; step=xstepvalue), range(gymin, gymax; step=ystepvalue)
 	else
 		@error("Something is wrong! Grid data failed ...")
