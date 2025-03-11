@@ -340,7 +340,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 	for (ki, k) in enumerate(krange)
 		@info("Number of signals: $k")
 
-		if length(X) > 0
+		if length(X) > 0 # if the input data is provided
 			Xe = W[k] * H[k]
 			fitquality = NMFk.normnan(X .- Xe)
 			if size(X, 2) < 50
