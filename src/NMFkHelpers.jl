@@ -79,10 +79,10 @@ function minimumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	return m
 end
 
-function sumnan(X::AbstractArray; dims=nothing, kw...)
+function sumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
-		I = isnan.(X)
+		I = func.(X)
 		if sum(I) == ecount
 			return NaN
 		else
@@ -90,7 +90,7 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 		end
 	else
 		ecount = .*(size(X)[vec(collect(dims))]...)
-		I = isnan.(X)
+		I = func.(X)
 		X[I] .= 0
 		sX = sum(X; dims=dims, kw...)
 		X[I] .= NaN
@@ -100,10 +100,10 @@ function sumnan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
-function cumsumnan(X::AbstractArray; dims=nothing, kw...)
+function cumsumnan(X::AbstractArray; dims=nothing, func::Function=func, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
-		I = isnan.(X)
+		I = func.(X)
 		if sum(I) == ecount
 			return NaN
 		else
@@ -114,7 +114,7 @@ function cumsumnan(X::AbstractArray; dims=nothing, kw...)
 		end
 	else
 		ecount = .*(size(X)[vec(collect(dims))]...)
-		I = isnan.(X)
+		I = func.(X)
 		X[I] .= 0
 		sX = cumsum(X; dims=dims, kw...)
 		X[I] .= NaN
@@ -124,10 +124,10 @@ function cumsumnan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
-function meannan(X::AbstractArray; dims=nothing, kw...)
+function meannan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
-		I = isnan.(X)
+		I = func.(X)
 		if sum(I) == ecount
 			return NaN
 		else
@@ -135,7 +135,7 @@ function meannan(X::AbstractArray; dims=nothing, kw...)
 		end
 	else
 		ecount = .*(size(X)[vec(collect(dims))]...)
-		I = isnan.(X)
+		I = func.(X)
 		X[I] .= 0
 		sX = sum(X; dims=dims, kw...)
 		X[I] .= NaN
@@ -146,10 +146,10 @@ function meannan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
-function varnan(X::AbstractArray; dims=nothing, kw...)
+function varnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
-		I = isnan.(X)
+		I = func.(X)
 		if sum(I) == ecount
 			return NaN
 		else
@@ -157,7 +157,7 @@ function varnan(X::AbstractArray; dims=nothing, kw...)
 		end
 	else
 		ecount = .*(size(X)[vec(collect(dims))]...)
-		I = isnan.(X)
+		I = func.(X)
 		X[I] .= 0
 		sX = sum(X; dims=dims, kw...)
 		sX2 = sum(X .^ 2; dims=dims, kw...)
@@ -171,41 +171,41 @@ function varnan(X::AbstractArray; dims=nothing, kw...)
 	end
 end
 
-function stdnan(X::AbstractArray; dims=nothing, kw...)
-	return sqrt.(varnan(X; dims=dims, kw...))
+function stdnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
+	return sqrt.(varnan(X; dims=dims, func=func, kw...))
 end
 
-function rmsenan(t::AbstractVector, o::AbstractVector)
-	it = .!isnan.(t)
-	ot = .!isnan.(o)
+function rmsenan(t::AbstractVector, o::AbstractVector; func::Function=isnan)
+	it = .!func.(t)
+	ot = .!func.(o)
 	ii = it .& ot
 	return sqrt( sum( (t[ii] .- o[ii]) .^ 2.) ./ sum(ii) )
 end
 
-function l1nan(t::AbstractVector, o::AbstractVector)
-	it = .!isnan.(t)
-	ot = .!isnan.(o)
+function l1nan(t::AbstractVector, o::AbstractVector; func::Function=isnan)
+	it = .!func.(t)
+	ot = .!func.(o)
 	ii = it .& ot
 	return sum(abs.(t[ii] .- o[ii]))
 end
 
-function ssqrnan(t::AbstractVector, o::AbstractVector) # Distances.euclidean(x, y)
-	it = .!isnan.(t)
-	ot = .!isnan.(o)
+function ssqrnan(t::AbstractVector, o::AbstractVector; func::Function=isnan) # Distances.euclidean(x, y)
+	it = .!func.(t)
+	ot = .!func.(o)
 	ii = it .& ot
 	return sqrt(sum( (t[ii] .- o[ii]) .^ 2.))
 end
 
-function ssqrnan(X::AbstractArray)
-	sum(X[.!isnan.(X)].^2)
+function ssqrnan(X::AbstractArray; func::Function=isnan)
+	sum(X[.!func.(X)].^2)
 end
 
-function normnan(X::AbstractArray)
-	LinearAlgebra.norm(X[.!isnan.(X)])
+function normnan(X::AbstractArray; func::Function=isnan)
+	LinearAlgebra.norm(X[.!func.(X)])
 end
 
-function covnan(x, y)
-	isn = .!(isnan.(x) .| isnan.(y))
+function covnan(x::AbstractArray, y::AbstractArray; func::Function=isnan)
+	isn = .!(func.(x) .| func.(y))
 	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
 		return Statistics.cov(x[isn], y[isn])
 	else
@@ -213,8 +213,8 @@ function covnan(x, y)
 	end
 end
 
-function cornan(x, y)
-	isn = .!(isnan.(x) .| isnan.(y))
+function cornan(x::AbstractArray, y::AbstractArray; func::Function=isnan)
+	isn = .!(func.(x) .| func.(y))
 	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
 		return Statistics.cor(x[isn], y[isn])
 	else

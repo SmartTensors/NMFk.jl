@@ -216,7 +216,7 @@ end
 """
 cutoff::Number = .9, cutoff_s::Number = 0.95
 """
-function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
+function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=[]; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
 		ordersignals::Symbol=:importance,
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
@@ -339,6 +339,15 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 	Sorder = Vector{Vector{Int64}}(undef, length(krange))
 	for (ki, k) in enumerate(krange)
 		@info("Number of signals: $k")
+
+		if length(X) > 0
+			Xe = W[k] * H[k]
+			fitquality = NMFk.normnan(X .- Xe)
+			for i in axes(X, 2)
+				fitattribute = NMFk.normnan(X[:,i] .- Xe[:,i])
+				@info("$(titlecase(Hcasefilename[1:end-1])) $(Hnames[i]) relative fit quality: $(fitattribute/fitquality)")
+			end
+		end
 
 		isignalmap = signalorder(W[k], H[k])
 
