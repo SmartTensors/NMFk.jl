@@ -343,9 +343,19 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		if length(X) > 0
 			Xe = W[k] * H[k]
 			fitquality = NMFk.normnan(X .- Xe)
-			for i in axes(X, 2)
-				fitattribute = NMFk.normnan(X[:,i] .- Xe[:,i])
-				@info("$(titlecase(Hcasefilename[1:end-1])) $(Hnames[i]) relative fit quality: $(fitattribute/fitquality)")
+			if size(X, 2) < 50
+				@info("Fit quality related to $(Wcasefilename)")
+				for i in axes(X, 2)
+					fitattribute = NMFk.normnan(X[:,i] .- Xe[:,i])
+					println("$(titlecase(Hcasefilename[1:end-1])) $(Hnames[i]) relative fit quality: $(fitattribute/fitquality)")
+				end
+			end
+			if size(X, 1) < 50
+				@info("Fit quality related to $(Wcasefilename)")
+				for i in axes(X, 1)
+					fitattribute = NMFk.normnan(X[i,:] .- Xe[i,:])
+					println("$(titlecase(Wcasefilename[1:end-1])) $(Wnames[i]) relative fit quality: $(fitattribute/fitquality)")
+				end
 			end
 		end
 
