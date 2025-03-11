@@ -123,7 +123,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 				save = false
 				runflag = false
 			else
-				print("File $(filename) contains  $(Base.text_colors[:yellow])$(Base.text_colors[:bold])inconsistent results$(Base.text_colors[:normal]); runs will be executed ...")
+				println("File $(filename) contains $(Base.text_colors[:yellow])$(Base.text_colors[:bold])inconsistent results$(Base.text_colors[:normal]); runs will be executed ...")
 				println("W matrix - Expected size: $((size(X, 1), nk)) Actual size: $(size(W))")
 				println("H matrix - Expected size: $((nk, size(X, 2))) Actual size: $(size(H))")
 			end
@@ -497,7 +497,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			E = X - Wa * Ha
 		end
 		E[isnan.(E)] .= 0
-		phi_final = sum(E.^2)
+		phi_final = normnan(E)
 	else
 		Ha_conc = Ha[:,1:nC]
 		Ha_deltas = Ha[:,nC+1:end]
@@ -509,7 +509,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		end
 		E[isnan.(E)] .= 0
 		id = !isnan.(deltas)
-		phi_final = sum(E.^2) + sum((deltas[id] .- estdeltas[id]).^2)
+		phi_final = normnan(E) + normnan(deltas[id] .- estdeltas[id])
 	end
 	if !quiet && sizeof(ratios) > 0
 		ratiosreconstruction = 0
@@ -525,7 +525,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			end
 		end
 		println("Ratio reconstruction = $ratiosreconstruction")
-		phi_final += ratiosreconstruction
+		phi_final += sqrt(ratiosreconstruction)
 	end
 	numobservations = sum(.!isnan.(X))
 	numparameters = *(collect(size(Wa))...) + *(collect(size(Ha))...)
@@ -619,9 +619,10 @@ function execute_singlerun_compute(X::AbstractMatrix{T}, nk::Int; quiet::Bool=NM
 			H = NMFk.descalematrix!(H, Xmax)
 			E = X - W * H
 		end
-		objvalue = sum(E.^2)
+		objvalue = NMFk.normnan(E)
 	else
 		E = X - W * H
+		objvalue = NMFk.normnan(E)
 	end
 	!quiet && println("Objective function = $(objvalue)")
 	if mixture == :null && modifymatrices
