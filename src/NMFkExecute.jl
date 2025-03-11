@@ -433,7 +433,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	end
 	!veryquiet && println("OF: min $(minimum(objvalue[idxsol])) max $(maximum(objvalue[idxsol])) mean $(Statistics.mean(objvalue[idxsol])) std $(Statistics.std(objvalue[idxsol]))")
 	for i in 1:nNMF
-		of = ssqrnan((X - WBig[i] * HBig[i]) .* weight)
+		of = normnan((X - WBig[i] * HBig[i]) .* weight)
 		if abs(of - objvalue[i]) / of > 1e-4
 			@warn("OF $i is very different: $(of) vs $(objvalue[i])!")
 		end
