@@ -88,7 +88,13 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	@info("Results:")
 	for nk in nkrange
 		Xe = W[nk] * H[nk]
-		fitquality[nk] = normnan(X .- Xe)
+		fit = normnan(X .- Xe)
+		if abs(fit - fitquality[nk]) > eps(Float16)
+			if abs(fit^2 - fitquality[nk]) > eps(Float16)
+				@warn("Fit quality is not consistent: $(fit) != $(fitquality[nk])")
+			end
+		end
+		fitquality[nk] = fit
 		println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality[nk])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[nk])) AIC: $(Printf.@sprintf("%12.7g", aic[nk]))")
 	end
 	kopt = getk(nkrange, robustness[nkrange], cutoff)

@@ -204,19 +204,16 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 	NMFk.postprocess(krange, W, H; resultdir="results-$(suffix)", figuredir="figures-$(suffix)", kw...)
 end
 
-function postprocess(W::AbstractMatrix, H::AbstractMatrix; kw...)
+function postprocess(W::AbstractMatrix, H::AbstractMatrix, aw...; kw...)
 	kopt = size(H, 1)
 	Wvector = Vector{Matrix}(undef, kopt)
 	Hvector = Vector{Matrix}(undef, kopt)
 	Wvector[kopt] = W
 	Hvector[kopt] = H
-	NMFk.postprocess(kopt, Wvector, Hvector; kw...)
+	NMFk.postprocess(kopt, Wvector, Hvector, aw...; kw...)
 end
 
-"""
-cutoff::Number = .9, cutoff_s::Number = 0.95
-"""
-function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=[]; Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
+function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0); Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
 		ordersignals::Symbol=:importance,
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
@@ -234,7 +231,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		adjustbiplotlabel::Bool=true, biplotlabel::Symbol=:none, biplotcolor::Symbol=:WH,
 		plottimeseries::Symbol=:none, plotmap_scope::Symbol=:mapbox, map_format::AbstractString="png",
 		map_kw::Union{Base.Pairs,AbstractDict}=Dict(),
-		cutoff::Number=0, cutoff_s::Number=0, cutoff_label::Number=0.2,
+		cutoff::Number=0, # cutoff::Number = 0.9 recommended
+ 		cutoff_s::Number=0, # cutoff_s::Number = 0.95 recommended
+		cutoff_label::Number=0.2,
 		Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt,
 		adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch,
 		W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize,
