@@ -90,9 +90,7 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 		Xe = W[nk] * H[nk]
 		fit = normnan(X .- Xe)
 		if abs(fit - fitquality[nk]) > eps(Float16)
-			if abs(fit^2 - fitquality[nk]) > eps(Float16)
-				@warn("Fit quality is not consistent: $(fit) != $(fitquality[nk])")
-			end
+			@warn("Fit quality is not consistent: $(fit) != $(fitquality[nk])")
 		end
 		fitquality[nk] = fit
 		println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality[nk])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[nk])) AIC: $(Printf.@sprintf("%12.7g", aic[nk]))")
@@ -128,7 +126,16 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			if size(W) == (size(X, 1), nk) && size(H) == (nk, size(X, 2))
 				print("Results are loaded from $(filename)!")
-				save = false
+				Xe = W * H
+				fit = normnan(X .- Xe)
+				if abs(fit - fitquality) > eps(Float16)
+					@warn("Fit quality is not consistent: $(fit) != $(fitquality)")
+					fitquality = fit
+					@info("Results with new fit will be saved in $(filename)!")
+					save = true
+				else
+					save = false
+				end
 				runflag = false
 			else
 				println("File $(filename) contains $(Base.text_colors[:yellow])$(Base.text_colors[:bold])inconsistent results$(Base.text_colors[:normal]); runs will be executed ...")
