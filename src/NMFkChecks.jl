@@ -184,12 +184,15 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		elseif length(unique(v)) == 2
 			!quiet && print(" <- boolean?!")
 		elseif abs(skew) > skewness_cutoff && length(unique(v)) > 2
-			!quiet && print(" <- very skewed; log-transformaiton recommended!")
+			!quiet && print(" <- very skewed; log-transformation recommended!")
 			push!(ilog, i)
 		end
 		println()
 		if !skip_corr_test && correlation_test
-			for j = i+1:na
+			for j = 1:na
+				if i == j
+					continue
+				end
 				nt2 = ntuple(k->(k == dim ? j : Colon()), 2)
 				vo2 = x[nt2...]
 				isvalue2 = maskfloatvector(vo2)
@@ -197,22 +200,28 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 					continue
 				end
 				v2 = vcat(vo2[isvalue2]...)
-				if length(v2) != length(v)
+				if isvalue !== isvalue2
 					isvalue_all = isvalue .& isvalue2
 					if sum(isvalue_all) == 0
 						continue
 					end
 					v = vo[isvalue_all]
 					v2 = vo2[isvalue_all]
+					comparison_ratio = sum(isvalue_all) / sum(isvalue)
+					comparison_size = "$(sum(isvalue_all)) out of $(sum(isvalue))"
+				else
+					comparison_ratio = 1
+					comparison_size = "$(sum(isvalue)) out of $(sum(isvalue))"
 				end
-				if v == v2
-					!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal])!")
+				if isvalue == isvalue2 && v == v2
+					!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 					push!(icor, j)
-				elseif Statistics.norm(v .- v2) < norm_cutoff || all(v .≈ v2)
-					!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal])!")
+				elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && Statistics.norm(v .- v2) < norm_cutoff || all(v .≈ v2)
+					!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 					push!(icor, j)
-				elseif (correlation = abs(Statistics.cor(v, v2))) > correlation_cutoff
-					!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal])  (correlation = $(correlation))!")
+				elseif sum(isvalue_all) > 3 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v, v2))) > correlation_cutoff
+					correlation = round(correlation, digits=4)
+					!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
 					push!(icor, j)
 				end
 			end
