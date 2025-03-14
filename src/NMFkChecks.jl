@@ -5,8 +5,8 @@ import Missings
 
 function checkarray(X::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
 	rangeentry = Vector{AbstractUnitRange{Int64}}(undef, N)
-	min_firstentry = Vector{Int64}(undef, N)
-	max_lastentry = Vector{Int64}(undef, N)
+	# min_firstentry = Vector{Int64}(undef, N)
+	# max_lastentry = Vector{Int64}(undef, N)
 	max_record_length = Vector{Int64}(undef, N)
 	for d = 1:N
 		@info("Dimension $(d) ...")
@@ -125,14 +125,24 @@ end
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
 checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
+function maskfloatvector(x::AbstractVector)
+	ism = .!ismissing.(x) .& .!isnothing.(x)
+	xt = x[ism]
+	isn = .!isnan.(xt)
+	xt = xt[isn]
+	ism[ism .== 1] .= isn
+	return ism
+end
+
 function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
 	@assert length(names) == DataFrames.ncol(df)
 	ct = eltype.(eachcol(df))
 	ci = ct .<: Number .|| ct .=== Union{Missing, Float64} .|| ct .=== Union{Missing, Float32} .|| ct .=== Union{Missing, Int64} .|| ct .=== Union{Missing, Int32}
+	@warn("Skipping non-numeric columns ($(length(names[.!ci])) out of $(length(names))): $(names[.!ci])")
 	return checkmatrix(Matrix(df[!, ci]), 2; names=names[ci], kw...)
 end
 
-function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=false)
+function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=false)
 	names = String.(names)
 	mlength = maximum(length.(names))
 	na = size(x, dim)
@@ -145,17 +155,17 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 	for i = axes(x, dim)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
 		nt = ntuple(k->(k == dim ? i : Colon()), 2)
-		isn = .!isnan.(x[nt...])
-		ns = ntuple(k->(k == dim ? i : isn), 2)
-		v = x[ns...]
+		vo = x[nt...]
+		isvalue = maskfloatvector(vo)
+		v = vcat(vo[isvalue]...)
 		vmin = minimum(v)
 		vmax = maximum(v)
 		skew = StatsBase.skewness(v)
 		luv = length(unique(v))
 		print("min: $(Printf.@sprintf("%12.7g", vmin)) max: $(Printf.@sprintf("%12.7g", vmax)) skewness: $(Printf.@sprintf("%12.7g", skew)) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
 		skip_corr_test = false
-		if sum(isn) == 0
-			!quiet && print(" <- has only NaNs!")
+		if sum(isvalue) == 0
+			!quiet && print(" <- has only missing values (NaNs)!")
 			skip_log_test = true
 			push!(inans, i)
 		elseif sum(v) == 0
@@ -176,18 +186,22 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_cu
 			push!(ilog, i)
 		end
 		println()
-		if !skip_corr_test
+		if !skip_corr_test && correlation_test
 			for j = i+1:na
 				nt2 = ntuple(k->(k == dim ? j : Colon()), 2)
-				jsn = .!isnan.(x[nt2...])
-				ns2 = ntuple(k->(k == dim ? j : jsn), 2)
-				v2 = x[ns2...]
-				if size(v2) != size(v)
-					ijsn = isn .|| jsn
-					ns = ntuple(k->(k == dim ? i : ijsn), 2)
-					ns2 = ntuple(k->(k == dim ? j : ijsn), 2)
-					v = x[ns...]
-					v2 = x[ns2...]
+				vo2 = x[nt2...]
+				isvalue2 = maskfloatvector(vo2)
+				if sum(isvalue2) == 0 # only missing values
+					continue
+				end
+				v2 = vcat(vo2[isvalue2]...)
+				if length(v2) != length(v)
+					isvalue_all = isvalue .& isvalue2
+					if sum(isvalue_all) == 0
+						continue
+					end
+					v = vo[isvalue_all]
+					v2 = vo2[isvalue_all]
 				end
 				if v == v2
 					!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal])!")
