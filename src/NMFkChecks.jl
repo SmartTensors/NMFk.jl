@@ -1,6 +1,7 @@
 import Statistics
 import StatsBase
 import DataFrames
+import Missings
 
 function checkarray(X::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
 	rangeentry = Vector{AbstractUnitRange{Int64}}(undef, N)
@@ -127,7 +128,7 @@ checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
 	@assert length(names) == DataFrames.ncol(df)
 	ct = eltype.(eachcol(df))
-	ci = ct .<: Number .|| ct .=== Vector{Union{Missing, Float64}} .|| ct .=== Vector{Union{Missing, Float32}} .|| ct .=== Vector{Union{Missing, Int64}} .|| ct .=== Vector{Union{Missing, Int32}}
+	ci = ct .<: Number .|| ct .=== Union{Missing, Float64} .|| ct .=== Union{Missing, Float32} .|| ct .=== Union{Missing, Int64} .|| ct .=== Union{Missing, Int32}
 	return checkmatrix(Matrix(df[!, ci]), 2; names=names[ci], kw...)
 end
 
