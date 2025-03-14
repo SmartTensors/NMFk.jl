@@ -128,9 +128,11 @@ checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 function maskfloatvector(x::AbstractVector)
 	ism = .!ismissing.(x) .& .!isnothing.(x)
 	xt = x[ism]
-	isn = .!isnan.(xt)
-	xt = xt[isn]
-	ism[ism .== 1] .= isn
+	if eltype(xt) <: AbstractFloat
+		isn = .!isnan.(xt)
+		xt = xt[isn]
+		ism[ism .== 1] .= isn
+	end
 	return ism
 end
 
