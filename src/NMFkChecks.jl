@@ -138,10 +138,7 @@ end
 
 function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
 	@assert length(names) == DataFrames.ncol(df)
-	ct = eltype(eachcol(df))
-	ci = ct <: Number .|| ct <: Union{Missing, Number} .|| ct <: Union{Nothing, Number} .|| ct <: Union{Nothing, Missing, Number}
-	@warn("Skipping non-numeric columns ($(length(names[.!ci])) out of $(length(names))): $(names[.!ci])")
-	return checkmatrix(Matrix(df[!, ci]), 2; names=names[ci], kw...)
+	return checkmatrix(Matrix(df), 2; names=names, kw...)
 end
 
 function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=false)
@@ -154,6 +151,8 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 	ineg = Vector{Int64}(undef, 0)
 	iconst = Vector{Int64}(undef, 0)
 	icor = Vector{Int64}(undef, 0)
+	istring = Vector{Int64}(undef, 0)
+	iany = Vector{Int64}(undef, 0)
 	for i = axes(x, dim)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
 		nt = ntuple(k->(k == dim ? i : Colon()), 2)
@@ -201,6 +200,9 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 						continue
 					end
 					v2 = vcat(vo2[isvalue2]...)
+					if !(eltype(v2) <: Number)
+						continue
+					end
 					if isvalue !== isvalue2
 						isvalue_all = isvalue .& isvalue2
 						if sum(isvalue_all) == 0
@@ -228,9 +230,22 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 				end
 			end
 		elseif eltype(v) <: AbstractString
-
+			push!(istring, i)
+			print("$(Base.text_colors[:yellow])$(Base.text_colors[:bold])String:$(Base.text_colors[:normal]) ")
+			u = String.(unique(v))
+			if length(u) == 1
+				!quiet && println("$(u) <- non-numeric constant!")
+				push!(iconst, i)
+			else
+				if length(u) > 10
+					!quiet && println(u[1:5], u[end-4:end])
+				else
+					println(u)
+				end
+			end
 		else
-			!quiet && println(" <- non-numeric!")
+			!quiet && println("$(Base.text_colors[:red])$(Base.text_colors[:bold])Unknown type:$(Base.text_colors[:normal]) $(eltype(v)): $(unique(v))!")
+			push!(iany, i)
 		end
 	end
 	icor = unique(sort(icor))
@@ -241,14 +256,18 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mneg = falses(na)
 		mconst = falses(na)
 		mcor = falses(na)
+		mstring = falses(na)
+		many = falses(na)
 		mlog[ilog] .= true
 		mnans[inans] .= true
 		mzeros[izeros] .= true
 		mneg[ineg] .= true
 		mconst[iconst] .= true
 		mcor[icor] .= true
-		return mlog, mnans, mzeros, mneg, mconst, mcor
+		mstring[istring] .= true
+		many[iany] .= true
+		return mlog, mnans, mzeros, mneg, mconst, mcor, mstring, many
 	else
-		return ilog, inans, izeros, ineg, iconst, icor
+		return ilog, inans, izeros, ineg, iconst, icor, istring, iany
 	end
 end
