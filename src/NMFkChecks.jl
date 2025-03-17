@@ -159,6 +159,11 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		nt = ntuple(k->(k == dim ? i : Colon()), 2)
 		vo = x[nt...]
 		isvalue = maskvector(vo)
+		if sum(isvalue) == 0
+			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Only missing values (NaNs)$(Base.text_colors[:normal])")
+			push!(inans, i)
+			continue
+		end
 		v = vcat(vo[isvalue]...)
 		if eltype(v) <: Number
 			vmin = minimum(v)
@@ -167,11 +172,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			luv = length(unique(v))
 			print("min: $(Printf.@sprintf("%12.7g", vmin)) max: $(Printf.@sprintf("%12.7g", vmax)) skewness: $(Printf.@sprintf("%12.7g", skew)) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
 			skip_corr_test = false
-			if sum(isvalue) == 0
-				!quiet && print(" <- only missing values (NaNs)!")
-				skip_log_test = true
-				push!(inans, i)
-			elseif sum(v) == 0
+			if sum(v) == 0
 				!quiet && print(" <- only zeros!")
 				skip_corr_test = true
 				push!(izeros, i)
