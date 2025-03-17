@@ -167,7 +167,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			print("min: $(Printf.@sprintf("%12.7g", vmin)) max: $(Printf.@sprintf("%12.7g", vmax)) skewness: $(Printf.@sprintf("%12.7g", skew)) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
 			skip_corr_test = false
 			if sum(isvalue) == 0
-				!quiet && print(" <- has only missing values (NaNs)!")
+				!quiet && print(" <- only missing values (NaNs)!")
 				skip_log_test = true
 				push!(inans, i)
 			elseif sum(v) == 0
@@ -175,7 +175,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 				skip_corr_test = true
 				push!(izeros, i)
 			elseif any(v .< 0)
-				!quiet && print(" <- has negative values!")
+				!quiet && print(" <- negative values!")
 				push!(ineg, i)
 			elseif vmin ≈ vmax
 				!quiet && print(" <- constant!")
