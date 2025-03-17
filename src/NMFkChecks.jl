@@ -251,23 +251,23 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 	icor = unique(sort(icor))
 	if masks
 		mlog = falses(na)
+		mcor = falses(na)
 		mnans = falses(na)
 		mzeros = falses(na)
 		mneg = falses(na)
 		mconst = falses(na)
-		mcor = falses(na)
 		mstring = falses(na)
 		many = falses(na)
 		mlog[ilog] .= true
+		mcor[icor] .= true
 		mnans[inans] .= true
 		mzeros[izeros] .= true
 		mneg[ineg] .= true
 		mconst[iconst] .= true
-		mcor[icor] .= true
 		mstring[istring] .= true
 		many[iany] .= true
-		return mlog, mnans, mzeros, mneg, mconst, mcor, mstring, many
+		return mlog, mcor, mnans, mzeros, mneg, mconst, mstring, many
 	else
-		return ilog, inans, izeros, ineg, iconst, icor, istring, iany
+		return ilog, icor, inans, izeros, ineg, iconst, istring, iany
 	end
 end
