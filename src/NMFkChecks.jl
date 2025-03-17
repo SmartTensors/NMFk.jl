@@ -141,7 +141,7 @@ function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
 	return checkmatrix(Matrix(df), 2; names=names, kw...)
 end
 
-function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=false)
+function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=true)
 	names = String.(names)
 	mlength = maximum(length.(names))
 	na = size(x, dim)
@@ -256,6 +256,18 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		end
 	end
 	icor = unique(sort(icor))
+	if !quiet
+		@info("Attribute summary:")
+		println("Log-transformation recommended: $(length(ilog))")
+		println("Correlated with other attributes: $(length(icor))")
+		println("Include negative values: $(length(ineg))")
+		println("Equivalent with other attributes: $(length(isame))")
+		println("Contain only missing values: $(length(inans))")
+		println("Contain only zeros: $(length(izeros))")
+		println("Constant entries: $(length(iconst))")
+		println("String entries: $(length(istring))")
+		println("Any entries: $(length(iany))")
+	end
 	if masks
 		mlog = falses(na)
 		mcor = falses(na)
@@ -275,8 +287,8 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mconst[iconst] .= true
 		mstring[istring] .= true
 		many[iany] .= true
-		return mlog, mcor, msame, mnans, mzeros, mneg, mconst, mstring, many
+		return mlog, mcor, mneg, msame, mnans, mzeros, mconst, mstring, many
 	else
-		return ilog, icor, isame, inans, izeros, ineg, iconst, istring, iany
+		return ilog, icor, ineg, isame, inans, izeros, iconst, istring, iany
 	end
 end
