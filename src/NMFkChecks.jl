@@ -146,11 +146,12 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 	mlength = maximum(length.(names))
 	na = size(x, dim)
 	ilog = Vector{Int64}(undef, 0)
+	icor = Vector{Int64}(undef, 0)
+	isame = Vector{Int64}(undef, 0)
 	inans = Vector{Int64}(undef, 0)
 	izeros = Vector{Int64}(undef, 0)
 	ineg = Vector{Int64}(undef, 0)
 	iconst = Vector{Int64}(undef, 0)
-	icor = Vector{Int64}(undef, 0)
 	istring = Vector{Int64}(undef, 0)
 	iany = Vector{Int64}(undef, 0)
 	for i = axes(x, dim)
@@ -218,14 +219,20 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 					end
 					if isvalue == isvalue2 && v == v2
 						!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
-						push!(icor, j)
+						if i > j
+							push!(isame, j)
+						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && Statistics.norm(v .- v2) < norm_cutoff || all(v .≈ v2)
 						!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
-						push!(icor, j)
+						if i > j
+							push!(icor, j)
+						end
 					elseif sum(isvalue_all) > 3 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v, v2))) > correlation_cutoff
 						correlation = round(correlation, digits=4)
 						!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
-						push!(icor, j)
+						if i > j
+							push!(icor, j)
+						end
 					end
 				end
 			end
@@ -252,6 +259,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 	if masks
 		mlog = falses(na)
 		mcor = falses(na)
+		msame = falses(na)
 		mnans = falses(na)
 		mzeros = falses(na)
 		mneg = falses(na)
@@ -260,14 +268,15 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		many = falses(na)
 		mlog[ilog] .= true
 		mcor[icor] .= true
+		msame[isame] .= true
 		mnans[inans] .= true
 		mzeros[izeros] .= true
 		mneg[ineg] .= true
 		mconst[iconst] .= true
 		mstring[istring] .= true
 		many[iany] .= true
-		return mlog, mcor, mnans, mzeros, mneg, mconst, mstring, many
+		return mlog, mcor, msame, mnans, mzeros, mneg, mconst, mstring, many
 	else
-		return ilog, icor, inans, izeros, ineg, iconst, istring, iany
+		return ilog, icor, isame, inans, izeros, ineg, iconst, istring, iany
 	end
 end
