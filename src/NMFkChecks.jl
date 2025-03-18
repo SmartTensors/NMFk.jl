@@ -240,15 +240,40 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		elseif eltype(v) <: AbstractString
 			push!(istring, i)
 			print("$(Base.text_colors[:yellow])$(Base.text_colors[:bold])String:$(Base.text_colors[:normal]) ")
-			u = String.(unique(v))
+			u = sort(String.(unique(v)))
 			if length(u) == 1
 				!quiet && println("$(u) <- non-numeric constant!")
 				push!(iconst, i)
 			else
-				if length(u) > 10
-					!quiet && println(u[1:5], u[end-4:end])
-				else
-					println(u)
+				up = deepcopy(u)
+				for (i, s) in enumerate(u)
+					if length(s) > 24
+						up[i] = s[1:20] * " ..."
+					else
+						if length(s) == 0
+							up[i] = rpad("<empty>", 24)
+						else
+							up[i] = rpad(s, 24)
+						end
+					end
+				end
+				if !quiet
+					println("$(length(u)) unique values:")
+					count = [sum(i .== v) for i in u]
+					isort = sortperm(count; rev=true)
+					if length(u) > 20
+						for i in 1:5
+							println("$(up[isort][i]): count = $(count[isort][i])")
+						end
+						println("...")
+						for i in eachindex(up)[end-4:end]
+							println("$(up[isort][i]): count = $(count[isort][i])")
+						end
+					else
+						for i in eachindex(up)
+							println("$(up[isort][i]): count = $(count[isort][i])")
+						end
+					end
 				end
 			end
 		else
