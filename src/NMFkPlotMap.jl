@@ -230,7 +230,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	return p
 end
 
-function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...)
+function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, kw...)
 	regex_lon = r"^[Xx]$|^[Ll]on" # regex for longitude
 	regex_lat = r"^[Yy]$|^[Ll]at" # regex for latitude
 	rlon = occursin.(regex_lon, names(df))
@@ -258,7 +258,11 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 				else
 					t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(a, title_length)
 				end
-				p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, title=title, kw...)
+				if categorical
+					p = mapbox(lon, lat, string.(df[!, a]); filename=f, title_colorbar=t, title=title, kw...)
+				else
+					p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, title=title, kw...)
+				end
 				display(p)
 			end
 		end
