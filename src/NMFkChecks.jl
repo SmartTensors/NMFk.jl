@@ -313,8 +313,10 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mconst[iconst] .= true
 		mstring[istring] .= true
 		many[iany] .= true
-		return mlog, mcor, mneg, msame, mnans, mzeros, mconst, mstring, many
+		mremove = msame .|  mnans .| mzeros .| mconst .| mstring .| many
+		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, cons=mconst, string=mstring, any=many)
 	else
-		return ilog, icor, ineg, isame, inans, izeros, iconst, istring, iany
+		iremove = unique(sort(vcat(isame, inans, izeros, iconst, istring, iany)))
+		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, cons=iconst, string=istring, any=iany)
 	end
 end
