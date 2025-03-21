@@ -19,6 +19,6 @@ scikit-learn==0.22.1
 scipy==1.4.1
 Shapely==1.6.4.post2
 tensorflow==2.4.2
-torch==1.4.0+cpu
+torch==2.4.0
 torchvision==0.5.0+cpu
 xarray==0.14.1
