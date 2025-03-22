@@ -151,7 +151,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 	inans = Vector{Int64}(undef, 0)
 	izeros = Vector{Int64}(undef, 0)
 	ineg = Vector{Int64}(undef, 0)
-	iconst = Vector{Int64}(undef, 0)
+	istatic = Vector{Int64}(undef, 0)
 	istring = Vector{Int64}(undef, 0)
 	iany = Vector{Int64}(undef, 0)
 	for i = axes(x, dim)
@@ -182,7 +182,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			elseif vmin ≈ vmax
 				!quiet && print(" <- constant!")
 				skip_corr_test = true
-				push!(iconst, i)
+				push!(istatic, i)
 			elseif length(unique(v)) == 2
 				!quiet && print(" <- boolean?!")
 			elseif abs(skew) > skewness_cutoff && length(unique(v)) > 2
@@ -243,7 +243,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			u = sort(String.(unique(v)))
 			if length(u) == 1
 				!quiet && println("$(u) <- non-numeric constant!")
-				push!(iconst, i)
+				push!(istatic, i)
 			else
 				up = deepcopy(u)
 				for (i, s) in enumerate(u)
@@ -290,7 +290,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		println("Equivalent with other attributes: $(length(isame))")
 		println("Contain only missing values: $(length(inans))")
 		println("Contain only zeros: $(length(izeros))")
-		println("Constant entries: $(length(iconst))")
+		println("Constant entries: $(length(istatic))")
 		println("String entries: $(length(istring))")
 		println("Any entries: $(length(iany))")
 	end
@@ -301,7 +301,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mnans = falses(na)
 		mzeros = falses(na)
 		mneg = falses(na)
-		mconst = falses(na)
+		mstatic = falses(na)
 		mstring = falses(na)
 		many = falses(na)
 		mlog[ilog] .= true
@@ -310,13 +310,13 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mnans[inans] .= true
 		mzeros[izeros] .= true
 		mneg[ineg] .= true
-		mconst[iconst] .= true
+		mstatic[istatic] .= true
 		mstring[istring] .= true
 		many[iany] .= true
-		mremove = msame .|  mnans .| mzeros .| mconst .| mstring .| many
-		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, cons=mconst, string=mstring, any=many)
+		mremove = msame .|  mnans .| mzeros .| mstatic .| mstring .| many
+		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, static=mstatic, string=mstring, any=many)
 	else
-		iremove = unique(sort(vcat(isame, inans, izeros, iconst, istring, iany)))
-		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, cons=iconst, string=istring, any=iany)
+		iremove = unique(sort(vcat(isame, inans, izeros, istatic, istring, iany)))
+		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, static=istatic, string=istring, any=iany)
 	end
 end
