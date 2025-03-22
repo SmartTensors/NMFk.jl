@@ -403,7 +403,6 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		title = ""
 	end
 	if filename != ""
-		@show traces
 		traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 		for t in traces
 			if haskey(t.fields, :line)

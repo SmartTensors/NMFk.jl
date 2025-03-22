@@ -2,6 +2,113 @@ import DelimitedFiles
 import PlotlyJS
 import Mads
 
+function getk(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; strict::Bool=true) where {T1 <: Integer, T2 <: Number}
+	if length(nkrange) != length(robustness)
+		robustness = robustness[nkrange]
+	end
+	if all(isnan.(robustness))
+		return 0
+	end
+	if length(nkrange) == 1
+		if strict
+			if last(robustness) > cutoff
+				k = nkrange[end]
+			else
+				k = nothing
+			end
+		else
+			k = nkrange[end]
+		end
+	else
+		kn = findlast(i->i > cutoff, robustness)
+		if isnothing(kn)
+			if strict
+				k = nothing
+			else
+				inan = isnan.(robustness)
+				robustness[inan] .= -Inf
+				kn = findmax(robustness)[2]
+				robustness[inan] .= NaN
+				k = nkrange[kn]
+			end
+		else
+			k = nkrange[kn]
+		end
+	end
+	return k
+end
+
+function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; ks::Union{T3, AbstractVector{T3}}=Int64[], strict::Bool=true) where {T1 <: Integer, T2 <: Number, T3 <: Integer}
+	@assert maximum(ks) <= maximum(nkrange)
+	if length(nkrange) != length(robustness)
+		robustness = robustness[nkrange]
+	end
+	if all(isnan.(robustness))
+		return []
+	end
+	if length(nkrange) == 1
+		if strict
+			if robustness[end] > cutoff
+				k = [nkrange[end]]
+			else
+				k = []
+			end
+		else
+			k = [nkrange[end]]
+		end
+		return k
+	else
+		kn = findlast(i->i > cutoff, robustness)
+		if length(kn) == 0
+			inan = isnan.(robustness)
+			robustness[inan] .= -Inf
+			kn = last(findmax(robustness))
+			robustness[inan] .= NaN
+		end
+		if length(nkrange) == length(robustness)
+			k = nkrange[kn]
+		else
+			k = kn
+		end
+		if !(typeof(k) <: AbstractVector)
+			k = [k]
+		end
+		return unique(sort([k; ks]))
+	end
+end
+
+function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{T3, AbstractVector{T3}}=Int64[], strict::Bool=true) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
+	@assert length(nkrange) == length(F)
+	@assert maximum(ks) <= maximum(nkrange)
+	if all(isnan.(robustness))
+		return []
+	end
+	if length(nkrange) == 1
+		if strict
+			if robustness[end] > cutoff
+				k = [nkrange[end]]
+			else
+				k = []
+			end
+		else
+			k = [nkrange[end]]
+		end
+		return k
+	else
+		kn = Vector{Int64}(undef, 0)
+		for (i, k) in enumerate(nkrange)
+			if size(F[i], 1) == k
+				M = F[i] ./ maximum(F[i]; dims=2)
+				any(M[:,map] .> cutoff) && push!(kn, k)
+			elseif size(F[i], 2) == k
+				M = F[i] ./ maximum(F[i]; dims=1)
+				any(M[map,:] .> cutoff) && push!(kn, k)
+			end
+		end
+		return unique(sort([k; ks]))
+	end
+end
+
 function signalrescale!(W::AbstractMatrix, H::AbstractMatrix; Wnormalize::Bool=true, check::Bool=true)
 	if check
 		X = W * H
