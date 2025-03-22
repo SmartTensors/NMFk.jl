@@ -284,7 +284,7 @@ function getk(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustne
 	end
 	if length(nkrange) == 1
 		if strict
-			if robustness > cutoff
+			if first(robustness) > cutoff
 				k = nkrange[1]
 			else
 				k = nothing
@@ -317,14 +317,15 @@ function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustn
 	end
 	if length(nkrange) == 1
 		if strict
-			if robustness > cutoff
-				k = [nkrange[1]]
+			if robustness[end] > cutoff
+				k = [nkrange[end]]
 			else
 				k = []
 			end
 		else
-			k = [nkrange[1]]
+			k = [nkrange[end]]
 		end
+		return k
 	else
 		kn = findall(i->i > cutoff, robustness)
 		if length(kn) == 0
@@ -341,8 +342,8 @@ function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustn
 		if !(typeof(k) <: AbstractVector)
 			k = [k]
 		end
+		return mergeks(k, ks)
 	end
-	return mergeks(k, ks)
 end
 
 function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{Nothing, T3, AbstractVector{T3}}=nothing, strict::Bool=true) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
@@ -352,14 +353,15 @@ function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, F::Abst
 	end
 	if length(nkrange) == 1
 		if strict
-			if robustness > cutoff
-				k = [nkrange[1]]
+			if robustness[end] > cutoff
+				k = [nkrange[end]]
 			else
 				k = []
 			end
 		else
-			k = [nkrange[1]]
+			k = [nkrange[end]]
 		end
+		return k
 	else
 		kn = Vector{Int64}(undef, 0)
 		for (i, k) in enumerate(nkrange)
@@ -371,8 +373,8 @@ function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, F::Abst
 				any(M[map,:] .> cutoff) && push!(kn, k)
 			end
 		end
+		return mergeks(kn, ks)
 	end
-	return mergeks(kn, ks)
 end
 
 function mergeks(k::AbstractVector{T}, ks::Nothing) where {T <: Integer}
