@@ -183,7 +183,8 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 				!quiet && print(" <- constant!")
 				skip_corr_test = true
 				push!(istatic, i)
-			elseif length(unique(v)) == 2
+			end
+			if length(unique(v)) == 2
 				!quiet && print(" <- boolean?!")
 			elseif abs(skew) > skewness_cutoff && length(unique(v)) > 2
 				!quiet && print(" <- very skewed; log-transformation recommended!")
