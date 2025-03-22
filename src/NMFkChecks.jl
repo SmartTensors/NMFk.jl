@@ -179,12 +179,12 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			elseif any(v .< 0)
 				!quiet && print(" <- negative values!")
 				push!(ineg, i)
-			elseif vmin ≈ vmax
+			end
+			if vmin ≈ vmax
 				!quiet && print(" <- constant!")
 				skip_corr_test = true
 				push!(istatic, i)
-			end
-			if length(unique(v)) == 2
+			elseif length(unique(v)) == 2
 				!quiet && print(" <- boolean?!")
 			elseif abs(skew) > skewness_cutoff && length(unique(v)) > 2
 				!quiet && print(" <- very skewed; log-transformation recommended!")

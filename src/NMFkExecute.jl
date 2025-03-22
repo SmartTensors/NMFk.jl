@@ -120,6 +120,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 		load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
 	end
 	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])NMFk run with $(nk) signals: $(Base.text_colors[:normal])")
+	execute_ordersignals = true
 	if load
 		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
 		if isfile(filename)
@@ -142,7 +143,6 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 				println("W matrix - Expected size: $((size(X, 1), nk)) Actual size: $(size(W))")
 				println("H matrix - Expected size: $((nk, size(X, 2))) Actual size: $(size(H))")
 			end
-			execute_ordersignals = true
 		else
 			if loadonly
 				W = Matrix{T}(undef, 0, 0);
@@ -154,7 +154,6 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 				execute_ordersignals = false
 			else
 				print("File $(filename) is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal]); runs will be executed ...")
-				execute_ordersignals = true
 			end
 		end
 	end
