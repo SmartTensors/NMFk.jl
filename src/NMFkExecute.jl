@@ -142,14 +142,19 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 				println("W matrix - Expected size: $((size(X, 1), nk)) Actual size: $(size(W))")
 				println("H matrix - Expected size: $((nk, size(X, 2))) Actual size: $(size(H))")
 			end
+			execute_ordersignals = true
 		else
-			print("File $(filename) is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal]); runs will be executed ...")
 			if loadonly
 				W = Matrix{T}(undef, 0, 0);
 				H = Matrix{T}(undef, 0, 0);
 				fitquality = Inf;
 				robustness = -1;
 				aic = -Inf;
+				print("File $(filename) is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal]) and no runs are allowed to be executed (loadonly=true) ...")
+				execute_ordersignals = false
+			else
+				print("File $(filename) is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal]); runs will be executed ...")
+				execute_ordersignals = true
 			end
 		end
 	end
@@ -160,12 +165,16 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	if runflag
 		W, H, fitquality, robustness, aic = NMFk.execute_run(X, nk, nNMF; clusterWmatrix=clusterWmatrix, resultdir=resultdir, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, quiet=quiet, kw...)
 	end
-	if ordersignals
-		@info("Ordering signals based on their contribution ...")
-		so = signalorder(W, H)
+	if execute_ordersignals
+		if ordersignals
+			@info("Ordering signals based on their contribution ...")
+			so = signalorder(W, H)
+		else
+			@warn("Signals are not orered ...")
+			so = axes(W, 2)
+		end
 	else
-		@warn("Signals are not orered ...")
-		so = axes(W, 2)
+		so = Int64[]
 	end
 	!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 	if save
