@@ -39,7 +39,7 @@ function getk(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustne
 end
 
 function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; ks::Union{T3, AbstractVector{T3}}=Int64[], strict::Bool=true) where {T1 <: Integer, T2 <: Number, T3 <: Integer}
-	@assert maximum(ks) <= maximum(nkrange)
+	@assert length(ks) == 0 || maximum(ks) <= maximum(nkrange)
 	if length(nkrange) != length(robustness)
 		robustness = robustness[nkrange]
 	end
@@ -79,7 +79,7 @@ end
 
 function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, F::AbstractVector{T2}, map=Colon(), cutoff::Number=0.25; ks::Union{T3, AbstractVector{T3}}=Int64[], strict::Bool=true) where {T1 <: Integer, T2 <: AbstractArray, T3 <: Integer}
 	@assert length(nkrange) == length(F)
-	@assert maximum(ks) <= maximum(nkrange)
+	@assert length(ks) == 0 || maximum(ks) <= maximum(nkrange)
 	if all(isnan.(robustness))
 		return []
 	end
@@ -450,17 +450,17 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			Xe = W[k] * H[k]
 			fitquality = NMFk.normnan(X .- Xe)
 			if size(X, 2) < 50
-				@info("Fit quality related to $(Wcasefilename)")
+				@info("Relative fits associated with $(Hcasefilename) ...")
 				for i in axes(X, 2)
 					fitattribute = NMFk.normnan(X[:,i] .- Xe[:,i])
-					println("$(titlecase(Hcasefilename[1:end-1])) $(Hnames[i]) relative fit quality: $(fitattribute/fitquality)")
+					println("$(Hnames[i]): $(fitattribute/fitquality)")
 				end
 			end
 			if size(X, 1) < 50
-				@info("Fit quality related to $(Wcasefilename)")
+				@info("Relative fits associated with $(Wcasefilename) ...")
 				for i in axes(X, 1)
 					fitattribute = NMFk.normnan(X[i,:] .- Xe[i,:])
-					println("$(titlecase(Wcasefilename[1:end-1])) $(Wnames[i]) relative fit quality: $(fitattribute/fitquality)")
+					println("$(Wnames[i]): $(fitattribute/fitquality)")
 				end
 			end
 		end
