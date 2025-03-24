@@ -6,8 +6,9 @@ import PlotlyJS
 function progressive(X::AbstractMatrix{T}, windowsize::Int64, nkrange::AbstractUnitRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
-		@warn("Input matrix contains rows or columns with only NaNs!")
-		@show checknans
+		error("Input matrix contains rows or columns with only NaNs!")
+		println(checknans)
+		throw(ArgumentError("Input matrix contains rows or columns with only NaNs!"))
 	end
 	@info("NMFk #1: $(casefilename) Window $windowsize")
 	W, H, fitquality, robustness, aic = NMFk.execute(X[1:windowsize,:], nkrange, nNMF1; casefilename="$(casefilename)_$(windowsize)", load=load, kw...)
@@ -29,8 +30,9 @@ function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, wi
 	@assert length(windowsize) == length(window_k)
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
-		@warn("Input matrix contains rows or columns with only NaNs!")
-		@show checknans
+		error("Input matrix contains rows or columns with only NaNs!")
+		println(checknans)
+		throw(ArgumentError("Input matrix contains rows or columns with only NaNs!"))
 	end
 	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, axes(X, 1)))
 	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, axes(X, 2)))
@@ -51,8 +53,9 @@ end
 function progressive(X::AbstractMatrix{T}, windowsize::AbstractVector{Int64}, nkrange::AbstractUnitRange{Int}, nNMF1::Integer=10, nNMF2::Integer=nNMF1; casefilename::AbstractString="progressive", load::Bool=true, cutoff::Number=0.5, kw...) where {T <: Number}
 	checknans = checkarray_nans(X)
 	if length(checknans[1]) > 0 || length(checknans[2]) > 0
-		@warn("Input matrix contains rows or columns with only NaNs!")
-		@show checknans
+		error("Input matrix contains rows or columns with only NaNs!")
+		println(checknans)
+		throw(ArgumentError("Input matrix contains rows or columns with only NaNs!"))
 	end
 	# @assert all(map(i->sum(.!isnan.(X[i, :])) > 0, axes(X, 1)))
 	# @assert all(map(i->sum(.!isnan.(X[:, i])) > 0, axes(X, 2)))

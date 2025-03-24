@@ -582,8 +582,7 @@ function grid_reduction(lon::AbstractVector, lat::AbstractVector; skip::Int=0, s
 	@info("Number of original points       = $(length(lon_rounded))")
 	lon_unique = unique(sort(lon_rounded))
 	lat_unique = unique(sort(lat_rounded))
-	@show minmax_dx(lon_unique)
-	@show minmax_dx(lat_unique)
+
 	@info("Number of Longitude unique grid points = $(length(lon_unique))")
 	@info("Number of Latitude  unique grid points = $(length(lat_unique))")
 	@info("Number of unique grid points = $(length(lon_unique) * length(lat_unique))")
