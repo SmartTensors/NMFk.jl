@@ -204,18 +204,18 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes
 	recursivemkdir(figuredir)
 	vec_xmina = Vector{Vector{Float64}}(undef, size(data, 2))
 	vec_xmaxa = Vector{Vector{Float64}}(undef, size(data, 2))
-	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))
+	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))p
 	for c in axes(data, 2)
 		if names[c] == ""
 			!quiet && @info("Histogram of Column $(c):")
-			if figuredir != "." && save
+			if figuredir != "." || save
 				filename_plot = "$(filename_prefix)_column_$(c).$(plot_type)"
 			end
 			filename_data = save_data ? "$(filename_prefix)_column_$(c)_data" : ""
 			vec_xmina[c], vec_xmaxa[c], vec_ya[c] = histogram(data[:,c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
 		else
 			!quiet && @info("Histogram of attribute $(names[c]):")
-			if figuredir != "." && save
+			if figuredir != "." || save
 				filename_plot = "$(filename_prefix)_$(names[c]).$(plot_type)"
 			end
 			filename_data = save_data ? "$(filename_prefix)_$(names[c])_data" : ""
