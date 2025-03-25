@@ -275,6 +275,7 @@ function mapbox(df::DataFrames.DataFrame; column::Union{Symbol,AbstractString}="
 		p = mapbox(lon, lat, df[!, column]; filename=f, title_colorbar=plotly_title_length(column, title_length), title=title, kw...)
 		display(p)
 	end
+	return p
 end
 
 function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i = eachcol(M)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
@@ -406,17 +407,6 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	traces = check_traces(traces, traces_setup)
 	if filename != ""
 		traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
-		for t in traces
-			if haskey(t.fields, :line)
-				(line_color != "") && (t.fields[:line][:color] = line_color)
-				(line_width_fig > 0) && (t.fields[:line][:width] = line_width_fig)
-			end
-			if haskey(t.fields, :marker)
-				(marker_color != "") && (t.fields[:marker][:color] = marker_color)
-				(marker_size_fig > 0) && (t.fields[:marker][:size] = marker_size_fig)
-			end
-			push!(traces_, t)
-		end
 		for (j, i) in enumerate(unique(sort(color)))
 			iz = color .== i
 			jj = j % length(NMFk.colors)
@@ -435,23 +425,23 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 				attributionControl=false)
 			push!(traces_, t)
 		end
+		for t in traces
+			if haskey(t.fields, :line)
+				(line_color != "") && (t.fields[:line][:color] = line_color)
+				(line_width_fig > 0) && (t.fields[:line][:width] = line_width_fig)
+			end
+			if haskey(t.fields, :marker)
+				(marker_color != "") && (t.fields[:marker][:color] = marker_color)
+				(marker_size_fig > 0) && (t.fields[:marker][:size] = marker_size_fig)
+			end
+			push!(traces_, t)
+		end
 		layout = plotly_layout(lonc, latc, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
-	for t in traces
-		if haskey(t.fields, :line)
-			(line_color != "") && (t.fields[:line][:color] = line_color)
-			(line_width > 0) && (t.fields[:line][:width] = line_width)
-		end
-		if haskey(t.fields, :marker)
-			(marker_color != "") && (t.fields[:marker][:color] = marker_color)
-			(marker_size > 0) && (t.fields[:marker][:size] = marker_size)
-		end
-		push!(traces_, t)
-	end
 	for (j, i) in enumerate(unique(sort(color)))
 		iz = color .== i
 		jj = j % length(NMFk.colors)
@@ -470,8 +460,20 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			attributionControl=false)
 		push!(traces_, t)
 	end
+	for t in traces
+		if haskey(t.fields, :line)
+			(line_color != "") && (t.fields[:line][:color] = line_color)
+			(line_width > 0) && (t.fields[:line][:width] = line_width)
+		end
+		if haskey(t.fields, :marker)
+			(marker_color != "") && (t.fields[:marker][:color] = marker_color)
+			(marker_size > 0) && (t.fields[:marker][:size] = marker_size)
+		end
+		push!(traces_, t)
+	end
 	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	display(p)
 	return p
 end
 
