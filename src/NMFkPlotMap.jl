@@ -488,7 +488,8 @@ function check_traces(traces::AbstractVector, traces_setup::NamedTuple)
 		traces_vector = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, length(traces))
 		for (i, t) in enumerate(traces)
 			if haskey(t, :lat) && haskey(t, :lon)
-				traces_vector[i] = PlotlyJS.scattermapbox(; traces_setup..., t...)
+				name = haskey(t, :name) ? t[:name] : "Domain"
+				traces_vector[i] = PlotlyJS.scattermapbox(; traces_setup..., name=name, t...)
 			else
 				traces_vector[i] = PlotlyJS.scattermapbox(; traces_setup...)
 			end
