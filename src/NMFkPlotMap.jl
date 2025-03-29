@@ -489,7 +489,7 @@ function check_traces(traces::AbstractVector, traces_setup::NamedTuple)
 		for (i, t) in enumerate(traces)
 			if haskey(t, :lat) && haskey(t, :lon)
 				name = haskey(t, :name) ? t[:name] : "Domain"
-				t_new = (; lon=[t[:lon]; t[:lon][1]], lat=[t[:lat]; t[:lat][1]])
+				t_new = (; lon=[t[:lon]; t[:lon][1:2]], lat=[t[:lat]; t[:lat][1:2]])
 				traces_vector[i] = PlotlyJS.scattermapbox(; traces_setup..., name=name, t_new...)
 			else
 				traces_vector[i] = PlotlyJS.scattermapbox(; traces_setup...)
