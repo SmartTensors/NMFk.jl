@@ -127,7 +127,7 @@ checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
 function maskvector(x::AbstractVector)
 	ism = .!ismissing.(x) .& .!isnothing.(x)
-	xt = x[ism]
+	xt = vcat(x[ism]...)
 	if eltype(xt) <: AbstractFloat
 		isn = .!isnan.(xt)
 		xt = xt[isn]
@@ -153,6 +153,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 	ineg = Vector{Int64}(undef, 0)
 	istatic = Vector{Int64}(undef, 0)
 	istring = Vector{Int64}(undef, 0)
+	idates = Vector{Int64}(undef, 0)
 	iany = Vector{Int64}(undef, 0)
 	for i = axes(x, dim)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
@@ -238,6 +239,12 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 					end
 				end
 			end
+		elseif eltype(v) <: Dates.Date
+			vmin = minimum(v)
+			vmax = maximum(v)
+			luv = length(unique(v))
+			println("min: $(Printf.@sprintf("%12s", vmin)) max: $(Printf.@sprintf("%12s", vmax)) skewness: $(Printf.@sprintf("%12s", "---")) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
+			push!(idates, i)
 		elseif eltype(v) <: AbstractString
 			push!(istring, i)
 			print("$(Base.text_colors[:yellow])$(Base.text_colors[:bold])String:$(Base.text_colors[:normal]) ")
@@ -293,6 +300,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		println("Contain only zeros: $(length(izeros))")
 		println("Constant entries: $(length(istatic))")
 		println("String entries: $(length(istring))")
+		println("Date entries: $(length(istring))")
 		println("Any entries: $(length(iany))")
 	end
 	if masks
@@ -304,6 +312,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mneg = falses(na)
 		mstatic = falses(na)
 		mstring = falses(na)
+		mdates = falses(na)
 		many = falses(na)
 		mlog[ilog] .= true
 		mcor[icor] .= true
@@ -313,11 +322,12 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mneg[ineg] .= true
 		mstatic[istatic] .= true
 		mstring[istring] .= true
+		mdates[idates] .= true
 		many[iany] .= true
-		mremove = msame .|  mnans .| mzeros .| mstatic .| mstring .| many
-		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, static=mstatic, string=mstring, any=many)
+		mremove = msame .|  mnans .| mzeros .| mstatic .| mstring .| mdates .| many
+		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, static=mstatic, string=mstring, dates=mdates,any=many)
 	else
 		iremove = unique(sort(vcat(isame, inans, izeros, istatic, istring, iany)))
-		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, static=istatic, string=istring, any=iany)
+		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, static=istatic, string=istring, dates=idates, any=iany)
 	end
 end
