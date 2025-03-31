@@ -548,15 +548,15 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 
 		if clusterH
 			reduced = false
-			if size(Ha, 1) > 100_000
-				reduced = true
+			if size(Ha, 1) > 100_000 && Hrepeats > 1
 				Hrepeats = 1
-			elseif Hrepeats > 10 && size(Ha, 1) > 10_000
 				reduced = true
+			elseif size(Ha, 1) > 10_000 && Hrepeats > 10
 				Hrepeats = 10
-			elseif Hrepeats > 100 && size(Ha, 1) > 1_000
 				reduced = true
+			elseif size(Ha, 1) > 1_000 && Hrepeats > 100
 				Hrepeats = 100
+				reduced = true
 			end
 			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
 			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
@@ -566,15 +566,15 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 
 		if clusterW
 			reduced = false
-			if size(Wa, 1) > 100_000
-				reduced = true
+			if size(Wa, 1) > 100_000 && Wrepeats > 1
 				Wrepeats = 1
-			elseif Wrepeats > 10 && size(Wa, 1) > 10_000
 				reduced = true
+			elseif size(Wa, 1) > 10_000 && Wrepeats > 10
 				Wrepeats = 10
-			elseif Wrepeats > 100 && size(Wa, 1) > 1_000
 				reduced = true
+			elseif size(Wa, 1) > 1_000 && Wrepeats > 100
 				Wrepeats = 100
+				reduced = true
 			end
 			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
 			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
