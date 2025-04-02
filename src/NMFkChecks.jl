@@ -127,7 +127,7 @@ checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
 function maskvector(x::AbstractVector)
 	ism = .!ismissing.(x) .& .!isnothing.(x)
-	xt = vcat(x[ism]...)
+	xt = eltype(x) <: Any ? vcat(x[ism]...) : x[ism]
 	if eltype(xt) <: AbstractFloat
 		isn = .!isnan.(xt)
 		xt = xt[isn]
