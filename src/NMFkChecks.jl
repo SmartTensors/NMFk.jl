@@ -127,7 +127,7 @@ checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
 function maskvector(x::AbstractVector)
 	ism = .!ismissing.(x) .& .!isnothing.(x)
-	xt = eltype(x) <: Any ? vcat(x[ism]...) : x[ism]
+	xt = identity.(x[ism])
 	if eltype(xt) <: AbstractFloat
 		isn = .!isnan.(xt)
 		xt = xt[isn]
@@ -165,7 +165,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			push!(inans, i)
 			continue
 		end
-		v = vcat(vo[isvalue]...)
+		v = identity.(vo[isvalue])
 		if eltype(v) <: Number
 			vmin = minimum(v)
 			vmax = maximum(v)
@@ -203,7 +203,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 					if sum(isvalue2) == 0 # only missing values
 						continue
 					end
-					v2 = vcat(vo2[isvalue2]...)
+					v2 = identity.(vo2[isvalue2])
 					if !(eltype(v2) <: Number)
 						continue
 					end
