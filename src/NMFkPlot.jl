@@ -7,9 +7,6 @@ import StatsBase
 import Measures
 import Mads
 
-colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
-ncolors = length(colors)
-
 function typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
 	ncolors = length(colors)
 	ut = unique(types)

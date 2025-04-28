@@ -13,7 +13,7 @@ function colormap(colors::AbstractVector{String})
 	cm = Gadfly.Scale.lab_gradient(c...)
 end
 
-colors = ["red", "blue", "green", "orange", "magenta", "cyan", "brown", "pink", "lime", "navy", "maroon", "yellow", "olive", "springgreen", "teal", "coral", "#e6beff", "beige", "purple", "#4B6F44", "#9F4576"]
+colors = Mads.colors
 ncolors = length(colors)
 
 # r = reshape(repeat(collect(1/100:1/100:1), inner=100), (100,100))
