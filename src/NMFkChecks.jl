@@ -141,7 +141,7 @@ function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
 	return checkmatrix(Matrix(df), 2; names=names, kw...)
 end
 
-function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=true)
+function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=true)
 	names = String.(names)
 	mlength = maximum(length.(names))
 	na = size(x, dim)
@@ -154,6 +154,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 	istatic = Vector{Int64}(undef, 0)
 	istring = Vector{Int64}(undef, 0)
 	idates = Vector{Int64}(undef, 0)
+	icount = Vector{Int64}(undef, 0)
 	iany = Vector{Int64}(undef, 0)
 	for i = axes(x, dim)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
@@ -212,7 +213,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 						if sum(isvalue_all) == 0
 							continue
 						end
-						v = vo[isvalue_all]
+						v1 = vo[isvalue_all]
 						v2 = vo2[isvalue_all]
 						comparison_ratio = sum(isvalue_all) / sum(isvalue)
 						comparison_size = "$(sum(isvalue_all)) out of $(sum(isvalue))"
@@ -220,17 +221,17 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 						comparison_ratio = 1
 						comparison_size = "$(sum(isvalue)) out of $(sum(isvalue))"
 					end
-					if isvalue == isvalue2 && v == v2
+					if isvalue == isvalue2 && v1 == v2
 						!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if i > j
 							push!(isame, j)
 						end
-					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && Statistics.norm(v .- v2) < norm_cutoff || all(v .≈ v2)
+					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && Statistics.norm(v1 .- v2) < norm_cutoff || all(v1 .≈ v2)
 						!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if i > j
 							push!(icor, j)
 						end
-					elseif sum(isvalue_all) > 3 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v, v2))) > correlation_cutoff
+					elseif sum(isvalue_all) > 3 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v1, v2))) > correlation_cutoff
 						correlation = round(correlation, digits=4)
 						!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
 						if i > j
@@ -239,7 +240,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 					end
 				end
 			end
-		elseif eltype(v) <: Dates.Date
+		elseif eltype(v) <: Dates.Date || eltype(v) <: Dates.DateTime || eltype(v) <: Dates.Time
 			vmin = minimum(v)
 			vmax = maximum(v)
 			luv = length(unique(v))
@@ -288,6 +289,10 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			!quiet && println("$(Base.text_colors[:red])$(Base.text_colors[:bold])Unknown type:$(Base.text_colors[:normal]) $(eltype(v)): $(unique(v))!")
 			push!(iany, i)
 		end
+		if count_cutoff > 0 && length(v) < count_cutoff
+			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Not enough data (less than $(count_cutoff))$(Base.text_colors[:normal])")
+			push!(icount, i)
+		end
 	end
 	icor = unique(sort(icor))
 	if !quiet
@@ -301,6 +306,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		println("Constant entries: $(length(istatic))")
 		println("String entries: $(length(istring))")
 		println("Date entries: $(length(istring))")
+		println("Low-count entries: $(length(istring))")
 		println("Any entries: $(length(iany))")
 	end
 	if masks
@@ -313,6 +319,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mstatic = falses(na)
 		mstring = falses(na)
 		mdates = falses(na)
+		mcount = falses(na)
 		many = falses(na)
 		mlog[ilog] .= true
 		mcor[icor] .= true
@@ -323,11 +330,12 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 		mstatic[istatic] .= true
 		mstring[istring] .= true
 		mdates[idates] .= true
+		mcount[icount] .= true
 		many[iany] .= true
-		mremove = msame .|  mnans .| mzeros .| mstatic .| mstring .| mdates .| many
-		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, static=mstatic, string=mstring, dates=mdates,any=many)
+		mremove = msame .|  mnans .| mzeros .| mstatic .| mstring .| mdates .| mcount .| many
+		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, static=mstatic, string=mstring, lowcount=mcount, dates=mdates,any=many)
 	else
 		iremove = unique(sort(vcat(isame, inans, izeros, istatic, istring, iany)))
-		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, static=istatic, string=istring, dates=idates, any=iany)
+		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, static=istatic, string=istring, lowcount=icount, dates=idates, any=iany)
 	end
 end
