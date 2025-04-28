@@ -289,7 +289,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 			!quiet && println("$(Base.text_colors[:red])$(Base.text_colors[:bold])Unknown type:$(Base.text_colors[:normal]) $(eltype(v)): $(unique(v))!")
 			push!(iany, i)
 		end
-		if count_cutoff > 0 && length(v) < count_cutoff
+		if count_cutoff > 0 && length(v) <= count_cutoff
 			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Not enough data (less than $(count_cutoff))$(Base.text_colors[:normal])")
 			push!(icount, i)
 		end
