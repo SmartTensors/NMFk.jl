@@ -70,7 +70,6 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 	for (i, m) in enumerate(lamin)
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
 		av = view(a, nt...)
-
 		if logv[i]
 			avn = av[.!isnan.(av)]
 			iz = avn .<= 0
