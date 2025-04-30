@@ -70,18 +70,19 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 	for (i, m) in enumerate(lamin)
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
 		av = view(a, nt...)
+
 		if logv[i]
-			iz = av .<= 0
-			siz = sum(iz)
-			if siz == length(iz)
+			avn = av[.!isnan.(av)]
+			iz = avn .<= 0
+			if sum(iz) == length(iz) # if all negative or zero
 				av .= abs.(av)
 			end
 			iz = av .<= 0
 			siz = sum(iz)
-			siz > 0 && (av[iz] .= NaN)
+			siz > 0 && (av[iz] .= NaN) # if there are still negative or zero values make them NaN
 			av .= log10.(av)
 			if siz > 0
-				av[iz] .= minimumnan(av) - offset
+				av[iz] .= minimumnan(av) - offset # make the negative and zero values something very small
 				zflag[i] = true
 			end
 			lamin[nt...] .= minimumnan(av)
