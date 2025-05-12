@@ -227,7 +227,9 @@ function denormalizematrix!(a::AbstractMatrix, dim::Number, amin::Union{Abstract
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
 		av = view(a, nt...)
 		if logv[i]
+			# @show logtransform[i]
 			if typeof(logtransform[i]) <: Number
+
 				av .= 10. .^ av
 				av .-= logtransform[i]
 			else
