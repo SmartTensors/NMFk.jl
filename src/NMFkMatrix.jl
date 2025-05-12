@@ -64,7 +64,8 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 	@assert length(amin) == size(a, dim)
 	@assert length(amax) == size(a, dim)
 	@assert length(logv) == size(a, dim)
-	zflag = falses(length(amin))
+	logtransform = Vector{Union{Float64,Symbol}}(undef, length(amin))
+	logtransform .= :nothing
 	lamin = copy(amin)
 	lamax = copy(amax)
 	for (i, m) in enumerate(lamin)
@@ -72,18 +73,23 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 		av = view(a, nt...)
 		if logv[i]
 			avn = av[.!isnan.(av)]
-			iz = avn .<= 0
-			if sum(iz) == length(iz) # if all negative or zero
+			inz = avn .<= 0
+			if sum(inz) == length(inz) # if all negative or zero
 				av .= abs.(av)
+				logtransform[i] = :absflip
+			elseif (sum(avn .< 0) > 0) && (sum(avn .> 0 ) > 0) # if some negative and some positive
+				minavn = minimum(avn)
+				av .+= abs(minavn) + offset # make all positive by shifting
+				logtransform[i] = abs(minavn) + offset
 			end
-			iz = av .<= 0
-			siz = sum(iz)
-			siz > 0 && (av[iz] .= NaN) # if there are still negative or zero values make them NaN
+			iz = av .== 0
+			av[iz] .= NaN # if there are zero values make them NaN
 			av .= log10.(av)
-			if siz > 0
+			if sum(iz) > 0
 				av[iz] .= minimumnan(av) - offset # make the negative and zero values something very small
-				zflag[i] = true
+				logtransform[i] = logtransform[i] == :absflip ? :absflip_min_zero : :min_zero
 			end
+			# @show logtransform[i]
 			lamin[nt...] .= minimumnan(av)
 			lamax[nt...] .= maximumnan(av)
 		end
@@ -95,10 +101,10 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 	end
 	if rev
 		a .= (lamax .- a) ./ dx
-		return a, lamax, lamin, zflag
+		return a, lamax, lamin, logtransform
 	else
 		a .= (a .- lamin) ./ dx
-		return a, lamin, lamax, zflag
+		return a, lamin, lamax, logtransform
 	end
 end
 
@@ -187,55 +193,62 @@ function arrayminmax(a::AbstractArray, dim::Integer)
 end
 
 "Denormalize matrix"
-function denormalizematrix_col(a::AbstractMatrix, at...; kw...)
-	return denormalizematrix_col!(copy(a), at...; kw...)
-end
-function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractMatrix, amax::AbstractMatrix; log::Bool=false, logv::AbstractVector=fill(log, size(a, 2)), zflag::AbstractVector=falses(size(a, 2)))
-	dx = amax .- amin
-	dx[dx .== 0] .= 1
-	if all(dx .>= 0)
-		a .= a .* dx + repeat(amin; outer=[size(a, 1), 1])
-	else
-		a .= repeat(amin; outer=[size(a, 1), 1]) + a .* dx
-	end
-	for (i, m) in enumerate(amin)
-		av = view(a, :, i)
-		if logv[i]
-			if zflag[i]
-				iz = av .== m
-			end
-			av .= 10. .^ av
-			zflag[i] && (av[iz] .= 0)
-		end
-	end
-	return a
-end
-
-"Denormalize matrix"
 function denormalizematrix_row(a::AbstractMatrix, at...; kw...)
 	return denormalizematrix_row!(copy(a), at...; kw...)
 end
-function denormalizematrix_row!(a::AbstractMatrix, amin::AbstractVector, amax::AbstractVector; log::Bool=false, logv::AbstractVector=fill(log, size(a, 1)), zflag::AbstractVector=falses(size(a, 2)))
+function denormalizematrix_row!(a::AbstractMatrix, amin::AbstractMatrix, amax::AbstractMatrix; kw...)
+	return denormalizematrix!(a, 1, amin, amax; kw...)
+end
+function denormalizematrix_col(a::AbstractMatrix, at...; kw...)
+	return denormalizematrix_col!(copy(a), at...; kw...)
+end
+function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractVector, amax::AbstractVector; kw...)
+	return denormalizematrix!(a, 2, amin, amax; kw...)
+end
+function denormalizematrix(a::AbstractMatrix, at...; kw...)
+	return denormalizematrix!(copy(a), at...; kw...)
+end
+function denormalizematrix!(a::AbstractMatrix, dim::Number, amin::Union{AbstractVector,AbstractMatrix}, amax::Union{AbstractVector,AbstractMatrix}; log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), logtransform::AbstractVector=fill(:nothing, size(a, dim)))
 	dx = amax .- amin
 	dx[dx .== 0] .= 1
-	if all(dx .>= 0)
-		a .= a .* (amax - amin) + repeat(amin; outer=[1, size(a, 2)])
+	if dim == 1
+		outer1 = [1, size(a, 2)]
+		outer2 = [1, size(a, 1)]
 	else
-		a .= repeat(amin; outer=[1, size(a, 1)]) + a .* (dx)
+		outer1 = [size(a, 1), 1]
+		outer2 = [size(a, 1), 1]
+	end
+	if all(dx .>= 0)
+		a .= a .* dx + repeat(amin; outer=outer1)
+	else
+		a .= repeat(amin; outer=outer2) + a .* dx
 	end
 	for (i, m) in enumerate(amin)
-		av = view(a, i, :)
+		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
+		av = view(a, nt...)
 		if logv[i]
-			iz = av .< m
-			av .= 10. .^ av
-			av[iz] .= 0
+			if typeof(logtransform[i]) <: Number
+				av .= 10. .^ av
+				av .-= logtransform[i]
+			else
+				if logtransform[i] .== :absflip_min_zero || logtransform[i] .== :min_zero
+					iz = av .== m
+					av .= 10. .^ av
+					av[iz] .= 0
+				else
+					av .= 10. .^ av
+				end
+				if logtransform[i] .== :absflip_min_zero || logtransform[i] .== :absflip
+					av .= -abs.(av)
+				end
+			end
 		end
 	end
 	return a
 end
 
 "Normalize array"
-function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), amax=vec(maximumnan(a; dims=dims)), amin=vec(minimumnan(a; dims=dims))) where {T <: Number, N}
+function normalizearray!(a::AbstractArray{T,N}; rev::Bool=false, dims=(1,2), amin=vec(minimumnan(a; dims=dims)), amax=vec(maximumnan(a; dims=dims)), ) where {T <: Number, N}
 	for i = eachindex(amax)
 		dx = amax[i] - amin[i]
 		if dx == 0
