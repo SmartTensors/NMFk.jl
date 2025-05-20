@@ -46,8 +46,15 @@ function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), l
 	ci = ct .<: Number .|| ct .=== Vector{Union{Missing, Float64}} .|| ct .=== Vector{Union{Missing, Float32}} .|| ct .=== Vector{Union{Missing, Int64}} .|| ct .=== Vector{Union{Missing, Int32}}
 	m = Matrix(d[!, ci])
 	type = first(unique(eltype.(skipmissing(m))))
-	m[ismissing.(m)] .= type(NaN)
-	m = convert(Matrix{type}, m)
+	if type <: Float64 || type <: Float32
+		m[ismissing.(m)] .= type(NaN)
+		m = convert(Matrix{type}, m)
+	end
+	skipped_attributes = names[.!ci]
+	if length(skipped_attributes) > 0
+		@info("Attributes skipped ($(length(skipped_attributes))):")
+		println.(skipped_attributes)
+	end
 	datanalytics(m, names[ci]; dims=2, logv=logv[ci], kw...)
 end
 
