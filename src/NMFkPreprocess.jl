@@ -35,7 +35,7 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 		if log
 			vn = log10s(vn)
 		end
-		plothistogram && NMFk.histogram(vn; quiet=true, kw...)
+		plothistogram && NMFk.histogram(vn; quiet=false, kw...)
 		return minimum(vn), maximum(vn), Statistics.std(vn), StatsBase.skewness(vn), sum(ig)
 	else
 		return NaN, NaN, NaN, 0, 0

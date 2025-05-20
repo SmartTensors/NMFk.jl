@@ -230,7 +230,7 @@ end
 function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize::Measures.AbsoluteLength=6Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, quiet::Bool=false, debug::Bool=false, figuredir::AbstractString=".", filename_plot::AbstractString="", filename_data::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i->i, xlabelmap=nothing, edges=nothing, refine::Number=1, return_data::Bool=false)
 	ndata = length(data)
 	if ndata <= 1
-		!quiet && @warn("Data input is too short to compute histogram (length of data = $ndata)!")
+		debug && @warn("Data input is too short to compute histogram (length of data = $ndata)!")
 		return
 	end
 	@assert ndata == length(classes)
