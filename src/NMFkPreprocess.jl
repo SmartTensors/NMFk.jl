@@ -15,11 +15,13 @@ end
 function log10s!(x::AbstractArray; offset::Number=1)
 	iz = x .<= 0
 	siz = sum(iz)
-	if siz > 0
+	if siz == length(x)
+		x = abs.(x)
+	elseif siz > 0
 		x[iz] .= NaN
 	end
 	x .= log10.(x)
-	if siz > 0
+	if (siz != length(x)) && (siz > 0)
 		min = minimumnan(x[.!iz]) - offset
 		x[iz] .= min
 	end
@@ -33,10 +35,9 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 		if log
 			vn = log10s(vn)
 		end
-		plothistogram && NMFk.histogram(vn; kw...)
+		plothistogram && NMFk.histogram(vn; quiet=true, kw...)
 		return minimum(vn), maximum(vn), Statistics.std(vn), StatsBase.skewness(vn), sum(ig)
 	else
-		plothistogram && @warn("No data!")
 		return NaN, NaN, NaN, 0, 0
 	end
 end
@@ -90,8 +91,18 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			filename = ""
 		end
 		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename_plot=filename, kw..., title=n)
-		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) min: $(Printf.@sprintf("%12.7g", min[i])) max: $(Printf.@sprintf("%12.7g", max[i])) std.dev: $(Printf.@sprintf("%12.7g", std[i])) skewness: $(Printf.@sprintf("%12.7g", skewness[i])) count: $(Printf.@sprintf("%12d", count[i]))")
-		!quiet && logv[i] ? println("<- log-transformed") : println()
+		if !quiet
+			print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) min: $(Printf.@sprintf("%12.7g", min[i])) max: $(Printf.@sprintf("%12.7g", max[i])) std.dev: $(Printf.@sprintf("%12.7g", std[i])) skewness: $(Printf.@sprintf("%12.7g", skewness[i])) count: $(Printf.@sprintf("%12d", count[i]))")
+			if count[i] == 0
+				print(" $(Base.text_colors[:red])<- no data$(Base.text_colors[:normal])")
+			elseif count[i] < 4
+				print(" $(Base.text_colors[:yellow])<- limited data$(Base.text_colors[:normal])")
+			end
+			if logv[i]
+				print(" $(Base.text_colors[:blue])<- log-transformed$(Base.text_colors[:normal])")
+			end
+			println()
+		end
 	end
 	return min, max, std, skewness, count
 end
