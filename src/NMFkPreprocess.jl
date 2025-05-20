@@ -37,18 +37,18 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 		return minimum(vn), maximum(vn), Statistics.std(vn), StatsBase.skewness(vn), sum(ig)
 	else
 		plothistogram && @warn("No data!")
-		return -Inf, Inf, Inf, 0, 0
+		return NaN, NaN, NaN, 0, 0
 	end
 end
 
-function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), kw...)
+function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), logv::AbstractVector=fill(log, length(names)), kw...)
 	ct = eltype.(eachcol(d))
 	ci = ct .<: Number .|| ct .=== Vector{Union{Missing, Float64}} .|| ct .=== Vector{Union{Missing, Float32}} .|| ct .=== Vector{Union{Missing, Int64}} .|| ct .=== Vector{Union{Missing, Int32}}
 	m = Matrix(d[!, ci])
 	type = first(unique(eltype.(skipmissing(m))))
 	m[ismissing.(m)] .= type(NaN)
 	m = convert(Matrix{type}, m)
-	datanalytics(m, names[ci]; dims=2, kw...)
+	datanalytics(m, names[ci]; dims=2, logv=logv[ci], kw...)
 end
 
 function datanalytics(a::AbstractMatrix; dims::Integer=2, name = dims == 1 ? "Row" : "Column", names::AbstractVector=["$name $i" for i in axes(a, dims)], kw...)
@@ -56,7 +56,7 @@ function datanalytics(a::AbstractMatrix; dims::Integer=2, name = dims == 1 ? "Ro
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, saveplot::Bool=true, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	names = String.(names)
@@ -73,14 +73,18 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 		else
 			v = vec(a[nt...])
 		end
-		if casefilename == ""
-			filename = "histogram-$(n).png"
-		else
-			if last(splitdir(casefilename)) == ""
-				filename = casefilename * "histogram-$(n).png"
+		if saveplot
+			if casefilename == ""
+				filename = "histogram-$(n).png"
 			else
-				filename = casefilename * "-$(n).png"
+				if last(splitdir(casefilename)) == ""
+					filename = casefilename * "histogram-$(n).png"
+				else
+					filename = casefilename * "-$(n).png"
+				end
 			end
+		else
+			filename = ""
 		end
 		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename_plot=filename, kw..., title=n)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) min: $(Printf.@sprintf("%12.7g", min[i])) max: $(Printf.@sprintf("%12.7g", max[i])) std.dev: $(Printf.@sprintf("%12.7g", std[i])) skewness: $(Printf.@sprintf("%12.7g", skewness[i])) count: $(Printf.@sprintf("%12d", count[i]))")
