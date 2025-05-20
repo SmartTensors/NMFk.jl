@@ -27,7 +27,7 @@ function log10s!(x::AbstractArray; offset::Number=1)
 end
 
 function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=false, kw...)
-	ig = .!isnan.(v)
+	ig = .!isnan.(v) .&& .!ismissing.(v)
 	vn = v[ig]
 	if length(vn) > 0
 		if log
@@ -44,12 +44,8 @@ end
 function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), logv::AbstractVector=fill(log, length(names)), kw...)
 	ct = eltype.(eachcol(d))
 	ci = ct .<: Number .|| ct .=== Vector{Union{Missing, Float64}} .|| ct .=== Vector{Union{Missing, Float32}} .|| ct .=== Vector{Union{Missing, Int64}} .|| ct .=== Vector{Union{Missing, Int32}}
-	m = Matrix(d[!, ci])
-	type = first(unique(eltype.(skipmissing(m))))
-	if type <: Float64 || type <: Float32
-		m[ismissing.(m)] .= type(NaN)
-		m = convert(Matrix{type}, m)
-	end
+	m = Float64.(Matrix(d[!, ci]))
+	m[ismissing.(m)] .= NaN
 	skipped_attributes = names[.!ci]
 	if length(skipped_attributes) > 0
 		@info("Attributes skipped ($(length(skipped_attributes))):")
