@@ -42,7 +42,7 @@ function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=fal
 	end
 end
 
-function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), logv::AbstractVector=fill(log, length(names)), kw...)
+function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), log::Bool=false, logv::AbstractVector=fill(log, length(names)), kw...)
 	ct = nonmissingtype.(eltype.(eachcol(d)))
 	ci = ct .<: Number
 	m = Float64.(Matrix(d[!, ci]))
