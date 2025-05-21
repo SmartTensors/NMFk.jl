@@ -1,7 +1,7 @@
 -f https://download.pytorch.org/whl/torch_stable.html
 cython==0.29.14
 descarteslabs[complete]==1.5.0
-Fiona==1.8.13
+Fiona==1.10.0rc1
 GDAL==3.0.4 # Must stay in sync with version in Dockerfile
 geopandas==0.6.2
 h5py==2.10.0
