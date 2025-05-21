@@ -29,7 +29,7 @@ function log10s!(x::AbstractArray; offset::Number=1)
 end
 
 function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=false, kw...)
-	ig = .!isnan.(v) .&& .!ismissing(v)
+	ig = .!isnan.(v) .&& .!ismissing(v) .&& .!isinf.(v)
 	vn = v[ig]
 	if length(vn) > 0
 		if log
