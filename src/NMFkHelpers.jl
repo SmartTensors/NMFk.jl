@@ -189,6 +189,11 @@ function l1nan(t::AbstractVector, o::AbstractVector; func::Function=isnan)
 	return sum(abs.(t[ii] .- o[ii]))
 end
 
+function sortnan(v::AbstractVector; func::Function=isnan)
+	it = .!func.(v)
+	return sort(v[it])
+end
+
 function ssqrnan(t::AbstractVector, o::AbstractVector; func::Function=isnan) # Distances.euclidean(x, y)
 	it = .!func.(t)
 	ot = .!func.(o)
