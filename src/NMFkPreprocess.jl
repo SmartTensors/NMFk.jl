@@ -72,7 +72,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	count = Vector{Int64}(undef, length(names))
 	for (i, n) in enumerate(names)
 		nt = ntuple(k->(k == dims ? i : Colon()), ndims(a))
-		if logv[i]
+		if !logtest && logv[i]
 			v = log10s(vec(a[nt...]))
 		else
 			v = vec(a[nt...])
@@ -91,7 +91,19 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			filename = ""
 		end
 		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename_plot=filename, kw..., title=n)
-		if logtest && logv[i]
+		if !quiet
+			print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) min: $(Printf.@sprintf("%12.7g", min[i])) max: $(Printf.@sprintf("%12.7g", max[i])) std.dev: $(Printf.@sprintf("%12.7g", std[i])) skewness: $(Printf.@sprintf("%12.7g", skewness[i])) count: $(Printf.@sprintf("%12d", count[i]))")
+			if count[i] == 0
+				print(" $(Base.text_colors[:red])<- no data$(Base.text_colors[:normal])")
+			elseif count[i] < 4
+				print(" $(Base.text_colors[:yellow])<- limited data$(Base.text_colors[:normal])")
+			end
+			if logv[i]
+				print(" $(Base.text_colors[:blue])<- log-transformed$(Base.text_colors[:normal])")
+			end
+			println()
+		end
+				if logtest && logv[i]
 			if saveplot
 				if casefilename == ""
 					filename = "histogram-$(n)-logtest.png"
@@ -105,19 +117,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			else
 				filename = ""
 			end
-			datanalytics(vec(a[nt...]); filename_plot=filename, kw..., title=n * " (log test)")
-		end
-		if !quiet
-			print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) min: $(Printf.@sprintf("%12.7g", min[i])) max: $(Printf.@sprintf("%12.7g", max[i])) std.dev: $(Printf.@sprintf("%12.7g", std[i])) skewness: $(Printf.@sprintf("%12.7g", skewness[i])) count: $(Printf.@sprintf("%12d", count[i]))")
-			if count[i] == 0
-				print(" $(Base.text_colors[:red])<- no data$(Base.text_colors[:normal])")
-			elseif count[i] < 4
-				print(" $(Base.text_colors[:yellow])<- limited data$(Base.text_colors[:normal])")
-			end
-			if logv[i]
-				print(" $(Base.text_colors[:blue])<- log-transformed$(Base.text_colors[:normal])")
-			end
-			println()
+			datanalytics(log10s(vec(a[nt...])); filename_plot=filename, kw..., title=n * " (log test)")
 		end
 	end
 	return min, max, std, skewness, count
