@@ -60,7 +60,7 @@ function datanalytics(a::AbstractMatrix; dims::Integer=2, name = dims == 1 ? "Ro
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, saveplot::Bool=true, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, saveplot::Bool=true, logtest::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	names = String.(names)
@@ -91,6 +91,22 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			filename = ""
 		end
 		min[i], max[i], std[i], skewness[i], count[i] = datanalytics(v; filename_plot=filename, kw..., title=n)
+		if logtest && logv[i]
+			if saveplot
+				if casefilename == ""
+					filename = "histogram-$(n)-logtest.png"
+				else
+					if last(splitdir(casefilename)) == ""
+						filename = casefilename * "histogram-$(n)-logtest.png"
+					else
+						filename = casefilename * "-$(n).png"
+					end
+				end
+			else
+				filename = ""
+			end
+			datanalytics(vec(a[nt...]); filename_plot=filename, kw..., title=n * " (log test)")
+		end
 		if !quiet
 			print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) min: $(Printf.@sprintf("%12.7g", min[i])) max: $(Printf.@sprintf("%12.7g", max[i])) std.dev: $(Printf.@sprintf("%12.7g", std[i])) skewness: $(Printf.@sprintf("%12.7g", skewness[i])) count: $(Printf.@sprintf("%12d", count[i]))")
 			if count[i] == 0
