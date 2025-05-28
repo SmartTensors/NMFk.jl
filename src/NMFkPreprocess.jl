@@ -103,7 +103,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 			end
 			println()
 		end
-				if logtest && logv[i]
+		if logtest && logv[i]
 			if saveplot
 				if casefilename == ""
 					filename = "histogram-$(n)-logtest.png"
