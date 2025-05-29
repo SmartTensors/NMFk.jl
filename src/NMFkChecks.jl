@@ -260,7 +260,7 @@ function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_te
 						up[i] = s[1:20] * " ..."
 					else
 						if length(s) == 0
-							up[i] = rpad("<empty>", 24)
+							up[i] = rpad("<missing>", 24)
 						else
 							up[i] = rpad(s, 24)
 						end
