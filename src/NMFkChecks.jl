@@ -145,16 +145,16 @@ function checkvector(df::DataFrames.DataFrame, name::AbstractString; kw...)
 end
 
 function checkvector(v::AbstractVector, name::AbstractString=""; vmin=minimumnan(v), vmax=maximumnan(v), kw...)
-	vus = unique(sort(v))
+	vs = sort(v)
+	vus = unique(vs)
 	d = OrderedCollections.OrderedDict{Float64, Int64}()
-	for i in vus
+	for i in vs
 		if !haskey(d, i)
 			d[i] = 1
 		else
 			d[i] += 1
 		end
 	end
-	display(d)
 	println("$(length(d)) unique values:")
 	local c = 0
 	for (i, j) in d
