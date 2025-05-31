@@ -144,7 +144,7 @@ function checkvector(df::DataFrames.DataFrame, name::AbstractString; kw...)
 	return checkvector(v; name=name, kw...)
 end
 
-function checkvector(v::AbstractVector, name::AbstractString=""; vmin=minimumnan(v), vmax=maximumnan(v), kw...)
+function checkvector(v::AbstractVector, name::AbstractString=""; cutoff::Integer=30, kw...)
 	vs = sort(v)
 	vus = unique(vs)
 	d = OrderedCollections.OrderedDict{Float64, Int64}()
@@ -159,7 +159,7 @@ function checkvector(v::AbstractVector, name::AbstractString=""; vmin=minimumnan
 	local c = 0
 	for (i, j) in d
 		c += 1
-		if length(d) < 30 || (c <= 15 || c >= length(d) - 15)
+		if length(d) < cutoff || (c <= cutoff / 2 || c >= length(d) - cutoff / 2)
 			println("$(i): count = $(j)")
 		else
 			if c == 16

@@ -28,14 +28,17 @@ function log10s!(x::AbstractArray; offset::Number=1)
 	return x
 end
 
-function datanalytics(v::AbstractVector; plothistogram::Bool=true, log::Bool=false, kw...)
+function datanalytics(v::AbstractVector; plothistogram::Bool=true, logtest::Bool=false, log::Bool=false, kw...)
 	ig = .!isnan.(v) .&& .!ismissing(v) .&& .!isinf.(v)
 	vn = v[ig]
 	if length(vn) > 0
-		if log
+		if !logtest && log
 			vn = log10s(vn)
 		end
 		plothistogram && NMFk.histogram(vn; quiet=false, kw...)
+		if logtest && !log
+			NMFk.histogram(log10s(vn); quiet=false, kw..., title="Log test")
+		end
 		return minimum(vn), maximum(vn), Statistics.std(vn), StatsBase.skewness(vn), sum(ig)
 	else
 		return NaN, NaN, NaN, 0, 0
