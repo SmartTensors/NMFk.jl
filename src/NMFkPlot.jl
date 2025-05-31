@@ -472,7 +472,7 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	return ff
 end
 
-function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=false, hsize::Measures.AbsoluteLength=8Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim=(dim == 1) ? 2 : 1, order=sortperm(vec(maximum(M, otherdim))), dpi=imagedpi)
+function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=false, hsize::Measures.AbsoluteLength=8Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, gm=[], timescale::Bool=true, code::Bool=false, otherdim::Integer=(dim == 1) ? 2 : 1, order::AbstractVector=sortperm(vec(maximum(M, otherdim))), dpi=imagedpi)
 	msize = size(M)
 	ndimensons = length(msize)
 	@assert dim >= 1 && dim <= ndimensons

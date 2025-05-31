@@ -1,6 +1,7 @@
 import Statistics
 import StatsBase
 import DataFrames
+import OrderedCollections
 import Missings
 
 function checkarray(X::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
@@ -136,12 +137,45 @@ function maskvector(x::AbstractVector)
 	return ism
 end
 
-function checkmatrix(df::DataFrames.DataFrame; names=names(df), kw...)
+function checkvector(df::DataFrames.DataFrame, name::AbstractString; kw...)
+	v = df[!, name]
+	colnull = .!isnan.(v)
+	NMFk.mapbox(raw_chem_new.Lon[colnull], raw_chem_new.Lat[colnull], v[colnull]; height=500, width=500)
+	return checkvector(v; name=name, kw...)
+end
+
+function checkvector(v::AbstractVector, name::AbstractString=""; vmin=minimumnan(v), vmax=maximumnan(v), kw...)
+	vus = unique(sort(v))
+	d = OrderedCollections.OrderedDict{Float64, Int64}()
+	for i in vus
+		if !haskey(d, i)
+			d[i] = 1
+		else
+			d[i] += 1
+		end
+	end
+	display(d)
+	println("$(length(d)) unique values:")
+	local c = 0
+	for (i, j) in d
+		c += 1
+		if length(d) < 30 || (c <= 15 || c >= length(d) - 15)
+			println("$(i): count = $(j)")
+		else
+			if c == 16
+				println("...")
+			end
+		end
+	end
+	NMFk.datanalytics(v; kw...)
+end
+
+function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), kw...)
 	@assert length(names) == DataFrames.ncol(df)
 	return checkmatrix(Matrix(df), 2; names=names, kw...)
 end
 
-function checkmatrix(x::AbstractMatrix, dim=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=true)
+function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i=axes(x, dim)], masks::Bool=true)
 	names = String.(names)
 	mlength = maximum(length.(names))
 	na = size(x, dim)

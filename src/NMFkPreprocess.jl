@@ -60,7 +60,7 @@ function datanalytics(a::AbstractMatrix; dims::Integer=2, name = dims == 1 ? "Ro
 	datanalytics(a, names; dims=dims, kw...)
 end
 
-function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, saveplot::Bool=true, logtest::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
+function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer=2, quiet::Bool=false, veryquiet::Bool=true, saveplot::Bool=false, logtest::Bool=false, log::Bool=false, logv::AbstractVector=fill(log, length(names)), casefilename::AbstractString="", kw...) where {T <: Number}
 	@assert length(names) == length(logv)
 	@assert length(names) == size(a, dims)
 	names = String.(names)

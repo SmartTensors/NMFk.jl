@@ -155,7 +155,7 @@ function signalorder(W::AbstractMatrix, H::AbstractMatrix; quiet::Bool=true)
 	return signal_order
 end
 
-function signalorderassignments(X::AbstractArray, dim=1)
+function signalorderassignments(X::AbstractArray, dim::Integer=1)
 	v = Vector{Int64}(undef, size(X, dim))
 	for i in axes(X, dim)
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(X))
