@@ -55,7 +55,7 @@ function datanalytics(d::DataFrames.DataFrame; names::AbstractVector=names(d), l
 		@info("Attributes skipped ($(length(skipped_attributes))):")
 		println.(skipped_attributes)
 	end
-	datanalytics(m, names[ci]; dims=2, logv=logv[ci], kw...)
+	datanalytics(m; dims=2, names=names[ci], logv=logv[ci], kw...)
 end
 
 function datanalytics(a::AbstractMatrix; dims::Integer=2, name = dims == 1 ? "Row" : "Column", names::AbstractVector=["$name $i" for i in axes(a, dims)], kw...)
