@@ -185,7 +185,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 	inans = Vector{Int64}(undef, 0)
 	izeros = Vector{Int64}(undef, 0)
 	ineg = Vector{Int64}(undef, 0)
-	istatic = Vector{Int64}(undef, 0)
+	iconstant = Vector{Int64}(undef, 0)
 	istring = Vector{Int64}(undef, 0)
 	idates = Vector{Int64}(undef, 0)
 	icount = Vector{Int64}(undef, 0)
@@ -219,7 +219,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 			if vmin ≈ vmax
 				!quiet && print(" <- constant!")
 				skip_corr_test = true
-				push!(istatic, i)
+				push!(iconstant, i)
 			elseif length(unique(v)) == 2
 				!quiet && print(" <- boolean?!")
 			elseif abs(skew) > skewness_cutoff && length(unique(v)) > 2
@@ -286,7 +286,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 			u = sort(String.(unique(v)))
 			if length(u) == 1
 				!quiet && println("$(u) <- non-numeric constant!")
-				push!(istatic, i)
+				push!(iconstant, i)
 			else
 				up = deepcopy(u)
 				for (i, s) in enumerate(u)
@@ -337,7 +337,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 		println("Equivalent with other attributes: $(length(isame))")
 		println("Contain only missing values: $(length(inans))")
 		println("Contain only zeros: $(length(izeros))")
-		println("Constant entries: $(length(istatic))")
+		println("Constant entries: $(length(iconstant))")
 		println("String entries: $(length(istring))")
 		println("Date entries: $(length(idates))")
 		println("Low-count entries: $(length(icount))")
@@ -350,7 +350,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 		mnans = falses(na)
 		mzeros = falses(na)
 		mneg = falses(na)
-		mstatic = falses(na)
+		mconstant = falses(na)
 		mstring = falses(na)
 		mdates = falses(na)
 		mcount = falses(na)
@@ -361,15 +361,15 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 		mnans[inans] .= true
 		mzeros[izeros] .= true
 		mneg[ineg] .= true
-		mstatic[istatic] .= true
+		mconstant[iconstant] .= true
 		mstring[istring] .= true
 		mdates[idates] .= true
 		mcount[icount] .= true
 		many[iany] .= true
-		mremove = msame .|  mnans .| mzeros .| mstatic .| mstring .| mdates .| mcount .| many
-		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, static=mstatic, string=mstring, lowcount=mcount, dates=mdates,any=many)
+		mremove = msame .|  mnans .| mzeros .| mconstant .| mstring .| mdates .| mcount .| many
+		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, constant=mconstant, string=mstring, lowcount=mcount, dates=mdates,any=many)
 	else
-		iremove = unique(sort(vcat(isame, inans, izeros, istatic, istring, iany)))
-		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, static=istatic, string=istring, lowcount=icount, dates=idates, any=iany)
+		iremove = unique(sort(vcat(isame, inans, izeros, iconstant, istring, iany)))
+		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, constant=iconstant, string=istring, lowcount=icount, dates=idates, any=iany)
 	end
 end
