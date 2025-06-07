@@ -317,6 +317,7 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 			end
 			DelimitedFiles.writedlm(filename_data_long, [xmina xmaxa ya], ',')
 		end
+		ya = ya[1:length(xmina)] # Ensure that the length of ya matches xmina
 		vec_xmina[j] = xmina
 		vec_xmaxa[j] = xmaxa
 		vec_ya[j] = ya

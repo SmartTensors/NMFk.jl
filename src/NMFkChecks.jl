@@ -167,7 +167,7 @@ function checkvector(v::AbstractVector, name::AbstractString=""; cutoff::Integer
 			end
 		end
 	end
-	NMFk.datanalytics(v; kw...)
+	NMFk.datanalytics(v; title=name, kw...)
 end
 
 function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), kw...)
