@@ -340,7 +340,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 		println("Constant entries: $(length(istatic))")
 		println("String entries: $(length(istring))")
 		println("Date entries: $(length(idates))")
-		println("Low-count entries: $(length(ilowcount))")
+		println("Low-count entries: $(length(icount))")
 		println("Any entries: $(length(iany))")
 	end
 	if masks
