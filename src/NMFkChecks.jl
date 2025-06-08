@@ -252,6 +252,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 						comparison_ratio = sum(isvalue_all) / sum(isvalue)
 						comparison_size = "$(sum(isvalue_all)) out of $(sum(isvalue))"
 					else
+						isvalue_all = isvalue
 						comparison_ratio = 1
 						comparison_size = "$(sum(isvalue)) out of $(sum(isvalue))"
 					end
@@ -260,12 +261,12 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 						if i > j
 							push!(isame, j)
 						end
-					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && Statistics.norm(v1 .- v2) < norm_cutoff || all(v1 .≈ v2)
+					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (Statistics.norm(v1 .- v2) < norm_cutoff || all(v1 .≈ v2))
 						!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if i > j
 							push!(icor, j)
 						end
-					elseif sum(isvalue_all) > 3 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v1, v2))) > correlation_cutoff
+					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v1, v2))) > correlation_cutoff
 						correlation = round(correlation, digits=4)
 						!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
 						if i > j
