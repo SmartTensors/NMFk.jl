@@ -322,7 +322,28 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 				end
 			end
 		else
-			!quiet && println("$(Base.text_colors[:red])$(Base.text_colors[:bold])Unknown type:$(Base.text_colors[:normal]) $(eltype(v)): $(unique(v))!")
+			if !quiet
+				println("$(Base.text_colors[:red])$(Base.text_colors[:bold])Unknown type:$(Base.text_colors[:normal]) $(eltype(v))!")
+				u = unique(v)
+				println("$(length(u)) unique values:")
+				v_countmap = StatsBase.countmap(v)
+				count = collect(values(v_countmap))
+				v_keys = collect(keys(v_countmap))
+				isort = sortperm(count; rev=true)
+				if length(u) > 20
+					for i in 1:5
+						println("$(v_keys[isort][i]): count = $(count[isort][i])")
+					end
+					println("...")
+					for i in eachindex(v_keys)[end-4:end]
+						println("$(v_keys[isort][i]): count = $(count[isort][i])")
+					end
+				else
+					for i in eachindex(v_keys)
+						println("$(v_keys[isort][i]): count = $(count[isort][i])")
+					end
+				end
+			end
 			push!(iany, i)
 		end
 		if count_cutoff > 0 && length(v) <= count_cutoff
