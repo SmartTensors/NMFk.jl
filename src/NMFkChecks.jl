@@ -303,7 +303,8 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 				end
 				if !quiet
 					println("$(length(u)) unique values:")
-					count = [sum(i .== v) for i in u]
+					v_countmap = StatsBase.countmap(v)
+					count = collect(values(v_countmap))
 					isort = sortperm(count; rev=true)
 					if length(u) > 20
 						for i in 1:5
