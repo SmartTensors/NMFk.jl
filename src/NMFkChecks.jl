@@ -323,7 +323,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=false, corre
 			end
 		else
 			if !quiet
-				println("$(Base.text_colors[:red])$(Base.text_colors[:bold])Unknown type:$(Base.text_colors[:normal]) $(eltype(v))!")
+				println("$(Base.text_colors[:red])$(Base.text_colors[:bold])Unknown type:$(Base.text_colors[:normal]) $(unique(typeof.(v)))!")
 				u = unique(v)
 				println("$(length(u)) unique values:")
 				v_countmap = StatsBase.countmap(v)
