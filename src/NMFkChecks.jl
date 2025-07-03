@@ -109,14 +109,15 @@ function checkarrayentries(X::AbstractArray{T,N}, func::Function=.!isnan; quiet:
 		end
 		if !quiet
 			if length(return_indices[d]) > 0
-				println("Dimension $(d) $(st): $(return_indices[d])")
+				println("Dimension $(d) $(st):")
+				display(return_indices[d])
 				if debug
 					nt = ntuple(k->(k == d ? return_indices[d] : Colon()), N)
 					display(nt)
 					display(X[nt...])
 				end
 			else
-				println("Dimension $(d): No $(st):")
+				println("Dimension $(d): No $(st)")
 			end
 		end
 	end
