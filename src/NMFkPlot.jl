@@ -201,7 +201,7 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes
 	recursivemkdir(figuredir)
 	vec_xmina = Vector{Vector{Float64}}(undef, size(data, 2))
 	vec_xmaxa = Vector{Vector{Float64}}(undef, size(data, 2))
-	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))p
+	vec_ya = Vector{Vector{Float64}}(undef, size(data, 2))
 	for c in axes(data, 2)
 		if names[c] == ""
 			!quiet && @info("Histogram of Column $(c):")

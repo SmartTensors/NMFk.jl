@@ -4,7 +4,11 @@ import DataFrames
 import OrderedCollections
 import Missings
 
-function checkarray(X::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
+function checkarray(D::DataFrames.DataFrame; kw...)
+	checkarray(Matrix(D); kw...)
+end
+
+function checkarray(D::AbstractArray{T,N}, cutoff::Integer=0; func::Function=i->i>0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
 	rangeentry = Vector{AbstractUnitRange{Int64}}(undef, N)
 	# min_firstentry = Vector{Int64}(undef, N)
 	# max_lastentry = Vector{Int64}(undef, N)
@@ -76,6 +80,14 @@ end
 checkarray_nans(X::AbstractArray; kw...) = checkarrayentries(X; kw...)
 checkarray_zeros(X::AbstractArray; kw...) = checkarrayentries(X, i->i>0; kw...)
 checkarray_count(X::AbstractArray; kw...) = checkarrayentries(X; ecount=true, kw...)
+
+checkarray_nans(D::DataFrames.DataFrame; kw...) = checkarrayentries(Matrix(D); kw...)
+checkarray_zeros(D::DataFrames.DataFrame; kw...) = checkarrayentries(Matrix(D), i->i>0; kw...)
+checkarray_count(D::DataFrames.DataFrame; kw...) = checkarrayentries(Matrix(D); ecount=true, kw...)
+
+function checkarrayentries(D::DataFrames.DataFrame, aw...; kw...)
+	return checkarrayentries(Matrix(D), aw...; kw...)
+end
 
 function checkarrayentries(X::AbstractArray{T,N}, func::Function=.!isnan; quiet::Bool=false, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
 	local flag = true
