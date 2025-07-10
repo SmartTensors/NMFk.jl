@@ -58,7 +58,7 @@ function getks(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustn
 		end
 		return k
 	else
-		kn = findlast(i->i > cutoff, robustness)
+		kn = findall(i->i > cutoff, robustness)
 		if length(kn) == 0
 			inan = isnan.(robustness)
 			robustness[inan] .= -Inf
