@@ -192,7 +192,9 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 end
 
 function histogram(df::DataFrames.DataFrame, names=names(df); kw...)
-	histogram(Matrix(df), names; kw...)
+	m = Matrix(df)
+	m[ismissing.(m)] .= NaN
+	histogram(convert.(Float64, m), names; kw...)
 end
 
 function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes(data, 2)]; figuredir::AbstractString=".", filename_prefix::AbstractString="histogram", plot_type::AbstractString="png", save::Bool=false, save_data::Bool=false, quiet::Bool=false, kw...)
