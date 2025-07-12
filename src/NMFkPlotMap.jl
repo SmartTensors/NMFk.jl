@@ -8,6 +8,9 @@ import NearestNeighbors
 
 mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
 
+regex_lon = r"^[Xx]$|^[Ll]on$|^LONGITUDE$|^LON$|^[Ll]ongitude$" # regex for longitude
+regex_lat = r"^[Yy]$|^[Ll]at$|^LATITUDE$|^LAT$|^[Ll]atitude$" # regex for latitude
+
 # Plot a county based (FIPS) heatmap
 function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize::Measures.AbsoluteLength=12Compose.inch, vsize::Measures.AbsoluteLength=3Compose.inch, dpi::Integer=150, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
 	@assert size(W, 2) == size(H, 1)
@@ -58,6 +61,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 			NMFk.plotmap(Xe, fips; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, cleanup=cleanup, vspeed=vspeed, kw...)
 		end
 	end
+	return nothing
 end
 
 # Plot a county based (FIPS) heatmap
@@ -118,6 +122,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 	if casefilename != "" && movie
 		makemovie(; moviedir=figuredir, prefix=casefilename, keyword="", numberofdigits=leadingzeros, cleanup=cleanup, vspeed=vspeed)
 	end
+	return nothing
 end
 
 # Plot a county based (FIPS) heatmap
@@ -147,18 +152,45 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 		projection={type=:albersUsa},
 		color={title=title, field="Z", type="ordinal", scale={scheme=vec("#" .* Colors.hex.(parse.(Colors.Colorant, NMFk.colors), :RGB))[1:nc], reverse=true, domainMax=zmax, domainMin=zmin}}
 	)
-	!quiet && (display(p); println())
 	if casefilename != ""
 		VegaLite.save(joinpathcheck("$(figuredir)", "$(casefilename).png"), p)
 	end
+	!quiet && (display(p); println())
+	return p
 end
 
-function plotmap(df::DataFrames.DataFrame; kw...)
-	plotmap(df.Lon, df.Lat, df[!, 3]; kw...)
+function plotmap(df::DataFrames.DataFrame; namesmap::AbstractVector=names(df), filename::AbstractString="", kw...)
+	lon, lat = get_lonlat(df)
+	if isnothing(lon) || isnothing(lat)
+		@error("Longitude and latitude columns are required for plotting!")
+		return nothing
+	end
+	fileroot, fileext = splitext(filename)
+	local col = 1
+	for a in names(df)
+		if !(occursin(regex_lon, a) || occursin(regex_lat, a))
+			varname = namesmap[col]
+			col += 1
+			println("Ploting $(varname) ...")
+			if filename != ""
+				aa = replace(string(a), '/' => Char(0x2215))
+				f = fileroot * "_" * aa * fileext
+			else
+				f = ""
+			end
+			p = plotmap(lon, lat, df[!, a]; filename=f, title=varname, kw...)
+			display(p)
+		else
+			if length(namesmap) == length(names(df))
+				col += 1
+			end
+		end
+	end
+	return nothing
 end
 
 # Plot a scatter geo map (continuous color scale)
-function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -181,7 +213,11 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	layout = PlotlyJS.Layout(;
 		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
 		mapbox = PlotlyJS.attr(accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12"),
-		title = title,
+		title = PlotlyJS.attr(
+			text=title,
+			font=PlotlyJS.attr(size=20, color="black"),
+			x=0.5, y=0.95, xanchor="center", yanchor="top",
+			_pad=PlotlyJS.attr(t=10)),
 		showlegend=false,
 		geo=geo)
 	p = PlotlyJS.plot(trace, layout)
@@ -230,16 +266,24 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	return p
 end
 
-function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symbol,AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, kw...)
-	regex_lon = r"^[Xx]$|^[Ll]on" # regex for longitude
-	regex_lat = r"^[Yy]$|^[Ll]at" # regex for latitude
+function get_lonlat(df::DataFrames.DataFrame)
 	rlon = occursin.(regex_lon, names(df))
 	rlat = occursin.(regex_lat, names(df))
 	if any(rlon) && any(rlat)
 		lon = df[!, first(names(df)[rlon])]
 		lat = df[!, first(names(df)[rlat])]
+		return lon, lat
 	else
 		@error("No longitude or latitude column found in the dataframe!")
+		return nothing, nothing
+	end
+end
+
+
+function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symbol,AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, kw...)
+	lon, lat = get_lonlat(df)
+	if isnothing(lon) || isnothing(lat)
+		@error("Longitude and latitude columns are required for plotting!")
 		return nothing
 	end
 	fileroot, fileext = splitext(filename)
@@ -267,6 +311,10 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 					p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, title=title, kw...)
 				end
 				display(p)
+			else
+				if length(namesmap) == length(names(df))
+					col += 1
+				end
 			end
 		end
 	else
@@ -515,7 +563,11 @@ end
 function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, title::AbstractString="", font_size::Number=14, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
 	layout = PlotlyJS.Layout(
 		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
-		title = title,
+		title = PlotlyJS.attr(
+			text=title,
+			font=PlotlyJS.attr(size=20, color="black"),
+			x=0.5, y=0.95, xanchor="center", yanchor="top",
+			_pad=PlotlyJS.attr(t=10)),
 		autosize = true,
 		width = width,
 		height = height,
