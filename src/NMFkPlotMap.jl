@@ -12,7 +12,7 @@ regex_lon = r"^[Xx]$|^[Ll]on$|^LONGITUDE$|^LON$|^[Ll]ongitude$" # regex for long
 regex_lat = r"^[Yy]$|^[Ll]at$|^LATITUDE$|^LAT$|^[Ll]atitude$" # regex for latitude
 
 # Plot a county based (FIPS) heatmap
-function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize::Measures.AbsoluteLength=12Compose.inch, vsize::Measures.AbsoluteLength=3Compose.inch, dpi::Integer=150, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize::Measures.AbsoluteLength=12Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, dpi::Integer=300, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
 	@assert size(W, 2) == size(H, 1)
 	Wa, _, _ = normalizematrix_col!(W)
 	Ha, _, _ = normalizematrix_row!(H)
@@ -29,7 +29,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		Fa = Wa
 	end
 	signalorderassignments, signalpeakindex = NMFk.signalorderassignments(Ma, odim)
-	nt = dim == 1 ? (Colon(),signalorderassignments) : (signalorderassignments,Colon())
+	nt = dim == 1 ? (Colon(), signalorderassignments) : (signalorderassignments, Colon())
 	if !isnothing(dates)
 		@assert length(dates) == size(Ma, 1)
 		ndates = dates[signalpeakindex]
@@ -40,11 +40,11 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 		fn = casefilename == "" ? "" : joinpathcheck(figuredir, casefilename * "-waves.png")
 		Mads.plotseries(S[nt...] ./ maximum(S), fn; xaxis=dates, names=["$name $(ndates[i])" for i in signalorderassignments])
 		if movie && casefilename != ""
-			color = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i,k) in enumerate(signalorderassignments)], code=true, quiet=true)
+			color = Mads.plotseries(S[nt...] ./ maximum(S); xaxis=dates, names=["S$i $(ndates[k])" for (i, k) in enumerate(signalorderassignments)], code=true, quiet=true)
 			progressbar = NMFk.make_progressbar_2d(color)
-			for i = eachindex(dates)
+			for i in eachindex(dates)
 				p = progressbar(i, true, 1, dates[1])
-				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize, dpi=dpi), p)
+				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize; dpi=dpi), p)
 				!quiet && (Mads.display(p; gw=hsize, gh=vsize))
 			end
 			makemovie(; moviedir=moviedir, prefix=casefilename * "-progressbar", keyword="", numberofdigits=6, cleanup=cleanup, vspeed=vspeed)
@@ -55,7 +55,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 	end
 	if plottransients
 		for (i, k) in enumerate(signalorderassignments)
-			Xe = dim == 1 ? W[:,k:k] * H[k:k,:] : permutedims(W[:,k:k] * H[k:k,:])
+			Xe = dim == 1 ? W[:, k:k] * H[k:k, :] : permutedims(W[:, k:k] * H[k:k, :])
 			# p = signalpeakindex[k]
 			# NMFk.plotmap(Xe[p:p,:], fips; dates=[ndates[k]], figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, kw...)
 			NMFk.plotmap(Xe, fips; dates=dates, figuredir=moviedir, casefilename=casefilename * "-signal-$(i)", datetext="S$(i) ", movie=movie, quiet=!movie, cleanup=cleanup, vspeed=vspeed, kw...)
@@ -73,9 +73,9 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 		@assert size(X, dim) == length(dates)
 	end
 	recursivemkdir(figuredir; filename=false)
-	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]])
+	df = DataFrames.DataFrame(; FIPS=[fips[goodcounties]; fips[.!goodcounties]])
 	for (i, k) in enumerate(signalorderassignments)
-		nt = ntuple(j->(j == dim ? k : Colon()), ndims(X))
+		nt = ntuple(j -> (j == dim ? k : Colon()), ndims(X))
 		df[!, :Z] = [vec(X[nt...]); zeros(sum(.!goodcounties))]
 		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], leadingzeros, '0') : signalid[i]
 		if title || (!isnothing(dates) && titletext != "")
@@ -93,26 +93,26 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 			end
 		end
 		p = VegaLite.@vlplot(
-			title=ttitle,
+			title = ttitle,
 			:geoshape,
-			width=500, height=300,
-			data={
-				values=us10m,
-				format={
-					type=:topojson,
-					feature=:counties
+			width = 500, height = 300,
+			data = {
+				values = us10m,
+				format = {
+					type = :topojson,
+					feature = :counties
 				}
 			},
-			transform=[{
-				lookup=:id,
-				from={
-					data=df,
-					key=:FIPS,
-					fields=["Z"]
+			transform = [{
+				lookup = :id,
+				from = {
+					data = df,
+					key = :FIPS,
+					fields = ["Z"]
 				}
 			}],
-			projection={type=:albersUsa},
-			color={title=ltitle, field="Z", type="quantitative", scale={scheme=scheme, clamp=true, reverse=true, domain=[zmin, zmax]}, legend={format=zformat}}
+			projection = {type = :albersUsa},
+			color = {title = ltitle, field = "Z", type = "quantitative", scale = {scheme = scheme, clamp = true, reverse = true, domain = [zmin, zmax]}, legend = {format = zformat}}
 		)
 		!quiet && (display(p); println())
 		if casefilename != ""
@@ -130,27 +130,27 @@ function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dat
 	recursivemkdir(figuredir; filename=false)
 	@assert length(X) == length(fips)
 	nc = length(unique(sort(X))) + 1
-	df = DataFrames.DataFrame(FIPS=[fips[goodcounties]; fips[.!goodcounties]], Z=[X; zeros(sum(.!goodcounties))])
+	df = DataFrames.DataFrame(; FIPS=[fips[goodcounties]; fips[.!goodcounties]], Z=[X; zeros(sum(.!goodcounties))])
 	p = VegaLite.@vlplot(
 		:geoshape,
-		width=500, height=300,
-		data={
-			values=us10m,
-			format={
-				type=:topojson,
-				feature=:counties
+		width = 500, height = 300,
+		data = {
+			values = us10m,
+			format = {
+				type = :topojson,
+				feature = :counties
 			}
 		},
-		transform=[{
-			lookup=:id,
-			from={
-				data=df,
-				key=:FIPS,
-				fields=["Z"]
+		transform = [{
+			lookup = :id,
+			from = {
+				data = df,
+				key = :FIPS,
+				fields = ["Z"]
 			}
 		}],
-		projection={type=:albersUsa},
-		color={title=title, field="Z", type="ordinal", scale={scheme=vec("#" .* Colors.hex.(parse.(Colors.Colorant, NMFk.colors), :RGB))[1:nc], reverse=true, domainMax=zmax, domainMin=zmin}}
+		projection = {type = :albersUsa},
+		color = {title = title, field = "Z", type = "ordinal", scale = {scheme = vec("#" .* Colors.hex.(parse.(Colors.Colorant, NMFk.colors), :RGB))[1:nc], reverse = true, domainMax = zmax, domainMin = zmin}}
 	)
 	if casefilename != ""
 		VegaLite.save(joinpathcheck("$(figuredir)", "$(casefilename).png"), p)
@@ -190,17 +190,10 @@ function plotmap(df::DataFrames.DataFrame; namesmap::AbstractVector=names(df), f
 end
 
 # Plot a scatter geo map (continuous color scale)
-function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=5, marker_size_fig::Number=10, font_size::Number=14, font_size_fig::Number=46, width::Int=2800, height::Int=1400, scale::Real=1, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
-	trace = PlotlyJS.scattergeo(;
-		locationmode="USA-states",
-		lon=lon,
-		lat=lat,
-		hoverinfo="text",
-		text=text,
-		marker=PlotlyJS.attr(; size=size, color=color, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100), line_width=0, line_color="black"))
 	geo = PlotlyJS.attr(;
 		scope=scope,
 		projection_type=projection_type,
@@ -210,26 +203,40 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 		countrywidth=1,
 		subunitcolor="rgb(255,255,255)",
 		countrycolor="rgb(255,255,255)")
-	layout = PlotlyJS.Layout(;
-		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
-		mapbox = PlotlyJS.attr(accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12"),
-		title = PlotlyJS.attr(
+	function layout_fig(font_size::Number)
+		layout = PlotlyJS.Layout(;
+		margin=PlotlyJS.attr(; r=0, t=0, b=0, l=0),
+		mapbox=PlotlyJS.attr(; accesstoken=mapbox_token, style="mapbox://styles/mapbox/satellite-streets-v12"),
+		title=PlotlyJS.attr(;
 			text=title,
-			font=PlotlyJS.attr(size=20, color="black"),
-			x=0.5, y=0.95, xanchor="center", yanchor="top",
-			_pad=PlotlyJS.attr(t=10)),
+			font=PlotlyJS.attr(; size=font_size, color="black"),
+			x=0.5, y=0.95, xanchor="center", yanchor="bottom",
+			_pad=PlotlyJS.attr(; t=10)),
 		showlegend=false,
 		geo=geo)
-	p = PlotlyJS.plot(trace, layout)
-	if filename != ""
-		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		return layout
 	end
+	function trace_fig(marker_size::Number, font_size::Number)
+		trace = PlotlyJS.scattergeo(;
+			locationmode="USA-states",
+			lon=lon,
+			lat=lat,
+			hoverinfo="text",
+			text=text,
+			marker=PlotlyJS.attr(; size=marker_size, color=color, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, tickfont_size=font_size), line_width=0, line_color="black"))
+		return trace
+	end
+	if filename != ""
+		p_fig = PlotlyJS.plot(trace_fig(marker_size_fig, font_size_fig), layout_fig(font_size_fig))
+		fn = joinpathcheck(figuredir, filename)
+		PlotlyJS.savefig(p_fig, fn; format=format, width=width, height=height, scale=scale)
+	end
+	p = PlotlyJS.plot(trace_fig(marker_size, font_size), layout_fig(font_size))
 	return p
 end
 
 # Plot a scatter geo map (categorical)
-function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", size::Number=5, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: Union{Integer,AbstractString,AbstractChar}}
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=10, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: Union{Integer, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -245,10 +252,10 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 			hoverinfo="text",
 			text=text[iz],
 			name="$i $(sum(iz))",
-			marker=PlotlyJS.attr(; size=size, color=NMFk.colors[k]))
+			marker=PlotlyJS.attr(; size=marker_size, color=NMFk.colors[k]))
 		push!(traces, trace)
 	end
-	geo = PlotlyJS.attr(
+	geo = PlotlyJS.attr(;
 		scope=scope,
 		projection_type=projection_type,
 		showland=showland,
@@ -279,8 +286,8 @@ function get_lonlat(df::DataFrames.DataFrame)
 	end
 end
 
-
-function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symbol,AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, kw...)
+# Mapbox for a dataframe with multiple columns
+function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symbol, AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, kw...)
 	lon, lat = get_lonlat(df)
 	if isnothing(lon) || isnothing(lat)
 		@error("Longitude and latitude columns are required for plotting!")
@@ -329,7 +336,8 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i = eachcol(M)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+# Mapbox for a matrix with multiple columns
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i in eachcol(M)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
 		println("Ploting $(names[i]) ...")
@@ -344,12 +352,53 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 		else
 			t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(string(names[i]), title_length)
 		end
-		p = mapbox(lon, lat, M[:,i]; filename=f, title_colorbar=t, title=title, kw...)
+		p = mapbox(lon, lat, M[:, i]; filename=f, title_colorbar=t, title=title, kw...)
 		display(p)
 	end
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; zmin::Number=minimumnan(color), zmax::Number=maximumnan(color), title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="purple", line_width::Number=0, line_width_fig::Number=line_width * 2, marker_color::AbstractString="purple", marker_size::Number=0, marker_size_fig::Number=marker_size * 2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorbar::Bool=legend, traces::AbstractVector=[], traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false), colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="#FFF", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(
+	lon::AbstractVector{T1},
+	lat::AbstractVector{T1},
+	color::AbstractVector{T2};
+	zmin::Number=minimumnan(color),
+	zmax::Number=maximumnan(color),
+	title::AbstractString="",
+	title_colorbar::AbstractString=title,
+	title_length::Number=0,
+	text::AbstractVector=repeat([""], length(lon)),
+	lonc::AbstractFloat=minimum(lon) + (maximum(lon) - minimum(lon)) / 2,
+	font_size::Number=14,
+	font_size_fig::Number=font_size * 2,
+	font_color::AbstractString="black",
+	font_color_fig::AbstractString=font_color,
+	line_color::AbstractString="purple",
+	line_width::Number=0,
+	line_width_fig::Number=line_width * 2,
+	marker_color::AbstractString="purple",
+	marker_size::Number=0,
+	marker_size_fig::Number=marker_size * 2,
+	latc::AbstractFloat=minimum(lat) + (maximum(lat) - minimum(lat)) / 2,
+	zoom::Number=compute_zoom(lon, lat),
+	zoom_fig::Number=zoom,
+	dot_size::Number=compute_dot_size(lon, lat, zoom),
+	dot_size_fig::Number=dot_size * 2,
+	style="mapbox://styles/mapbox/satellite-streets-v12",
+	mapbox_token=NMFk.mapbox_token,
+	filename::AbstractString="",
+	figuredir::AbstractString=".",
+	format::AbstractString=splitext(filename)[end][2:end],
+	width::Int=2800,
+	height::Int=1400,
+	scale::Real=1,
+	legend::Bool=true,
+	colorbar::Bool=legend,
+	traces::AbstractVector=[],
+	traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false),
+	colorscale::Symbol=:rainbow,
+	paper_bgcolor::AbstractString="#FFF",
+	showcount::Bool=true
+) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -376,19 +425,19 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			end
 		end
 		if colorbar && show_colorbar
-			colorbar_attr=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(size=font_size_fig, color=font_color_fig))
+			colorbar_attr = PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(; size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(; size=font_size_fig, color=font_color_fig))
 		else
-			colorbar_attr=PlotlyJS.attr()
+			colorbar_attr = PlotlyJS.attr()
 		end
 		marker = PlotlyJS.attr(;
-				size=dot_size_fig,
-				color=color,
-				colorscale=NMFk.colorscale(colorscale),
-				cmin=zmin,
-				cmax=zmax,
-				colorbar=colorbar_attr
+			size=dot_size_fig,
+			color=color,
+			colorscale=NMFk.colorscale(colorscale),
+			cmin=zmin,
+			cmax=zmax,
+			colorbar=colorbar_attr
 		)
-		plot = PlotlyJS.scattermapbox(
+		plot = PlotlyJS.scattermapbox(;
 			lon=lon,
 			lat=lat,
 			text=text,
@@ -421,19 +470,19 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		end
 	end
 	if colorbar && show_colorbar
-		colorbar_attr=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(size=font_size, color=font_color), tickfont=PlotlyJS.attr(size=font_size, color=font_color))
+		colorbar_attr = PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(; size=font_size, color=font_color), tickfont=PlotlyJS.attr(; size=font_size, color=font_color))
 	else
-		colorbar_attr=PlotlyJS.attr()
+		colorbar_attr = PlotlyJS.attr()
 	end
 	marker = PlotlyJS.attr(;
-			size=dot_size,
-			color=color,
-			cmin=zmin,
-			cmax=zmax,
-			colorscale=NMFk.colorscale(colorscale),
-			colorbar=colorbar_attr
-		)
-	plot = PlotlyJS.scattermapbox(
+		size=dot_size,
+		color=color,
+		cmin=zmin,
+		cmax=zmax,
+		colorscale=NMFk.colorscale(colorscale),
+		colorbar=colorbar_attr
+	)
+	plot = PlotlyJS.scattermapbox(;
 		lon=lon,
 		lat=lat,
 		text=text,
@@ -448,7 +497,47 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 	return p
 end
 
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; title::AbstractString="", title_colorbar::AbstractString="", title_length::Number=0, text::AbstractVector=repeat([""], length(lon)), lonc::AbstractFloat=minimum(lon)+(maximum(lon)-minimum(lon))/2, font_size::Number=14, font_size_fig::Number=font_size * 2, font_color::AbstractString="black", font_color_fig::AbstractString=font_color, line_color::AbstractString="purple", line_width::Number=0, line_width_fig::Number=line_width * 2, marker_color::AbstractString="purple", marker_size::Number=0, marker_size_fig::Number=marker_size * 2, latc::AbstractFloat=minimum(lat)+(maximum(lat)-minimum(lat))/2, zoom::Number=compute_zoom(lon, lat), zoom_fig::Number=zoom, dot_size::Number=compute_dot_size(lon, lat, zoom), dot_size_fig::Number=dot_size * 2, style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token, filename::AbstractString="", figuredir::AbstractString=".", format::AbstractString=splitext(filename)[end][2:end], width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, scale::Real=1, legend::Bool=true, colorbar::Bool=legend, traces::AbstractVector=[], traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false), showlegend=false, colorscale::Symbol=:rainbow, paper_bgcolor::AbstractString="white", showcount::Bool=true) where {T1 <: AbstractFloat, T2 <: Union{Number,Symbol,AbstractString,AbstractChar}}
+function mapbox(
+	lon::AbstractVector{T1},
+	lat::AbstractVector{T1},
+	color::AbstractVector{T2};
+	title::AbstractString="",
+	title_colorbar::AbstractString="",
+	title_length::Number=0,
+	text::AbstractVector=repeat([""], length(lon)),
+	lonc::AbstractFloat=minimum(lon) + (maximum(lon) - minimum(lon)) / 2,
+	font_size::Number=46,
+	font_size_fig::Number=font_size * 2,
+	font_color::AbstractString="black",
+	font_color_fig::AbstractString=font_color,
+	line_color::AbstractString="purple",
+	line_width::Number=0,
+	line_width_fig::Number=line_width * 2,
+	marker_color::AbstractString="purple",
+	marker_size::Number=0,
+	marker_size_fig::Number=marker_size * 2,
+	latc::AbstractFloat=minimum(lat) + (maximum(lat) - minimum(lat)) / 2,
+	zoom::Number=compute_zoom(lon, lat),
+	zoom_fig::Number=zoom,
+	dot_size::Number=compute_dot_size(lon, lat, zoom),
+	dot_size_fig::Number=dot_size * 2,
+	style="mapbox://styles/mapbox/satellite-streets-v12",
+	mapbox_token=NMFk.mapbox_token,
+	filename::AbstractString="",
+	figuredir::AbstractString=".",
+	format::AbstractString=splitext(filename)[end][2:end],
+	width::Int=2800,
+	height::Int=1400,
+	scale::Real=1,
+	legend::Bool=true,
+	colorbar::Bool=legend,
+	traces::AbstractVector=[],
+	traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false),
+	showlegend=false,
+	colorscale::Symbol=:rainbow,
+	paper_bgcolor::AbstractString="white",
+	showcount::Bool=true
+) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -462,7 +551,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 			iz = color .== i
 			jj = j % length(NMFk.colors)
 			k = jj == 0 ? length(NMFk.colors) : jj
-			marker = PlotlyJS.attr(; size=dot_size_fig, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(size=font_size_fig, color=paper_bgcolor), tickfont=PlotlyJS.attr(size=font_size_fig, color=paper_bgcolor)))
+			marker = PlotlyJS.attr(; size=dot_size_fig, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(; size=font_size_fig, color=paper_bgcolor), tickfont=PlotlyJS.attr(; size=font_size_fig, color=paper_bgcolor)))
 			name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
 			t = PlotlyJS.scattermapbox(;
 				lon=lon[iz],
@@ -497,7 +586,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 		iz = color .== i
 		jj = j % length(NMFk.colors)
 		k = jj == 0 ? length(NMFk.colors) : jj
-		marker = PlotlyJS.attr(; size=dot_size, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(size=font_size, color=paper_bgcolor), tickfont=PlotlyJS.attr(size=font_size, color=paper_bgcolor)))
+		marker = PlotlyJS.attr(; size=dot_size, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(; size=font_size, color=paper_bgcolor), tickfont=PlotlyJS.attr(; size=font_size, color=paper_bgcolor)))
 		name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
 		t = PlotlyJS.scattermapbox(;
 			lon=lon[iz],
@@ -529,7 +618,7 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstrac
 end
 
 function mapbox(lon::AbstractFloat=-105.9378, lat::AbstractFloat=35.6870; color::AbstractString="purple", text::AbstractString="EnviTrace LLC", dot_size::Number=12, kw...)
-	mapbox([lon], [lat], [color]; text=[text], dot_size=dot_size, legend=false, kw...)
+	return mapbox([lon], [lat], [color]; text=[text], dot_size=dot_size, legend=false, kw...)
 end
 
 function check_traces(traces::AbstractVector, traces_setup::NamedTuple)
@@ -558,26 +647,26 @@ function check_traces(traces::AbstractVector, traces_setup::NamedTuple)
 	return traces
 end
 
-
 # Plotly map layout
-function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Union{Nothing,Int}=nothing, height::Union{Nothing,Int}=nothing, title::AbstractString="", font_size::Number=14, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
-	layout = PlotlyJS.Layout(
-		margin = PlotlyJS.attr(r=0, t=0, b=0, l=0),
-		title = PlotlyJS.attr(
+function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Int=2800, height::Int=1400, title::AbstractString="", font_size::Number=46, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
+	layout = PlotlyJS.Layout(;
+		margin=PlotlyJS.attr(; r=0, t=0, b=0, l=0),
+		title=PlotlyJS.attr(;
 			text=title,
-			font=PlotlyJS.attr(size=20, color="black"),
-			x=0.5, y=0.95, xanchor="center", yanchor="top",
-			_pad=PlotlyJS.attr(t=10)),
-		autosize = true,
-		width = width,
-		height = height,
-		legend = PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", font=PlotlyJS.attr(size=font_size, color=font_color), bgcolor=paper_bgcolor),
-		paper_bgcolor = paper_bgcolor,
-		mapbox = PlotlyJS.attr(
-			accesstoken = mapbox_token,
-			style = style,
-			center = PlotlyJS.attr(lon=lonc, lat=latc),
-			zoom = zoom
+			font=PlotlyJS.attr(; size=font_size, color=font_color),
+			x=0.5, y=0.95,
+			xanchor="center", yanchor="bottom",
+			_pad=PlotlyJS.attr(; t=10)),
+		autosize=true,
+		width=width,
+		height=height,
+		legend=PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", font=PlotlyJS.attr(; size=font_size, color=font_color), bgcolor=paper_bgcolor),
+		paper_bgcolor=paper_bgcolor,
+		mapbox=PlotlyJS.attr(;
+			accesstoken=mapbox_token,
+			style=style,
+			center=PlotlyJS.attr(; lon=lonc, lat=latc),
+			zoom=zoom
 		)
 	)
 	return layout
