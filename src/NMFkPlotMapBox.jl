@@ -228,7 +228,7 @@ function mapbox(
 	title_length::Number=0,
 	text::AbstractVector=repeat([""], length(lon)),
 	lonc::AbstractFloat=minimum(lon) + (maximum(lon) - minimum(lon)) / 2,
-	font_size::Number=46,
+	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
 	font_color_fig::AbstractString=font_color,
@@ -370,15 +370,9 @@ function check_traces(traces::AbstractVector, traces_setup::NamedTuple)
 end
 
 # Plotly map layout
-function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Int=2800, height::Int=1400, title::AbstractString="", font_size::Number=46, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
+function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Int=2800, height::Int=1400, title::AbstractString="", font_size::Number=14, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
 	layout = PlotlyJS.Layout(;
 		margin=PlotlyJS.attr(; r=0, t=0, b=0, l=0),
-		title=PlotlyJS.attr(;
-			text=title,
-			font=PlotlyJS.attr(; size=font_size, color=font_color),
-			x=0.5, y=0.95,
-			xanchor="center", yanchor="bottom",
-			_pad=PlotlyJS.attr(; t=10)),
 		autosize=true,
 		width=width,
 		height=height,
