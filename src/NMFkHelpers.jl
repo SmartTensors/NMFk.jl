@@ -197,7 +197,7 @@ function sortpermnan(v::AbstractVector; func::Function=isnan, rev::Bool=false)
 	else
 		v2 = [v2[.!it]; v2[it]]
 	end
-	return v[v2]
+	return v2
 end
 
 function sortnan(v::AbstractVector; func::Function=isnan, keepnan::Bool=true, kw...)

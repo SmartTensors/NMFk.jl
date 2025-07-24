@@ -128,6 +128,7 @@ function mapbox(
 		title = ""
 	end
 	traces = check_traces(traces, traces_setup)
+	sort_color = sortpermnan(color)
 	if filename != ""
 		show_colorbar = true
 		for t in traces
@@ -153,16 +154,16 @@ function mapbox(
 		end
 		marker = PlotlyJS.attr(;
 			size=dot_size_fig,
-			color=color,
+			color=color[sort_color],
 			colorscale=NMFk.colorscale(colorscale),
 			cmin=zmin,
 			cmax=zmax,
 			colorbar=colorbar_attr
 		)
 		plot = PlotlyJS.scattermapbox(;
-			lon=lon,
-			lat=lat,
-			text=text,
+			lon=lon[sort_color],
+			lat=lat[sort_color],
+			text=text[sort_color],
 			mode="markers",
 			hoverinfo="text",
 			marker=marker,
@@ -198,16 +199,16 @@ function mapbox(
 	end
 	marker = PlotlyJS.attr(;
 		size=dot_size,
-		color=color,
+		color=color[sort_color],
 		cmin=zmin,
 		cmax=zmax,
 		colorscale=NMFk.colorscale(colorscale),
 		colorbar=colorbar_attr
 	)
 	plot = PlotlyJS.scattermapbox(;
-		lon=lon,
-		lat=lat,
-		text=text,
+		lon=lon[sort_color],
+		lat=lat[sort_color],
+		text=text[sort_color],
 		mode="markers",
 		hoverinfo="text",
 		marker=marker,
