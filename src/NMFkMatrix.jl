@@ -196,13 +196,13 @@ end
 function denormalizematrix_row(a::AbstractMatrix, at...; kw...)
 	return denormalizematrix_row!(copy(a), at...; kw...)
 end
-function denormalizematrix_row!(a::AbstractMatrix, amin::AbstractMatrix, amax::AbstractMatrix; kw...)
+function denormalizematrix_row!(a::AbstractMatrix, amin::Union{AbstractVector,AbstractMatrix}, amax::Union{AbstractVector,AbstractMatrix}; kw...)
 	return denormalizematrix!(a, 1, amin, amax; kw...)
 end
 function denormalizematrix_col(a::AbstractMatrix, at...; kw...)
 	return denormalizematrix_col!(copy(a), at...; kw...)
 end
-function denormalizematrix_col!(a::AbstractMatrix, amin::AbstractVector, amax::AbstractVector; kw...)
+function denormalizematrix_col!(a::AbstractMatrix, amin::Union{AbstractVector,AbstractMatrix}, amax::Union{AbstractVector,AbstractMatrix}; kw...)
 	return denormalizematrix!(a, 2, amin, amax; kw...)
 end
 function denormalizematrix(a::AbstractMatrix, at...; kw...)
