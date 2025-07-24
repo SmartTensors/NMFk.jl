@@ -189,9 +189,15 @@ function l1nan(t::AbstractVector, o::AbstractVector; func::Function=isnan)
 	return sum(abs.(t[ii] .- o[ii]))
 end
 
-function sortnan(v::AbstractVector; func::Function=isnan)
+function sortnan(v::AbstractVector; func::Function=isnan, keepnan::Bool=true, kw...)
 	it = .!func.(v)
-	return sort(v[it])
+	if keepnan
+		v2 = sort(v[it]; kw...)
+		v2 = [v2; fill(NaN, sum(.!it))...]
+	else
+		v2 = sort(v[it]; kw...)
+	end
+	return v2
 end
 
 function ssqrnan(t::AbstractVector, o::AbstractVector; func::Function=isnan) # Distances.euclidean(x, y)
