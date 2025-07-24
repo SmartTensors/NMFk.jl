@@ -189,6 +189,17 @@ function l1nan(t::AbstractVector, o::AbstractVector; func::Function=isnan)
 	return sum(abs.(t[ii] .- o[ii]))
 end
 
+function sortpermnan(v::AbstractVector; func::Function=isnan, rev::Bool=false)
+	v2 = sortperm(v; rev=rev)
+	it = .!func.(v[v2])
+	if rev
+		v2 = [v2[it]; v2[.!it]]
+	else
+		v2 = [v2[.!it]; v2[it]]
+	end
+	return v[v2]
+end
+
 function sortnan(v::AbstractVector; func::Function=isnan, keepnan::Bool=true, kw...)
 	it = .!func.(v)
 	if keepnan
