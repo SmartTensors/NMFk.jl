@@ -166,8 +166,7 @@ println("Pressure at grid point [1,1,3]: ", gridded_multi[1,1,3])
 df_magnetics = DataFrame(Lon=longitude, Lat=latitude, Magnetics=measurements)
 
 # Create regular grid
-lon_grid, lat_grid = NMFk.griddata(df_magnetics.Lon, df_magnetics.Lat;
-                                   stepvalue=0.02, quiet=true)
+lon_grid, lat_grid = NMFk.griddata(df_magnetics.Lon, df_magnetics.Lat; stepvalue=0.02, quiet=true)
 
 # Get grid points for interpolation
 using Kriging  # Assuming Kriging package is available
@@ -190,8 +189,7 @@ interpolated_values = Kriging.interpolate_neighborhood(
 ```julia
 # Create coordinate system for analysis
 side_length = 40000  # 40 km
-xgrid, ygrid = NMFk.griddata(-side_length:side_length, -side_length:side_length;
-                             nbins=51)
+xgrid, ygrid = NMFk.griddata(-side_length:side_length, -side_length:side_length; nbins=51)
 
 # Use for spatial analysis
 coord_pairs = [(x, y) for x in xgrid, y in ygrid]
@@ -206,8 +204,7 @@ lat_data = [35.2, 35.4, 35.4, 35.6]
 values = [10.1, 12.3, 11.8, 15.2]
 
 # Grid the data to see overlaps
-gridded = NMFk.griddata(lon_data, lat_data, values;
-                       xstepvalue=0.1, ystepvalue=0.1, quiet=false)
+gridded = NMFk.griddata(lon_data, lat_data, values; xstepvalue=0.1, ystepvalue=0.1, quiet=false)
 
 # The function will report "Maximum number of data overlaps"
 # helping identify data density issues
@@ -237,24 +234,19 @@ gridded = NMFk.griddata(lon_data, lat_data, values;
 ### Pattern 1: Geographic Data Processing
 ```julia
 # Common pattern for processing geographic data
-lon_grid, lat_grid = NMFk.griddata(df.Lon, df.Lat;
-                                   quiet=true,
-                                   stepvalue=0.02)
+lon_grid, lat_grid = NMFk.griddata(df.Lon, df.Lat; quiet=true, stepvalue=0.02)
 ```
 
 ### Pattern 2: Regular Mesh Creation
 ```julia
 # Common pattern for creating regular meshes
-xgrid, ygrid = NMFk.griddata(-half_size:half_size, -half_size:half_size;
-                             nbins=grid_resolution)
+xgrid, ygrid = NMFk.griddata(-half_size:half_size, -half_size:half_size; nbins=grid_resolution)
 ```
 
 ### Pattern 3: Multi-Resolution Grids
 ```julia
 # Different resolutions for different dimensions
-xgrid, ygrid = NMFk.griddata(x_coords, y_coords;
-                             xstepvalue=fine_resolution,
-                             ystepvalue=coarse_resolution)
+xgrid, ygrid = NMFk.griddata(x_coords, y_coords; xstepvalue=fine_resolution, ystepvalue=coarse_resolution)
 ```
 
 ## Error Handling
