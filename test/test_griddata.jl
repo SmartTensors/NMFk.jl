@@ -9,123 +9,123 @@ This test suite covers:
 - Edge cases and error conditions
 """
 
-using Test
-using NMFk
-using DataFrames
-using Dates
+import Test
+import NMFk
+import DataFrames
+import Dates
 
-@testset "NMFk.griddata() Unit Tests" begin
+Test.@testset "NMFk.griddata() Unit Tests" begin
 
-    @testset "Helper Function: minimumnan" begin
+    Test.@testset "Helper Function: minimumnan" begin
         # Test with regular arrays
-        @test NMFk.minimumnan([1, 2, 3, 4, 5]) == 1
-        @test NMFk.minimumnan([5, 4, 3, 2, 1]) == 1
-        @test NMFk.minimumnan([-2, -1, 0, 1, 2]) == -2
+        Test.@test NMFk.minimumnan([1, 2, 3, 4, 5]) == 1
+        Test.@test NMFk.minimumnan([5, 4, 3, 2, 1]) == 1
+        Test.@test NMFk.minimumnan([-2, -1, 0, 1, 2]) == -2
 
         # Test with NaN values
-        @test NMFk.minimumnan([1, NaN, 3, 4, 5]) == 1
-        @test NMFk.minimumnan([NaN, 2, 3, 4, 5]) == 2
-        @test NMFk.minimumnan([1, 2, 3, 4, NaN]) == 1
-        @test isnan(NMFk.minimumnan([NaN, NaN, NaN]))
+        Test.@test NMFk.minimumnan([1, NaN, 3, 4, 5]) == 1
+        Test.@test NMFk.minimumnan([NaN, 2, 3, 4, 5]) == 2
+        Test.@test NMFk.minimumnan([1, 2, 3, 4, NaN]) == 1
+        Test.@test isnan(NMFk.minimumnan([NaN, NaN, NaN]))
 
         # Test with empty arrays
-        @test isnan(NMFk.minimumnan(Float64[]))
+        Test.@test isnan(NMFk.minimumnan(Float64[]))
 
         # Test with matrices (dims parameter)
         A = [1 2 3; 4 5 6; 7 8 9]
-        @test NMFk.minimumnan(A) == 1
-        @test all(NMFk.minimumnan(A; dims=1) .== [1 2 3])
-        @test all(NMFk.minimumnan(A; dims=2) .== [1; 4; 7])
+        Test.@test NMFk.minimumnan(A) == 1
+        Test.@test all(NMFk.minimumnan(A; dims=1) .== [1 2 3])
+        Test.@test all(NMFk.minimumnan(A; dims=2) .== [1; 4; 7])
 
         # Test with NaN in matrices
         B = [1 NaN 3; 4 5 6; NaN 8 9]
-        @test NMFk.minimumnan(B) == 1
-        @test all(NMFk.minimumnan(B; dims=1) .== [1 5 3])
-        @test all(NMFk.minimumnan(B; dims=2) .== [1; 4; 8])
+        Test.@test NMFk.minimumnan(B) == 1
+        Test.@test all(NMFk.minimumnan(B; dims=1) .== [1 5 3])
+        Test.@test all(NMFk.minimumnan(B; dims=2) .== [1; 4; 8])
     end
 
-    @testset "Helper Function: processdata" begin
+    Test.@testset "Helper Function: processdata" begin
         # Test with numeric float arrays
         data1 = [1.0, 2.0, 3.0, 4.0, 5.0]
         result1 = NMFk.processdata(data1, Float64)
-        @test all(result1 .== [1.0, 2.0, 3.0, 4.0, 5.0])
-        @test eltype(result1) == Float64
+        Test.@test all(result1 .== [1.0, 2.0, 3.0, 4.0, 5.0])
+        Test.@test eltype(result1) == Float64
 
         # Test with mixed type arrays - skip problematic cases
         data2 = Any[1.0, "2", 3.5, nothing]
         result2 = NMFk.processdata(data2, Float64)
-        @test result2[1] == 1.0
-        @test result2[2] == 2.0
-        @test result2[3] == 3.5
-        @test isnan(result2[4])
+        Test.@test result2[1] == 1.0
+        Test.@test result2[2] == 2.0
+        Test.@test result2[3] == 3.5
+        Test.@test isnan(result2[4])
 
         # Test with DataFrames
-        df = DataFrame(x=[1.0, 2.0, 3.0], y=["4", "5", "6"], z=[7.0, 8.0, 9.0])
+        df = DataFrames.DataFrame(x=[1.0, 2.0, 3.0], y=["4", "5", "6"], z=[7.0, 8.0, 9.0])
         result_df = NMFk.processdata(df, Float64)
-        @test all(result_df.x .== [1.0, 2.0, 3.0])
-        @test all(result_df.y .== [4.0, 5.0, 6.0])
-        @test all(result_df.z .== [7.0, 8.0, 9.0])
+        Test.@test all(result_df.x .== [1.0, 2.0, 3.0])
+        Test.@test all(result_df.y .== [4.0, 5.0, 6.0])
+        Test.@test all(result_df.z .== [7.0, 8.0, 9.0])
 
         # Test negative handling with float arrays
         data3 = [-1.0, 2.0, -3.0, 4.0]
         result3 = NMFk.processdata(data3, Float64; negative_ok=false)
-        @test all(result3 .== [0.0, 2.0, 0.0, 4.0])
+        Test.@test all(result3 .== [0.0, 2.0, 0.0, 4.0])
 
         # Test string handling
         data4 = ["1", "2", "invalid", "4"]
         result4 = NMFk.processdata(data4, Float64; string_ok=false)
-        @test result4[1] == 1.0
-        @test result4[2] == 2.0
-        @test isnan(result4[3])
-        @test result4[4] == 4.0
+        Test.@test result4[1] == 1.0
+        Test.@test result4[2] == 2.0
+        Test.@test isnan(result4[3])
+        Test.@test result4[4] == 4.0
     end
 
-    @testset "Helper Function: indicize" begin
+    Test.@testset "Helper Function: indicize" begin
         # Test basic functionality
         x = [1.0, 2.0, 3.0, 4.0, 5.0]
         ix, xbins, xmin, xmax = NMFk.indicize(x; nbins=3)
-        @test length(ix) == length(x)
-        @test all(ix .>= 1)
-        @test all(ix .<= xbins)
-        @test xbins == 3
-        @test xmin <= minimum(x)
-        @test xmax >= maximum(x)
+        Test.@test length(ix) == length(x)
+        Test.@test all(ix .>= 1)
+        Test.@test all(ix .<= xbins)
+        Test.@test xbins == 3
+        Test.@test xmin <= minimum(x)
+        Test.@test xmax >= maximum(x)
 
         # Test with specified min/max values
         ix2, xbins2, xmin2, xmax2 = NMFk.indicize(x; minvalue=0.0, maxvalue=6.0, nbins=6)
-        @test xmin2 == 0.0
-        @test xmax2 == 6.0
-        @test xbins2 == 6
+        Test.@test xmin2 == 0.0
+        Test.@test xmax2 == 6.0
+        Test.@test xbins2 == 6
 
         # Test with stepvalue - relax the exact check
         ix3, xbins3, xmin3, xmax3 = NMFk.indicize(x; stepvalue=1.0)
         # Step value logic might not match exactly, just check it's reasonable
-        @test xbins3 > 0
-        @test xmin3 <= minimum(x)
-        @test xmax3 >= maximum(x)
+        Test.@test xbins3 > 0
+        Test.@test xmin3 <= minimum(x)
+        Test.@test xmax3 >= maximum(x)
 
         # Test with reverse order
         ix4, xbins4, xmin4, xmax4 = NMFk.indicize(x; rev=true, nbins=3)
-        @test length(ix4) == length(x)
-        @test all(ix4 .>= 1)
-        @test all(ix4 .<= xbins4)
+        Test.@test length(ix4) == length(x)
+        Test.@test all(ix4 .>= 1)
+        Test.@test all(ix4 .<= xbins4)
 
         # Test with NaN values - handle the error properly
         x_nan = [1.0, NaN, 3.0, NaN, 5.0]
         try
             ix5, xbins5, xmin5, xmax5 = NMFk.indicize(x_nan; nbins=3)
-            @test length(ix5) == length(x_nan)
-            @test xbins5 == 3
+            Test.@test length(ix5) == length(x_nan)
+            Test.@test xbins5 == 3
         catch InexactError
             # Expected behavior when NaN values are present
-            @test true
+            Test.@test true
         end
 
         # Test with dates
         dates = [Dates.Date(2020, 1, 1), Dates.Date(2020, 1, 15), Dates.Date(2020, 2, 1)]
         ix6, xbins6, xmin6, xmax6 = NMFk.indicize(dates; nbins=2)
-        @test length(ix6) == length(dates)
-        @test xbins6 == 2
+        Test.@test length(ix6) == length(dates)
+        Test.@test xbins6 == 2
     end
 
     @testset "griddata Method 1: 2D Grid Generation" begin
