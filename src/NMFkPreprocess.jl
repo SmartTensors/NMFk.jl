@@ -205,13 +205,13 @@ end
 
 function processdata!(df::DataFrames.DataFrame, type::DataType=Float32; kw...)
 	for i in axes(df, 2)
-		v = df[!, i]
-		processdata!(v, type; kw...)
+		v = processdata(df[!, i], type; kw...)
 		if all(typeof.(v) .<: Number)
 			v = convert(Vector{type}, convert.(type, v))
 		end
 		df[!, i] = convert(Vector{Union{unique(typeof.(v))...}}, v)
 	end
+	return df
 end
 
 function processdata(M::AbstractArray, type::DataType=Float32; kw...)
@@ -223,11 +223,25 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 	if !(type <: Number)
 		enforce_nan = false
 	end
+	if eltype(M) <: AbstractFloat
+		missing_value = type(NaN)
+	elseif eltype(M) <: AbstractString
+		if type <: AbstractString
+			missing_value = ""
+		elseif type <: AbstractFloat
+			M = parse.(type, M)
+			missing_value = type(NaN)
+		else
+			missing_value = missing
+		end
+	else
+		missing_value = missing
+	end
 	if enforce_nan
 		nothing_ok = false
-		M[ismissing.(M)] .= type(NaN)
-		M[M .== ""] .= type(NaN)
-		M[M .== nanstring] .= type(NaN)
+		M[ismissing.(M)] .= missing_value
+		M[M .== ""] .= missing_value
+		M[M .== nanstring] .= missing_value
 	else
 		ie = M .== ""
 		if sum(ismissing.(ie)) < length(ie)
@@ -244,7 +258,7 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 	end
 	if !nothing_ok
 		if enforce_nan
-			M[isnothing.(M)] .= type(NaN)
+			M[isnothing.(M)] .= missing_value
 		else
 			M[isnothing.(M)] .= missing
 		end
