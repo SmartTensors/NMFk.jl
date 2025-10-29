@@ -183,7 +183,7 @@ function checkvector(v::AbstractVector, name::AbstractString=""; cutoff::Integer
         end
     end
     result_tuple = checkmatrix(reshape(v, :, 1); names=[name], kw...)
-    return result_tuple, NMFk.datanalytics(v; title=name, kw...)
+    return result_tuple
 end
 
 function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), kw...)
