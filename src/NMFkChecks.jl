@@ -222,7 +222,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=true, correl
             vmax = maximum(v)
             skew = StatsBase.skewness(v)
             luv = length(unique(v))
-            print("min: $(Printf.@sprintf("%12.7g", vmin)) max: $(Printf.@sprintf("%12.7g", vmax)) skewness: $(Printf.@sprintf("%12.7g", skew)) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
+            !quiet && print("min: $(Printf.@sprintf("%12.7g", vmin)) max: $(Printf.@sprintf("%12.7g", vmax)) skewness: $(Printf.@sprintf("%12.7g", skew)) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
             skip_corr_test = false
             if sum(v) == 0
                 !quiet && print(" <- only zeros!")
@@ -242,7 +242,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=true, correl
                 !quiet && print(" <- very skewed; log-transformation recommended!")
                 push!(ilog, i)
             end
-            println()
+            !quiet && println()
             if !skip_corr_test && correlation_test
                 for j = 1:na
                     if i == j
@@ -295,11 +295,11 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=true, correl
             vmin = minimum(v)
             vmax = maximum(v)
             luv = length(unique(v))
-            println("min: $(Printf.@sprintf("%12s", vmin)) max: $(Printf.@sprintf("%12s", vmax)) skewness: $(Printf.@sprintf("%12s", "---")) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
+            !quiet && println("min: $(Printf.@sprintf("%12s", vmin)) max: $(Printf.@sprintf("%12s", vmax)) skewness: $(Printf.@sprintf("%12s", "---")) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
             push!(idates, i)
         elseif eltype(v) <: AbstractString
             push!(istring, i)
-            print("$(Base.text_colors[:yellow])$(Base.text_colors[:bold])String:$(Base.text_colors[:normal]) ")
+            !quiet && print("$(Base.text_colors[:yellow])$(Base.text_colors[:bold])String:$(Base.text_colors[:normal]) ")
             u = sort(String.(unique(v)))
             if length(u) == 1
                 !quiet && println("$(u) <- non-numeric constant!")
@@ -410,7 +410,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=true, correl
         return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, constant=mconstant, string=mstring, lowcount=mcount, dates=mdates, any=many)
     else
         iremove = unique(sort(vcat(isame, inans, izeros, iconstant, istring, idates, icount, iany)))
-        println("Entries suggested to remove: $(length(iremove))")
+        !quiet && println("Entries suggested to remove: $(length(iremove))")
         return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, constant=iconstant, string=istring, lowcount=icount, dates=idates, any=iany)
     end
 end
