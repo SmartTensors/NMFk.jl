@@ -6,3 +6,4 @@ deps/build.log
 texput.log
 *.jld
 config/*
+.theme
