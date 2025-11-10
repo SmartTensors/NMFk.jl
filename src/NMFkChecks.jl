@@ -407,12 +407,12 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; quiet::Bool=true, correl
 		mdates[idates] .= true
 		mcount[icount] .= true
 		many[iany] .= true
-		mremove = msame .| mnans .| mzeros .| mconstant .| mstring .| mdates .| mcount .| many
-		!quiet && println("Entries suggested to remove: $(sum(mremove))")
+		mremove = msame .| mcor .| mnans .| mzeros .| mconstant .| mstring .| mdates .| mcount .| many
+		!quiet && println("Entries suggested to remove (including correlated): $(sum(mremove))")
 		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, constant=mconstant, string=mstring, lowcount=mcount, dates=mdates, any=many)
 	else
-		iremove = unique(sort(vcat(isame, inans, izeros, iconstant, istring, idates, icount, iany)))
-		!quiet && println("Entries suggested to remove: $(length(iremove))")
+		iremove = unique(sort(vcat(isame, icor, inans, izeros, iconstant, istring, idates, icount, iany)))
+		!quiet && println("Entries suggested to remove (including correlated): $(length(iremove))")
 		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, constant=iconstant, string=istring, lowcount=icount, dates=idates, any=iany)
 	end
 end
