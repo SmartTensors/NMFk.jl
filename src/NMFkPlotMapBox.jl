@@ -125,7 +125,6 @@ function mapbox(
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
-	@show lonc, latc, zoom, dot_size
 	if title == title_colorbar
 		title = ""
 	end
