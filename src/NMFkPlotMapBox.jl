@@ -90,7 +90,7 @@ function mapbox(
 	title_colorbar::AbstractString=title,
 	title_length::Number=0,
 	text::AbstractVector=repeat([""], length(lon)),
-	lonc::AbstractFloat=minimum(lon) + (maximum(lon) - minimum(lon)) / 2,
+	lonc::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
@@ -101,7 +101,7 @@ function mapbox(
 	marker_color::AbstractString="purple",
 	marker_size::Number=0,
 	marker_size_fig::Number=marker_size * 2,
-	latc::AbstractFloat=minimum(lat) + (maximum(lat) - minimum(lat)) / 2,
+	latc::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	zoom_fig::Number=zoom,
 	dot_size::Number=compute_dot_size(lon, lat, zoom),
@@ -125,6 +125,7 @@ function mapbox(
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
+	@show lonc, latc, zoom, dot_size
 	if title == title_colorbar
 		title = ""
 	end
@@ -229,7 +230,7 @@ function mapbox(
 	title_colorbar::AbstractString="",
 	title_length::Number=0,
 	text::AbstractVector=repeat([""], length(lon)),
-	lonc::AbstractFloat=minimum(lon) + (maximum(lon) - minimum(lon)) / 2,
+	lonc::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
@@ -240,7 +241,7 @@ function mapbox(
 	marker_color::AbstractString="purple",
 	marker_size::Number=0,
 	marker_size_fig::Number=marker_size * 2,
-	latc::AbstractFloat=minimum(lat) + (maximum(lat) - minimum(lat)) / 2,
+	latc::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	zoom_fig::Number=zoom,
 	dot_size::Number=compute_dot_size(lon, lat, zoom),
@@ -409,10 +410,10 @@ end
 
 function compute_zoom(x::AbstractVector, y::AbstractVector)
 	coordmask = .!isnan.(x) .| .!isnan.(y)
-	lonmin = minimum(x[coordmask])
-	lonmax = maximum(x[coordmask])
-	latmin = minimum(y[coordmask])
-	latmax = maximum(y[coordmask])
+	lonmin = minimumnan(x[coordmask])
+	lonmax = maximumnan(x[coordmask])
+	latmin = minimumnan(y[coordmask])
+	latmax = maximumnan(y[coordmask])
 	lonr = lonmax - lonmin
 	latr = latmax - latmin
 	coord_range = max(lonr, latr)
@@ -481,8 +482,8 @@ function mapbox_contour(
 	opacity::Real=0.7,
 	show_points::Bool=false,
 	point_size::Number=5,
-	lonc::Real=minimum(lon) + (maximum(lon) - minimum(lon)) / 2,
-	latc::Real=minimum(lat) + (maximum(lat) - minimum(lat)) / 2,
+	lonc::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
+	latc::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	style="mapbox://styles/mapbox/satellite-streets-v12",
 	mapbox_token=NMFk.mapbox_token,
@@ -690,8 +691,8 @@ function mapbox_contour_simple(
 	opacity::Real=0.8,
 	show_points::Bool=false,
 	point_size::Number=8,
-	lonc::Real=minimum(lon) + (maximum(lon) - minimum(lon)) / 2,
-	latc::Real=minimum(lat) + (maximum(lat) - minimum(lat)) / 2,
+	lonc::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
+	latc::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	style="mapbox://styles/mapbox/satellite-streets-v12",
 	mapbox_token=NMFk.mapbox_token,
@@ -744,7 +745,7 @@ function mapbox_contour_simple(
 			distances = sqrt.((lon_clean .- lon_interp).^2 + (lat_clean .- lat_interp).^2)
 
 			# Handle case where interpolation point coincides with data point
-			min_dist = minimum(distances)
+			min_dist = minimumnan(distances)
 			if min_dist < 1e-10
 				closest_idx = findfirst(distances .== min_dist)
 				interp_value = values_clean[closest_idx]
@@ -859,7 +860,7 @@ function idw_interpolate(
 	distances = sqrt.((x_data .- x_interp).^2 + (y_data .- y_interp).^2)
 
 	# Handle case where interpolation point coincides with data point
-	min_dist = minimum(distances)
+	min_dist = minimumnan(distances)
 	if min_dist < 1e-10
 		closest_idx = findfirst(distances .== min_dist)
 		return values[closest_idx]
