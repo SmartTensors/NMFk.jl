@@ -95,6 +95,12 @@ function mapbox(
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
 	font_color_fig::AbstractString=font_color,
+	showlabels::Bool=false,
+	label_position::AbstractString="top center",
+	label_font_size::Number=font_size,
+	label_font_size_fig::Number=font_size_fig,
+	label_font_color::AbstractString=font_color,
+	label_font_color_fig::AbstractString=font_color_fig,
 	line_color::AbstractString="purple",
 	line_width::Number=0,
 	line_width_fig::Number=line_width * 2,
@@ -165,9 +171,11 @@ function mapbox(
 			lon=lon[sort_color],
 			lat=lat[sort_color],
 			text=text[sort_color],
-			mode="markers",
+			mode=showlabels ? "markers+text" : "markers",
 			hoverinfo="text",
 			marker=marker,
+			textposition=label_position,
+			textfont=PlotlyJS.attr(; size=label_font_size_fig, color=label_font_color_fig),
 			attributionControl=false,
 			showlegend=false
 		)
@@ -210,9 +218,11 @@ function mapbox(
 		lon=lon[sort_color],
 		lat=lat[sort_color],
 		text=text[sort_color],
-		mode="markers",
+		mode=showlabels ? "markers+text" : "markers",
 		hoverinfo="text",
 		marker=marker,
+		textposition=label_position,
+		textfont=PlotlyJS.attr(; size=label_font_size, color=label_font_color),
 		attributionControl=false,
 		showlegend=false
 	)
@@ -234,6 +244,12 @@ function mapbox(
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
 	font_color_fig::AbstractString=font_color,
+	showlabels::Bool=false,
+	label_position::AbstractString="top center",
+	label_font_size::Number=font_size,
+	label_font_size_fig::Number=font_size_fig,
+	label_font_color::AbstractString=font_color,
+	label_font_color_fig::AbstractString=font_color_fig,
 	line_color::AbstractString="purple",
 	line_width::Number=0,
 	line_width_fig::Number=line_width * 2,
@@ -283,9 +299,11 @@ function mapbox(
 				text=text[iz],
 				hoverinfo="text",
 				name=name,
-				mode="markers",
+				mode=showlabels ? "markers+text" : "markers",
 				marker=marker,
 				showlegend=legend,
+				textposition=label_position,
+				textfont=PlotlyJS.attr(; size=label_font_size_fig, color=label_font_color_fig),
 				attributionControl=false)
 			push!(traces_, t)
 		end
@@ -318,9 +336,11 @@ function mapbox(
 			text=text[iz],
 			hoverinfo="text",
 			name=name,
-			mode="markers",
+			mode=showlabels ? "markers+text" : "markers",
 			marker=marker,
 			showlegend=true,
+			textposition=label_position,
+			textfont=PlotlyJS.attr(; size=label_font_size, color=label_font_color),
 			attributionControl=false)
 		push!(traces_, t)
 	end
