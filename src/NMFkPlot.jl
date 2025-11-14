@@ -107,13 +107,13 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 						if abs(x[i] - x[j]) < dmin && abs(y[i] - y[j]) < dmin
 							label_included[j] = true
 							label_copy[j] = ""
-							if sum(label_included) >= 12
+							if sum(label_included) >= 20
 								break
 							end
 						end
 					end
 				end
-				if sum(label_included) >= 12
+				if sum(label_included) >= 20
 					break
 				end
 			end
@@ -125,21 +125,21 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		l = Vector{Vector{Gadfly.Layer}}(undef, 0)
 		for i in iorder
 			ic = (i - 1) % ncolors + 1
-			plotline && push!(l, Gadfly.layer(; x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity))))
+			plotline && push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity))))
 			if plotlabel
-				push!(l, Gadfly.layer(; x=[x[i]], y=[y[i]], label=[label_copy[i]], Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[ic])))))
+				push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label_copy[i]], Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[ic])))))
 			else
-				push!(l, Gadfly.layer(; x=[x[i]], y=[y[i]], Gadfly.Geom.point(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt)))
+				push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], Gadfly.Geom.point(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt)))
 			end
 		end
-		push!(l, Gadfly.layer(; x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(; point_size=0Gadfly.pt)))
+		push!(l, Gadfly.layer(x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(; point_size=0Gadfly.pt)))
 		p = Gadfly.plot(l..., Gadfly.Theme(; background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
 	elseif plotmethod == :frame
 		# palette = ncolors == length(x) ? Gadfly.parse_colorant(NMFk.colors) : Gadfly.parse_colorant(colors)
 		cv = ncolors == length(x) ? vec(eachindex(x)) : colors
 		l = Vector{Vector{Gadfly.Layer}}(undef, 0)
 		if plotlabel
-			inl = label .== ""
+			inl = label_copy .== ""
 			if sum(inl) == length(x)
 				plotlabel = false
 				inext = Colon()
@@ -178,13 +178,13 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		end
 		dfw2 = DataFrames.DataFrame(; x=x[inext][iorder2], y=y[inext][iorder2], label=label_copy[inext][iorder2], color=cv[inext][iorder2])
 		if plotlabel
-			push!(l, Gadfly.layer(dfw2; x=:x, y=:y, label=:label, color=:color, Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; point_size=point_size_label, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
+			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, label=:label, color=:color, Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; point_size=point_size_label, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		else
-			push!(l, Gadfly.layer(dfw2; x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(; point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
+			push!(l, Gadfly.layer(dfw2, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(; point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		end
 		if inext != Colon()
-			dfw1 = DataFrames.DataFrame(; x=x[inl][iorder1], y=y[inl][iorder1], label=label_copy[inl][iorder1], color=cv[inl][iorder1])
-			push!(l, Gadfly.layer(dfw1; x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(; point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
+			dfw1 = DataFrames.DataFrame(x=x[inl][iorder1], y=y[inl][iorder1], label=label_copy[inl][iorder1], color=cv[inl][iorder1])
+			push!(l, Gadfly.layer(dfw1, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 			palette = Gadfly.parse_colorant(vcat(colors[inext][iorder2], colors[inl][iorder1]))
 		else
 			palette = ncolors == length(x) ? Gadfly.parse_colorant(colors[inext][iorder2]) : Gadfly.parse_colorant(colors)
@@ -201,9 +201,9 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		end
 		cv = ncolors == length(x) ? vec(eachindex(x)) : colors
 		if plotlabel
-			p = Gadfly.plot([x y label_copy cv]; x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), label=Gadfly.Col.value(3), color=Gadfly.Col.value(4), Gadfly.Geom.point(), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(; xmin=0, xmax=1, ymin=0, ymax=1), gm...)
+			p = Gadfly.plot([x y label_copy cv], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), label=Gadfly.Col.value(3), color=Gadfly.Col.value(4), Gadfly.Geom.point(), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(; xmin=0, xmax=1, ymin=0, ymax=1), gm...)
 		else
-			p = Gadfly.plot([x y cv]; x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), color=Gadfly.Col.value(3), Gadfly.Geom.point(), Gadfly.Scale.color_discrete(colormap), Gadfly.Theme(; highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(; xmin=0, xmax=1, ymin=0, ymax=1), gm...)
+			p = Gadfly.plot([x y cv], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), color=Gadfly.Col.value(3), Gadfly.Geom.point(), Gadfly.Scale.color_discrete(colormap), Gadfly.Theme(; highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(; xmin=0, xmax=1, ymin=0, ymax=1), gm...)
 		end
 	end
 	if code
@@ -351,7 +351,7 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		vec_xmina[j] = xmina
 		vec_xmaxa[j] = xmaxa
 		vec_ya[j] = ya
-		push!(l, Gadfly.layer(; xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
+		push!(l, Gadfly.layer(xmin=xmina, xmax=xmaxa, y=ya, Gadfly.Geom.bar, Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[j]), opacity))))
 	end
 	ymax = !isnothing(ymax) ? ymax : ymaxl
 	s = [Gadfly.Coord.Cartesian(; xmin=xminl, xmax=xmaxl, ymin=ymin, ymax=ymax), Gadfly.Scale.x_continuous(; minvalue=xminl, maxvalue=xmaxl), Gadfly.Guide.xticks(; ticks=collect(xminl:dx:xmaxl)), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...]
@@ -405,7 +405,7 @@ function plotscatter(df::DataFrames.DataFrame; quiet::Bool=false, hsize::Measure
 		tc = [Gadfly.Scale.color_discrete_manual(colors[2:(nsignals + 1)]...)]
 	end
 	# label="Well", Gadfly.Geom.point, Gadfly.Geom.label,
-	ff = Gadfly.plot(Gadfly.layer(df; x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(; highlight_width=0Gadfly.pt)), Gadfly.layer(; x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(; line_width=4Gadfly.pt, default_color="red", discrete_highlight_color=c -> nothing)), Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
+	ff = Gadfly.plot(Gadfly.layer(df, x="Truth", y="Prediction", color="Attribute", Gadfly.Theme(; highlight_width=0Gadfly.pt)), Gadfly.layer(x=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], y=[minimum(df[!, :Truth]), maximum(df[!, :Truth])], Gadfly.Geom.line(), Gadfly.Theme(; line_width=4Gadfly.pt, default_color="red", discrete_highlight_color=c -> nothing)), Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm..., tc...)
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
@@ -424,13 +424,13 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 		xmax = !isnothing(xmax) ? max(maximumnan(polygon[:, 1]), xmax) : maximumnan(polygon[:, 1])
 		ymin = !isnothing(ymin) ? min(minimumnan(polygon[:, 2]), ymin) : minimumnan(polygon[:, 2])
 		ymax = !isnothing(ymax) ? max(maximumnan(polygon[:, 2]), ymax) : maximumnan(polygon[:, 2])
-		pm = [Gadfly.layer(; x=polygon[:, 1], y=polygon[:, 2], Gadfly.Geom.polygon(; preserve_order=true, fill=false), Gadfly.Theme(; line_width=line_width, default_color=line_color))]
+		pm = [Gadfly.layer(x=polygon[:, 1], y=polygon[:, 2], Gadfly.Geom.polygon(; preserve_order=true, fill=false), Gadfly.Theme(; line_width=line_width, default_color=line_color))]
 	else
 		pm = []
 	end
 	if line
 		m = [minimumnan([x y]), maximumnan([x y])]
-		one2oneline = [Gadfly.layer(; x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(; line_width=line_width * 2, default_color=line_color))]
+		one2oneline = [Gadfly.layer(x=m, y=m, Gadfly.Geom.line(), Gadfly.Theme(; line_width=line_width * 2, default_color=line_color))]
 	else
 		one2oneline = []
 	end
@@ -463,16 +463,16 @@ function plotscatter(x::AbstractVector, y::AbstractVector, color::AbstractVector
 				@warn("No valid values to plot! All values are NaN!")
 				return nothing
 			end
-			ff = Gadfly.plot(Gadfly.layer(; x=x[zin], y=y[zin], color=vcolor[zin], size=size[zin], Gadfly.Theme(; highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(; minvalue=zmin, maxvalue=zmax, colormap=colormap), Gadfly.Guide.ColorKey(; title=keytitle), Gadfly.Theme(; key_position=key_position), gm...)
+			ff = Gadfly.plot(Gadfly.layer(x=x[zin], y=y[zin], color=vcolor[zin], size=size[zin], Gadfly.Theme(; highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_continuous(; minvalue=zmin, maxvalue=zmax, colormap=colormap), Gadfly.Guide.ColorKey(; title=keytitle), Gadfly.Theme(; key_position=key_position), gm...)
 		else
 			palette = Gadfly.parse_colorant(colors)
 			colormap = function (nc)
 				return palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
 			end
-			ff = Gadfly.plot(Gadfly.layer(; x=x, y=y, color=color, size=size, Gadfly.Theme(; highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_discrete(colormap), Gadfly.Guide.ColorKey(; title=keytitle), Gadfly.Theme(; key_position=key_position), gm...)
+			ff = Gadfly.plot(Gadfly.layer(x=x, y=y, color=color, size=size, Gadfly.Theme(; highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size, key_position=key_position)), pm..., one2oneline..., Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Scale.color_discrete(colormap), Gadfly.Guide.ColorKey(; title=keytitle), Gadfly.Theme(; key_position=key_position), gm...)
 		end
 	else
-		ff = Gadfly.plot(Gadfly.layer(; x=x, y=y, size=size, Gadfly.Theme(; highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size)), pm..., one2oneline..., Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Theme(; key_position=key_position), gm...)
+		ff = Gadfly.plot(Gadfly.layer(x=x, y=y, size=size, Gadfly.Theme(; highlight_width=0Gadfly.pt, default_color=point_color, point_size=point_size)), pm..., one2oneline..., Gadfly.Coord.Cartesian(; xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Theme(; key_position=key_position), gm...)
 	end
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
@@ -494,7 +494,7 @@ function plotbars(V::AbstractVector, A::AbstractVector; quiet::Bool=false, hsize
 	else
 		tc = [Gadfly.Scale.color_discrete_manual(colors[(nsignals + 1):-1:2]...)]
 	end
-	ff = Gadfly.plot(df; x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(; position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(; key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
+	ff = Gadfly.plot(df, x="Values", y="Attributes", color="Attributes", Gadfly.Geom.bar(; position=:dodge, orientation=:horizontal), Gadfly.Guide.title(title), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), tc..., gm..., Gadfly.Theme(; key_position=:none, major_label_font_size=major_label_font_size, minor_label_font_size=minor_label_font_size))
 	!quiet && Mads.display(ff; gw=hsize, gh=vsize)
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
@@ -516,9 +516,9 @@ function plot2dmatrixcomponents(M::AbstractMatrix, dim::Integer=1; quiet::Bool=f
 	for i = 1:nsignals
 		cc = loopcolors ? parse(Colors.Colorant, colors[(i - 1) % ncolors + 1]) : parse(Colors.Colorant, colors[i])
 		if dim == 2
-			pl[i] = Gadfly.layer(; x=xvalues, y=M[:, order[i]], Gadfly.Geom.line(), Gadfly.Theme(; line_width=2Gadfly.pt, default_color=cc))
+			pl[i] = Gadfly.layer(x=xvalues, y=M[:, order[i]], Gadfly.Geom.line(), Gadfly.Theme(; line_width=2Gadfly.pt, default_color=cc))
 		else
-			pl[i] = Gadfly.layer(; x=xvalues, y=M[order[i], :], Gadfly.Geom.line(), Gadfly.Theme(; line_width=2Gadfly.pt, default_color=cc))
+			pl[i] = Gadfly.layer(x=xvalues, y=M[order[i], :], Gadfly.Geom.line(), Gadfly.Theme(; line_width=2Gadfly.pt, default_color=cc))
 		end
 	end
 	tx = timescale ? [] : [Gadfly.Coord.Cartesian(; xmin=minimum(xvalues), xmax=maximum(xvalues))]
