@@ -96,28 +96,25 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	if smartplotlabel && !plotlabel
 		plotlabel = true
 		label_copy = copy(label)
-		# Only plot labels for points that are not too close to each other
-		dmin = 0.1 * maximum([maximum(x) - minimum(x), maximum(y) - minimum(y)])
-		included = falses(length(x))
-		mag2 = x.^2 .+ y.^2
-		v = .!isnan.(mag2)
-		if any(v)
-			thr = StatsBase.quantile(mag2[v], 0.8)
-			imp = findall(v .& (mag2 .>= thr))
-			if !isempty(imp)
-				included[imp] .= true
-			end
-		end
+		dmin = 0.1
+		label_included = falses(length(x))
+		label_included[iorder[1:6]] .= true
 		for i in iorder
-			if !included[i]
-				included[i] = true
+			if !label_included[i]
+				label_included[i] = true
 				for j in iorder
-					if i != j && !included[j]
+					if i != j && !label_included[j]
 						if abs(x[i] - x[j]) < dmin && abs(y[i] - y[j]) < dmin
-							included[j] = true
+							label_included[j] = true
 							label_copy[j] = ""
+							if sum(label_included) >= 12
+								break
+							end
 						end
 					end
+				end
+				if sum(label_included) >= 12
+					break
 				end
 			end
 		end
