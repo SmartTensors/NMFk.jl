@@ -8,43 +8,36 @@ import Measures
 import Mads
 
 function typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
-	ncolors = length(colors)
-	ut = unique(types)
-	c = length(ut)
+	unique_types = unique(types)
 	typecolors = Vector{String}(undef, length(types))
-	if c <= ncolors
-		for (j, t) in enumerate(ut)
+	if length(unique_types) <= length(colors)
+		for (j, t) in enumerate(unique_types)
 			typecolors[types .== t] .= colors[j]
 		end
 	else
-		@info("Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c)); Gray color will be used!")
+		@warn("Number of colors ($(length(colors))) is less than the number of plotted attributes ($(length(unique_types))); Gray color will be used!")
 		typecolors .= "gray"
 	end
 	return typecolors
 end
 
-function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", types=[], separate::Bool=false, typecolors=NMFk.colors, ncolors=length(NMFk.colors), dpi=imagedpi, background_color=nothing, kw...)
-	r, c = size(X)
-	@assert length(label) == r
-	@assert c > 1
+function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", types::AbstractVector=[], separate::Bool=false, typecolors::AbstractVector=[], colors=NMFk.colors, dpi=imagedpi, background_color=nothing, kw...)
+	data_rows, data_cols = size(X)
+	@assert length(label) == data_rows
+	@assert data_cols > 1
 	if length(types) > 0
-		typecolors = NMFk.typecolors(types, NMFk.colors)
-	end
-	if typecolors == NMFk.colors
-		if c <= ncolors
-			typecolors = NMFk.colors[1:c]
-			ncolors = c
+		@assert length(types) == data_rows
+		if length(typecolors) == 0
+			typecolors = NMFk.typecolors(types, colors)
 		else
-			@info("Number of colors ($(ncolors)) is less than the number of plotted attributes ($(c))!")
+			@assert length(types) == length(typecolors)
 		end
-	else
-		@assert length(typecolors) == r || length(typecolors) == c
 	end
 	if length(mapping) > 0
-		@assert length(mapping) == c
+		@assert length(mapping) == data_cols
 		crange = sortperm(mapping)
 	else
-		crange = 1:c
+		crange = 1:data_cols
 	end
 	rowp = Vector{Compose.Context}(undef, 0)
 	for (j, c1) in enumerate(crange)
@@ -55,34 +48,34 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 			if i < j
 				push!(colp, Compose.compose(Compose.context(0, 0, 1Compose.w, 1Compose.h), Compose.fill(background_color), Compose.rectangle(0, 0, 1Compose.w, 1Compose.h)))
 			else
-				push!(colp, biplot(X ./ maximumnan(X), label, mapping; code=true, col1=c1, col2=c2, hsize=hsize, vsize=vsize, colors=typecolors, background_color=background_color, kw...))
+				pp = biplot(X ./ maximumnan(X), label, mapping; code=true, col1=c1, col2=c2, hsize=hsize, vsize=vsize, typecolors=typecolors, background_color=background_color, kw...)
+				push!(colp, pp)
+				if separate && filename != ""
+					ff = splitext(filename)
+					filename_long = ff[1] * "_$(c1)_$(c2)" * ff[end]
+					fl = joinpathcheck(figuredir, filename_long)
+					plotfileformat(pp, fl, hsize, vsize; dpi=dpi)
+				end
 				f = true
-			end
-			if separate && filename != ""
-				pp = i < j ? biplot(X ./ maximumnan(X), label, mapping; code=true, col1=c1, col2=c2, hsize=hsize, vsize=vsize, colors=typecolors, background_color=background_color, kw...) : colp[end]
-				ff = splitext(filename)
-				filename_long = ff[1] * "_$(c1)_$(c2)" * ff[end]
-				fl = joinpathcheck(figuredir, filename_long)
-				plotfileformat(pp, fl, hsize, vsize; dpi=dpi)
 			end
 		end
 		f && push!(rowp, Gadfly.hstack(colp...))
 	end
 	p = Gadfly.vstack(rowp...)
-	!quiet && Mads.display(p; gwo=hsize * (c - 1), gho=vsize * (c - 1), gw=100Compose.mm * (c - 1), gh=100Compose.mm * (c - 1))
+	!quiet && Mads.display(p; gwo=hsize * (data_cols - 1), gho=vsize * (data_cols - 1), gw=100Compose.mm * (data_cols - 1), gh=100Compose.mm * (data_cols - 1))
 	if filename != ""
 		j = joinpathcheck(figuredir, filename)
-		plotfileformat(p, j, hsize * (c - 1), vsize * (c - 1); dpi=dpi)
+		plotfileformat(p, j, hsize * (data_cols - 1), vsize * (data_cols - 1); dpi=dpi)
 	end
 	return nothing
 end
 
-function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:all, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), smartplotlabel::Bool=true, smartplotlabelmap::AbstractVector=falses(length(label)), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", colors::AbstractVector=[], ncolors::Integer=length(colors), gm::AbstractVector=[], point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true, point_size_nolabel::Measures.AbsoluteLength=2Gadfly.pt, point_size_label::Measures.AbsoluteLength=4Gadfly.pt, smartlabel_initial::Integer=max(sum(smartplotlabelmap), 6), smartlabel_total::Integer=max(smartlabel_initial, 20))
+function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:all, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), smartplotlabel::Bool=true, smartlabelmap::AbstractVector=falses(length(label)), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", typecolors::AbstractVector=[], gm::AbstractVector=[], point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true, point_size_nolabel::Measures.AbsoluteLength=2Gadfly.pt, point_size_label::Measures.AbsoluteLength=4Gadfly.pt, smartlabel_initial::Integer=max(sum(smartlabelmap), 6), smartlabel_total::Integer=max(smartlabel_initial, 20))
 	data_rows, data_cols = size(X)
-	if length(colors) == 0
-		colors = repeat(["red"], data_rows)
+	if length(typecolors) == 0
+		typecolors = repeat(["red"], data_rows)
 	else
-		@assert length(colors) == data_rows || length(colors) == data_cols
+		@assert length(typecolors) == data_rows
 	end
 	@assert data_rows == length(label)
 	@assert data_cols > 1
@@ -103,7 +96,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		plotlabel = true
 		# Select the smartlabel_initial points farthest from the origin, then additional points up to smartlabel_total farthest from already selected (farthest-first traversal)
 		label_included = falses(length(x))
-		label_included[smartplotlabelmap] .= true
+		label_included[smartlabelmap] .= true
 
 		initial_count = min(data_rows, smartlabel_initial)
 		if initial_count > sum(label_included)
@@ -149,20 +142,20 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 	if plotmethod == :layers
 		l = Vector{Vector{Gadfly.Layer}}(undef, 0)
 		for i in iorder
-			ic = (i - 1) % ncolors + 1
-			plotline && push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity))))
+			ic = (i - 1) % length(typecolors) + 1
+			plotline && push!(l, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, typecolors[ic]), opacity))))
 			if plotlabel
-				push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label_copy[i]], Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, colors[ic])))))
+				push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], label=[label_copy[i]], Gadfly.Geom.point(), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, typecolors[ic]), opacity), highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, point_label_color=Colors.RGBA(parse(Colors.Colorant, typecolors[ic])))))
 			else
-				push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], Gadfly.Geom.point(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, colors[ic]), opacity), highlight_width=0Gadfly.pt)))
+				push!(l, Gadfly.layer(x=[x[i]], y=[y[i]], Gadfly.Geom.point(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, typecolors[ic]), opacity), highlight_width=0Gadfly.pt)))
 			end
 		end
 		push!(l, Gadfly.layer(x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(; point_size=0Gadfly.pt)))
 		p = Gadfly.plot(l..., Gadfly.Theme(; background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
 	elseif plotmethod == :frame
 		@info("Plotting using frame method...")
-		# palette = ncolors == length(x) ? Gadfly.parse_colorant(NMFk.colors) : Gadfly.parse_colorant(colors)
-		cv = ncolors != length(x) ? vec(eachindex(x)) : colors
+		# palette = length(typecolors) == length(x) ? Gadfly.parse_colorant(NMFk.colors) : Gadfly.parse_colorant(colors)
+		cv = length(typecolors) != length(x) ? vec(eachindex(x)) : typecolors
 		l = Vector{Vector{Gadfly.Layer}}(undef, 0)
 		if plotlabel
 			inl = label_copy .== ""
@@ -185,9 +178,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 			m = sum.(x[inext] .^ 2 .+ y[inext] .^ 2)
 			iorder2 = sortperm(m; rev=true)
 		else
-			@show ncolors, length(x), inext
-			@show colors
-			st = ncolors == length(x) ? label_copy[inext] : colors[inext]
+			st = length(typecolors) == length(x) ? label_copy[inext] : typecolors[inext]
 			ust = unique(st)
 			if length(ust) > 1 && length(ust) < length(x)
 				cc = Vector{Int32}(undef, length(ust))
@@ -213,36 +204,25 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		if inext != Colon()
 			dfw1 = DataFrames.DataFrame(x=x[inl][iorder1], y=y[inl][iorder1], label=label_copy[inl][iorder1], color=cv[inl][iorder1])
 			push!(l, Gadfly.layer(dfw1, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
-			 			@show length(colors)
-			@show length(cv)
-			@show cv
-			@show length(inl)
-			@show length(inext)
-			@show iorder1
-			@show iorder2
-			@show vcat(cv[inext][iorder2], cv[inl][iorder1])
-			@assert length(colors) == length(cv)
-			@assert length(colors) == length(inl) == length(inext)
+			@assert length(typecolors) == length(cv)
+			@assert length(typecolors) == length(inl) == length(inext)
 			palette_vector = vcat(cv[inext][iorder2], cv[inl][iorder1])
-			@assert length(palette_vector) == length(colors)
+			@assert length(palette_vector) == length(typecolors)
 			palette = Gadfly.parse_colorant(palette_vector)
 		else
-			palette = ncolors == length(x) ? Gadfly.parse_colorant(colors[inext][iorder2]) : Gadfly.parse_colorant(colors)
+			palette = length(typecolors) == length(x) ? Gadfly.parse_colorant(typecolors[inext][iorder2]) : Gadfly.parse_colorant(typecolors)
 		end
 		colormap = function (nc)
 			return palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
 		end
 		p = Gadfly.plot(l..., Gadfly.Scale.color_discrete(colormap), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(; xmin=0, xmax=1, ymin=0, ymax=1), Gadfly.Theme(; highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), gm...)
 	elseif plotmethod == :all
-		palette = Gadfly.parse_colorant(colors)
+		palette = Gadfly.parse_colorant(typecolors)
 		colormap = function (nc)
 			return palette[rem.((1:nc) .- 1, length(palette)) .+ 1]
 		end
-		@show ncolors
-		cv = ncolors == length(x) ? vec(eachindex(x)) : colors
+		cv = length(typecolors) == length(x) ? vec(eachindex(x)) : typecolors
 		if plotlabel
-			@show label_copy
-			@show cv
 			@assert length(label_copy) == length(cv)
 			p = Gadfly.plot([x y label_copy cv], x=Gadfly.Col.value(1), y=Gadfly.Col.value(2), label=Gadfly.Col.value(3), color=Gadfly.Col.value(4), Gadfly.Geom.point(), Gadfly.Scale.color_discrete(colormap), Gadfly.Geom.label(; position=:dynamic, hide_overlaps=true), Gadfly.Theme(; highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(; xmin=0, xmax=1, ymin=0, ymax=1), gm...)
 		else
