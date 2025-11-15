@@ -351,7 +351,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize,
 		Htimeseries_vsize=H_vsize, Htimeseries_hsize=H_hsize,
 		plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png",
-		sortmag::Bool=false,
+		sortmag::Bool=false, plotmethod::Symbol=:all,
 		point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt,
 		biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt,
 		repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats,
@@ -701,9 +701,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				biplotlabels = string.(copy(Hnames))
 				ilabel = Pm .< cutoff_label
 				biplotlabels[ilabel] .= ""
-				NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=chnew[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				length(Htypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
+				NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=chnew[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				length(Htypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
 		end
 
@@ -837,9 +837,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				biplotlabels = string.(copy(Wnames))
 				ilabel = Pm .< cutoff_label
 				biplotlabels[ilabel] .= ""
-				NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				length(Wtypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
+				NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				length(Wtypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
 			if createbiplots
 				M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
@@ -873,7 +873,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				elseif biplotcolor == :none
 					biplotcolors = [fill("blue", length(Wnames)); fill("red", length(Hnames))]
 				end
-				NMFk.biplots(M, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				NMFk.biplots(M, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				if biplotcolor == :W
 					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,signalmap]
 				elseif biplotcolor == :WH
@@ -883,7 +883,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				elseif biplotcolor == :none
 					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,signalmap]
 				end
-				NMFk.biplots(M, biplotlabels, clusterlabels; smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				NMFk.biplots(M, biplotlabels, clusterlabels; smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 			end
 		end
 
