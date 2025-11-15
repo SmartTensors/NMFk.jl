@@ -97,8 +97,8 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		iorder = sortperm(m; rev=true)
 	else
 		iorder = eachindex(x)
-
-		if smartplotlabel && data_rows > smartlabel_initial
+	end
+	if smartplotlabel && data_rows > smartlabel_initial
 		@info("Using smart label plotting to reduce overlapping labels...")
 		plotlabel = true
 		# Select the smartlabel_initial points farthest from the origin, then additional points up to smartlabel_total farthest from already selected (farthest-first traversal)
