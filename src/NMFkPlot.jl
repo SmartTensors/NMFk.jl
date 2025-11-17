@@ -70,7 +70,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:all, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), smartplotlabel::Bool=true, smartlabelmap::AbstractVector=falses(length(label)), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", typecolors::AbstractVector=[], gm::AbstractVector=[], point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true, point_size_nolabel::Measures.AbsoluteLength=2Gadfly.pt, point_size_label::Measures.AbsoluteLength=4Gadfly.pt, smartlabel_initial::Integer=max(sum(smartlabelmap), 6), smartlabel_total::Integer=max(smartlabel_initial, 20))
+function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVector=[]; hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:all, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), smartplotlabel::Bool=true, plotlabel_mask::AbstractVector=falses(length(label)), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", typecolors::AbstractVector=[], gm::AbstractVector=[], point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true, point_size_nolabel::Measures.AbsoluteLength=2Gadfly.pt, point_size_label::Measures.AbsoluteLength=4Gadfly.pt, plotlabel_initial::Integer=max(sum(plotlabel_mask), 6), plotlabel_total::Integer=max(plotlabel_initial, 20))
 	data_rows, data_cols = size(X)
 	if length(typecolors) == 0
 		typecolors = repeat(["red"], data_rows)
@@ -85,24 +85,24 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 		xtitle = "$axisname $(mapping[col1])"
 		ytitle = "$axisname $(mapping[col2])"
 	end
-	if sortmag || (smartplotlabel && data_rows > smartlabel_initial)
+	if sortmag || (smartplotlabel && data_rows > plotlabel_initial)
 		m = sum.(x .^ 2 .+ y .^ 2)
 		iorder = sortperm(m; rev=true)
 	else
 		iorder = eachindex(x)
 	end
-	if smartplotlabel && data_rows > smartlabel_initial
+	if smartplotlabel && data_rows > plotlabel_initial
 		@info("Using smart label plotting to reduce overlapping labels...")
 		plotlabel = true
-		# Select the smartlabel_initial points farthest from the origin, then additional points up to smartlabel_total farthest from already selected (farthest-first traversal)
+		# Select the plotlabel_initial points farthest from the origin, then additional points up to plotlabel_total farthest from already selected (farthest-first traversal)
 		label_included = falses(length(x))
-		label_included[smartlabelmap] .= true
+		label_included[plotlabel_mask] .= true
 
-		initial_count = min(data_rows, smartlabel_initial)
+		initial_count = min(data_rows, plotlabel_initial)
 		if initial_count > sum(label_included)
 			label_included[iorder[1 + sum(label_included):initial_count]] .= true
 		end
-		target_total = min(data_rows, smartlabel_total)
+		target_total = min(data_rows, plotlabel_total)
 		# Greedily add points maximizing the minimum squared distance to the selected set
 		while sum(label_included) < target_total
 			best_j = 0
