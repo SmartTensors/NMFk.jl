@@ -103,31 +103,55 @@ function biplot(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVecto
 			label_included[iorder[1 + sum(label_included):initial_count]] .= true
 		end
 		target_total = min(data_rows, plotlabel_total)
-		# Greedily add points maximizing the minimum squared distance to the selected set
-		while sum(label_included) < target_total
-			best_j = 0
-			best_d2 = -Inf
-			# Precompute indices of currently selected points
-			selected_idx = findall(label_included)
-			for j in iorder
-				label_included[j] && continue
-				# Compute min distance squared from point j to any selected point
-				mind2 = Inf
-				for i in selected_idx
-					dx = x[j] - x[i]
-					dy = y[j] - y[i]
-					d2 = dx * dx + dy * dy
-					if d2 < mind2
-						mind2 = d2
+		if data_rows > 200
+			if target_total > sum(label_included)
+				label_included[iorder[1 + sum(label_included):target_total]] .= true
+			end
+		else
+			# Greedily add points maximizing the minimum squared distance to the selected set
+			mind2 = fill(Inf, length(x))
+			selected_count = count(label_included)
+			if selected_count > 0
+				for idx in eachindex(label_included)
+					label_included[idx] && (mind2[idx] = 0.0)
+				end
+				for idx in findall(label_included)
+					xi = x[idx]
+					yi = y[idx]
+					for j in eachindex(x)
+						label_included[j] && continue
+						dx = x[j] - xi
+						dy = y[j] - yi
+						d2 = dx * dx + dy * dy
+						d2 < mind2[j] && (mind2[j] = d2)
 					end
 				end
-				if mind2 > best_d2
-					best_d2 = mind2
-					best_j = j
+			end
+			while selected_count < target_total
+				best_j = 0
+				best_d2 = -Inf
+				for j in iorder
+					label_included[j] && continue
+					d2 = mind2[j]
+					if d2 > best_d2
+						best_d2 = d2
+						best_j = j
+					end
+				end
+				best_j == 0 && break
+				label_included[best_j] = true
+				selected_count += 1
+				mind2[best_j] = 0.0
+				xb = x[best_j]
+				yb = y[best_j]
+				for j in eachindex(x)
+					label_included[j] && continue
+					dx = x[j] - xb
+					dy = y[j] - yb
+					d2 = dx * dx + dy * dy
+					d2 < mind2[j] && (mind2[j] = d2)
 				end
 			end
-			best_j == 0 && break
-			label_included[best_j] = true
 		end
 		label_copy = copy(label)
 		label_copy[.!label_included] .= ""

@@ -695,7 +695,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				end
 			end
 			if createbiplots
-				@info("Biploting ...")
+				@info("Biploting H matrix ...")
 				P = permutedims(Ha) ./ maximum(Ha)
 				Pm = vec(sum(P; dims=2))
 				biplotlabels = string.(copy(Hnames))
@@ -831,7 +831,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				end
 			end
 			if createbiplots
-				@info("Biploting ...")
+				@info("Biploting W matrix ...")
 				P = Wa ./ maximum(Wa)
 				Pm = vec(sum(P; dims=2))
 				biplotlabels = string.(copy(Wnames))
@@ -842,6 +842,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				length(Wtypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
 			if createbiplots
+				@info("Biploting combined W and H matrices ...")
 				M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
 				Mm = vec(sum(M; dims=2))
 				ilabel = Mm .< cutoff_label
