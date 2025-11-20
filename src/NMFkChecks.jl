@@ -192,25 +192,10 @@ function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), 
 end
 
 function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:Integer}=Int[], quiet::Bool=true, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
-	@assert length(names) == size(x, dim)
+	number_of_attributes = size(x, dim)
+	@assert length(names) == number_of_attributes
 	names = String.(names)
 	mlength = maximum(length.(names))
-	na = size(x, dim)
-	keep_set = Set(Int.(keep))
-	choose_remove_index = function (i::Int, j::Int)
-		if !isempty(keep_set)
-			i_keep = in(i, keep_set)
-			j_keep = in(j, keep_set)
-			if j_keep && !i_keep
-				return i
-			elseif i_keep && !j_keep
-				return j
-			elseif i_keep && j_keep
-				return nothing
-			end
-		end
-		return j
-	end
 	ilog = Vector{Int64}(undef, 0)
 	icor = Vector{Int64}(undef, 0)
 	isame = Vector{Int64}(undef, 0)
@@ -222,7 +207,10 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:I
 	idates = Vector{Int64}(undef, 0)
 	icount = Vector{Int64}(undef, 0)
 	iany = Vector{Int64}(undef, 0)
-	for i in axes(x, dim)
+	indices = collect(axes(x, dim))
+	keep_indices_first = [keep setdiff(keep, indices)]
+	@show keep_indices_first
+	for (idx, i) in enumerate(keep_indices_first)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
 		nt = ntuple(k -> (k == dim ? i : Colon()), 2)
 		vo = x[nt...]
@@ -260,7 +248,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:I
 			end
 			!quiet && println()
 			if !skip_corr_test && correlation_test
-				for j = 1:na
+				for (jdx, j) in enumerate(keep_indices_first)
 					if i == j
 						continue
 					end
@@ -290,28 +278,19 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:I
 					end
 					if isvalue == isvalue2 && v1 == v2
 						!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
-						if i > j
-							remove_idx = choose_remove_index(i, j)
-							if remove_idx !== nothing && !(remove_idx in keep_set)
-								push!(isame, remove_idx)
-							end
+						if idx > jdx
+							push!(isame, j)
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (Statistics.norm(v1 .- v2) < norm_cutoff || all(v1 .≈ v2))
 						!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
-						if i > j
-							remove_idx = choose_remove_index(i, j)
-							if remove_idx !== nothing && !(remove_idx in keep_set)
-								push!(icor, remove_idx)
-							end
+						if idx > jdx
+							push!(icor, j)
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v1, v2))) > correlation_cutoff
 						correlation = round(correlation; digits=4)
 						!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
-						if i > j
-							remove_idx = choose_remove_index(i, j)
-							if remove_idx !== nothing && !(remove_idx in keep_set)
-								push!(icor, remove_idx)
-							end
+						if idx > jdx
+							push!(icor, j)
 						end
 					end
 				end
@@ -394,10 +373,6 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:I
 	end
 	icor = unique(sort(icor))
 	isame = unique(sort(isame))
-	if !isempty(keep_set)
-		icor = [idx for idx in icor if !(idx in keep_set)]
-		isame = [idx for idx in isame if !(idx in keep_set)]
-	end
 	if !quiet
 		@info("Attribute summary:")
 		println("Log-transformation recommended: $(length(ilog))")
@@ -413,17 +388,17 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:I
 		println("Any entries: $(length(iany))")
 	end
 	if masks
-		mlog = falses(na)
-		mcor = falses(na)
-		msame = falses(na)
-		mnans = falses(na)
-		mzeros = falses(na)
-		mneg = falses(na)
-		mconstant = falses(na)
-		mstring = falses(na)
-		mdates = falses(na)
-		mcount = falses(na)
-		many = falses(na)
+		mlog = falses(number_of_attributes)
+		mcor = falses(number_of_attributes)
+		msame = falses(number_of_attributes)
+		mnans = falses(number_of_attributes)
+		mzeros = falses(number_of_attributes)
+		mneg = falses(number_of_attributes)
+		mconstant = falses(number_of_attributes)
+		mstring = falses(number_of_attributes)
+		mdates = falses(number_of_attributes)
+		mcount = falses(number_of_attributes)
+		many = falses(number_of_attributes)
 		mlog[ilog] .= true
 		mcor[icor] .= true
 		msame[isame] .= true
