@@ -191,7 +191,7 @@ function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), 
 	return checkmatrix(Matrix(df), 2; names=names, kw...)
 end
 
-function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:Integer}=Int[], quiet::Bool=true, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
+function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector{<:Integer}=Int[], quiet::Bool=true, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
 	number_of_attributes = size(x, dim)
 	@assert length(names) == number_of_attributes
 	names = String.(names)
@@ -208,8 +208,8 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; keep::AbstractVector{<:I
 	icount = Vector{Int64}(undef, 0)
 	iany = Vector{Int64}(undef, 0)
 	indices = collect(axes(x, dim))
-	keep_indices_first = [keep setdiff(keep, indices)]
-	@show keep_indices_first
+	@assert all(priority .<= number_of_attributes) && all(priority .>= 1)
+	keep_indices_first = [priority; setdiff(indices, priority)]
 	for (idx, i) in enumerate(keep_indices_first)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
 		nt = ntuple(k -> (k == dim ? i : Colon()), 2)
