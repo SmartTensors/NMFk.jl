@@ -845,17 +845,19 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				@info("Biploting combined W and H matrices ...")
 				M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
 				Mm = vec(sum(M; dims=2))
+				Wnames_label = string.(Wnames)
+				Hnames_label = string.(Hnames)
 				ilabel = Mm .< cutoff_label
 				if biplotlabel == :W
-					biplotlabels = [Wnames; fill("", length(Hnames))]
+					biplotlabels = [Wnames_label; fill("", length(Hnames))]
 					biplotlabels[ilabel] .= ""
 					biplotlabelflag = true
 				elseif biplotlabel == :WH
-					biplotlabels = [Wnames; Hnames]
+					biplotlabels = [Wnames_label; Hnames_label]
 					biplotlabels[ilabel] .= ""
 					biplotlabelflag = true
 				elseif biplotlabel == :H
-					biplotlabels = [fill("", length(Wnames)); Hnames]
+					biplotlabels = [fill("", length(Wnames)); Hnames_label]
 					biplotlabels[ilabel] .= ""
 					biplotlabelflag = true
 				elseif biplotlabel == :none
