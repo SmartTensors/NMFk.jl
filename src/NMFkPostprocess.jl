@@ -681,7 +681,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
-					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames, xmax=maximum(Hnames), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize)
+					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames, xmin=minimum(Hnames), xmax=maximum(Hnames), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(chnew) < 100
@@ -817,7 +817,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				end
 				if plottimeseries == :W || plottimeseries == :WH
-					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames, xmax=maximum(Wnames), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize)
+					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames, xmin=minimum(Wnames), xmax=maximum(Wnames), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(cw) < 100
@@ -845,8 +845,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				@info("Biploting combined W and H matrices ...")
 				M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
 				Mm = vec(sum(M; dims=2))
-				Wnames_label = string.(Wnames)
-				Hnames_label = string.(Hnames)
+				Wnames_label = string.(copy(Wnames))
+				Hnames_label = string.(copy(Hnames))
 				ilabel = Mm .< cutoff_label
 				if biplotlabel == :W
 					biplotlabels = [Wnames_label; fill("", length(Hnames))]
