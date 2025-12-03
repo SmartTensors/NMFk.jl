@@ -207,6 +207,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 	idates = Vector{Int64}(undef, 0)
 	icount = Vector{Int64}(undef, 0)
 	iany = Vector{Int64}(undef, 0)
+	mask_keep = trues(number_of_attributes)
 	indices = collect(axes(x, dim))
 	@assert all(priority .<= number_of_attributes) && all(priority .>= 1)
 	keep_indices_first = [priority; setdiff(indices, priority)]
@@ -218,12 +219,15 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 		if sum(isvalue) == 0
 			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Only missing values (NaNs)$(Base.text_colors[:normal])")
 			push!(inans, i)
+			mask_keep[i] = false
 			continue
 		end
 		v = identity.(vo[isvalue])
 		if count_cutoff > 0 && length(v) <= count_cutoff
-			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Not enough data (less than $(count_cutoff))$(Base.text_colors[:normal])")
+			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Not enough data (less than or equal to $(count_cutoff)); will be suggested for removal!$(Base.text_colors[:normal])")
 			push!(icount, i)
+			mask_keep[i] = false
+			continue
 		end
 		if eltype(v) <: Number
 			vmin = minimum(v)
@@ -233,17 +237,21 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			!quiet && print("min: $(Printf.@sprintf("%12.7g", vmin)) max: $(Printf.@sprintf("%12.7g", vmax)) skewness: $(Printf.@sprintf("%12.7g", skew)) count: $(Printf.@sprintf("%12d", length(v))) unique: $(Printf.@sprintf("%12d", luv))")
 			skip_corr_test = false
 			if sum(v) == 0
-				!quiet && print(" <- only zeros!")
+				!quiet && (print(" <- only zeros! "); println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold]) will be suggested for removal!$(Base.text_colors[:normal])"))
 				skip_corr_test = true
 				push!(izeros, i)
+				mask_keep[i] = false
+				continue
 			elseif any(v .< 0)
 				!quiet && print(" <- negative values!")
 				push!(ineg, i)
 			end
 			if vmin ≈ vmax
-				!quiet && print(" <- constant!")
+				!quiet && (print(" <- constant! "); println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold]) will be suggested for removal!$(Base.text_colors[:normal])"))
 				skip_corr_test = true
 				push!(iconstant, i)
+				mask_keep[i] = false
+				continue
 			elseif length(unique(v)) == 2
 				!quiet && print(" <- boolean?!")
 			elseif abs(skew) > skewness_cutoff && length(unique(v)) > 2
@@ -253,7 +261,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			!quiet && println()
 			if !skip_corr_test && correlation_test
 				for (j_counter, j) in enumerate(keep_indices_first)
-					if i_counter == j_counter
+					if i_counter == j_counter || mask_keep[j] == false
 						continue
 					end
 					nt2 = ntuple(k -> (k == dim ? j : Colon()), 2)
@@ -283,20 +291,28 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 					if isvalue == isvalue2 && v1 == v2
 						!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if j_counter > i_counter
-							push!(isame, j)
+							push!(isame, i)
+							mask_keep[i] = false
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (Statistics.norm(v1 .- v2) < norm_cutoff || all(v1 .≈ v2))
 						!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if j_counter > i_counter
-							push!(icor, j)
+							push!(icor, i)
+							mask_keep[i] = false
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v1, v2))) > correlation_cutoff
 						correlation = round(correlation; digits=4)
 						!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
 						if j_counter > i_counter
-							push!(icor, j)
+							push!(icor, i)
+							mask_keep[i] = false
 						end
 					end
+
+				end
+				if !mask_keep[i] && !quiet
+					print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
+					println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])will be suggested for removal!$(Base.text_colors[:normal])")
 				end
 			end
 		elseif eltype(v) <: Dates.Date || eltype(v) <: Dates.DateTime || eltype(v) <: Dates.Time
@@ -411,10 +427,12 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 		mcount[icount] .= true
 		many[iany] .= true
 		mremove = msame .| mcor .| mnans .| mzeros .| mconstant .| mstring .| mdates .| mcount .| many
+		@assert .!mask_keep == mremove
 		!quiet && println("Entries suggested to remove (including correlated): $(sum(mremove))")
 		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, zeros=mzeros, neg=mneg, constant=mconstant, string=mstring, lowcount=mcount, dates=mdates, any=many)
 	else
 		iremove = unique(sort(vcat(isame, icor, inans, izeros, iconstant, istring, idates, icount, iany)))
+		@assert sum(mask_keep .== false) == length(iremove)
 		!quiet && println("Entries suggested to remove (including correlated): $(length(iremove))")
 		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, zeros=izeros, neg=ineg, constant=iconstant, string=istring, lowcount=icount, dates=idates, any=iany)
 	end
