@@ -210,7 +210,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 	indices = collect(axes(x, dim))
 	@assert all(priority .<= number_of_attributes) && all(priority .>= 1)
 	keep_indices_first = [priority; setdiff(indices, priority)]
-	for (idx, i) in enumerate(keep_indices_first)
+	for (i_counter, i) in enumerate(keep_indices_first)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
 		nt = ntuple(k -> (k == dim ? i : Colon()), 2)
 		vo = x[nt...]
@@ -221,6 +221,10 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			continue
 		end
 		v = identity.(vo[isvalue])
+		if count_cutoff > 0 && length(v) <= count_cutoff
+			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Not enough data (less than $(count_cutoff))$(Base.text_colors[:normal])")
+			push!(icount, i)
+		end
 		if eltype(v) <: Number
 			vmin = minimum(v)
 			vmax = maximum(v)
@@ -248,8 +252,8 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			end
 			!quiet && println()
 			if !skip_corr_test && correlation_test
-				for (jdx, j) in enumerate(keep_indices_first)
-					if i == j
+				for (j_counter, j) in enumerate(keep_indices_first)
+					if i_counter == j_counter
 						continue
 					end
 					nt2 = ntuple(k -> (k == dim ? j : Colon()), 2)
@@ -278,18 +282,18 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 					end
 					if isvalue == isvalue2 && v1 == v2
 						!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
-						if idx > jdx
+						if j_counter > i_counter
 							push!(isame, j)
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (Statistics.norm(v1 .- v2) < norm_cutoff || all(v1 .≈ v2))
 						!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
-						if idx > jdx
+						if j_counter > i_counter
 							push!(icor, j)
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v1, v2))) > correlation_cutoff
 						correlation = round(correlation; digits=4)
 						!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
-						if idx > jdx
+						if j_counter > i_counter
 							push!(icor, j)
 						end
 					end
@@ -365,10 +369,6 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 				end
 			end
 			push!(iany, i)
-		end
-		if count_cutoff > 0 && length(v) <= count_cutoff
-			!quiet && println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])Not enough data (less than $(count_cutoff))$(Base.text_colors[:normal])")
-			push!(icount, i)
 		end
 	end
 	icor = unique(sort(icor))
