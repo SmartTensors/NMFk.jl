@@ -49,7 +49,7 @@ function findfirst(v::AbstractVector, func::Function=i->i > 0; zerod::Bool=true,
 	return vi
 end
 
-function maximumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissing(isnothing(x))), kw...)
+function maximumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		i = func.(X)
 		v = X[.!i]
@@ -64,7 +64,7 @@ function maximumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismi
 	return m
 end
 
-function minimumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissing(isnothing(x))), kw...)
+function minimumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		i = func.(X)
 		v = X[.!i]
@@ -79,7 +79,7 @@ function minimumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismi
 	return m
 end
 
-function sumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissing(isnothing(x))), kw...)
+function sumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = func.(X)
@@ -100,7 +100,7 @@ function sumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissin
 	end
 end
 
-function cumsumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissing(isnothing(x))), kw...)
+function cumsumnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = func.(X)
@@ -124,7 +124,7 @@ function cumsumnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismis
 	end
 end
 
-function meannan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissing(isnothing(x))), kw...)
+function meannan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = func.(X)
@@ -146,7 +146,7 @@ function meannan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissi
 	end
 end
 
-function varnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissing(isnothing(x))), kw...)
+function varnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	if isnothing(dims)
 		ecount = .*(size(X)...)
 		I = func.(X)
@@ -171,25 +171,25 @@ function varnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissin
 	end
 end
 
-function stdnan(X::AbstractArray; dims=nothing, func::Function=x->isnan(ismissing(isnothing(x))), kw...)
+function stdnan(X::AbstractArray; dims=nothing, func::Function=isnan, kw...)
 	return sqrt.(varnan(X; dims=dims, func=func, kw...))
 end
 
-function rmsenan(t::AbstractVector, o::AbstractVector; func::Function=x->isnan(ismissing(isnothing(x))))
+function rmsenan(t::AbstractVector, o::AbstractVector; func::Function=isnan)
 	it = .!func.(t)
 	ot = .!func.(o)
 	ii = it .& ot
 	return sqrt( sum( (t[ii] .- o[ii]) .^ 2.) ./ sum(ii) )
 end
 
-function l1nan(t::AbstractVector, o::AbstractVector; func::Function=x->isnan(ismissing(isnothing(x))))
+function l1nan(t::AbstractVector, o::AbstractVector; func::Function=isnan)
 	it = .!func.(t)
 	ot = .!func.(o)
 	ii = it .& ot
 	return sum(abs.(t[ii] .- o[ii]))
 end
 
-function sortpermnan(v::AbstractVector; func::Function=x->isnan(ismissing(isnothing(x))), rev::Bool=false)
+function sortpermnan(v::AbstractVector; func::Function=isnan, rev::Bool=false)
 	v2 = sortperm(v; rev=rev)
 	it = .!func.(v[v2])
 	if rev
@@ -200,7 +200,7 @@ function sortpermnan(v::AbstractVector; func::Function=x->isnan(ismissing(isnoth
 	return v2
 end
 
-function sortnan(v::AbstractVector; func::Function=x->isnan(ismissing(isnothing(x))), keepnan::Bool=true, kw...)
+function sortnan(v::AbstractVector; func::Function=isnan, keepnan::Bool=true, kw...)
 	it = .!func.(v)
 	if keepnan
 		v2 = sort(v[it]; kw...)
@@ -211,22 +211,22 @@ function sortnan(v::AbstractVector; func::Function=x->isnan(ismissing(isnothing(
 	return v2
 end
 
-function ssqrnan(t::AbstractVector, o::AbstractVector; func::Function=x->isnan(ismissing(isnothing(x)))) # Distances.euclidean(x, y)
+function ssqrnan(t::AbstractVector, o::AbstractVector; func::Function=isnan) # Distances.euclidean(x, y)
 	it = .!func.(t)
 	ot = .!func.(o)
 	ii = it .& ot
 	return sqrt(sum( (t[ii] .- o[ii]) .^ 2.))
 end
 
-function ssqrnan(X::AbstractArray; func::Function=x->isnan(ismissing(isnothing(x))))
+function ssqrnan(X::AbstractArray; func::Function=isnan)
 	sum(X[.!func.(X)].^2)
 end
 
-function normnan(X::AbstractArray; func::Function=x->isnan(ismissing(isnothing(x))))
+function normnan(X::AbstractArray; func::Function=isnan)
 	LinearAlgebra.norm(X[.!func.(X)])
 end
 
-function covnan(x::AbstractArray, y::AbstractArray; func::Function=x->isnan(ismissing(isnothing(x))))
+function covnan(x::AbstractArray, y::AbstractArray; func::Function=isnan)
 	isn = .!(func.(x) .| func.(y))
 	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
 		return Statistics.cov(x[isn], y[isn])
@@ -235,7 +235,7 @@ function covnan(x::AbstractArray, y::AbstractArray; func::Function=x->isnan(ismi
 	end
 end
 
-function cornan(x::AbstractArray, y::AbstractArray; func::Function=x->isnan(ismissing(isnothing(x))))
+function cornan(x::AbstractArray, y::AbstractArray; func::Function=isnan)
 	isn = .!(func.(x) .| func.(y))
 	if length(x) > 0 && length(y) > 0 && sum(isn) > 1
 		return Statistics.cor(x[isn], y[isn])
