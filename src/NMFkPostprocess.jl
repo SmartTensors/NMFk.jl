@@ -579,7 +579,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
 			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
 			if clusterH
-				@assert clusterlabels == sort(unique(cw))
+				if clusterlabels != sort(unique(cw))
+					@warn("W and H cluster labels do not match!")
+				end
 			else
 				clusterlabels = sort(unique(cw))
 			end

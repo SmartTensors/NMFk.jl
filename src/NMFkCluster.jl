@@ -101,6 +101,9 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 			best_silhouettes = silhouettes
 		end
 	end
+	if length(unique(c.assignments)) < k
+		@warn("Robust k-means analysis could not find $k clusters! Only $(length(unique(c.assignments))) clusters were found.")
+	end
 	sc = sortclustering(c)
 	if save && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
