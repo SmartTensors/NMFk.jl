@@ -79,7 +79,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 				@warn("File $(filename) does not contain correct information! Robust k-means analysis will be executed ...")
 			end
 		else
-			@warn("File $(filename) does not exist! Robust k-means analysis will be executed ...")
+			@info("File $(filename) does not exist! Robust k-means analysis will be executed ...")
 		end
 	end
 	local c = nothing
@@ -179,7 +179,7 @@ function labelassignements(c::AbstractVector)
 	return cassignments
 end
 
-function finduniquesignals(X::AbstractMatrix)
+function finduniquesignals(X::AbstractMatrix; quiet::Bool=false)
 	k = size(X, 1)
 	@assert k == size(X, 2)
 	signalmap = zeros(Int64, k)
@@ -187,7 +187,7 @@ function finduniquesignals(X::AbstractMatrix)
 	failed = false
 	while any(signalmap .== 0)
 		if all(Xc .== 0.)
-			@warn("Procedure to find unique signals could not identify a solution ...")
+			!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
 			failed = true
 			break
 		end
@@ -214,7 +214,7 @@ function finduniquesignalsbest(X::AbstractMatrix)
 	for i = 1:k
 		Xc = copy(X)
 		Xc[i, signalmap[i]] = 0.
-		o, signalmap = finduniquesignals(Xc)
+		o, signalmap = finduniquesignals(Xc; quiet=true)
 		if o > obest
 			obest = o
 			signalmapbest = signalmap
