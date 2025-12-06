@@ -168,7 +168,7 @@ Rows of all `NaN`s are assigned to a dedicated group. Returns a `RowCompressionR
 for forward/backward mapping between original and compressed matrices.
 """
 function compress_rows(X::AbstractMatrix;
-	k_range::UnitRange{Int} = max(2,Int(round(floor(size(X, 1)/200); sigdigits=1))):Int(round(floor(size(X, 1)/20); sigdigits=1)),
+	k_range::UnitRange{Int} = max(2,Int(round(floor(size(X, 1)/200); sigdigits=1))):max(2,Int(round(floor(size(X, 1)/20); sigdigits=1))),
 	n_restarts::Int = 1,
 	max_iter::Int = 100,
 	rng::Random.AbstractRNG = Random.default_rng(),
