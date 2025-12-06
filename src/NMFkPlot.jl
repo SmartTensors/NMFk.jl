@@ -89,7 +89,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 		ytitle = "$axisname $(mapping[col2])"
 	end
 	if sortmag || (smartplotlabel && data_rows > plotlabel_initial)
-		m = sqrt.(sum.(x .^ 2 .+ y .^ 2))
+		m = sum.(x .^ 2 .+ y .^ 2))
 		iorder = sortperm(m; rev=true)
 	else
 		iorder = eachindex(x)
@@ -188,7 +188,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 				mask_labels = falses(length(x))
 			else
 				if sortmag
-					m = sqrt.(sum.(x[mask_nolabels] .^ 2 .+ y[mask_nolabels] .^ 2))
+					m = sum.(x[mask_nolabels] .^ 2 .+ y[mask_nolabels] .^ 2))
 					iorder_points = sortperm(m; rev=true)
 				else
 					iorder_points = 1:sum(mask_nolabels)
@@ -199,7 +199,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 			mask_labels = falses(length(x))
 		end
 		if sortmag
-			m = sqrt.(sum.(x[mask_labels] .^ 2 .+ y[mask_labels] .^ 2))
+			m = sum.(x[mask_labels] .^ 2 .+ y[mask_labels] .^ 2))
 			iorder_labels = sortperm(m; rev=true)
 		else
 			labels_to_plot = label_copy[mask_labels]
