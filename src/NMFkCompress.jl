@@ -186,32 +186,41 @@ function compress_rows(X::AbstractMatrix;
 	return build_compression_result(original, work, valid_idx, nan_idx, labels, best_k, scores, quiet)
 end
 
-"""decompress_rows(result; mode=:representative, missing_value=NaN, add_noise=false)
+"""decompress_rows(result; mode=:representative, missing_value=NaN, add_noise=false, columns=:)
 
 Reconstruct an approximation of the original matrix from `result::RowCompressionResult`
 by expanding each cluster template (either medoid representatives or per-cluster
 means) back to its assigned rows. Optionally perturb the mean-based reconstruction by
-sampling Gaussian noise with cluster variances for additional diversity. Rows never
+sampling Gaussian noise with cluster variances for additional diversity. The
+`columns` argument lets you request a subset of features (defaults to all). Rows never
 assigned to any cluster (group id ``0``) are filled with `missing_value`.
 """
 function decompress_rows(X::AbstractMatrix, result::MatrixCompressionResult;
 	mode::Symbol = :representative,
 	missing_value::Union{Float64, Missing} = NaN,
 	add_noise::Bool = false,
+	columns::Union{Colon, AbstractVector{<:Integer}} = Colon(),
 	rng::Random.AbstractRNG = Random.default_rng(),
 )
-	@assert size(X) == size(result.compressed_matrix) "Matrix size must match compression setup"
-	nrows = length(result.original_to_group)
-	ncols = size(result.compressed_matrix, 2)
-	reconstructed = Matrix{Float64}(undef, nrows, ncols)
+	@assert size(X, 1) == size(result.compressed_matrix, 1) "Matrix size must match compression setup"
 	add_noise = add_noise && mode === :mean
+	if add_noise && columns isa Colon && size(X, 2) != size(result.compressed_matrix, 2)
+		error("Provide `columns=` when requesting noise on a subset of features")
+	end
+	if !(columns isa Colon)
+		@assert length(columns) == size(X, 2) "Number of selected columns must equal template width"
+	end
+	nrows = length(result.original_to_group)
+	ncols = size(X, 2)
+	reconstructed = Matrix{Float64}(undef, nrows, ncols)
+	variance_sel = add_noise ? (columns isa Colon ? result.group_variances : result.group_variances[:, columns]) : nothing
 	for (row_idx, group_id) in enumerate(result.original_to_group)
 		if group_id <= 0
 			reconstructed[row_idx, :] .= missing_value
 		else
 			@views reconstructed[row_idx, :] .= X[group_id, :]
 			if add_noise
-				vars = result.group_variances[group_id, :]
+				vars = variance_sel[group_id, :]
 				for j in 1:ncols
 					std = sqrt(max(vars[j], 0.0))
 					std == 0 && continue

@@ -25,10 +25,19 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 		@info("It is preferred to cluster the smaller of the matrices!")
 	end
 	if any(isnan.(X))
-		@info("Analyzed matrix has NaN's.")
+		nan_rows = count([all(isnan, r) for r in eachrow(X)])
+		if nan_rows > 0
+			@warn("Some rows have only NaN's ($(nan_rows) in total)! These rows should be removed from the analysis!")
+		end
+		nan_cols = count([all(isnan, c) for c in eachcol(X)])
+		if nan_cols > 0
+			@warn("Some columns have only NaN's ($(nan_cols) in total)! These columns should be removed from the analysis!")
+		end
 		if method != :simple && method != :ipopt && method != :nlopt
 			@warn("Analyzed matrix has NaN's! NMF method $(method)) cannot be used! Simple multiplicative NMF will be performed!")
 			method = :simple
+		else
+			@info("Analyzed matrix has NaN's.")
 		end
 	end
 	if method == :nlopt && algorithm == :multdiv
