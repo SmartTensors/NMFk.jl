@@ -202,10 +202,10 @@ function decompress_rows(X::AbstractMatrix, result::MatrixCompressionResult;
 	columns::Union{Colon, AbstractVector{<:Integer}} = Colon(),
 	rng::Random.AbstractRNG = Random.default_rng(),
 )
-	@assert size(X, 1) == size(result.compressed_matrix, 1) "Matrix size must match compression setup"
+	@assert size(X, 1) == size(result.compressed_matrix, 1) "Number of rows in the input matrix and compression setup must match!"
 	add_noise = add_noise && mode === :mean
 	if add_noise && columns isa Colon && size(X, 2) != size(result.compressed_matrix, 2)
-		error("Provide `columns=` when requesting noise on a subset of features")
+		error("Provide an aggregating template as `columns=` when requesting noise on a subset of features!")
 	end
 	if !(columns isa Colon)
 		@assert length(columns) == size(X, 2) "Number of selected columns must equal template width"

@@ -194,6 +194,17 @@ end
 function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector{<:Integer}=Int[], quiet::Bool=true, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
 	number_of_attributes = size(x, dim)
 	@assert length(names) == number_of_attributes
+	nan_rows = count([all(isnan, r) for r in eachrow(x)])
+	if nan_rows > 0
+		@warn("Some rows have only NaN's ($(nan_rows) in total)! These rows should be removed from the analysis!")
+	end
+	nan_cols = count([all(isnan, c) for c in eachcol(x)])
+	if nan_cols > 0
+		@warn("Some columns have only NaN's ($(nan_cols) in total)! These columns should be removed from the analysis!")
+	end
+	if nan_rows == 0 && nan_cols == 0 && any(isnan.(x))
+		@info("Some of the entries of the analyzed matrix has NaN's.")
+	end
 	names = String.(names)
 	mlength = maximum(length.(names))
 	ilog = Vector{Int64}(undef, 0)
