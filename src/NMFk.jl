@@ -70,6 +70,7 @@ include("NMFkPeaks.jl")
 include("NMFkPreprocess.jl")
 include("NMFkPostprocess.jl")
 include("NMFkProgressive.jl")
+include("NMFkCompress.jl")
 include("NMFkGeo.jl")
 include("NMFkWells.jl")
 
