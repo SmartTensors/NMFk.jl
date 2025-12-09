@@ -549,7 +549,7 @@ function mapbox_contour(
 	for (i, lat_interp) in enumerate(lat_grid)
 		for (j, lon_interp) in enumerate(lon_grid)
 			# Calculate distances to all data points
-			distances = sqrt.((lon_clean .- lon_interp).^2 + (lat_clean .- lat_interp).^2)
+			distances = sqrt.((lon_clean .- lon_interp).^2 .+ (lat_clean .- lat_interp).^2)
 
 			# Handle case where interpolation point coincides with data point
 			min_dist = minimum(distances)
@@ -761,7 +761,7 @@ function mapbox_contour_simple(
 	for lat_interp in lat_grid
 		for lon_interp in lon_grid
 			# Calculate distances to all data points
-			distances = sqrt.((lon_clean .- lon_interp).^2 + (lat_clean .- lat_interp).^2)
+			distances = sqrt.((lon_clean .- lon_interp).^2 .+ (lat_clean .- lat_interp).^2)
 
 			# Handle case where interpolation point coincides with data point
 			min_dist = minimumnan(distances)
@@ -876,7 +876,7 @@ function idw_interpolate(
 	power::Real=2,
 	smoothing::Real=0.0
 )
-	distances = sqrt.((x_data .- x_interp).^2 + (y_data .- y_interp).^2)
+	distances = sqrt.((x_data .- x_interp).^2 .+ (y_data .- y_interp).^2)
 
 	# Handle case where interpolation point coincides with data point
 	min_dist = minimumnan(distances)

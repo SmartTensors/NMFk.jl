@@ -89,10 +89,10 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 		ytitle = "$axisname $(mapping[col2])"
 	end
 	if sortmag || (smartplotlabel && data_rows > plotlabel_initial)
-		m = sum.(x .^ 2 .+ y .^ 2)
-		iorder = sortperm(m; rev=true)
+		m = x .^ 2 .+ y .^ 2
+		order_magnitude = sortperm(m; rev=true)
 	else
-		iorder = eachindex(x)
+		order_magnitude = collect(eachindex(x))
 	end
 	if smartplotlabel && data_rows > plotlabel_initial
 		!suppress_output && @info("Using smart label plotting to reduce overlapping labels...")
@@ -103,12 +103,12 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 
 		initial_count = min(data_rows, plotlabel_initial)
 		if initial_count > sum(label_included)
-			label_included[iorder[1 + sum(label_included):initial_count]] .= true
+			label_included[order_magnitude[1 + sum(label_included):initial_count]] .= true
 		end
 		target_total = min(data_rows, plotlabel_total)
 		if data_rows > 200
 			if target_total > sum(label_included)
-				label_included[iorder[1 + sum(label_included):target_total]] .= true
+				label_included[order_magnitude[1 + sum(label_included):target_total]] .= true
 			end
 		else
 			# Greedily add points maximizing the minimum squared distance to the selected set
@@ -133,7 +133,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 			while selected_count < target_total
 				best_j = 0
 				best_d2 = -Inf
-				for j in iorder
+				for j in order_magnitude
 					label_included[j] && continue
 					d2 = mind2[j]
 					if d2 > best_d2
@@ -168,7 +168,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 	end
 	if plotmethod == :layers
 		gadfly_layers = Vector{Vector{Gadfly.Layer}}(undef, 0)
-		for i in iorder
+		for i in order_magnitude
 			ic = (i - 1) % length(typecolors) + 1
 			plotline && push!(gadfly_layers, Gadfly.layer(x=[0, x[i]], y=[0, y[i]], Gadfly.Geom.line(), Gadfly.Theme(; default_color=Colors.RGBA(parse(Colors.Colorant, typecolors[ic]), opacity))))
 			if plotlabel
@@ -179,28 +179,34 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 		end
 		push!(gadfly_layers, Gadfly.layer(x=[1.], y=[1.], Gadfly.Geom.nil, Gadfly.Theme(; point_size=0Gadfly.pt)))
 		p = Gadfly.plot(gadfly_layers..., Gadfly.Theme(; background_color=background_color, key_position=:none), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), gm...)
-	elseif plotmethod == :frame # most robust method for large datasets; it plots lables seperatly from points
+	elseif plotmethod == :frame # most robust method for large datasets; it plots the labels separately from the points
 		!suppress_output && @info("Plotting using frame method...")
 		if plotlabel
 			mask_nolabels = label_copy .== ""
-			if sum(mask_nolabels) == length(x)
-				plotlabel = false
+			if count(mask_nolabels) == length(x)
 				mask_labels = falses(length(x))
+				plotlabel = false
+				order_points = collect(1:length(x))
 			else
-				if sortmag
-					m = sum.(x[mask_nolabels] .^ 2 .+ y[mask_nolabels] .^ 2)
-					iorder_points = sortperm(m; rev=true)
-				else
-					iorder_points = 1:sum(mask_nolabels)
-				end
 				mask_labels = .!mask_nolabels
+				if sortmag
+					if count(mask_nolabels) > 0
+						m = x[mask_nolabels] .^ 2 .+ y[mask_nolabels] .^ 2
+						order_points = sortperm(m; rev=true)
+					else
+						order_points = order_magnitude
+					end
+				else
+					order_points = collect(1:count(mask_nolabels))
+				end
 			end
 		else
 			mask_labels = falses(length(x))
+			order_points = order_magnitude
 		end
 		if sortmag
-			m = sum.(x[mask_labels] .^ 2 .+ y[mask_labels] .^ 2)
-			iorder_labels = sortperm(m; rev=true)
+			m = x[mask_labels] .^ 2 .+ y[mask_labels] .^ 2
+			order_labels = sortperm(m; rev=true)
 		else
 			labels_to_plot = label_copy[mask_labels]
 			unique_labels_to_plot = unique(labels_to_plot)
@@ -213,19 +219,19 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 				for (i, s) in enumerate(unique_labels_to_plot[sortperm(label_count)])
 					number_of_labels[labels_to_plot .== s] .= i
 				end
-				iorder_labels = sortperm(number_of_labels; rev=true)
+				order_labels = sortperm(number_of_labels; rev=true)
 			else
-				iorder_labels = Colon()
+				order_labels = Colon()
 			end
 		end
 		gadfly_layers = Vector{Vector{Gadfly.Layer}}(undef, 0)
 		number_of_labels = sum(mask_labels)
 		if number_of_labels > 0
-			df_labels = DataFrames.DataFrame(; x=x[mask_labels][iorder_labels], y=y[mask_labels][iorder_labels], label=label_copy[mask_labels][iorder_labels], color=typecolors[mask_labels][iorder_labels])
+			df_labels = DataFrames.DataFrame(; x=x[mask_labels][order_labels], y=y[mask_labels][order_labels], label=label_copy[mask_labels][order_labels], color=typecolors[mask_labels][order_labels])
 			push!(gadfly_layers, Gadfly.layer(df_labels, x=:x, y=:y, label=:label, color=:color, Gadfly.Geom.point(), Gadfly.Geom.label(; position=number_of_labels < 100 ? :dynamic : :below, hide_overlaps=number_of_labels<100), Gadfly.Theme(; point_size=point_size_label, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		end
 		if sum(mask_nolabels) > 0
-			df_nolabels = DataFrames.DataFrame(x=x[mask_nolabels][iorder_points], y=y[mask_nolabels][iorder_points], label=label_copy[mask_nolabels][iorder_points], color=typecolors[mask_nolabels][iorder_points])
+			df_nolabels = DataFrames.DataFrame(x=x[mask_nolabels][order_points], y=y[mask_nolabels][order_points], label=label_copy[mask_nolabels][order_points], color=typecolors[mask_nolabels][order_points])
 			push!(gadfly_layers, Gadfly.layer(df_nolabels, x=:x, y=:y, color=:color, Gadfly.Geom.point(), Gadfly.Theme(point_size=point_size_nolabel, highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size)))
 		end
 		colormap = unique(typecolors)
