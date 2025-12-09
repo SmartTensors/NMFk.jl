@@ -1,6 +1,7 @@
 import DelimitedFiles
 import PlotlyJS
 import Mads
+import Measures
 
 function getk(nkrange::Union{AbstractUnitRange{T1},AbstractVector{T1}}, robustness::AbstractVector{T2}, cutoff::Number=0.5; strict::Bool=true) where {T1 <: Integer, T2 <: Number}
 	if length(nkrange) != length(robustness)
@@ -341,8 +342,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		cutoff::Number=0, # cutoff::Number = 0.9 recommended
  		cutoff_s::Number=0, # cutoff_s::Number = 0.95 recommended
 		cutoff_label::Number=0.2,
-		Wmatrix_font_size=10Gadfly.pt, Hmatrix_font_size=10Gadfly.pt,
-		adjustsize::Bool=false, vsize=6Gadfly.inch, hsize=6Gadfly.inch,
+		Wmatrix_font_size::Measures.AbsoluteLength=10Gadfly.pt, Hmatrix_font_size::Measures.AbsoluteLength=10Gadfly.pt,
+		adjustsize::Bool=false, vsize::Measures.AbsoluteLength=6Gadfly.inch, hsize::Measures.AbsoluteLength=6Gadfly.inch,
 		W_vsize=vsize, W_hsize=hsize, H_vsize=vsize, H_hsize=hsize,
 		Wmatrix_vsize=W_vsize, Wmatrix_hsize=W_hsize,
 		Wdendrogram_vsize=W_vsize, Wdendrogram_hsize=W_hsize,
@@ -350,10 +351,12 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		Hmatrix_vsize=H_vsize, Hmatrix_hsize=H_hsize,
 		Hdendrogram_vsize=H_vsize, Hdendrogram_hsize=H_hsize,
 		Htimeseries_vsize=H_vsize, Htimeseries_hsize=H_hsize,
+		Wtimeseries_xaxis::AbstractVector=Wnames,
+		Htimeseries_xaxis::AbstractVector=Hnames,
 		plotmatrixformat="png", biplotformat="pdf", plotseriesformat="png",
 		sortmag::Bool=false, plotmethod::Symbol=:frame,
-		point_size_nolabel=3Gadfly.pt, point_size_label=3Gadfly.pt,
-		biplotseparate::Bool=false, biplot_point_label_font_size=12Gadfly.pt,
+		point_size_nolabel::Measures.AbsoluteLength=3Gadfly.pt, point_size_label::Measures.AbsoluteLength=3Gadfly.pt,
+		biplotseparate::Bool=false, biplot_point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt,
 		repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats,
 		quiet::Bool=false, veryquiet::Bool=true)
 	if length(krange) == 0
@@ -683,7 +686,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plotmatrix(Hm[cs,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
-					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Hnames, xmin=minimum(Hnames), xmax=maximum(Hnames), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize)
+					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(chnew) < 100
@@ -819,7 +822,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				end
 				if plottimeseries == :W || plottimeseries == :WH
-					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wnames, xmin=minimum(Wnames), xmax=maximum(Wnames), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize)
+					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize)
 				end
 			end
 			if (createdendrogramsonly || createplots) && length(cw) < 100
