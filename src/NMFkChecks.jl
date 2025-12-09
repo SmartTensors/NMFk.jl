@@ -304,28 +304,27 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 					if isvalue == isvalue2 && v1 == v2
 						!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if j_counter > i_counter
-							push!(isame, i)
-							mask_keep[i] = false
+							push!(isame, j)
+							mask_keep[j] = false
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (Statistics.norm(v1 .- v2) < norm_cutoff || all(v1 .≈ v2))
 						!quiet && println("- similar with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if j_counter > i_counter
-							push!(icor, i)
-							mask_keep[i] = false
+							push!(icor, j)
+							mask_keep[j] = false
 						end
 					elseif sum(isvalue_all) > 2 && comparison_ratio > 0.5 && (correlation = abs(Statistics.cor(v1, v2))) > correlation_cutoff
 						correlation = round(correlation; digits=4)
 						!quiet && println("- correlated with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (correlation = $(correlation)) (comparison size = $(comparison_size))!")
 						if j_counter > i_counter
-							push!(icor, i)
-							mask_keep[i] = false
+							push!(icor, j)
+							mask_keep[j] = false
 						end
 					end
-
-				end
-				if !mask_keep[i] && !quiet
-					print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
-					println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])will be suggested for removal!$(Base.text_colors[:normal])")
+					if !quiet && !mask_keep[j]
+						print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[j])):$(Base.text_colors[:normal]) ")
+						println("$(Base.text_colors[:magenta])$(Base.text_colors[:bold])will be suggested for removal!$(Base.text_colors[:normal])")
+					end
 				end
 			end
 		elseif eltype(v) <: Dates.Date || eltype(v) <: Dates.DateTime || eltype(v) <: Dates.Time
