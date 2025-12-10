@@ -325,7 +325,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
 		ordersignals::Symbol=:importance,
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
-		Wsize::Integer=0, Hsize::Integer=0, Wmap::AbstractVector=[], Hmap::AbstractVector=[],
+		Wsize::Integer=0, Hsize::Integer=0, Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
 		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
 		lon=nothing, lat=nothing, hover=nothing,
 		resultdir::AbstractString=".", figuredir::AbstractString=resultdir,
@@ -485,14 +485,13 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				i2 += Hsize
 			end
 			Ha = Ha[:,Horder]
-		elseif length(Hmap) > 0
-			@assert length(Hmap) == size(H[k], 2)
-			mu = unique(Hmap)
-			na = length(mu)
-			@assert length(Hnames) == na
-			Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
+		elseif size(Hmap, 1) > 0
+			@assert size(Hmap, 1) == size(H[k], 2)
+			mu = unique(Hmap[:, 1])
+			@assert length(Hnames) == length(mu)
+			Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), length(mu))
 			for (i, m) in enumerate(mu)
-				Ha[:,i] = sum(H[k][:, Hmap .== m]; dims=2)
+				Ha[:,i] = sum(H[k][:, Hmap[:, 1] .== m]; dims=2)
 			end
 			Ha = Ha[:,Horder]
 		else
@@ -523,14 +522,13 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				i2 += Wsize
 				end
 				Wa = Wa[Worder,:]
-			elseif length(Wmap) > 0
-				@assert length(Wmap) == size(W[k], 1)
-				mu = unique(Wmap)
-				na = length(mu)
-				@assert length(Wnames) == na
-				Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
+			elseif size(Wmap, 1) > 0
+				@assert size(Wmap, 1) == size(W[k], 1)
+				mu = unique(Wmap[:, 1])
+				@assert length(Wnames) == length(mu)
+				Wa = Matrix{eltype(W[k])}(undef, length(mu), size(W[k], 2))
 				for (i, m) in enumerate(mu)
-					Wa[i,:] = sum(W[k][Wmap .== m,:]; dims=1)
+					Wa[i,:] = sum(W[k][Wmap[:, 1] .== m,:]; dims=1)
 				end
 				Wa = Wa[Worder,:]
 		else
