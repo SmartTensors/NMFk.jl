@@ -323,7 +323,7 @@ end
 
 function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0); Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
-		ordersignals::Symbol=:importance, importantsize::Integer=50,
+		ordersignals::Symbol=:importance, importantsize::Integer=30,
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
 		Wsize::Integer=0, Hsize::Integer=0, Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
 		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
