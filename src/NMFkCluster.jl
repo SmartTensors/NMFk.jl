@@ -93,7 +93,12 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		end
 		Xd = Distances.pairwise(distance, Xn; dims=2)
-		silhouettes = Clustering.silhouettes(c_new, Xd)
+		if maximum(c_new.assignments) >= 2
+			silhouettes = Clustering.silhouettes(c_new, Xd)
+		else
+			@warn("Only one cluster found during k-means clustering; silhouettes set to zero.")
+			silhouettes = zeros(size(X, 2))
+		end
 		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost

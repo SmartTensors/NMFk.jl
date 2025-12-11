@@ -334,7 +334,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		Wcolors::AbstractVector=NMFk.colors, Hcolors::AbstractVector=NMFk.colors,
 		dendrogram_color::AbstractString="black",
 		background_color::AbstractString="white",
-		createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, createbiplots::Bool=createplots,
+		createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, creatematrixplotsall::Bool=false, createbiplots::Bool=createplots, createbiplotsall::Bool=false,
 		Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20),
 		adjustbiplotlabel::Bool=false, biplotlabel::Symbol=:WH, biplotcolor::Symbol=:WH,
 		plottimeseries::Symbol=:none, plotmap_scope::Symbol=:mapbox, map_format::AbstractString="png",
@@ -670,27 +670,32 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Hnames Hm[:,signalmap] chnew], ',')
 			end
 			cs = sortperm(chnew)
+			yticks = string.(Hnames) .* " " .* string.(chnew)
 			if createplots
-				if length(chnew) < importantsize
+				if length(chnew) > importantsize
 					@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(importantsize) columns!")
 					importance_indexing = Hranking[1:importantsize]
-					signalmap_plot = signalmap[importance_indexing]
-					H_plot = Hm[:,importance_indexing]
+					cs_plot = sortperm(chnew[importance_indexing])
+					H_plot = Hm[importance_indexing,:]
 				else
 					@info("H ($(Hcasefilename)) matrix plotting all columns ...")
 					importance_indexing = Colon()
-					signalmap_plot = signalmap
+					cs_plot = cs
 					H_plot = Hm
 				end
-				yticks = ["$(Hnames[i]) $(chnew[i])" for i=eachindex(chnew)][importance_indexing]
-				NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
-				NMFk.plotmatrix(H_plot[:,signalmap_plot]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
-				if length(Htypes) > 0
-					yticks = ["$(Hnametypes[i]) $(chnew[i])" for i=eachindex(chnew)][importance_indexing]
-					NMFk.plotmatrix(H_plot[:,signalmap_plot]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+				if creatematrixplotsall
+					NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
-				yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=eachindex(chnew)][importance_indexing]
-				NMFk.plotmatrix(H_plot[cs,signalmap_plot]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+				display([Hnames[Hranking] chnew[Hranking]])
+				display(yticks[importance_indexing][cs_plot])
+				@show cs_plot
+				display(H_plot[cs_plot,signalmap])
+				NMFk.plotmatrix(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+				if length(Htypes) > 0
+					yticks2 = (string.(Hnametypes) .* " " .* string.(chnew))[importance_indexing]
+					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+				end
 				if plottimeseries == :H || plottimeseries == :WH
 					@info("H ($(Hcasefilename)) matrix timeseries ploting ...")
 					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize)
@@ -698,20 +703,19 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if (createdendrogramsonly || createplots)
 				@info("H ($(Hcasefilename)) matrix dendrogram ploting ...")
-				if length(chnew) < importantsize
+				if length(chnew) > importantsize
 					!createplots && @warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(importantsize) columns!")
 					importance_indexing = Hranking[1:importantsize]
-					signalmap_plot = signalmap[importance_indexing]
-					H_plot = Hm[:,importance_indexing]
+					cs_plot = sortperm(chnew[importance_indexing])
+					H_plot = Hm[importance_indexing,:]
 				else
 					!createplots && @info("H ($(Hcasefilename)) matrix plotting all columns ...")
 					importance_indexing = Colon()
-					signalmap_plot = signalmap
+					cs_plot = cs
 					H_plot = Hm
 				end
 				try
-					yticks = ["$(Hnames[cs][i]) $(chnew[cs][i])" for i=eachindex(chnew)][importance_indexing]
-					NMFk.plotdendrogram(H_plot[cs,signalmap_plot]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+					NMFk.plotdendrogram(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
 					@warn("H ($(Hcasefilename)) matrix dendrogram ploting failed!")
@@ -724,7 +728,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				biplotlabels = string.(copy(Hnames))
 				ilabel = Pm .< cutoff_label
 				biplotlabels[ilabel] .= ""
-				NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				createbiplotsall && NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=chnew[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				length(Htypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
@@ -814,34 +818,35 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				@warn("Length of lat/lon coordinates ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 			end
 			cs = sortperm(cwnew)
+			yticks = string.(Wnames) .* " " .* string.(cwnew)
 			if createplots
-				if length(chnew) < importantsize
+				if length(chnew) > importantsize
 					@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(importantsize) rows ...")
 					importance_indexing = Wranking[1:importantsize]
-					signalmap_plot = signalmap[importance_indexing]
-					W_plot = Wm[:,importance_indexing]
+					cs_plot = sortperm(cwnew[importance_indexing])
+					W_plot = Wm[importance_indexing,:]
 				else
 					@info("W ($(Wcasefilename)) matrix plotting all rows ...")
 					importance_indexing = Colon()
-					signalmap_plot = signalmap
+					cs_plot = cs
 					W_plot = Wm
 				end
-				yticks = ["$(Wnames[i]) $(cw[i])" for i=eachindex(cw)][importance_indexing]
-				NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
-				# sorted by Wa magnitude
-				# ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
-				# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cw)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
-				cws = sortperm(cw)
-				yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=eachindex(cw)][importance_indexing]
-				NMFk.plotmatrix(W_plot[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
-				yticks = ["$(Wnames[i]) $(cwnew[i])" for i=eachindex(cwnew)][importance_indexing]
-				NMFk.plotmatrix(W_plot[:,signalmap_plot]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
-				if length(Wtypes) > 0
-					yticks = ["$(Wnametypes[i]) $(cwnew[i])" for i=eachindex(cwnew)][importance_indexing]
-					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, quiet=quiet)
+				if creatematrixplotsall
+					NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
+					# sorted by Wa magnitude
+					# ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
+					# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cw)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
+					cws = sortperm(cw)
+					yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=eachindex(cw)][importance_indexing]
+					NMFk.plotmatrix(W_plot[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+					yticks = ["$(Wnames[i]) $(cwnew[i])" for i=eachindex(cwnew)][importance_indexing]
+					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
-				yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)][importance_indexing]
-				NMFk.plotmatrix(W_plot[cs,signalmap_plot]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+				if length(Wtypes) > 0
+					yticks2 = (string.Wnametypes .* " " .* cwnew)[importance_indexing]
+					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, quiet=quiet)
+				end
+				NMFk.plotmatrix(W_plot[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
 				# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
@@ -852,20 +857,19 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if (createdendrogramsonly || createplots)
 				@info("W ($(Wcasefilename)) matrix dendrogram ploting ...")
-								if length(chnew) < importantsize
+				if length(chnew) > importantsize
 					!createplots && @warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(importantsize) rows ...")
 					importance_indexing = Wranking[1:importantsize]
-					signalmap_plot = signalmap[importance_indexing]
-					W_plot = Wm[:,importance_indexing]
+					cs_plot = sortperm(cwnew[importance_indexing])
+					W_plot = Wm[importance_indexing,:]
 				else
 					!createplots && @info("W ($(Wcasefilename)) matrix plotting all rows ...")
 					importance_indexing = Colon()
-					signalmap_plot = signalmap
+					cs_plot = cs
 					W_plot = Wm
 				end
 				try
-					yticks = ["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)][importance_indexing]
-					NMFk.plotdendrogram(W_plot[cs,signalmap_plot]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks, minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+					NMFk.plotdendrogram(W_plot[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
 					@warn("W ($(Wcasefilename)) matrix dendrogram ploting failed!")
@@ -878,7 +882,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				biplotlabels = string.(copy(Wnames))
 				ilabel = Pm .< cutoff_label
 				biplotlabels[ilabel] .= ""
-				NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				createbiplotsall && NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				length(Wtypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
@@ -917,7 +921,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				elseif biplotcolor == :none
 					biplotcolors = [fill("blue", length(Wnames)); fill("red", length(Hnames))]
 				end
-				NMFk.biplots(M, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				createbiplotsall && NMFk.biplots(M, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				if biplotcolor == :W
 					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,signalmap]
 				elseif biplotcolor == :WH
@@ -930,7 +934,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				NMFk.biplots(M, biplotlabels, clusterlabels; smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 			end
 		end
-
+		# generate association tables
 		if cutoff_s > 0
 			attributesl = Wsize > 1 ? repeat(Wnames; inner=Wsize) : Wnames
 			Xe = W[k] * Ha
