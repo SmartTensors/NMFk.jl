@@ -323,7 +323,7 @@ end
 
 function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0); Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
-		ordersignals::Symbol=:importance, importantsize::Integer=30, Wtimeseries_extras::AbstractVector=[], Htimeseries_extras::AbstractVector=[],
+		ordersignals::Symbol=:importance, biplot_importantsize::Integer=30, Wtimeseries_locations_size::Integer=3, Wtimeseries_extras::AbstractVector=[], Htimeseries_locations_size::Integer=3, Htimeseries_extras::AbstractVector=[],
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
 		Wsize::Integer=0, Hsize::Integer=0, Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
 		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
@@ -684,9 +684,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			cs = sortperm(chnew)
 			yticks = string.(Hnames) .* " " .* string.(chnew)
 			if createplots
-				if length(chnew) > importantsize
-					@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(importantsize) columns!")
-					importance_indexing = Hranking[1:importantsize]
+				if length(chnew) > biplot_importantsize
+					@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(biplot_importantsize) columns!")
+					importance_indexing = Hranking[1:biplot_importantsize]
 					cs_plot = sortperm(chnew[importance_indexing])
 					H_plot = Hm[importance_indexing,:]
 				else
@@ -707,18 +707,31 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				if plottimeseries == :H || plottimeseries == :WH
 					@info("H ($(Hcasefilename)) matrix timeseries ploting ...")
 					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
-					if length(Hm2) > 0
-						for i in Hranking2[1:3]
-							Mads.plotseries(Hm2[:,i], "$figuredir/$(Hcasefilename)-$(k)-$(H2label[i])-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels), colors=Hcolors)
+					if size(Hmap, 2) > 0
+						Hm2labels = unique(Hmap[:, 2])
+						Ha2 = Matrix{eltype(H[k])}(undef, length(Hm2labels), size(H[k], 1))
+						for (i, m) in enumerate(Hm2labels)
+							Ha2[i,:] = sum(H[k][Hmap[:, 2] .== m,:]; dims=1)
+						end
+						Hm2 = Ha2 ./ maximum(Ha2; dims=1) # normalize by columns
+						Hm2ranking = sortperm(vec(sum(Hm2 .^ 2; dims=2)); rev=true)
+						@info("H ($(Hcasefilename)) matrix timeseries for specific locations ...")
+						for i in Hm2ranking[1:Htimeseries_locations_size]
+							well_signals = H[k][Hmap[:,2] .== Hm2labels[i],:]
+							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(Hm2labels[i])-timeseries.$(plotseriesformat)"; title=string(Hm2labels[i]), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+						end
+						for l in Htimeseries_extras
+							well_signals = H[k][Hmap[:,2] .== l,:]
+							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(l))-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
 						end
 					end
 				end
 			end
 			if (createdendrogramsonly || createplots)
 				@info("H ($(Hcasefilename)) matrix dendrogram ploting ...")
-				if length(chnew) > importantsize
-					!createplots && @warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(importantsize) columns!")
-					importance_indexing = Hranking[1:importantsize]
+				if length(chnew) > biplot_importantsize
+					!createplots && @warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(biplot_importantsize) columns!")
+					importance_indexing = Hranking[1:biplot_importantsize]
 					cs_plot = sortperm(chnew[importance_indexing])
 					H_plot = Hm[importance_indexing,:]
 				else
@@ -833,9 +846,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			cs = sortperm(cwnew)
 			yticks = string.(Wnames) .* " " .* string.(cwnew)
 			if createplots
-				if length(chnew) > importantsize
-					@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(importantsize) rows ...")
-					importance_indexing = Wranking[1:importantsize]
+				if length(chnew) > biplot_importantsize
+					@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(biplot_importantsize) rows ...")
+					importance_indexing = Wranking[1:biplot_importantsize]
 					cs_plot = sortperm(cwnew[importance_indexing])
 					W_plot = Wm[importance_indexing,:]
 				else
@@ -875,7 +888,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 						Wm2 = Wa2 ./ maximum(Wa2; dims=1) # normalize by columns
 						Wm2ranking = sortperm(vec(sum(Wm2 .^ 2; dims=2)); rev=true)
 						@info("W ($(Wcasefilename)) matrix timeseries for specific locations ...")
-						for i in Wm2ranking[1:3]
+						for i in Wm2ranking[1:Wtimeseries_locations_size]
 							well_signals = W[k][Wmap[:,2] .== Wm2labels[i],:]
 							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(Wm2labels[i])-timeseries.$(plotseriesformat)"; title=string(Wm2labels[i]), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
 						end
@@ -888,9 +901,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if (createdendrogramsonly || createplots)
 				@info("W ($(Wcasefilename)) matrix dendrogram ploting ...")
-				if length(chnew) > importantsize
-					!createplots && @warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(importantsize) rows ...")
-					importance_indexing = Wranking[1:importantsize]
+				if length(chnew) > biplot_importantsize
+					!createplots && @warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(biplot_importantsize) rows ...")
+					importance_indexing = Wranking[1:biplot_importantsize]
 					cs_plot = sortperm(cwnew[importance_indexing])
 					W_plot = Wm[importance_indexing,:]
 				else
