@@ -323,7 +323,7 @@ end
 
 function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0); Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
-		ordersignals::Symbol=:importance, importantsize::Integer=30,
+		ordersignals::Symbol=:importance, importantsize::Integer=30, Wtimeseries_extras::AbstractVector=[], Htimeseries_extras::AbstractVector=[],
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
 		Wsize::Integer=0, Hsize::Integer=0, Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
 		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
@@ -473,6 +473,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		@info("$(uppercasefirst(Hcasefilename)) (signals=$k)")
 		recursivemkdir(resultdir; filename=false)
 
+		Hm2 = []
 		if Hsize > 1
 			na = convert(Int64, size(H[k], 2) / Hsize)
 			Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
@@ -494,6 +495,16 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				Ha[:,i] = sum(H[k][:, Hmap[:, 1] .== m]; dims=2)
 			end
 			Ha = Ha[:,Horder]
+			if size(Hmap, 2) > 0
+				Hm2labels = unique(Hmap[:, 2])
+				Ha2 = Matrix{eltype(H[k])}(undef, size(H[k], 1), length(Hm2labels))
+				for (i, m) in enumerate(Hm2labels)
+					Ha2[:,i] = sum(H[k][:, Hmap[:, 2] .== m]; dims=2)
+				end
+				Hm2 = permutedims(Ha2 ./ maximum(Ha2; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
+				Hm2[Hm2 .< eps(eltype(Ha2))] .= 0
+				Hranking2 = sortperm(vec(sum(Hm2 .^ 2; dims=2)); rev=true) # dims=2 because Hm2 is already transposed
+			end
 		else
 			@assert length(Hnames) == size(H[k], 2)
 			Ha = H[k][:,Horder]
@@ -511,6 +522,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 		end
 
+		Wm2labels = []
 		if Wsize > 1
 			na = convert(Int64, size(W[k], 1) / Wsize)
 			Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
@@ -521,17 +533,17 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				Wa[i,:] = sum(W[k][i1:i2,:]; dims=1)
 				i1 += Wsize
 				i2 += Wsize
-				end
-				Wa = Wa[Worder,:]
-			elseif size(Wmap, 1) > 0
-				@assert size(Wmap, 1) == size(W[k], 1)
-				mu = unique(Wmap[:, 1])
-				@assert length(Wnames) == length(mu)
-				Wa = Matrix{eltype(W[k])}(undef, length(mu), size(W[k], 2))
-				for (i, m) in enumerate(mu)
-					Wa[i,:] = sum(W[k][Wmap[:, 1] .== m,:]; dims=1)
-				end
-				Wa = Wa[Worder,:]
+			end
+			Wa = Wa[Worder,:]
+		elseif size(Wmap, 1) > 0
+			@assert size(Wmap, 1) == size(W[k], 1)
+			mu = unique(Wmap[:, 1])
+			@assert length(Wnames) == length(mu)
+			Wa = Matrix{eltype(W[k])}(undef, length(mu), size(W[k], 2))
+			for (i, m) in enumerate(mu)
+				Wa[i,:] = sum(W[k][Wmap[:, 1] .== m,:]; dims=1)
+			end
+			Wa = Wa[Worder,:]
 		else
 			@assert length(Wnames) == size(W[k], 1)
 			Wa = W[k][Worder,:]
@@ -561,7 +573,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				Hrepeats = 100
 				reduced = true
 			end
-			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
+			reduced && @warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))! The number of repeats reduced to $(Hrepeats).")
 			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
 			clusterlabels = sort(unique(ch))
 			hsignalmap = NMFk.signalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
@@ -687,10 +699,6 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
-				display([Hnames[Hranking] chnew[Hranking]])
-				display(yticks[importance_indexing][cs_plot])
-				@show cs_plot
-				display(H_plot[cs_plot,signalmap])
 				NMFk.plotmatrix(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				if length(Htypes) > 0
 					yticks2 = (string.(Hnametypes) .* " " .* string.(chnew))[importance_indexing]
@@ -698,7 +706,12 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				end
 				if plottimeseries == :H || plottimeseries == :WH
 					@info("H ($(Hcasefilename)) matrix timeseries ploting ...")
-					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize)
+					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+					if length(Hm2) > 0
+						for i in Hranking2[1:3]
+							Mads.plotseries(Hm2[:,i], "$figuredir/$(Hcasefilename)-$(k)-$(H2label[i])-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels), colors=Hcolors)
+						end
+					end
 				end
 			end
 			if (createdendrogramsonly || createplots)
@@ -852,7 +865,25 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				if plottimeseries == :W || plottimeseries == :WH
 					@info("W ($(Wcasefilename)) matrix timeseries ploting ...")
-					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize)
+					Mads.plotseries(Wa ./ maximum(Wa), "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+					if size(Wmap, 2) > 0
+						Wm2labels = unique(Wmap[:, 2])
+						Wa2 = Matrix{eltype(W[k])}(undef, length(Wm2labels), size(W[k], 2))
+						for (i, m) in enumerate(Wm2labels)
+							Wa2[i,:] = sum(W[k][Wmap[:, 2] .== m,:]; dims=1)
+						end
+						Wm2 = Wa2 ./ maximum(Wa2; dims=1) # normalize by columns
+						Wm2ranking = sortperm(vec(sum(Wm2 .^ 2; dims=2)); rev=true)
+						@info("W ($(Wcasefilename)) matrix timeseries for specific locations ...")
+						for i in Wm2ranking[1:3]
+							well_signals = W[k][Wmap[:,2] .== Wm2labels[i],:]
+							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(Wm2labels[i])-timeseries.$(plotseriesformat)"; title=string(Wm2labels[i]), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+						end
+						for l in Wtimeseries_extras
+							well_signals = W[k][Wmap[:,2] .== l,:]
+							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(l))-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+						end
+					end
 				end
 			end
 			if (createdendrogramsonly || createplots)
