@@ -931,7 +931,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				length(Wtypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
-			if createbiplots
+			if createbiplots && createbiplotsall
 				@info("Biploting combined W and H matrices ...")
 				M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
 				Mm = vec(sum(M; dims=2))
@@ -966,7 +966,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				elseif biplotcolor == :none
 					biplotcolors = [fill("blue", length(Wnames)); fill("red", length(Hnames))]
 				end
-				createbiplotsall && NMFk.biplots(M, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				NMFk.biplots(M, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				if biplotcolor == :W
 					M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))][:,signalmap]
 				elseif biplotcolor == :WH
