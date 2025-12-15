@@ -451,6 +451,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 
 		if length(X) > 0 # if the input data is provided
 			Xe = W[k] * H[k]
+			@assert size(Xe) == size(X) "Reconstructed data size does not match input data size!"
 			fitquality = NMFk.normnan(X .- Xe)
 			if size(X, 2) < 50
 				@info("Relative fits associated with $(Hcasefilename) ...")
