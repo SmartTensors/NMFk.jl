@@ -723,7 +723,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 						end
 						for l in Htimeseries_extras
 							well_signals = H[k][Hmap[:,2] .== l,:]
-							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(l))-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(l)-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
 						end
 					end
 				end
@@ -895,7 +895,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 						end
 						for l in Wtimeseries_extras
 							well_signals = W[k][Wmap[:,2] .== l,:]
-							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(l))-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+							Mads.plotseries(well_signals ./ maximum(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(l)-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
 						end
 					end
 				end
