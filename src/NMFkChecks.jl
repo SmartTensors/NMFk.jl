@@ -194,13 +194,13 @@ end
 function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector{<:Integer}=Int[], quiet::Bool=true, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
 	number_of_attributes = size(x, dim)
 	@assert length(names) == number_of_attributes
-	nan_rows = [all(isnan, r) for r in eachrow(x)]
-	cnan_rows = count(nan_rows)
+	mnan_rows = [all(isnan, r) for r in eachrow(x)]
+	cnan_rows = count(mnan_rows)
 	if cnan_rows > 0
 		@warn("Some rows have only NaN's ($(cnan_rows) in total)! These rows should be removed from the analysis!")
 	end
-	nan_cols = [all(isnan, c) for c in eachcol(x)]
-	cnan_cols = count(nan_cols)
+	mnan_cols = [all(isnan, c) for c in eachcol(x)]
+	cnan_cols = count(mnan_cols)
 	if cnan_cols > 0
 		@warn("Some columns have only NaN's ($(cnan_cols) in total)! These columns should be removed from the analysis!")
 	end
@@ -399,6 +399,15 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			push!(iany, i)
 		end
 	end
+	if cnan_rows > 0
+		@warn("Some rows have only NaN's ($(cnan_rows) in total)! These rows should be removed from the analysis!")
+	end
+	if cnan_cols > 0
+		@warn("Some columns have only NaN's ($(cnan_cols) in total)! These columns should be removed from the analysis!")
+	end
+	if cnan_rows == 0 && cnan_cols == 0 && any(isnan.(x))
+		@info("Some of the entries of the analyzed matrix has NaN's.")
+	end
 	icor = unique(sort(icor))
 	isame = unique(sort(isame))
 	if !quiet
@@ -440,12 +449,14 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 		many[iany] .= true
 		mremove = msame .| mcor .| mnans .| mzeros .| mconstant .| mstring .| mdates .| mcount .| many
 		@assert .!mask_keep == mremove
+		@assert mnans == mnan_cols
 		!quiet && println("Entries suggested to remove (including correlated): $(sum(mremove))")
-		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, nan_rows=nan_rows, nan_cols=nan_cols, zeros=mzeros, neg=mneg, constant=mconstant, string=mstring, lowcount=mcount, dates=mdates, any=many)
+		return (; log=mlog, cor=mcor, remove=mremove, same=msame, nans=mnans, nan_rows=mnan_rows, nan_cols=mnan_cols, zeros=mzeros, neg=mneg, constant=mconstant, string=mstring, lowcount=mcount, dates=mdates, any=many)
 	else
 		iremove = unique(sort(vcat(isame, icor, inans, izeros, iconstant, istring, idates, icount, iany)))
-		inan_cols = findall(nan_cols)
-		inan_rows = findall(nan_rows)
+		inan_cols = findall(mnan_cols)
+		inan_rows = findall(mnan_rows)
+		@assert inans == inan_cols
 		@assert sum(mask_keep .== false) == length(iremove)
 		!quiet && println("Entries suggested to remove (including correlated): $(length(iremove))")
 		return (; log=ilog, cor=icor, remove=iremove, same=isame, nans=inans, nan_rows=inan_rows, nan_cols=inan_cols, zeros=izeros, neg=ineg, constant=iconstant, string=istring, lowcount=icount, dates=idates, any=iany)
