@@ -367,6 +367,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 	@assert length(Hnames) > 0
 	@assert length(Wnames) == length(Worder)
 	@assert length(Hnames) == length(Horder)
+	@assert length(Wtimeseries_xaxis) == length(Wnames)
+	@assert length(Htimeseries_xaxis) == length(Hnames)
 	@assert any(Worder .=== nothing) == false
 	@assert any(Horder .=== nothing) == false
 	if map_kw == Dict()
