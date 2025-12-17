@@ -226,6 +226,54 @@ function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector; kw...)
 	return x_work, names_work, row_mask, col_mask, result
 end
 
+"""
+recoupmatrix_rows(x_filtered::AbstractMatrix, row_mask::AbstractVector; fillvalue=NaN)
+
+Recreates the original row layout after [`checkmatrix_robust`](@ref) while keeping the
+filtered values for the rows that were retained. Provide the matrix returned as the
+first output of `checkmatrix_robust` and the corresponding `row_mask` output. Rows
+that were removed (where the mask is `true`) are reinserted and filled with
+`fillvalue` (defaults to `NaN`).
+
+# Examples
+```
+Xnew, parameters_new, row_mask, col_mask, info = checkmatrix_robust(X, names)
+Xfull = recoupmatrix_rows(Xnew, row_mask)
+```
+"""
+function recoupmatrix_rows(x_filtered::AbstractMatrix, row_mask::AbstractVector; fillvalue=NaN)
+	eltype(row_mask) <: Bool || throw(ArgumentError("row_mask must contain Bool values."))
+	rows_filtered, cols = size(x_filtered)
+	rows_original = length(row_mask)
+	kept_rows = count(!, row_mask)
+	rows_filtered == kept_rows || throw(ArgumentError("Number of kept rows implied by row_mask does not match size of x_filtered."))
+	result_eltype, resolved_fillvalue = _resolve_recoup_fillvalue(eltype(x_filtered), fillvalue)
+	result = Array{result_eltype}(undef, rows_original, cols)
+	src_row = 1
+	for dest_row in 1:rows_original
+		if row_mask[dest_row]
+			@views result[dest_row, :] .= resolved_fillvalue
+		else
+			@views copyto!(result[dest_row, :], x_filtered[src_row, :])
+			src_row += 1
+		end
+	end
+	return result
+end
+
+function _resolve_recoup_fillvalue(T::Type, fillvalue)
+	try
+		return T, convert(T, fillvalue)
+	catch
+		promoted = promote_type(T, typeof(fillvalue))
+		try
+			return promoted, convert(promoted, fillvalue)
+		catch
+			throw(ArgumentError("fillvalue $(fillvalue) is not convertible to array element type $(T)."))
+		end
+	end
+end
+
 function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), kw...)
 	@assert length(names) == DataFrames.ncol(df)
 	return checkmatrix(Matrix(df), 2; names=names, kw...)
