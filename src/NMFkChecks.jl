@@ -186,25 +186,65 @@ function checkvector(v::AbstractVector, name::AbstractString=""; cutoff::Integer
 	return result_tuple
 end
 
+function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector; kw...)
+	@assert length(names) == size(x, 2)
+	x_work = x
+	names_work = copy(names)
+	row_indices = collect(axes(x, 1))
+	col_indices = collect(axes(x, 2))
+	row_map = copy(row_indices)
+	col_map = copy(col_indices)
+	row_mask = falses(length(row_indices))
+	col_mask = falses(length(col_indices))
+	local result
+	while true
+		@info("Checking matrix of size $(size(x_work)) ...")
+		result = checkmatrix(x_work; names=names_work, masks=true, quiet=true, kw...)
+		if any(result.nan_rows)
+			row_mask[row_map[result.nan_rows]] .= true
+		end
+		if any(result.remove)
+			col_mask[col_map[result.remove]] .= true
+		end
+		keep_rows = .!result.nan_rows
+		keep_cols = .!result.remove
+		x_work = x_work[keep_rows, keep_cols]
+		row_map = row_map[keep_rows]
+		col_map = col_map[keep_cols]
+		names_work = names_work[keep_cols]
+		if !(any(result.nan_rows) || any(result.remove))
+			@show("No more rows or columns to remove; exiting loop ...")
+			break
+		end
+		if isempty(row_map) && isempty(col_map)
+			@info("No more rows or columns to check; exiting loop.")
+			break
+		end
+	end
+	@info("Final matrix size: $(size(x_work))")
+	@assert names[.!col_mask] == names_work
+	return x_work, names_work, row_mask, col_mask, result
+end
+
 function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), kw...)
 	@assert length(names) == DataFrames.ncol(df)
 	return checkmatrix(Matrix(df), 2; names=names, kw...)
 end
 
-function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector{<:Integer}=Int[], quiet::Bool=true, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
+function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector{<:AbstractString}=String[], quiet::Bool=true, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
 	number_of_attributes = size(x, dim)
 	@assert length(names) == number_of_attributes
 	mnan_rows = [all(isnan, r) for r in eachrow(x)]
 	cnan_rows = count(mnan_rows)
-	if cnan_rows > 0
+	if !quiet && cnan_rows > 0
 		@warn("Some rows have only NaN's ($(cnan_rows) in total)! These rows should be removed from the analysis!")
 	end
 	mnan_cols = [all(isnan, c) for c in eachcol(x)]
 	cnan_cols = count(mnan_cols)
-	if cnan_cols > 0
+	if !quiet && cnan_cols > 0
 		@warn("Some columns have only NaN's ($(cnan_cols) in total)! These columns should be removed from the analysis!")
 	end
-	if cnan_rows == 0 && cnan_cols == 0 && any(isnan.(x))
+	if !quiet && cnan_rows == 0 && cnan_cols == 0 && any(isnan.(x))
 		@info("Some of the entries of the analyzed matrix has NaN's.")
 	end
 	names = String.(names)
@@ -222,9 +262,9 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 	iany = Vector{Int64}(undef, 0)
 	mask_keep = trues(number_of_attributes)
 	indices = collect(axes(x, dim))
-	@assert all(priority .<= number_of_attributes) && all(priority .>= 1)
-	keep_indices_first = [priority; setdiff(indices, priority)]
-	for (i_counter, i) in enumerate(keep_indices_first)
+	priority_indices = identity.(indexin(priority, names))
+	keep_priority_indices_first = [priority_indices; setdiff(indices, priority_indices)]
+	for (i_counter, i) in enumerate(keep_priority_indices_first)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
 		nt = ntuple(k -> (k == dim ? i : Colon()), 2)
 		vo = x[nt...]
@@ -273,7 +313,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			end
 			!quiet && println()
 			if !skip_corr_test && correlation_test
-				for (j_counter, j) in enumerate(keep_indices_first)
+				for (j_counter, j) in enumerate(keep_priority_indices_first)
 					if i_counter == j_counter || mask_keep[j] == false
 						continue
 					end
@@ -399,13 +439,13 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			push!(iany, i)
 		end
 	end
-	if cnan_rows > 0
+	if !quiet &&cnan_rows > 0
 		@warn("Some rows have only NaN's ($(cnan_rows) in total)! These rows should be removed from the analysis!")
 	end
-	if cnan_cols > 0
+	if !quiet &&cnan_cols > 0
 		@warn("Some columns have only NaN's ($(cnan_cols) in total)! These columns should be removed from the analysis!")
 	end
-	if cnan_rows == 0 && cnan_cols == 0 && any(isnan.(x))
+	if !quiet && cnan_rows == 0 && cnan_cols == 0 && any(isnan.(x))
 		@info("Some of the entries of the analyzed matrix has NaN's.")
 	end
 	icor = unique(sort(icor))
