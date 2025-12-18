@@ -513,6 +513,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			Ha = H[k][:,Horder]
 		end
 		Hmask_nan_cols = vec(all(isnan.(Ha); dims=1))
+		if count(Hmask_nan_cols) == size(Ha, 2)
+			error("All rows in H matrix are NaN!")
+			throw(ErrorException("All rows in H matrix are NaN!"))
+		end
 		Hm = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
 		Hm[Hm .< eps(eltype(Ha))] .= 0
 		Hranking = sortperm(vec(sum(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
@@ -553,6 +557,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			Wa = W[k][Worder,:]
 		end
 		Wmask_nan_rows = vec(all(isnan.(Wa); dims=2))
+		if count(Wmask_nan_rows) == size(Wa, 1)
+			error("All rows in W matrix are NaN!")
+			throw(ErrorException("All rows in W matrix are NaN!"))
+		end
 		Wm = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=1) # normalize by columns
 		Wm[Wm .< eps(eltype(Wa))] .= 0
 		Wranking = sortperm(vec(sum(Wm .^ 2; dims=2)); rev=true)
