@@ -213,11 +213,11 @@ function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector; kw...)
 		col_map = col_map[keep_cols]
 		names_work = names_work[keep_cols]
 		if !(any(result.nan_rows) || any(result.remove))
-			@show("No more rows or columns to remove; exiting loop ...")
+			@info("No more rows or columns to remove ...")
 			break
 		end
 		if isempty(row_map) && isempty(col_map)
-			@info("No more rows or columns to check; exiting loop.")
+			@info("No more rows or columns to check!")
 			break
 		end
 	end
