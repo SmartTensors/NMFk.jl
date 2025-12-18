@@ -577,7 +577,16 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				reduced = true
 			end
 			reduced && @warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))! The number of repeats reduced to $(Hrepeats).")
+			mask_row = vec(all(isnan.(Ha); dims=2))
+			if count(mask_row) > 0
+				@info("Masking NaN cols in H matrix for clustering with average row values...")
+				v = NMFk.meannan(Ha[.!mask_row, :]; dims=1)
+				Ha[mask_row, :] .= repeat(v, inner=(sum(mask_row), 1))
+			end
 			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
+			if count(mask_row) > 0
+				Ha[mask_row, :] .= NaN
+			end
 			clusterlabels = sort(unique(ch))
 			hsignalmap = NMFk.signalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
 		end
@@ -595,7 +604,16 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				reduced = true
 			end
 			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
+			mask_row = vec(all(isnan.(Wa); dims=2))
+			if count(mask_row) > 0
+				@info("Masking NaN rows in W matrix for clustering with average col values ...")
+				v = NMFk.meannan(Wa[.!mask_row, :]; dims=1)
+				Wa[mask_row, :] .= repeat(v, inner=(sum(mask_row), 1))
+			end
 			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
+			if count(mask_row) > 0
+				Wa[mask_row, :] .= NaN
+			end
 			if clusterH
 				if clusterlabels != sort(unique(cw))
 					@warn("W and H cluster labels do not match!")
