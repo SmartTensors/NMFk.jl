@@ -42,7 +42,7 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	rowp = Vector{Compose.Context}(undef, 0)
 	for (j, c1) in enumerate(crange)
 		colp = Vector{Union{Compose.Context, Gadfly.Plot}}(undef, 0)
-		f = false
+		flag = false
 		for (i, c2) in enumerate(crange)
 			i == j && continue
 			if i < j
@@ -56,10 +56,10 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 					fl = joinpathcheck(figuredir, filename_long)
 					plotfileformat(pp, fl, hsize, vsize; dpi=dpi)
 				end
-				f = true
+				flag = true
 			end
 		end
-		f && push!(rowp, Gadfly.hstack(colp...))
+		flag && push!(rowp, Gadfly.hstack(colp...))
 	end
 	p = Gadfly.vstack(rowp...)
 	!quiet && Mads.display(p; gwo=hsize * (data_cols - 1), gho=vsize * (data_cols - 1), gw=100Compose.mm * (data_cols - 1), gh=100Compose.mm * (data_cols - 1))
@@ -70,20 +70,40 @@ function biplots(X::AbstractMatrix, label::AbstractVector, mapping::AbstractVect
 	return nothing
 end
 
-function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVector=[], hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), smartplotlabel::Bool=true, plotlabel_mask::AbstractVector=falses(length(label)), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", types::AbstractVector=[], typecolors::AbstractVector=[], gm::AbstractVector=[], point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true, point_size_label::Measures.AbsoluteLength=4Gadfly.pt, point_size_nolabel::Measures.AbsoluteLength=point_size_label, plotlabel_initial::Integer=max(sum(plotlabel_mask), 6), plotlabel_total::Integer=max(plotlabel_initial, 20), suppress_output::Bool=true, kw...)
+function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVector=[], hsize::Measures.AbsoluteLength=5Gadfly.inch, vsize::Measures.AbsoluteLength=5Gadfly.inch, quiet::Bool=false, plotmethod::Symbol=:frame, plotline::Bool=false, plotlabel::Bool=!(length(label) > 100), smartplotlabel::Bool=true, plotlabel_mask::AbstractVector=falses(length(label)), figuredir::AbstractString=".", filename::AbstractString="", title::AbstractString="", col1::Number=1, col2::Number=2, axisname::AbstractString="Signal", xtitle::AbstractString="$axisname $col1", ytitle::AbstractString="$axisname $col2", types::AbstractVector=[], typecolors::AbstractVector=[], gm::AbstractVector=[], point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt, background_color=nothing, code::Bool=false, opacity::Number=1.0, dpi=imagedpi, sortmag::Bool=true, point_size_label::Measures.AbsoluteLength=4Gadfly.pt, point_size_nolabel::Measures.AbsoluteLength=point_size_label, plotlabel_initial::Integer=min(count(plotlabel_mask), 6), plotlabel_total::Integer=max(plotlabel_initial, 20), suppress_output::Bool=true, kw...)
 	data_rows, data_cols = size(X)
-	if length(types) > 0
-		@assert length(types) == data_rows
-		if length(typecolors) == 0
-			typecolors = NMFk.set_typecolors(types, colors)
-		else
-			@assert length(types) == length(typecolors)
-		end
-	end
 	@assert data_rows == length(label)
 	@assert data_cols > 1
+	if length(types) > 0
+		@assert length(types) == data_rows
+	end
+	if length(typecolors) > 0
+		@assert length(typecolors) == data_rows
+	end
 	x = X[:, col1]
 	y = X[:, col2]
+	non_nan_mask = .!(isnan.(x) .| isnan.(y))
+	if count(non_nan_mask) == 0
+		@warn("All data points have NaN values for the selected axes ($(col1), $(col2)); no plot will be generated.")
+		return nothing
+	end
+	x = x[non_nan_mask]
+	y = y[non_nan_mask]
+	label = label[non_nan_mask]
+	plotlabel_mask = plotlabel_mask[non_nan_mask]
+	if length(types) > 0
+		types = types[non_nan_mask]
+	end
+	if length(typecolors) == 0
+		if length(types) > 0
+			typecolors = NMFk.set_typecolors(types, colors)
+		else
+			typecolors = fill("gray", length(x))
+		end
+		typecolors = NMFk.set_typecolors(types, colors)
+	else
+		typecolors = typecolors[non_nan_mask]
+	end
 	if length(mapping) > 0
 		xtitle = "$axisname $(mapping[col1])"
 		ytitle = "$axisname $(mapping[col2])"

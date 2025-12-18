@@ -512,7 +512,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			@assert length(Hnames) == size(H[k], 2)
 			Ha = H[k][:,Horder]
 		end
-		Hm = permutedims(Ha ./ maximum(Ha; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
+		Hmask_nan_cols = vec(all(isnan.(Ha); dims=1))
+		Hm = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
 		Hm[Hm .< eps(eltype(Ha))] .= 0
 		Hranking = sortperm(vec(sum(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
 
@@ -551,7 +552,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			@assert length(Wnames) == size(W[k], 1)
 			Wa = W[k][Worder,:]
 		end
-		Wm = Wa ./ maximum(Wa; dims=1) # normalize by columns
+		Wmask_nan_rows = vec(all(isnan.(Wa); dims=2))
+		Wm = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=1) # normalize by columns
 		Wm[Wm .< eps(eltype(Wa))] .= 0
 		Wranking = sortperm(vec(sum(Wm .^ 2; dims=2)); rev=true)
 
@@ -577,15 +579,14 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				reduced = true
 			end
 			reduced && @warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))! The number of repeats reduced to $(Hrepeats).")
-			mask_row = vec(all(isnan.(Ha); dims=2))
-			if count(mask_row) > 0
+			if count(Hmask_nan_cols) > 0
 				@info("Masking NaN cols in H matrix for clustering with average row values...")
-				v = NMFk.meannan(Ha[.!mask_row, :]; dims=1)
-				Ha[mask_row, :] .= repeat(v, inner=(sum(mask_row), 1))
+				v = NMFk.meannan(Ha[:, .!Hmask_nan_cols]; dims=2)
+				Ha[:, Hmask_nan_cols] .= repeat(v, inner=(count(Hmask_nan_cols), 1))
 			end
 			ch = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
-			if count(mask_row) > 0
-				Ha[mask_row, :] .= NaN
+			if count(Hmask_nan_cols) > 0
+				Ha[:, Hmask_nan_cols] .= NaN
 			end
 			clusterlabels = sort(unique(ch))
 			hsignalmap = NMFk.signalassignments(Ha, ch; clusterlabels=clusterlabels, dims=2)
@@ -604,15 +605,14 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				reduced = true
 			end
 			reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
-			mask_row = vec(all(isnan.(Wa); dims=2))
-			if count(mask_row) > 0
+			if count(Wmask_nan_rows) > 0
 				@info("Masking NaN rows in W matrix for clustering with average col values ...")
-				v = NMFk.meannan(Wa[.!mask_row, :]; dims=1)
-				Wa[mask_row, :] .= repeat(v, inner=(sum(mask_row), 1))
+				v = NMFk.meannan(Wa[.!Wmask_nan_rows, :]; dims=1)
+				Wa[Wmask_nan_rows, :] .= repeat(v, inner=(sum(Wmask_nan_rows), 1))
 			end
 			cw = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
-			if count(mask_row) > 0
-				Wa[mask_row, :] .= NaN
+			if count(Wmask_nan_rows) > 0
+				Wa[Wmask_nan_rows, :] .= NaN
 			end
 			if clusterH
 				if clusterlabels != sort(unique(cw))
@@ -780,14 +780,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if createbiplots
 				@info("Biploting H ($(Hcasefilename)) matrix ...")
-				P = permutedims(Ha) ./ maximum(Ha)
-				Pm = vec(sum(P; dims=2))
-				biplotlabels = string.(copy(Hnames))
-				ilabel = Pm .< cutoff_label
-				biplotlabels[ilabel] .= ""
-				createbiplotsall && NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=chnew[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				length(Htypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
+				createbiplotsall && NMFk.biplots(Hm, Hnames, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				NMFk.biplots(Hm[cs,signalmap], Hnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=chnew[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				length(Htypes) > 0 && NMFk.biplots(Hm[cs,signalmap], Hnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
 		end
 
@@ -962,33 +957,20 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if createbiplots
 				@info("Biploting W ($(Wcasefilename)) matrix matrix ...")
-				P = Wa ./ maximum(Wa)
-				Pm = vec(sum(P; dims=2))
-				biplotlabels = string.(copy(Wnames))
-				ilabel = Pm .< cutoff_label
-				biplotlabels[ilabel] .= ""
-				createbiplotsall && NMFk.biplots(P, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
-				length(Wtypes) > 0 && NMFk.biplots(P[cs,signalmap], biplotlabels[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
+				createbiplotsall && NMFk.biplots(Wm, Wnames, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				NMFk.biplots(Wm[cs,signalmap], Wnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+				length(Wtypes) > 0 && NMFk.biplots(Wm[cs,signalmap], Wnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
 			if createbiplots && createbiplotsall
 				@info("Biploting combined W and H matrices ...")
-				M = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
-				Mm = vec(sum(M; dims=2))
-				Wnames_label = string.(copy(Wnames))
-				Hnames_label = string.(copy(Hnames))
-				ilabel = Mm .< cutoff_label
 				if biplotlabel == :W
 					biplotlabels = [Wnames_label; fill("", length(Hnames))]
-					biplotlabels[ilabel] .= ""
 					biplotlabelflag = true
 				elseif biplotlabel == :WH
 					biplotlabels = [Wnames_label; Hnames_label]
-					biplotlabels[ilabel] .= ""
 					biplotlabelflag = true
 				elseif biplotlabel == :H
 					biplotlabels = [fill("", length(Wnames)); Hnames_label]
-					biplotlabels[ilabel] .= ""
 					biplotlabelflag = true
 				elseif biplotlabel == :none
 					biplotlabels = [fill("", length(Wnames)); fill("", length(Hnames))]
