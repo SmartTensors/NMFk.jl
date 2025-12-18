@@ -495,18 +495,17 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			@assert length(Hnames) == length(mu)
 			Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), length(mu))
 			for (i, m) in enumerate(mu)
-				Ha[:,i] = sum(H[k][:, Hmap[:, 1] .== m]; dims=2)
+				Ha[:,i] = NMFk.sumnan(H[k][:, Hmap[:, 1] .== m]; dims=2)
 			end
 			Ha = Ha[:,Horder]
 			if size(Hmap, 2) > 0
 				Hm2labels = unique(Hmap[:, 2])
 				Ha2 = Matrix{eltype(H[k])}(undef, size(H[k], 1), length(Hm2labels))
 				for (i, m) in enumerate(Hm2labels)
-					Ha2[:,i] = sum(H[k][:, Hmap[:, 2] .== m]; dims=2)
+					Ha2[:,i] = NMFk.sumnan(H[k][:, Hmap[:, 2] .== m]; dims=2)
 				end
-				Hm2 = permutedims(Ha2 ./ maximum(Ha2; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
+				Hm2 = permutedims(Ha2 ./ NMFk.maximumnan(Ha2; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
 				Hm2[Hm2 .< eps(eltype(Ha2))] .= 0
-				Hranking2 = sortperm(vec(sum(Hm2 .^ 2; dims=2)); rev=true) # dims=2 because Hm2 is already transposed
 			end
 		else
 			@assert length(Hnames) == size(H[k], 2)
@@ -519,7 +518,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		end
 		Hm = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
 		Hm[Hm .< eps(eltype(Ha))] .= 0
-		Hranking = sortperm(vec(sum(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
+		Hranking = sortperm(vec(NMFk.sumnan(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
 
 		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Hnames permutedims(Ha)], ',')
 		if cutoff > 0
@@ -538,7 +537,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			i1 = 1
 			i2 = Wsize
 			for i = 1:na
-				Wa[i,:] = sum(W[k][i1:i2,:]; dims=1)
+				Wa[i,:] = NMFk.sumnan(W[k][i1:i2,:]; dims=1)
 				i1 += Wsize
 				i2 += Wsize
 			end
@@ -549,7 +548,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			@assert length(Wnames) == length(mu)
 			Wa = Matrix{eltype(W[k])}(undef, length(mu), size(W[k], 2))
 			for (i, m) in enumerate(mu)
-				Wa[i,:] = sum(W[k][Wmap[:, 1] .== m,:]; dims=1)
+				Wa[i,:] = NMFk.sumnan(W[k][Wmap[:, 1] .== m,:]; dims=1)
 			end
 			Wa = Wa[Worder,:]
 		else
@@ -563,7 +562,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		end
 		Wm = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=1) # normalize by columns
 		Wm[Wm .< eps(eltype(Wa))] .= 0
-		Wranking = sortperm(vec(sum(Wm .^ 2; dims=2)); rev=true)
+		Wranking = sortperm(vec(NMFk.sumnan(Wm .^ 2; dims=2)); rev=true)
 
 		if (createplots || createdendrogramsonly) && adjustsize
 			wr = length(Wnames) / k
