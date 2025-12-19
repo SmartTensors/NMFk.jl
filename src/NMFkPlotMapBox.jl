@@ -621,7 +621,6 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `colorscale::Symbol=:viridis`: Color scale for the heatmap
 - `opacity::Real=0.7`: Opacity of the contour layer
 - `show_points::Bool=false`: Whether to show original data points
-- `return_geojson::Bool=false`: When true, return `(plot, geojson_tiles)` for reuse elsewhere
 - `concave_hull::Bool=true`: If true, derive extent/masking from a ConcaveHull envelope
 - `hull_padding::Real=0.02`: Fractional padding applied to the concave hull shape itself
 - `extra_margin::Real=0.0`: Absolute degree margin added radially outside the hull
@@ -630,9 +629,6 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `location_size::Number=10`: Marker diameter for the location circles
 - `location_names::Union{Nothing, AbstractVector}=nothing`: Optional labels plotted next to each location
 - `kw...`: Additional keyword arguments passed to the mapbox function
-
-# Returns
-- PlotlyJS plot object with contour heatmap overlay (plus GeoJSON tiles when `return_geojson=true`)
 
 # Example
 ```julia
@@ -675,10 +671,8 @@ function mapbox_contour(
 	concave_hull::Bool=false,
 	hull_padding::Real=0.02,
 	extra_margin::Real=0.005,
-	return_geojson::Bool=false,
 	kw...
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
-
 	@assert length(lon) == length(lat) == length(values)
 
 	# Remove NaN values
@@ -805,6 +799,7 @@ function mapbox_contour(
 			zmax=zmax,
 			marker=PlotlyJS.attr(line=PlotlyJS.attr(width=0)),
 			colorbar=PlotlyJS.attr(
+				thickness=30, len=0.5,
 				title=title_colorbar,
 				titlefont=PlotlyJS.attr(size=font_size),
 				tickfont=PlotlyJS.attr(size=font_size)
@@ -839,6 +834,7 @@ function mapbox_contour(
 					colorscale=NMFk.colorscale(colorscale),
 					opacity=opacity,
 					colorbar=PlotlyJS.attr(
+						thickness=30, len=0.5,
 						title=title_colorbar,
 						titlefont=PlotlyJS.attr(size=font_size),
 						tickfont=PlotlyJS.attr(size=font_size)
@@ -918,6 +914,7 @@ function mapbox_contour(
 
 	# Create plot
 	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	display(p)
 
 	# Save if filename provided
 	if filename != ""
@@ -925,7 +922,7 @@ function mapbox_contour(
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 
-	return return_geojson ? (p, geojson_tiles) : p
+	return p
 end
 
 """

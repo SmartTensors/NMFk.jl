@@ -700,6 +700,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 				elseif plotmap_scope == :mapbox
 					NMFk.mapbox(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
+					for (i, c) in enumerate(clusterlabels)
+						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, map_kw...)
+					end
 					NMFk.mapbox(lon, lat, Hm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				else
 					NMFk.plotmap(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
@@ -866,6 +869,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.$(map_format)", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 				elseif plotmap_scope == :mapbox
 					NMFk.mapbox(lon, lat, cwnew; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
+					for (i, c) in enumerate(clusterlabels)
+						@info("Plotting W map contour for signal $(c) ...")
+						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", map_kw...)
+					end
 					NMFk.mapbox(lon, lat, Wm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				else
 					NMFk.plotmap(lon, lat, cwnew; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
