@@ -592,7 +592,7 @@ function mapbox_contour(
 	marker_size = max(15, Int(round(avg_spacing * zoom * zoom * 100)))
 
 	# Alternative approach: Create multiple traces for better coverage
-	traces = []
+	traces = PlotlyJS.GenericTrace{Dict{Symbol, Any}}[]
 
 	# Create main heatmap using densitymapbox for better continuous appearance
 	if length(grid_lon) > 0
