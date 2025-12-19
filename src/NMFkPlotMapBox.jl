@@ -3,6 +3,7 @@ import PlotlyJS
 import Interpolations
 import NearestNeighbors
 import Statistics
+import ConcaveHull
 
 mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
 
@@ -454,8 +455,155 @@ function compute_dot_size(x::AbstractVector, y::AbstractVector, zoom::Number)
 	return dot_size
 end
 
+# -- GeoJSON helpers ---------------------------------------------------------
+# Tile-building logic mirrors SmartBack's geomltools_service.jl grid masking
+# so the interpolated field can be emitted as square GeoJSON features for Mapbox.
+function _grid_edges(vec::AbstractVector{T}) where {T <: Real}
+	n = length(vec)
+	if n == 0
+		return Float64[]
+	elseif n == 1
+		step = one(eltype(vec))
+		return [Float64(vec[1] - step / 2), Float64(vec[1] + step / 2)]
+	end
+	edges = Vector{Float64}(undef, n + 1)
+	edges[2:n] = (vec[1:n-1] .+ vec[2:n]) ./ 2
+	first_step = vec[2] - vec[1]
+	last_step = vec[end] - vec[end-1]
+	edges[1] = Float64(vec[1] - first_step / 2)
+	edges[end] = Float64(vec[end] + last_step / 2)
+	return edges
+end
+
+function _point_in_polygon(pt::Tuple{Float64, Float64}, polygon::Vector{Tuple{Float64, Float64}})
+	x, y = pt
+	inside = false
+	n = length(polygon)
+	if n < 3
+		return false
+	end
+	x1, y1 = polygon[1]
+	for i = 1:n
+		x2, y2 = polygon[i]
+		if ((y1 > y) != (y2 > y)) && (x < (x2 - x1) * (y - y1) / (y2 - y1 + 1e-12) + x1)
+			inside = !inside
+		end
+		x1, y1 = x2, y2
+	end
+	return inside
+end
+
+function _compute_concave_hull_vertices(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
+	if length(lon) < 3
+		return nothing
+	end
+	pts = [[Float64(lon[i]), Float64(lat[i])] for i in eachindex(lon)]
+	try
+		hull = ConcaveHull.concave_hull(pts)
+		verts = [(Float64(p[1]), Float64(p[2])) for p in hull.vertices]
+		if isempty(verts)
+			return nothing
+		end
+		if verts[1] != verts[end]
+			push!(verts, verts[1])
+		end
+		return verts
+	catch e
+		@warn "Concave hull computation failed; falling back to bounding box" error=e
+		return nothing
+	end
+end
+
+function _expand_polygon_vertices(
+	vertices::Vector{Tuple{Float64, Float64}};
+	lon_span::Real,
+	lat_span::Real,
+	padding_fraction::Real,
+	margin::Real
+)
+	if padding_fraction <= 0 && margin <= 0
+		return vertices
+	end
+	if length(vertices) < 3
+		return vertices
+	end
+	pad_lon = max(lon_span, 1e-6) * max(padding_fraction, 0.0)
+	pad_lat = max(lat_span, 1e-6) * max(padding_fraction, 0.0)
+	closed = vertices[1] == vertices[end]
+	pts = closed ? vertices[1:end-1] : vertices
+	cx = Statistics.mean(first.(pts))
+	cy = Statistics.mean(last.(pts))
+	expanded = Vector{Tuple{Float64, Float64}}(undef, length(pts))
+	for (idx, (vx, vy)) in enumerate(pts)
+		vec_lon = vx - cx
+		vec_lat = vy - cy
+		norm = sqrt(vec_lon^2 + vec_lat^2)
+		if norm < 1e-9
+			# Rare degenerate case where a vertex sits at the centroid; nudge eastward
+			dir_lon, dir_lat = 1.0, 0.0
+		else
+			dir_lon = vec_lon / norm
+			dir_lat = vec_lat / norm
+		end
+		pad_component = sqrt((pad_lon * abs(dir_lon))^2 + (pad_lat * abs(dir_lat))^2)
+		delta = pad_component + max(margin, 0.0)
+		expanded[idx] = (vx + dir_lon * delta, vy + dir_lat * delta)
+	end
+	if closed
+		push!(expanded, expanded[1])
+	end
+	return expanded
+end
+
+function _build_geojson_tiles(lon_grid::AbstractVector{<:Real}, lat_grid::AbstractVector{<:Real}, values::AbstractMatrix{<:Real}; mask_polygon::Union{Nothing, Vector{Tuple{Float64, Float64}}}=nothing)
+	if length(lon_grid) < 2 || length(lat_grid) < 2
+		return (Dict("type" => "FeatureCollection", "features" => Any[]), String[], Float64[])
+	end
+	lon_edges = _grid_edges(lon_grid)
+	lat_edges = _grid_edges(lat_grid)
+	features = Vector{Dict{String, Any}}()
+	feature_ids = String[]
+	tile_values = Float64[]
+	rows, cols = size(values)
+	max_i = min(rows - 1, length(lat_edges) - 1)
+	max_j = min(cols - 1, length(lon_edges) - 1)
+	for i = 1:max_i
+		for j = 1:max_j
+			val = Float64(values[i, j])
+			if !isfinite(val)
+				continue
+			end
+			if mask_polygon !== nothing
+				center = ((lon_edges[j] + lon_edges[j + 1]) / 2, (lat_edges[i] + lat_edges[i + 1]) / 2)
+				if !_point_in_polygon(center, mask_polygon)
+					continue
+				end
+			end
+			fid = string("tile_", i, "_", j)
+			coords = [
+				[lon_edges[j], lat_edges[i]],
+				[lon_edges[j + 1], lat_edges[i]],
+				[lon_edges[j + 1], lat_edges[i + 1]],
+				[lon_edges[j], lat_edges[i + 1]],
+				[lon_edges[j], lat_edges[i]]
+			]
+			feature = Dict(
+				"type" => "Feature",
+				"id" => fid,
+				"geometry" => Dict("type" => "Polygon", "coordinates" => [coords]),
+				"properties" => Dict("value" => val)
+			)
+			push!(features, feature)
+			push!(feature_ids, fid)
+			push!(tile_values, val)
+		end
+	end
+	geojson = Dict("type" => "FeatureCollection", "features" => features)
+	return geojson, feature_ids, tile_values
+end
+
 """
-	mapbox_contour(lon, lat, values; resolution=50, power=2, smoothing=0.0, filename="", kw...)
+mapbox_contour(lon, lat, values; resolution=50, power=2, smoothing=0.0, filename="", kw...)
 
 Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weighting) interpolation.
 
@@ -473,10 +621,18 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `colorscale::Symbol=:viridis`: Color scale for the heatmap
 - `opacity::Real=0.7`: Opacity of the contour layer
 - `show_points::Bool=false`: Whether to show original data points
+- `return_geojson::Bool=false`: When true, return `(plot, geojson_tiles)` for reuse elsewhere
+- `concave_hull::Bool=true`: If true, derive extent/masking from a ConcaveHull envelope
+- `hull_padding::Real=0.02`: Fractional padding applied to the concave hull shape itself
+- `hull_extra_margin::Real=0.0`: Absolute degree margin added radially outside the hull
+- `show_locations::Bool=true`: Display input locations as colored circular markers
+- `location_color::AbstractString="purple"`: Marker color used for the location circles
+- `location_size::Number=10`: Marker diameter for the location circles
+- `location_names::Union{Nothing, AbstractVector}=nothing`: Optional labels plotted next to each location
 - `kw...`: Additional keyword arguments passed to the mapbox function
 
 # Returns
-- PlotlyJS plot object with contour heatmap overlay
+- PlotlyJS plot object with contour heatmap overlay (plus GeoJSON tiles when `return_geojson=true`)
 
 # Example
 ```julia
@@ -501,6 +657,10 @@ function mapbox_contour(
 	opacity::Real=0.7,
 	show_points::Bool=false,
 	point_size::Number=5,
+	show_locations::Bool=true,
+	location_color::AbstractString="purple",
+	location_size::Number=10,
+	location_names::Union{Nothing, AbstractVector}=nothing,
 	lonc::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	latc::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
@@ -512,6 +672,10 @@ function mapbox_contour(
 	height::Int=1400,
 	scale::Real=1,
 	font_size::Number=14,
+	concave_hull::Bool=true,
+	hull_padding::Real=0.02,
+	hull_extra_margin::Real=0.02,
+	return_geojson::Bool=false,
 	kw...
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 
@@ -522,22 +686,71 @@ function mapbox_contour(
 	lon_clean = lon[valid_mask]
 	lat_clean = lat[valid_mask]
 	values_clean = values[valid_mask]
+	names_clean = nothing
+	if location_names !== nothing
+		try
+			name_vec = collect(location_names)
+			if length(name_vec) == length(lon)
+				names_clean = name_vec[valid_mask]
+			elseif length(name_vec) == length(lon_clean)
+				names_clean = name_vec
+			else
+				@warn "location_names length does not match lon/lat; skipping labels"
+			end
+		catch e
+			@warn "Failed to process location_names; skipping labels" error=e
+		end
+	end
+	if names_clean !== nothing
+		names_clean = string.(names_clean)
+	end
 
 	if length(lon_clean) < 3
 		@error("At least 3 valid data points are required for interpolation!")
 		return nothing
 	end
 
-	# Create interpolation grid
-	lon_range = maximum(lon_clean) - minimum(lon_clean)
-	lat_range = maximum(lat_clean) - minimum(lat_clean)
+	hull_vertices = nothing
+	if concave_hull
+		hull_vertices = _compute_concave_hull_vertices(lon_clean, lat_clean)
+		if hull_vertices === nothing || length(hull_vertices) < 3
+			@warn "Concave hull unavailable; reverting to padded bounding box"
+			hull_vertices = nothing
+		end
+	end
 
-	# Add padding to grid bounds
-	padding = 0.1
-	lon_min = minimum(lon_clean) - lon_range * padding
-	lon_max = maximum(lon_clean) + lon_range * padding
-	lat_min = minimum(lat_clean) - lat_range * padding
-	lat_max = maximum(lat_clean) + lat_range * padding
+	lon_source_raw = hull_vertices === nothing ? lon_clean : first.(hull_vertices)
+	lat_source_raw = hull_vertices === nothing ? lat_clean : last.(hull_vertices)
+	lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
+	lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
+	effective_margin = max(0.0, hull_extra_margin)
+	effective_padding = max(0.0, hull_padding)
+	if hull_vertices !== nothing && (effective_padding > 0 || effective_margin > 0)
+		hull_vertices = _expand_polygon_vertices(
+			hull_vertices;
+			lon_span=lon_range_raw,
+			lat_span=lat_range_raw,
+			padding_fraction=effective_padding,
+			margin=effective_margin
+		)
+		lon_source_raw = first.(hull_vertices)
+		lat_source_raw = last.(hull_vertices)
+		lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
+		lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
+	end
+
+	lon_source = lon_source_raw
+	lat_source = lat_source_raw
+	lon_range = lon_range_raw
+	lat_range = lat_range_raw
+	lon_span = lon_range == 0 ? 1e-6 : lon_range
+	lat_span = lat_range == 0 ? 1e-6 : lat_range
+	padding = hull_vertices === nothing ? 0.1 : 0.0
+	margin = hull_vertices === nothing ? effective_margin : 0.0
+	lon_min = minimum(lon_source) - lon_span * padding - margin
+	lon_max = maximum(lon_source) + lon_span * padding + margin
+	lat_min = minimum(lat_source) - lat_span * padding - margin
+	lat_max = maximum(lat_source) + lat_span * padding + margin
 
 	# Create grid
 	lon_grid = range(lon_min, lon_max, length=resolution)
@@ -564,78 +777,79 @@ function mapbox_contour(
 		end
 	end
 
-	# Create dense grid of interpolated points for smooth heatmap effect
-	grid_lon = Float64[]
-	grid_lat = Float64[]
-	grid_values = Float64[]
-
-	# Use a denser grid for better coverage - reduce subsampling
-	subsample = max(1, resolution ÷ 10)  # Less aggressive subsampling for better coverage
-	lat_indices = 1:subsample:resolution
-	lon_indices = 1:subsample:resolution
-
-	for (ii, i) in enumerate(lat_indices)
-		for (jj, j) in enumerate(lon_indices)
-			push!(grid_lon, lon_grid[j])
-			push!(grid_lat, lat_grid[i])
-			push!(grid_values, z_grid[i, j])
-		end
-	end
-
-	# Calculate appropriate marker size for good coverage
-	# Base size on the grid spacing and zoom level
-	grid_spacing_lon = (lon_max - lon_min) / length(lon_indices)
-	grid_spacing_lat = (lat_max - lat_min) / length(lat_indices)
-	avg_spacing = (grid_spacing_lon + grid_spacing_lat) / 2
-
-	# Make markers large enough to overlap and create continuous appearance
-	marker_size = max(15, Int(round(avg_spacing * zoom * zoom * 100)))
-
-	# Alternative approach: Create multiple traces for better coverage
+	geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(lon_grid, lat_grid, z_grid; mask_polygon=hull_vertices)
 	traces = PlotlyJS.GenericTrace{Dict{Symbol, Any}}[]
-
-	# Create main heatmap using densitymapbox for better continuous appearance
-	if length(grid_lon) > 0
-		# Create density heatmap trace
-		density_trace = PlotlyJS.densitymapbox(
-			lon=repeat(grid_lon, 3),  # Repeat points for better density
-			lat=repeat(grid_lat, 3),
-			z=repeat(grid_values, 3),
+	if !isempty(geojson_ids)
+		min_val = minimum(geojson_values)
+		max_val = maximum(geojson_values)
+		plot_values = copy(geojson_values)
+		if contour_levels > 1 && max_val > min_val
+			step = (max_val - min_val) / contour_levels
+			if step > 0
+				for idx in eachindex(plot_values)
+					plot_values[idx] = min_val + round((geojson_values[idx] - min_val) / step) * step
+				end
+			end
+		end
+		zmin = min_val
+		zmax = max_val == min_val ? min_val + 1e-9 : max_val
+		choropleth_trace = PlotlyJS.choroplethmapbox(
+			geojson=geojson_tiles,
+			locations=geojson_ids,
+			z=plot_values,
+			customdata=geojson_values,
+			featureidkey="id",
 			colorscale=NMFk.colorscale(colorscale),
 			opacity=opacity,
-			radius=max(5, Int(round(marker_size / 2))),  # Radius in pixels
+			zmin=zmin,
+			zmax=zmax,
+			marker=PlotlyJS.attr(line=PlotlyJS.attr(width=0)),
 			colorbar=PlotlyJS.attr(
 				title=title_colorbar,
 				titlefont=PlotlyJS.attr(size=font_size),
 				tickfont=PlotlyJS.attr(size=font_size)
 			),
-			hovertemplate="<b>Lon:</b> %{lon}<br><b>Lat:</b> %{lat}<br><b>Value:</b> %{z}<extra></extra>",
-			showlegend=false,
-			name="Heatmap"
+			hovertemplate="<b>Value:</b> %{customdata:.3f}<extra></extra>",
+			name="Interpolated Field",
+			showscale=true
 		)
-		push!(traces, density_trace)
+		push!(traces, choropleth_trace)
 	else
-		# Fallback to scattermapbox if densitymapbox fails
-		contour_trace = PlotlyJS.scattermapbox(
-			lon=grid_lon,
-			lat=grid_lat,
-			mode="markers",
-			marker=PlotlyJS.attr(
-				size=marker_size,
-				color=grid_values,
-				colorscale=NMFk.colorscale(colorscale),
-				opacity=opacity,
-				colorbar=PlotlyJS.attr(
-					title=title_colorbar,
-					titlefont=PlotlyJS.attr(size=font_size),
-					tickfont=PlotlyJS.attr(size=font_size)
-				)
-			),
-			hovertemplate="<b>Lon:</b> %{lon}<br><b>Lat:</b> %{lat}<br><b>Value:</b> %{marker.color}<extra></extra>",
-			showlegend=false,
-			name="Interpolated Surface"
-		)
-		push!(traces, contour_trace)
+		fallback_lon = Float64[]
+		fallback_lat = Float64[]
+		fallback_vals = Float64[]
+		for i in 1:resolution
+			for j in 1:resolution
+				val = z_grid[i, j]
+				if isfinite(val)
+					push!(fallback_lon, lon_grid[j])
+					push!(fallback_lat, lat_grid[i])
+					push!(fallback_vals, val)
+				end
+			end
+		end
+		if !isempty(fallback_lon)
+			contour_trace = PlotlyJS.scattermapbox(
+				lon=fallback_lon,
+				lat=fallback_lat,
+				mode="markers",
+				marker=PlotlyJS.attr(
+					size=10,
+					color=fallback_vals,
+					colorscale=NMFk.colorscale(colorscale),
+					opacity=opacity,
+					colorbar=PlotlyJS.attr(
+						title=title_colorbar,
+						titlefont=PlotlyJS.attr(size=font_size),
+						tickfont=PlotlyJS.attr(size=font_size)
+					)
+				),
+				hovertemplate="<b>Lon:</b> %{lon}<br><b>Lat:</b> %{lat}<br><b>Value:</b> %{marker.color}<extra></extra>",
+				showlegend=false,
+				name="Interpolated Surface"
+			)
+			push!(traces, contour_trace)
+		end
 	end
 
 	# Add data points if requested
@@ -655,6 +869,40 @@ function mapbox_contour(
 			showlegend=true
 		)
 		push!(traces, points_trace)
+	end
+
+	if show_locations && !isempty(lon_clean)
+		marker_attr = PlotlyJS.attr(
+			size=location_size,
+			color=location_color,
+			opacity=0.9,
+			line=PlotlyJS.attr(color="white", width=1)
+		)
+		if names_clean === nothing
+			location_trace = PlotlyJS.scattermapbox(
+				lon=lon_clean,
+				lat=lat_clean,
+				mode="markers",
+				marker=marker_attr,
+				name="Locations",
+				hovertemplate="<b>Lon:</b> %{lon:.4f}<br><b>Lat:</b> %{lat:.4f}<extra></extra>",
+				showlegend=true
+			)
+		else
+			location_trace = PlotlyJS.scattermapbox(
+				lon=lon_clean,
+				lat=lat_clean,
+				mode="markers+text",
+				marker=marker_attr,
+				text=names_clean,
+				textposition="top center",
+				textfont=PlotlyJS.attr(color=location_color, size=max(8, Int(round(font_size - 2)))),
+				name="Locations",
+				hovertemplate="<b>%{text}</b><br>Lon: %{lon:.4f}<br>Lat: %{lat:.4f}<extra></extra>",
+				showlegend=true
+			)
+		end
+		push!(traces, location_trace)
 	end
 
 	# Create layout
@@ -677,11 +925,11 @@ function mapbox_contour(
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 
-	return p
+	return return_geojson ? (p, geojson_tiles) : p
 end
 
 """
-	mapbox_contour_simple(lon, lat, values; resolution=30, kw...)
+mapbox_contour_simple(lon, lat, values; resolution=30, kw...)
 
 Simple version of mapbox_contour that creates a visible heatmap using overlapping circular markers.
 This is a fallback when the density-based approach doesn't work well.
@@ -926,32 +1174,4 @@ function mapbox_contour(df::DataFrames.DataFrame, column::Union{Symbol, Abstract
 	end
 
 	return mapbox_contour(lon, lat, df[!, column]; kw...)
-end
-
-"""
-	mapbox_contour_simple(df, column; kw...)
-
-Simple version of mapbox_contour for DataFrames with guaranteed visibility.
-
-# Arguments
-- `df::DataFrames.DataFrame`: DataFrame containing longitude, latitude, and value columns
-- `column::Union{Symbol, AbstractString}`: Column name containing values to interpolate
-- `kw...`: Additional keyword arguments passed to mapbox_contour_simple
-
-# Returns
-- PlotlyJS plot object with simple heatmap overlay
-"""
-function mapbox_contour_simple(df::DataFrames.DataFrame, column::Union{Symbol, AbstractString}; kw...)
-	lon, lat = get_lonlat(df)
-	if isnothing(lon) || isnothing(lat)
-		@error("Longitude and latitude columns are required for plotting!")
-		return nothing
-	end
-
-	if !(column in names(df))
-		@error("Column '$column' not found in DataFrame!")
-		return nothing
-	end
-
-	return mapbox_contour_simple(lon, lat, df[!, column]; kw...)
 end
