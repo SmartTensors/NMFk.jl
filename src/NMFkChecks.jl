@@ -96,13 +96,13 @@ function checkarrayentries(X::AbstractArray{T, N}, func::Function=.!isnan; quiet
 		!quiet && @info("Dimension $(d) ...")
 		selected_indices = Vector{Int64}(undef, 0)
 		if ecount
-			acount = Vector{Int64}(undef, 0)
+			a_count = Vector{Int64}(undef, 0)
 		end
 		for i in axes(X, d)
 			nt = ntuple(k -> (k == d ? i : Colon()), N)
 			c = sum(func.(X[nt...]))
 			if ecount
-				push!(acount, c)
+				push!(a_count, c)
 			end
 			flagi = c > cutoff
 			if good
@@ -113,7 +113,7 @@ function checkarrayentries(X::AbstractArray{T, N}, func::Function=.!isnan; quiet
 			flag = flag && flagi
 		end
 		if ecount
-			return_indices[d] = acount
+			return_indices[d] = a_count
 			st = "count"
 		else
 			return_indices[d] = selected_indices
