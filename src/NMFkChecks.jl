@@ -17,8 +17,8 @@ function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i 
 		@info("Dimension $(d) ...")
 		dd = size(X, d)
 		println("Dimension $(d): size: $(dd)")
-		firstentrys = Vector{Int64}(undef, dd)
-		lastentrys = Vector{Int64}(undef, dd)
+		first_entries = Vector{Int64}(undef, dd)
+		last_entries = Vector{Int64}(undef, dd)
 		record_length = Vector{Int64}(undef, dd)
 		bad_indices = Vector{Int64}(undef, 0)
 		for i = 1:dd
@@ -32,18 +32,18 @@ function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i 
 			# @show ix
 			# @show firstentry
 			if !isnothing(firstentry)
-				firstentrys[i] = firstentry[1]
-				lastentry = Base.findlast(funclast.(ix[firstentrys[i]:end]))
+				first_entries[i] = firstentry[1]
+				lastentry = Base.findlast(funclast.(ix[first_entries[i]:end]))
 				if !isnothing(lastentry)
-					lastentrys[i] = lastentry[1] + firstentrys[i] - 1
+					last_entries[i] = lastentry[1] + first_entries[i] - 1
 					record_length[i] = lastentry
 				else
-					lastentrys[i] = length(ix)
+					last_entries[i] = length(ix)
 					record_length[i] = length(ix[firstentry:end])
 				end
 			else
-				firstentrys[i] = length(ix)
-				lastentrys[i] = 0
+				first_entries[i] = length(ix)
+				last_entries[i] = 0
 				record_length[i] = 0
 			end
 			if record_length[i] <= cutoff
@@ -62,14 +62,14 @@ function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i 
 		else
 			println("Dimension $(d): Entry counts: $(record_length)")
 		end
-		mfe = minimum(firstentrys)
-		mle = maximum(lastentrys)
+		mfe = minimum(first_entries)
+		mle = maximum(last_entries)
 		mrl = maximum(record_length)
 		println("Dimension $(d): Maximum entry counts: $(mrl)")
 		println("Dimension $(d): Minimum first  entry: $(mfe)")
 		println("Dimension $(d): Maximum last   entry: $(mle)")
-		# @info("Dimension $(d): First entry: $(firstentrys)")
-		# @info("Dimension $(d): Last  entry: $(lastentrys)")
+		# @info("Dimension $(d): First entry: $(first_entries)")
+		# @info("Dimension $(d): Last  entry: $(last_entries)")
 		# md[d] = length(bad_indices) > 0 ? bad_indices[1] : 0
 		max_record_length[d] = mrl
 		rangeentry[d] = mfe:mle
