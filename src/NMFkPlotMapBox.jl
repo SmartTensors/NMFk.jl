@@ -668,7 +668,7 @@ function mapbox_contour(
 	height::Int=1400,
 	scale::Real=1,
 	font_size::Number=14,
-	concave_hull::Bool=false,
+	concave_hull::Bool=true,
 	hull_padding::Real=0.02,
 	extra_margin::Real=0.005,
 	kw...
