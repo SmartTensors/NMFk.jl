@@ -701,7 +701,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				elseif plotmap_scope == :mapbox
 					NMFk.mapbox(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
 					for (i, c) in enumerate(clusterlabels)
-						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, map_kw...)
+						@info("Plotting H map contour for signal $(c) ...")
+						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
 					end
 					NMFk.mapbox(lon, lat, Hm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				else
@@ -871,7 +872,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.mapbox(lon, lat, cwnew; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting W map contour for signal $(c) ...")
-						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", map_kw...)
+						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
 					end
 					NMFk.mapbox(lon, lat, Wm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				else
