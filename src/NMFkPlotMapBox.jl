@@ -24,7 +24,7 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 			if !(occursin(regex_lon, a) || occursin(regex_lat, a))
 				varname = namesmap[col]
 				col += 1
-				println("Ploting $(varname) ...")
+				println("Plotting $(varname) ...")
 				if filename != ""
 					aa = replace(string(a), '/' => Char(0x2215))
 					f = fileroot * "_" * aa * fileext
@@ -64,7 +64,7 @@ end
 function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i in axes(M, 2)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
-		println("Ploting $(names[i]) ...")
+		println("Plotting $(names[i]) ...")
 		if filename != ""
 			aa = replace(string(names[i]), '/' => '\u2215')
 			f = fileroot * "_" * aa * fileext
@@ -752,19 +752,15 @@ function mapbox_contour(
 
 	# Perform IDW interpolation
 	z_grid = Matrix{Float64}(undef, resolution, resolution)
-
 	for (i, lat_interp) in enumerate(lat_grid)
 		for (j, lon_interp) in enumerate(lon_grid)
 			# Calculate distances to all data points
 			distances = sqrt.((lon_clean .- lon_interp).^2 .+ (lat_clean .- lat_interp).^2)
-
-			# Handle case where interpolation point coincides with data point
 			min_dist = minimum(distances)
-			if min_dist < 1e-10
+			if min_dist < 1e-10 # Handle case where interpolation point coincides with data point
 				closest_idx = findfirst(distances .== min_dist)
 				z_grid[i, j] = values_clean[closest_idx]
 			else
-				# IDW interpolation
 				weights = 1.0 ./ (distances.^power .+ smoothing)
 				z_grid[i, j] = sum(weights .* values_clean) / sum(weights)
 			end
@@ -914,6 +910,7 @@ function mapbox_contour(
 
 	# Create plot
 	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	# Display plot
 	display(p)
 
 	# Save if filename provided

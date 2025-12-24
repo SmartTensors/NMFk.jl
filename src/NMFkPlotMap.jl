@@ -164,7 +164,7 @@ function plotmap(df::DataFrames.DataFrame; namesmap::AbstractVector=names(df), f
 		if !(occursin(regex_lon, a) || occursin(regex_lat, a))
 			varname = namesmap[col]
 			col += 1
-			println("Ploting $(varname) ...")
+			println("Plotting $(varname) ...")
 			if filename != ""
 				aa = replace(string(a), '/' => Char(0x2215))
 				f = fileroot * "_" * aa * fileext

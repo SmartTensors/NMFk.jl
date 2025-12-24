@@ -739,7 +739,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
-					@info("H ($(Hcasefilename)) matrix timeseries ploting ...")
+					@info("H ($(Hcasefilename)) matrix timeseries plotting ...")
 					Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
 					if size(Hmap, 2) > 0
 						Hm2labels = unique(Hmap[:, 2])
@@ -772,7 +772,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				end
 			end
 			if (createdendrogramsonly || createplots)
-				@info("H ($(Hcasefilename)) matrix dendrogram ploting ...")
+				@info("H ($(Hcasefilename)) matrix dendrogram plotting ...")
 				if length(chnew) > biplot_importantsize
 					!createplots && @warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(biplot_importantsize) columns!")
 					importance_indexing = Hranking[1:biplot_importantsize]
@@ -789,11 +789,11 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plotdendrogram(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
-					@warn("H ($(Hcasefilename)) matrix dendrogram ploting failed!")
+					@warn("H ($(Hcasefilename)) matrix dendrogram plotting failed!")
 				end
 			end
 			if createbiplots
-				@info("Biploting H ($(Hcasefilename)) matrix ...")
+				@info("Biplotting H ($(Hcasefilename)) matrix ...")
 				createbiplotsall && NMFk.biplots(Hm, Hnames, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=chnew, plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				NMFk.biplots(Hm[cs,signalmap], Hnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=chnew[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				length(Htypes) > 0 && NMFk.biplots(Hm[cs,signalmap], Hnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[cs], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
@@ -955,7 +955,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				end
 			end
 			if (createdendrogramsonly || createplots)
-				@info("W ($(Wcasefilename)) matrix dendrogram ploting ...")
+				@info("W ($(Wcasefilename)) matrix dendrogram plotting ...")
 				if length(chnew) > biplot_importantsize
 					!createplots && @warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(biplot_importantsize) rows ...")
 					importance_indexing = Wranking[1:biplot_importantsize]
@@ -972,17 +972,17 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plotdendrogram(W_plot[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
-					@warn("W ($(Wcasefilename)) matrix dendrogram ploting failed!")
+					@warn("W ($(Wcasefilename)) matrix dendrogram plotting failed!")
 				end
 			end
 			if createbiplots
-				@info("Biploting W ($(Wcasefilename)) matrix matrix ...")
+				@info("Biplotting W ($(Wcasefilename)) matrix matrix ...")
 				createbiplotsall && NMFk.biplots(Wm, Wnames, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=cwnew, plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				NMFk.biplots(Wm[cs,signalmap], Wnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=cwnew[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
 				length(Wtypes) > 0 && NMFk.biplots(Wm[cs,signalmap], Wnames[cs], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[cs], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
 			end
 			if createbiplots && createbiplotsall
-				@info("Biploting combined W and H matrices ...")
+				@info("Biplotting combined W and H matrices ...")
 				if biplotlabel == :W
 					biplotlabels = [Wnames_label; fill("", length(Hnames))]
 					biplotlabelflag = true
