@@ -5,7 +5,7 @@ import Clustering
 """
 Given a vector of classifiers, return a vector where
 the highest count is now classifier #1, and the lowest count is
-classifer #N
+classifier #N
 
 params:
 	assignments (Clustering.assignments): a vector containing assignments

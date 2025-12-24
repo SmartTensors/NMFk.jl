@@ -256,7 +256,7 @@ function biplot(X::AbstractMatrix, label::AbstractVector; mapping::AbstractVecto
 		end
 		colormap = unique(typecolors)
 		p = Gadfly.plot(gadfly_layers..., Gadfly.Scale.color_discrete_manual(colormap...), Gadfly.Guide.XLabel(xtitle), Gadfly.Guide.YLabel(ytitle), Gadfly.Coord.Cartesian(; xmin=0, xmax=1, ymin=0, ymax=1), Gadfly.Theme(; highlight_width=0Gadfly.pt, point_label_font_size=point_label_font_size, background_color=background_color, key_position=:none), gm...)
-	elseif plotmethod == :all # not recommended for large datasets with lablels
+	elseif plotmethod == :all # not recommended for large datasets with labels
 		!suppress_output && @info("Plotting using all method...")
 		colormap = unique(typecolors)
 		if plotlabel
