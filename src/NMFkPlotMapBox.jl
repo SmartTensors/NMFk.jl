@@ -651,12 +651,10 @@ function mapbox_contour(
 	title_colorbar::AbstractString=title,
 	colorscale::Symbol=:viridis,
 	opacity::Real=0.7,
-	show_points::Bool=false,
-	point_size::Number=5,
 	show_locations::Bool=true,
 	location_color::AbstractString="purple",
 	location_size::Number=10,
-	location_names::Union{Nothing, AbstractVector}=nothing,
+	location_names::AbstractVector=String[],
 	lonc::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	latc::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
@@ -664,13 +662,15 @@ function mapbox_contour(
 	mapbox_token=NMFk.mapbox_token,
 	figuredir::AbstractString=".",
 	format::AbstractString=filename == "" ? "html" : splitext(filename)[end][2:end],
-	width::Int=2800,
-	height::Int=1400,
+	dpi::Int=200,
+	width::Int=dpi * 14,
+	height::Int=dpi * 7,
 	scale::Real=1,
 	font_size::Number=14,
 	concave_hull::Bool=true,
 	hull_padding::Real=0.02,
 	extra_margin::Real=0.005,
+	quiet::Bool=false,
 	kw...
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat) == length(values)
@@ -681,7 +681,7 @@ function mapbox_contour(
 	lat_clean = lat[valid_mask]
 	values_clean = values[valid_mask]
 	names_clean = nothing
-	if location_names !== nothing
+	if !isempty(location_names)
 		try
 			name_vec = collect(location_names)
 			if length(name_vec) == length(lon)
@@ -708,7 +708,7 @@ function mapbox_contour(
 	if concave_hull
 		hull_vertices = _compute_concave_hull_vertices(lon_clean, lat_clean)
 		if hull_vertices === nothing || length(hull_vertices) < 3
-			@warn "Concave hull unavailable; reverting to padded bounding box"
+			@info "Concave hull unavailable; reverting to padded bounding box"
 			hull_vertices = nothing
 		end
 	end
@@ -802,7 +802,8 @@ function mapbox_contour(
 			),
 			hovertemplate="<b>Value:</b> %{customdata:.3f}<extra></extra>",
 			name="Interpolated Field",
-			showscale=true
+			showscale=true,
+			showlegend=false
 		)
 		push!(traces, choropleth_trace)
 	else
@@ -844,31 +845,13 @@ function mapbox_contour(
 		end
 	end
 
-	# Add data points if requested
-	if show_points
-		points_trace = PlotlyJS.scattermapbox(
-			lon=lon_clean,
-			lat=lat_clean,
-			text=["Lon: $(round(lon_clean[i], digits=4))<br>Lat: $(round(lat_clean[i], digits=4))<br>Value: $(round(values_clean[i], digits=2))" for i in eachindex(lon_clean)],
-			mode="markers",
-			marker=PlotlyJS.attr(
-				size=point_size,
-				color="white",
-				line=PlotlyJS.attr(color="black", width=1)
-			),
-			name="Data Points",
-			hoverinfo="text",
-			showlegend=true
-		)
-		push!(traces, points_trace)
-	end
-
+	# Add location markers if requested
 	if show_locations && !isempty(lon_clean)
 		marker_attr = PlotlyJS.attr(
 			size=location_size,
 			color=location_color,
 			opacity=0.9,
-			line=PlotlyJS.attr(color="white", width=1)
+			line=PlotlyJS.attr(color=location_color, width=0)
 		)
 		if names_clean === nothing
 			location_trace = PlotlyJS.scattermapbox(
@@ -878,7 +861,7 @@ function mapbox_contour(
 				marker=marker_attr,
 				name="Locations",
 				hovertemplate="<b>Lon:</b> %{lon:.4f}<br><b>Lat:</b> %{lat:.4f}<extra></extra>",
-				showlegend=true
+				showlegend=false
 			)
 		else
 			location_trace = PlotlyJS.scattermapbox(
@@ -891,7 +874,7 @@ function mapbox_contour(
 				textfont=PlotlyJS.attr(color=location_color, size=max(8, Int(round(font_size - 2)))),
 				name="Locations",
 				hovertemplate="<b>%{text}</b><br>Lon: %{lon:.4f}<br>Lat: %{lat:.4f}<extra></extra>",
-				showlegend=true
+				showlegend=false
 			)
 		end
 		push!(traces, location_trace)
@@ -911,7 +894,7 @@ function mapbox_contour(
 	# Create plot
 	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	# Display plot
-	display(p)
+	!quiet && display(p)
 
 	# Save if filename provided
 	if filename != ""
