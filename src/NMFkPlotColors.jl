@@ -1,5 +1,13 @@
 import Gadfly
 import Colors
+import ColorSchemes
+
+function colorscale(scheme::Symbol; N = 101)
+	x = permutedims(0.0:(1.0/(N - 1)):1.0)
+	cs = get(ColorSchemes.colorschemes[scheme], x, :clamp)
+	cs_rgb = Colors.RGB.(cs)
+	return vcat(x, cs_rgb)
+end
 
 function colormap(n::Integer)
 	colormap(colors[1:n])

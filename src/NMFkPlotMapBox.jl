@@ -759,7 +759,8 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `show_locations::Bool=true`: Display input locations as colored circular markers
 - `location_color::AbstractString="purple"`: Marker color used for the location circles
 - `location_size::Number=10`: Marker diameter for the location circles
-- `location_names::Union{Nothing, AbstractVector}=nothing`: Optional labels plotted next to each location
+- `location_names_above::AbstractVector=String[]`: Optional labels plotted above each location marker
+- `location_names_below::AbstractVector=String[]`: Optional labels plotted below each location marker
 - `show_hull::Bool=false`: Overlay the computed hull polygon for debugging
 - `hull_color::AbstractString="magenta"`: Hull trace color when `show_hull=true`
 - `hull_line_width::Number=3`: Line width for the hull outline
@@ -792,7 +793,8 @@ function mapbox_contour(
 	show_locations::Bool=true,
 	location_color::AbstractString="purple",
 	location_size::Number=10,
-	location_names::AbstractVector=String[],
+	location_names_above::AbstractVector=String[],
+	location_names_below::AbstractVector=String[],
 	lonc::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	latc::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
@@ -826,17 +828,22 @@ function mapbox_contour(
 	lat_clean = lat[valid_mask]
 	values_clean = zvalue[valid_mask]
 
-	names_clean = nothing
-	if !isempty(location_names)
-		name_vec = collect(location_names)
+	function resolve_location_labels(raw_names, label)
+		if isempty(raw_names)
+			return nothing
+		end
+		name_vec = collect(raw_names)
 		if length(name_vec) == length(lon)
-			names_clean = name_vec[valid_mask]
+			return name_vec[valid_mask]
 		elseif length(name_vec) == length(lon_clean)
-			names_clean = name_vec
+			return name_vec
 		else
-			@warn "location_names length does not match lon/lat; skipping labels"
+			@warn "$(label) length does not match lon/lat; skipping labels"
+			return nothing
 		end
 	end
+	names_above_clean = resolve_location_labels(location_names_above, "location_names_above")
+	names_below_clean = resolve_location_labels(location_names_below, "location_names_below")
 
 	if !isempty(lon_clean)
 		key_map = Dict{Tuple{Float64, Float64}, Tuple{Float64, Int}}()
@@ -856,13 +863,19 @@ function mapbox_contour(
 		lon_clean = lon_clean[indices]
 		lat_clean = lat_clean[indices]
 		values_clean = values_clean[indices]
-		if names_clean !== nothing
-			names_clean = names_clean[indices]
+		if names_above_clean !== nothing
+			names_above_clean = names_above_clean[indices]
+		end
+		if names_below_clean !== nothing
+			names_below_clean = names_below_clean[indices]
 		end
 	end
 
-	if names_clean !== nothing
-		names_clean = string.(names_clean)
+	if names_above_clean !== nothing
+		names_above_clean = string.(names_above_clean)
+	end
+	if names_below_clean !== nothing
+		names_below_clean = string.(names_below_clean)
 	end
 
 	if length(lon_clean) < 3
@@ -1059,31 +1072,46 @@ function mapbox_contour(
 			opacity=0.9,
 			line=PlotlyJS.attr(color=location_color, width=0)
 		)
-		if names_clean === nothing
-			location_trace = PlotlyJS.scattermapbox(
-				lon=lon_clean,
-				lat=lat_clean,
-				mode="markers",
-				marker=marker_attr,
-				name="Locations",
-				hovertemplate="<b>Lon:</b> %{lon:.4f}<br><b>Lat:</b> %{lat:.4f}<extra></extra>",
-				showlegend=false
-			)
-		else
-			location_trace = PlotlyJS.scattermapbox(
-				lon=lon_clean,
-				lat=lat_clean,
-				mode="markers+text",
-				marker=marker_attr,
-				text=names_clean,
-				textposition="top center",
-				textfont=PlotlyJS.attr(color=location_color, size=max(8, Int(round(font_size - 2)))),
-				name="Locations",
-				hovertemplate="<b>%{text}</b><br>Lon: %{lon:.4f}<br>Lat: %{lat:.4f}<extra></extra>",
-				showlegend=false
-			)
-		end
+		location_trace = PlotlyJS.scattermapbox(
+			lon=lon_clean,
+			lat=lat_clean,
+			mode="markers",
+			marker=marker_attr,
+			name="Locations",
+			hovertemplate="<b>Lon:</b> %{lon:.4f}<br><b>Lat:</b> %{lat:.4f}<extra></extra>",
+			showlegend=false
+		)
 		push!(traces, location_trace)
+
+		label_font = PlotlyJS.attr(color=location_color, size=max(8, Int(round(font_size - 2))))
+		if names_above_clean !== nothing
+			labels_above_trace = PlotlyJS.scattermapbox(
+				lon=lon_clean,
+				lat=lat_clean,
+				mode="text",
+				text=names_above_clean,
+				textposition="top center",
+				textfont=label_font,
+				hoverinfo="skip",
+				showlegend=false,
+				name="Location Labels (Top)"
+			)
+			push!(traces, labels_above_trace)
+		end
+		if names_below_clean !== nothing
+			labels_below_trace = PlotlyJS.scattermapbox(
+				lon=lon_clean,
+				lat=lat_clean,
+				mode="text",
+				text=names_below_clean,
+				textposition="bottom center",
+				textfont=label_font,
+				hoverinfo="skip",
+				showlegend=false,
+				name="Location Labels (Bottom)"
+			)
+			push!(traces, labels_below_trace)
+		end
 	end
 
 	if show_hull && hull_plot_vertices !== nothing

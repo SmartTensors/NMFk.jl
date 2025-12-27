@@ -1,13 +1,4 @@
 import PlotlyJS
-import Colors
-import ColorSchemes
-
-function colorscale(scheme::Symbol; N = 101)
-	x = permutedims(0.0:(1.0/(N - 1)):1.0)
-	cs = get(ColorSchemes.colorschemes[scheme], x, :clamp)
-	cs_rgb = Colors.RGB.(cs)
-	return vcat(x, cs_rgb)
-  end
 
 function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hover=nothing, label=nothing, title::AbstractString="", pointsize=6)
 	if !isnothing(hover)
