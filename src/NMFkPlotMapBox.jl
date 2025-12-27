@@ -493,24 +493,131 @@ function _point_in_polygon(pt::Tuple{Float64, Float64}, polygon::Vector{Tuple{Fl
 	return inside
 end
 
-function _compute_concave_hull_vertices(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
-	if length(lon) < 3
+function _prepare_hull_points(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
+	coords = Vector{Tuple{Float64, Float64}}()
+	for i in eachindex(lon)
+		x = Float64(lon[i])
+		y = Float64(lat[i])
+		if isfinite(x) && isfinite(y)
+			push!(coords, (x, y))
+		end
+	end
+	return unique(coords)
+end
+
+function compute_convex_hull_vertices(coords::Vector{Tuple{Float64, Float64}})
+	if length(coords) < 3
 		return nothing
 	end
-	pts = [[Float64(lon[i]), Float64(lat[i])] for i in eachindex(lon)]
+	sorted = sort(coords; by=p -> (p[1], p[2]))
+	cross(o, a, b) = (a[1] - o[1]) * (b[2] - o[2]) - (a[2] - o[2]) * (b[1] - o[1])
+	lower = Tuple{Float64, Float64}[]
+	for p in sorted
+		while length(lower) >= 2 && cross(lower[end - 1], lower[end], p) <= 0
+			pop!(lower)
+		end
+		push!(lower, p)
+	end
+	upper = Tuple{Float64, Float64}[]
+	for p in reverse(sorted)
+		while length(upper) >= 2 && cross(upper[end - 1], upper[end], p) <= 0
+			pop!(upper)
+		end
+		push!(upper, p)
+	end
+	hull = vcat(lower[1:end - 1], upper[1:end - 1])
+	if isempty(hull)
+		return nothing
+	end
+	if hull[1] != hull[end]
+		push!(hull, hull[1])
+	end
+	return hull
+end
+
+
+_orientation(a::Tuple{Float64, Float64}, b::Tuple{Float64, Float64}, c::Tuple{Float64, Float64}) = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])
+
+function _point_between(a::Tuple{Float64, Float64}, b::Tuple{Float64, Float64}, c::Tuple{Float64, Float64}; eps::Float64=1e-12)
+	min_x, max_x = min(a[1], b[1]) - eps, max(a[1], b[1]) + eps
+	min_y, max_y = min(a[2], b[2]) - eps, max(a[2], b[2]) + eps
+	return min_x <= c[1] <= max_x && min_y <= c[2] <= max_y
+end
+
+function _segments_intersect(p1, p2, p3, p4; eps::Float64=1e-12)
+	o1 = _orientation(p1, p2, p3)
+	o2 = _orientation(p1, p2, p4)
+	o3 = _orientation(p3, p4, p1)
+	o4 = _orientation(p3, p4, p2)
+	if (o1 * o2 < -eps) && (o3 * o4 < -eps)
+		return true
+	end
+	if abs(o1) <= eps && _point_between(p1, p2, p3; eps=eps)
+		return true
+	end
+	if abs(o2) <= eps && _point_between(p1, p2, p4; eps=eps)
+		return true
+	end
+	if abs(o3) <= eps && _point_between(p3, p4, p1; eps=eps)
+		return true
+	end
+	if abs(o4) <= eps && _point_between(p3, p4, p2; eps=eps)
+		return true
+	end
+	return false
+end
+
+function _polygon_self_intersects(vertices::Vector{Tuple{Float64, Float64}}; eps::Float64=1e-12)
+	n = length(vertices)
+	n < 4 && return false
+	n_edges = vertices[1] == vertices[end] ? n - 1 : n
+	if n_edges < 4
+		return false
+	end
+	for i in 1:n_edges
+		p1 = vertices[i]
+		p2 = vertices[i == n_edges ? 1 : i + 1]
+		for j in i+1:n_edges
+			if abs(i - j) <= 1
+				continue
+			end
+			if i == 1 && j == n_edges
+				continue
+			end
+			q1 = vertices[j]
+			q2 = vertices[j == n_edges ? 1 : j + 1]
+			if _segments_intersect(p1, p2, q1, q2; eps=eps)
+				return true
+			end
+		end
+	end
+	return false
+end
+
+function compute_concave_hull_vertices(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
+	coords = _prepare_hull_points(lon, lat)
+	if length(coords) < 3
+		return nothing
+	end
+	pts = [[p[1], p[2]] for p in coords]
 	try
 		hull = ConcaveHull.concave_hull(pts)
 		verts = [(Float64(p[1]), Float64(p[2])) for p in hull.vertices]
 		if isempty(verts)
-			return nothing
+			@warn "Concave hull returned empty; falling back to convex hull"
+			return _compute_convex_hull_vertices(coords)
 		end
 		if verts[1] != verts[end]
 			push!(verts, verts[1])
 		end
+		if _polygon_self_intersects(verts)
+			@warn "Concave hull self-intersection detected; falling back to convex hull"
+			return _compute_convex_hull_vertices(coords)
+		end
 		return verts
 	catch e
-		@warn "Concave hull computation failed; falling back to bounding box" error=e
-		return nothing
+		@warn "Concave hull computation failed; falling back to convex hull" error=e
+		return _compute_convex_hull_vertices(coords)
 	end
 end
 
@@ -628,6 +735,10 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `location_color::AbstractString="purple"`: Marker color used for the location circles
 - `location_size::Number=10`: Marker diameter for the location circles
 - `location_names::Union{Nothing, AbstractVector}=nothing`: Optional labels plotted next to each location
+- `show_hull::Bool=false`: Overlay the computed hull polygon for debugging
+- `hull_color::AbstractString="magenta"`: Hull trace color when `show_hull=true`
+- `hull_line_width::Number=3`: Line width for the hull outline
+- `hull_opacity::Real=0.35`: Opacity applied to the hull trace
 - `kw...`: Additional keyword arguments passed to the mapbox function
 
 # Example
@@ -641,7 +752,9 @@ p = mapbox_contour(lon, lat, values; resolution=100, power=2, filename="contour_
 function mapbox_contour(
 	lon::AbstractVector{T1},
 	lat::AbstractVector{T1},
-	values::AbstractVector{T2};
+	zvalue::AbstractVector{T2};
+	zmin::Number=minimumnan(zvalue),
+	zmax::Number=maximumnan(zvalue),
 	resolution::Int=50,
 	power::Real=2,
 	smoothing::Real=0.0,
@@ -670,31 +783,59 @@ function mapbox_contour(
 	concave_hull::Bool=true,
 	hull_padding::Real=0.02,
 	extra_margin::Real=0.005,
+	show_hull::Bool=false,
+	hull_color::AbstractString="magenta",
+	hull_line_width::Number=3,
+	hull_opacity::Real=0.35,
 	quiet::Bool=false,
 	kw...
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
-	@assert length(lon) == length(lat) == length(values)
+	@assert length(lon) == length(lat) == length(zvalue)
 
-	# Remove NaN values
-	valid_mask = .!isnan.(lon) .& .!isnan.(lat) .& .!isnan.(values)
+	coord_mask = .!isnan.(lon) .& .!isnan.(lat)
+	lon_coords = lon[coord_mask]
+	lat_coords = lat[coord_mask]
+
+	valid_mask = coord_mask .& .!isnan.(zvalue)
 	lon_clean = lon[valid_mask]
 	lat_clean = lat[valid_mask]
-	values_clean = values[valid_mask]
+	values_clean = zvalue[valid_mask]
+
 	names_clean = nothing
 	if !isempty(location_names)
-		try
-			name_vec = collect(location_names)
-			if length(name_vec) == length(lon)
-				names_clean = name_vec[valid_mask]
-			elseif length(name_vec) == length(lon_clean)
-				names_clean = name_vec
-			else
-				@warn "location_names length does not match lon/lat; skipping labels"
-			end
-		catch e
-			@warn "Failed to process location_names; skipping labels" error=e
+		name_vec = collect(location_names)
+		if length(name_vec) == length(lon)
+			names_clean = name_vec[valid_mask]
+		elseif length(name_vec) == length(lon_clean)
+			names_clean = name_vec
+		else
+			@warn "location_names length does not match lon/lat; skipping labels"
 		end
 	end
+
+	if !isempty(lon_clean)
+		key_map = Dict{Tuple{Float64, Float64}, Tuple{Float64, Int}}()
+		for idx in eachindex(lon_clean)
+			key = (Float64(lon_clean[idx]), Float64(lat_clean[idx]))
+			val = Float64(values_clean[idx])
+			if haskey(key_map, key)
+				stored_val, stored_idx = key_map[key]
+				if val > stored_val
+					key_map[key] = (val, idx)
+				end
+			else
+				key_map[key] = (val, idx)
+			end
+		end
+		indices = sort!([entry[2] for entry in Base.values(key_map)])
+		lon_clean = lon_clean[indices]
+		lat_clean = lat_clean[indices]
+		values_clean = values_clean[indices]
+		if names_clean !== nothing
+			names_clean = names_clean[indices]
+		end
+	end
+
 	if names_clean !== nothing
 		names_clean = string.(names_clean)
 	end
@@ -704,17 +845,30 @@ function mapbox_contour(
 		return nothing
 	end
 
+	zmin_target = float(zmin)
+	zmax_target = float(zmax)
+	if !isfinite(zmin_target)
+		zmin_target = minimumnan(values_clean)
+	end
+	if !isfinite(zmax_target)
+		zmax_target = maximumnan(values_clean)
+	end
+	if zmax_target <= zmin_target
+		@warn "zmax must be greater than zmin; adjusting automatically" zmin=zmin_target zmax=zmax_target
+		zmax_target = zmin_target + max(1e-9, abs(zmin_target) * eps(zmin_target))
+	end
+
 	hull_vertices = nothing
 	if concave_hull
-		hull_vertices = _compute_concave_hull_vertices(lon_clean, lat_clean)
+		hull_vertices = compute_concave_hull_vertices(lon_coords, lat_coords)
 		if hull_vertices === nothing || length(hull_vertices) < 3
 			@info "Concave hull unavailable; reverting to padded bounding box"
 			hull_vertices = nothing
 		end
 	end
 
-	lon_source_raw = hull_vertices === nothing ? lon_clean : first.(hull_vertices)
-	lat_source_raw = hull_vertices === nothing ? lat_clean : last.(hull_vertices)
+	lon_source_raw = hull_vertices === nothing ? lon_coords : first.(hull_vertices)
+	lat_source_raw = hull_vertices === nothing ? lat_coords : last.(hull_vertices)
 	lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
 	lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
 	effective_margin = max(0.0, extra_margin)
@@ -727,11 +881,40 @@ function mapbox_contour(
 			padding_fraction=effective_padding,
 			margin=effective_margin
 		)
+		if _polygon_self_intersects(hull_vertices)
+			@warn "Expanded concave hull self-intersection detected; reverting to convex hull"
+			coords = [(Float64(lon_coords[i]), Float64(lat_coords[i])) for i in eachindex(lon_coords)]
+			if length(coords) >= 3
+				hull_vertices = compute_convex_hull_vertices(coords)
+				if hull_vertices !== nothing && (effective_padding > 0 || effective_margin > 0)
+					hull_vertices = _expand_polygon_vertices(
+						hull_vertices;
+						lon_span=lon_range_raw,
+						lat_span=lat_range_raw,
+						padding_fraction=effective_padding,
+						margin=effective_margin
+					)
+					if _polygon_self_intersects(hull_vertices)
+						@warn "Expanded convex hull still self-intersects; using bounding box"
+						hull_vertices = nothing
+					end
+				end
+			else
+				@warn "Insufficient coordinates for convex hull fallback; using bounding box"
+				hull_vertices = nothing
+			end
+		end
+	end
+	if hull_vertices === nothing
+		lon_source_raw = lon_coords
+		lat_source_raw = lat_coords
+	else
 		lon_source_raw = first.(hull_vertices)
 		lat_source_raw = last.(hull_vertices)
-		lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
-		lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
 	end
+	lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
+	lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
+	hull_plot_vertices = hull_vertices === nothing ? nothing : copy(hull_vertices)
 
 	lon_source = lon_source_raw
 	lat_source = lat_source_raw
@@ -746,18 +929,15 @@ function mapbox_contour(
 	lat_min = minimum(lat_source) - lat_span * padding - margin
 	lat_max = maximum(lat_source) + lat_span * padding + margin
 
-	# Create grid
 	lon_grid = range(lon_min, lon_max, length=resolution)
 	lat_grid = range(lat_min, lat_max, length=resolution)
 
-	# Perform IDW interpolation
 	z_grid = Matrix{Float64}(undef, resolution, resolution)
 	for (i, lat_interp) in enumerate(lat_grid)
 		for (j, lon_interp) in enumerate(lon_grid)
-			# Calculate distances to all data points
 			distances = sqrt.((lon_clean .- lon_interp).^2 .+ (lat_clean .- lat_interp).^2)
 			min_dist = minimum(distances)
-			if min_dist < 1e-10 # Handle case where interpolation point coincides with data point
+			if min_dist < 1e-10
 				closest_idx = findfirst(distances .== min_dist)
 				z_grid[i, j] = values_clean[closest_idx]
 			else
@@ -770,19 +950,17 @@ function mapbox_contour(
 	geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(lon_grid, lat_grid, z_grid; mask_polygon=hull_vertices)
 	traces = PlotlyJS.GenericTrace{Dict{Symbol, Any}}[]
 	if !isempty(geojson_ids)
-		min_val = minimum(geojson_values)
-		max_val = maximum(geojson_values)
 		plot_values = copy(geojson_values)
-		if contour_levels > 1 && max_val > min_val
-			step = (max_val - min_val) / contour_levels
+		plot_values .= clamp.(plot_values, zmin_target, zmax_target)
+		if contour_levels > 1 && zmax_target > zmin_target
+			step = (zmax_target - zmin_target) / contour_levels
 			if step > 0
 				for idx in eachindex(plot_values)
-					plot_values[idx] = min_val + round((geojson_values[idx] - min_val) / step) * step
+					level = zmin_target + round((plot_values[idx] - zmin_target) / step) * step
+					plot_values[idx] = clamp(level, zmin_target, zmax_target)
 				end
 			end
 		end
-		zmin = min_val
-		zmax = max_val == min_val ? min_val + 1e-9 : max_val
 		choropleth_trace = PlotlyJS.choroplethmapbox(
 			geojson=geojson_tiles,
 			locations=geojson_ids,
@@ -791,8 +969,8 @@ function mapbox_contour(
 			featureidkey="id",
 			colorscale=NMFk.colorscale(colorscale),
 			opacity=opacity,
-			zmin=zmin,
-			zmax=zmax,
+			zmin=zmin_target,
+			zmax=zmax_target,
 			marker=PlotlyJS.attr(line=PlotlyJS.attr(width=0)),
 			colorbar=PlotlyJS.attr(
 				thickness=30, len=0.5,
@@ -827,8 +1005,10 @@ function mapbox_contour(
 				mode="markers",
 				marker=PlotlyJS.attr(
 					size=10,
-					color=fallback_vals,
+					color=clamp.(fallback_vals, zmin_target, zmax_target),
 					colorscale=NMFk.colorscale(colorscale),
+					cmin=zmin_target,
+					cmax=zmax_target,
 					opacity=opacity,
 					colorbar=PlotlyJS.attr(
 						thickness=30, len=0.5,
@@ -845,7 +1025,6 @@ function mapbox_contour(
 		end
 	end
 
-	# Add location markers if requested
 	if show_locations && !isempty(lon_clean)
 		marker_attr = PlotlyJS.attr(
 			size=location_size,
@@ -880,7 +1059,29 @@ function mapbox_contour(
 		push!(traces, location_trace)
 	end
 
-	# Create layout
+	if show_hull && hull_plot_vertices !== nothing
+		hull_lon = first.(hull_plot_vertices)
+		hull_lat = last.(hull_plot_vertices)
+		if isempty(hull_lon)
+			@warn "Hull visualization requested but polygon is empty"
+		else
+			if hull_lon[end] != hull_lon[1] || hull_lat[end] != hull_lat[1]
+				push!(hull_lon, hull_lon[1])
+				push!(hull_lat, hull_lat[1])
+			end
+			hull_trace = PlotlyJS.scattermapbox(
+				lon=hull_lon,
+				lat=hull_lat,
+				mode="lines",
+				line=PlotlyJS.attr(color=hull_color, width=hull_line_width),
+				opacity=hull_opacity,
+				name="Mask Hull",
+				showlegend=false
+			)
+			push!(traces, hull_trace)
+		end
+	end
+
 	layout = plotly_layout(
 		lonc, latc, zoom;
 		width=width,
@@ -891,12 +1092,9 @@ function mapbox_contour(
 		mapbox_token=mapbox_token
 	)
 
-	# Create plot
 	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
-	# Display plot
 	!quiet && display(p)
 
-	# Save if filename provided
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
