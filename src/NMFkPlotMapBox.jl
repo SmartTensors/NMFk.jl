@@ -4,6 +4,7 @@ import Interpolations
 import NearestNeighbors
 import Statistics
 import ConcaveHull
+import Printf
 
 mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
 
@@ -493,6 +494,30 @@ function _point_in_polygon(pt::Tuple{Float64, Float64}, polygon::Vector{Tuple{Fl
 	return inside
 end
 
+function _colorbar_tick_values(zmin::Float64, zmax::Float64; count::Int=5)
+	if !isfinite(zmin) || !isfinite(zmax)
+		return [zmin, zmax]
+	end
+	if isapprox(zmin, zmax; atol=1e-12, rtol=1e-12)
+		return [zmin]
+	end
+	count = max(2, count)
+	return collect(range(zmin, zmax; length=count))
+end
+
+function _colorbar_tick_labels(values::Vector{Float64})
+	return [
+		let abs_v = abs(val)
+			if abs_v >= 1e3 || (abs_v > 0 && abs_v < 1e-2)
+				Printf.@sprintf("%.2e", val)
+			else
+				string(round(val; sigdigits=4))
+			end
+		end
+		for val in values
+	]
+end
+
 function _prepare_hull_points(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
 	coords = Vector{Tuple{Float64, Float64}}()
 	for i in eachindex(lon)
@@ -857,6 +882,18 @@ function mapbox_contour(
 		@warn "zmax must be greater than zmin; adjusting automatically" zmin=zmin_target zmax=zmax_target
 		zmax_target = zmin_target + max(1e-9, abs(zmin_target) * eps(zmin_target))
 	end
+	colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
+	colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
+	colorbar_attr = PlotlyJS.attr(
+		thickness=30,
+		len=0.5,
+		title=title_colorbar,
+		titlefont=PlotlyJS.attr(size=font_size),
+		tickfont=PlotlyJS.attr(size=font_size),
+		tickmode="array",
+		tickvals=colorbar_ticks,
+		ticktext=colorbar_tick_labels
+	)
 
 	hull_vertices = nothing
 	if concave_hull
@@ -972,12 +1009,7 @@ function mapbox_contour(
 			zmin=zmin_target,
 			zmax=zmax_target,
 			marker=PlotlyJS.attr(line=PlotlyJS.attr(width=0)),
-			colorbar=PlotlyJS.attr(
-				thickness=30, len=0.5,
-				title=title_colorbar,
-				titlefont=PlotlyJS.attr(size=font_size),
-				tickfont=PlotlyJS.attr(size=font_size)
-			),
+			colorbar=colorbar_attr,
 			hovertemplate="<b>Value:</b> %{customdata:.3f}<extra></extra>",
 			name="Interpolated Field",
 			showscale=true,
@@ -1010,12 +1042,7 @@ function mapbox_contour(
 					cmin=zmin_target,
 					cmax=zmax_target,
 					opacity=opacity,
-					colorbar=PlotlyJS.attr(
-						thickness=30, len=0.5,
-						title=title_colorbar,
-						titlefont=PlotlyJS.attr(size=font_size),
-						tickfont=PlotlyJS.attr(size=font_size)
-					)
+					colorbar=colorbar_attr
 				),
 				hovertemplate="<b>Lon:</b> %{lon}<br><b>Lat:</b> %{lat}<br><b>Value:</b> %{marker.color}<extra></extra>",
 				showlegend=false,
