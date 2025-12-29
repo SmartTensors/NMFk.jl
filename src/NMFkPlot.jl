@@ -622,7 +622,7 @@ function sankey(c1::AbstractVector, c2::AbstractVector, t1::AbstractString, t2::
 	s = PlotlyJS.plot(PlotlyJS.sankey(; node_label=nn, link_source=ns, link_target=nt, link_value=v))
 	if filename != ""
 		recursivemkdir(ffilenamen)
-		PlotlyJS.savefig(p, filename; format=format)
+		safe_savefig(p, filename; format=format)
 	end
 	return s
 end
@@ -666,7 +666,7 @@ function sankey(c1::AbstractVector, c2::AbstractVector, c3::AbstractVector, t1::
 	s = PlotlyJS.plot(PlotlyJS.sankey(; node_label=nn, link_source=ns, link_target=nt, link_value=v))
 	if filename != ""
 		recursivemkdir(ffilenamen)
-		PlotlyJS.savefig(p, filename; format=format)
+		safe_savefig(p, filename; format=format)
 	end
 	return s
 end
@@ -705,7 +705,7 @@ function sankey(cc::AbstractVector, tt::AbstractVector; filename::AbstractString
 	s = PlotlyJS.plot(PlotlyJS.sankey(; node_label=nn, link_source=ns, link_target=nt, link_value=v))
 	if filename != ""
 		recursivemkdir(ffilenamen)
-		PlotlyJS.savefig(p, filename; format=format)
+		safe_savefig(p, filename; format=format)
 	end
 	return s
 end

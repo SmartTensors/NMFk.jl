@@ -5,6 +5,21 @@ import NearestNeighbors
 import Statistics
 import ConcaveHull
 import Printf
+import PlotlyKaleido
+
+function safe_savefig(args...; kwargs...)
+    try
+        safe_savefig(args...; kwargs...)
+    catch err
+        if err isa InterruptException
+            @info "Save interrupted – restarting Kaleido"
+            PlotlyKaleido.restart()
+            rethrow()
+        else
+            rethrow()
+        end
+    end
+end
 
 mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
 
@@ -158,7 +173,7 @@ function mapbox(
 		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 	show_colorbar = style_mapbox_traces!(traces, legend; line_color=line_color, line_width=line_width, marker_color=marker_color, marker_size=marker_size)
 	if colorbar && show_colorbar
@@ -262,7 +277,7 @@ function mapbox(
 		layout = plotly_layout(lonc, latc, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(color)))
@@ -788,7 +803,7 @@ function mapbox_contour(
 	resolution::Int=50,
 	power::Real=2,
 	smoothing::Real=0.0,
-	contour_levels::Int=10,
+	contour_levels::Int=20,
 	filename::AbstractString="",
 	title::AbstractString="",
 	title_colorbar::AbstractString=title,
@@ -1154,7 +1169,7 @@ function mapbox_contour(
 
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 
 	return p

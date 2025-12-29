@@ -45,7 +45,7 @@ function plot_wells(filename::AbstractString, ar...; figuredir::AbstractString="
 	end
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p, fn; format=format)
+		safe_savefig(p, fn; format=format)
 	end
 	return p
 end

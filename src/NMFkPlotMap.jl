@@ -222,7 +222,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	if filename != ""
 		p_fig = PlotlyJS.plot(trace_fig(marker_size_fig, font_size_fig), layout_fig(font_size_fig))
 		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p_fig, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p_fig, fn; format=format, width=width, height=height, scale=scale)
 	end
 	p = PlotlyJS.plot(trace_fig(marker_size, font_size), layout_fig(font_size))
 	return p
@@ -261,7 +261,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 	p = PlotlyJS.plot(traces, layout)
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
-		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
 	return p
 end
