@@ -396,7 +396,13 @@ function mapbox_colorbar_attr(
 )
 	processed_title = plotly_title_length(title, title_length)
 	bold_title = bold ? "<b>" * processed_title * "</b>" : processed_title
-	effective_family = (bold && !occursin(r"(?i)bold", font_family)) ? string(font_family, " Bold") : font_family
+	base_family = isempty(strip(font_family)) ? "Arial" : font_family
+	effective_family = if bold
+		occursin(r"(?i)bold", base_family) ? base_family : string(base_family, " Bold, ", base_family)
+	else
+		base_family
+	end
+	effective_family = string(effective_family, ", sans-serif")
 	title_font = PlotlyJS.attr(; size=font_size, color=font_color, family=effective_family)
 	tick_font = PlotlyJS.attr(; size=font_size, color=font_color, family=effective_family)
 	return PlotlyJS.attr(
