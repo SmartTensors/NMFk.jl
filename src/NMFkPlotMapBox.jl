@@ -409,6 +409,9 @@ function mapbox_colorbar_attr(
 	kwargs...
 )
 	processed_title = plotly_title_length(title, title_length)
+	if !isempty(strip(processed_title))
+		processed_title *= "<br>&nbsp;<br>"
+	end
 	bold_title = bold ? "<b>" * processed_title * "</b>" : processed_title
 	base_family = isempty(strip(font_family)) ? "Arial" : font_family
 	effective_family = if bold
