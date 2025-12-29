@@ -127,7 +127,16 @@ function mapbox(
 	traces::AbstractVector=[],
 	traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false),
 	colorscale::Symbol=:rainbow,
-	paper_bgcolor::AbstractString="#FFF",
+	colorbar_bgcolor::AbstractString="#5a5a5a",
+	colorbar_bgcolor_fig::AbstractString=colorbar_bgcolor,
+	colorbar_font_color::AbstractString="white",
+	colorbar_font_color_fig::AbstractString=colorbar_font_color,
+	colorbar_font_family::AbstractString="Arial Bold",
+	colorbar_font_family_fig::AbstractString=colorbar_font_family,
+	colorbar_font_size::Number=font_size,
+	colorbar_font_size_fig::Number=font_size_fig,
+	paper_bgcolor::AbstractString=colorbar_bgcolor,
+	paper_bgcolor_fig::AbstractString=paper_bgcolor,
 	showcount::Bool=true
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
@@ -139,95 +148,25 @@ function mapbox(
 	traces = check_traces(traces, traces_setup)
 	sort_color = sortpermnan(color)
 	if filename != ""
-		show_colorbar = true
-		for t in traces
-			if haskey(t.fields, :line)
-				(line_color != "") && (t.fields[:line][:color] = line_color)
-				(line_width_fig > 0) && (t.fields[:line][:width] = line_width_fig)
-			end
-			if haskey(t.fields, :marker)
-				(marker_color != "") && (t.fields[:marker][:color] = marker_color)
-				(marker_size_fig > 0) && (t.fields[:marker][:size] = marker_size_fig)
-			end
-			if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
-				show_colorbar = !legend
-				if !legend
-					t.fields[:showlegend] = false
-				end
-			end
-		end
-		if colorbar && show_colorbar
-			colorbar_attr = PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(; size=font_size_fig, color=font_color_fig), tickfont=PlotlyJS.attr(; size=font_size_fig, color=font_color_fig))
+		show_colorbar_fig = style_mapbox_traces!(traces, legend; line_color=line_color, line_width=line_width_fig, marker_color=marker_color, marker_size=marker_size_fig)
+		if colorbar && show_colorbar_fig
+			colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size_fig, font_color=colorbar_font_color_fig, font_family=colorbar_font_family_fig, bgcolor=colorbar_bgcolor_fig)
 		else
 			colorbar_attr = PlotlyJS.attr()
 		end
-		marker = PlotlyJS.attr(;
-			size=dot_size_fig,
-			color=color[sort_color],
-			colorscale=NMFk.colorscale(colorscale),
-			cmin=zmin,
-			cmax=zmax,
-			colorbar=colorbar_attr
-		)
-		plot = PlotlyJS.scattermapbox(;
-			lon=lon[sort_color],
-			lat=lat[sort_color],
-			text=text[sort_color],
-			mode=showlabels ? "markers+text" : "markers",
-			hoverinfo="text",
-			marker=marker,
-			textposition=label_position,
-			textfont=PlotlyJS.attr(; size=label_font_size_fig, color=label_font_color_fig),
-			attributionControl=false,
-			showlegend=false
-		)
-		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, mapbox_token=mapbox_token)
+		plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size_fig, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size_fig, label_font_color=label_font_color_fig, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
+		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		PlotlyJS.savefig(p, fn; format=format, width=width, height=height, scale=scale)
 	end
-	show_colorbar = true
-	for t in traces
-		if haskey(t.fields, :line)
-			(line_color != "") && (t.fields[:line][:color] = line_color)
-			(line_width > 0) && (t.fields[:line][:width] = line_width)
-		end
-		if haskey(t.fields, :marker)
-			(marker_color != "") && (t.fields[:marker][:color] = marker_color)
-			(marker_size > 0) && (t.fields[:marker][:size] = marker_size)
-		end
-		if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
-			show_colorbar = !legend
-			if !legend
-				t.fields[:showlegend] = false
-			end
-		end
-	end
+	show_colorbar = style_mapbox_traces!(traces, legend; line_color=line_color, line_width=line_width, marker_color=marker_color, marker_size=marker_size)
 	if colorbar && show_colorbar
-		colorbar_attr = PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(title_colorbar, title_length), titlefont=PlotlyJS.attr(; size=font_size, color=font_color), tickfont=PlotlyJS.attr(; size=font_size, color=font_color))
+		colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor)
 	else
 		colorbar_attr = PlotlyJS.attr()
 	end
-	marker = PlotlyJS.attr(;
-		size=dot_size,
-		color=color[sort_color],
-		cmin=zmin,
-		cmax=zmax,
-		colorscale=NMFk.colorscale(colorscale),
-		colorbar=colorbar_attr
-	)
-	plot = PlotlyJS.scattermapbox(;
-		lon=lon[sort_color],
-		lat=lat[sort_color],
-		text=text[sort_color],
-		mode=showlabels ? "markers+text" : "markers",
-		hoverinfo="text",
-		marker=marker,
-		textposition=label_position,
-		textfont=PlotlyJS.attr(; size=label_font_size, color=label_font_color),
-		attributionControl=false,
-		showlegend=false
-	)
+	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
 	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	return p
@@ -421,6 +360,65 @@ function plotly_title_length(title::AbstractString, length::Number)
 		title_adjusted = join(title_vector, "<br>")
 		return title_adjusted
 	end
+end
+
+const _DEFAULT_COLORBAR_THICKNESS = 30
+const _DEFAULT_COLORBAR_LEN = 0.5
+
+function mapbox_colorbar_attr(
+	title::AbstractString,
+	title_length::Number;
+	font_size::Number,
+	font_color::AbstractString,
+	font_family::AbstractString,
+	bgcolor::AbstractString,
+	thickness::Number=_DEFAULT_COLORBAR_THICKNESS,
+	len::Real=_DEFAULT_COLORBAR_LEN,
+	kwargs...
+)
+	processed_title = plotly_title_length(title, title_length)
+	return PlotlyJS.attr(; thicknessmode="pixels", thickness=thickness, len=len, bgcolor=bgcolor, title=processed_title, titlefont=PlotlyJS.attr(; size=font_size, color=font_color, family=font_family), tickfont=PlotlyJS.attr(; size=font_size, color=font_color, family=font_family), kwargs...)
+end
+
+function style_mapbox_traces!(traces::AbstractVector, legend::Bool; line_color::AbstractString="", line_width::Number=0, marker_color::AbstractString="", marker_size::Number=0)
+	show_colorbar = true
+	for t in traces
+		if haskey(t.fields, :line)
+			(line_color != "") && (t.fields[:line][:color] = line_color)
+			(line_width > 0) && (t.fields[:line][:width] = line_width)
+		end
+		if haskey(t.fields, :marker)
+			(marker_color != "") && (t.fields[:marker][:color] = marker_color)
+			(marker_size > 0) && (t.fields[:marker][:size] = marker_size)
+		end
+		if haskey(t.fields, :showlegend) && t.fields[:showlegend] == true
+			show_colorbar = !legend
+			if !legend
+				t.fields[:showlegend] = false
+			end
+		end
+	end
+	return show_colorbar
+end
+
+function build_scatter_trace(
+	lon::AbstractVector,
+	lat::AbstractVector,
+	text::AbstractVector,
+	color::AbstractVector,
+	sort_idx::AbstractVector{<:Integer};
+	dot_size::Number,
+	showlabels::Bool,
+	label_position::AbstractString,
+	label_font_size::Number,
+	label_font_color::AbstractString,
+	colorbar_attr,
+	zmin::Number,
+	zmax::Number,
+	colorscale::Symbol
+)
+	marker = PlotlyJS.attr(; size=dot_size, color=color[sort_idx], colorscale=NMFk.colorscale(colorscale), cmin=zmin, cmax=zmax, colorbar=colorbar_attr)
+	return PlotlyJS.scattermapbox(; lon=lon[sort_idx], lat=lat[sort_idx], text=text[sort_idx], mode=showlabels ? "markers+text" : "markers", hoverinfo="text", marker=marker, textposition=label_position, textfont=PlotlyJS.attr(; size=label_font_size, color=label_font_color), attributionControl=false, showlegend=false)
 end
 
 function compute_zoom_dot_size(x::AbstractVector, y::AbstractVector)
@@ -750,8 +748,14 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `filename::AbstractString=""`: Output filename for saving the plot
 - `title::AbstractString=""`: Plot title
 - `title_colorbar::AbstractString=title`: Colorbar title
+- `title_length::Number=0`: Non-breaking space padding inserted ahead of the colorbar title to widen the right margin
 - `colorscale::Symbol=:turbo`: Color scale for the heatmap
 - `opacity::Real=0.7`: Opacity of the contour layer
+- `colorbar_bgcolor::AbstractString="#5a5a5a"`: Background color for the colorbar
+- `colorbar_font_color::AbstractString="white"`: Color for colorbar title and tick labels
+- `colorbar_font_family::AbstractString="Arial Bold"`: Font family for colorbar text
+- `colorbar_font_size::Number=font_size`: Font size for the colorbar title and ticks
+- `paper_bgcolor::AbstractString=colorbar_bgcolor`: Canvas background color for the plot
 - `show_points::Bool=false`: Whether to show original data points
 - `concave_hull::Bool=true`: If true, derive extent/masking from a ConcaveHull envelope
 - `hull_padding::Real=0.02`: Fractional padding applied to the concave hull shape itself
@@ -789,6 +793,7 @@ function mapbox_contour(
 	title::AbstractString="",
 	title_colorbar::AbstractString=title,
 	colorscale::Symbol=:turbo,
+	title_length::Number=0,
 	opacity::Real=0.7,
 	show_locations::Bool=true,
 	location_color::AbstractString="purple",
@@ -807,6 +812,11 @@ function mapbox_contour(
 	height::Int=dpi * 7,
 	scale::Real=1,
 	font_size::Number=14,
+	colorbar_bgcolor::AbstractString="#5a5a5a",
+	colorbar_font_color::AbstractString="white",
+	colorbar_font_family::AbstractString="Arial Bold",
+	colorbar_font_size::Number=font_size,
+	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	concave_hull::Bool=true,
 	hull_padding::Real=0.02,
 	extra_margin::Real=0.005,
@@ -897,16 +907,7 @@ function mapbox_contour(
 	end
 	colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
 	colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
-	colorbar_attr = PlotlyJS.attr(
-		thickness=30,
-		len=0.5,
-		title=title_colorbar,
-		titlefont=PlotlyJS.attr(size=font_size),
-		tickfont=PlotlyJS.attr(size=font_size),
-		tickmode="array",
-		tickvals=colorbar_ticks,
-		ticktext=colorbar_tick_labels
-	)
+	colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
 
 	hull_vertices = nothing
 	if concave_hull
@@ -1143,6 +1144,7 @@ function mapbox_contour(
 		height=height,
 		title=title,
 		font_size=font_size,
+		paper_bgcolor=paper_bgcolor,
 		style=style,
 		mapbox_token=mapbox_token
 	)
