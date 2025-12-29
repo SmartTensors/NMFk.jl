@@ -23,6 +23,18 @@ end
 
 mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
 
+function ensure_mapbox_token!(token)
+	if token isa AbstractString
+		token = strip(token)
+		if !isempty(token)
+			current = get(ENV, "MAPBOX_ACCESS_TOKEN", nothing)
+			if current !== token
+				ENV["MAPBOX_ACCESS_TOKEN"] = token
+			end
+		end
+	end
+end
+
 regex_lon = r"^[Xx]$|^[Ll]on$|^LONGITUDE$|^LON$|^[Ll]ongitude$" # regex for longitude
 regex_lat = r"^[Yy]$|^[Ll]at$|^LATITUDE$|^LAT$|^[Ll]atitude$" # regex for latitude
 
@@ -141,7 +153,7 @@ function mapbox(
 	colorbar::Bool=legend,
 	traces::AbstractVector=[],
 	traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false),
-	colorscale::Symbol=:rainbow,
+	colorscale::Symbol=:turbo,
 	colorbar_bgcolor::AbstractString="#5a5a5a",
 	colorbar_bgcolor_fig::AbstractString=colorbar_bgcolor,
 	colorbar_font_color::AbstractString="white",
@@ -159,6 +171,7 @@ function mapbox(
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
+	ensure_mapbox_token!(mapbox_token)
 	if title == title_colorbar
 		title = ""
 	end
@@ -171,7 +184,7 @@ function mapbox(
 		else
 			colorbar_attr = PlotlyJS.attr()
 		end
-		plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size_fig, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size_fig, label_font_color=label_font_color_fig, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
+		plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size_fig, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size_fig, label_font_color=label_font_color_fig, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=NMFk.colorscale(colorscale))
 		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
@@ -183,7 +196,7 @@ function mapbox(
 	else
 		colorbar_attr = PlotlyJS.attr()
 	end
-	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
+	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=NMFk.colorscale(colorscale))
 	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	return p
@@ -232,13 +245,14 @@ function mapbox(
 	traces::AbstractVector=[],
 	traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false),
 	showlegend=false,
-	colorscale::Symbol=:rainbow,
+	colorscale::Symbol=:turbo,
 	paper_bgcolor::AbstractString="white",
 	showcount::Bool=true
 ) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
+	ensure_mapbox_token!(mapbox_token)
 	if title == title_colorbar
 		title = ""
 	end
@@ -539,17 +553,43 @@ function _colorbar_tick_values(zmin::Float64, zmax::Float64; count::Int=5)
 	return collect(range(zmin, zmax; length=count))
 end
 
+
+_strip_trailing_zeros(str::AbstractString) = begin
+	pos = Base.findfirst(==('.'), str)
+	if isnothing(pos)
+		return str
+	end
+	trimmed = replace(str, r"0+$" => "")
+	trimmed = replace(trimmed, r"\.$" => "")
+	return isempty(trimmed) ? "0" : trimmed
+end
+
+function _format_decimal_label(val::Float64)
+	!isfinite(val) && return string(val)
+	str = Printf.@sprintf("%.6f", val)
+	return _strip_trailing_zeros(str)
+end
+
+function _format_scientific_label(val::Float64)
+	!isfinite(val) && return string(val)
+	val == 0 && return "0"
+	str = lowercase(Printf.@sprintf("%.4e", val))
+	parts = split(str, 'e')
+	mant = _strip_trailing_zeros(parts[1])
+	exp = parse(Int, parts[2])
+	return string(mant, "e", exp)
+end
+
 function _colorbar_tick_labels(values::Vector{Float64})
-	return [
-		let abs_v = abs(val)
-			if abs_v >= 1e3 || (abs_v > 0 && abs_v < 1e-2)
-				Printf.@sprintf("%.2e", val)
-			else
-				string(round(val; sigdigits=4))
-			end
-		end
-		for val in values
-	]
+	finite_vals = filter(isfinite, values)
+	formatter = if isempty(finite_vals)
+		val -> string(val)
+	elseif any(v -> abs(v) >= 1e4 || (abs(v) > 0 && abs(v) < 1e-2), finite_vals)
+		_format_scientific_label
+	else
+		_format_decimal_label
+	end
+	return [formatter(val) for val in values]
 end
 
 function _prepare_hull_points(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
@@ -866,6 +906,7 @@ function mapbox_contour(
 	kw...
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat) == length(zvalue)
+	ensure_mapbox_token!(mapbox_token)
 
 	coord_mask = .!isnan.(lon) .& .!isnan.(lat)
 	lon_coords = lon[coord_mask]

@@ -216,7 +216,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 			lat=lat,
 			hoverinfo="text",
 			text=text,
-			marker=PlotlyJS.attr(; size=marker_size, color=color, colorscale=NMFk.colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, tickfont_size=font_size), line_width=0, line_color="black"))
+			marker=PlotlyJS.attr(; size=marker_size, color=color, colorscale=NMFk.colorscale(:turbo), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, tickfont_size=font_size), line_width=0, line_color="black"))
 		return trace
 	end
 	if filename != ""

@@ -124,7 +124,7 @@ Popular options include:
 - `:hot` - Traditional heat map colors
 - `:plasma` - High contrast, good for presentations
 - `:terrain` - Natural colors for elevation/geological data
-- `:rainbow` - Full spectrum (use cautiously)
+- `:turbo` - Full spectrum (use cautiously)
 
 ## Performance Considerations
 

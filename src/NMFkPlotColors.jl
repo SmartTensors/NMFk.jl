@@ -15,11 +15,11 @@ function colorscale(scheme::Symbol=:turbo; N::Integer=101, flip::Bool=false)
 		flip = true
 	end
 	x = permutedims(0.0:(1.0/(N - 1)):1.0)
-	if flip
-		x = reverse(x)
-	end
 	cs = get(ColorSchemes.colorschemes[scheme], x, :clamp)
 	cs_rgb = Colors.RGB.(cs)
+	if flip
+		cs_rgb = reverse(cs_rgb)
+	end
 	return vcat(x, cs_rgb)
 end
 

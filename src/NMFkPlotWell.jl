@@ -12,7 +12,7 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 	l = isnothing(label) ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
 	if eltype(z) <: AbstractFloat
 		h = isnothing(hover) ? Dict() : Dict(:hovertext=>hover, :hoverinfo=>"text")
-		p = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=PlotlyJS.attr(; size=pointsize, color=z, colorscale=colorscale(:rainbow), colorbar=PlotlyJS.attr(; thickness=20)), h...)
+		p = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=PlotlyJS.attr(; size=pointsize, color=z, colorscale=colorscale(:turbo), colorbar=PlotlyJS.attr(; thickness=20)), h...)
 	else
 		dots = []
 		uz = unique(sort(z))
