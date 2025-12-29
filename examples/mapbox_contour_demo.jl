@@ -64,7 +64,7 @@ p3a = NMFk.mapbox_contour(
     power=5,                # High power = more localized
     title="High Power (p=5) - Localized",
     title_colorbar="Concentration",
-    colorscale=:viridis,
+    colorscale=:turbo,
     filename="concentration_high_power.html"
 )
 
@@ -75,7 +75,7 @@ p3b = NMFk.mapbox_contour(
     power=1,                # Low power = smoother
     title="Low Power (p=1) - Smooth",
     title_colorbar="Concentration",
-    colorscale=:viridis,
+    colorscale=:turbo,
     filename="concentration_low_power.html"
 )
 
@@ -109,7 +109,7 @@ println("- resolution: Controls smoothness (higher = smoother but slower)")
 println("- power: IDW power parameter (higher = more localized)")
 println("- opacity: Transparency of contour layer (0-1)")
 println("- show_points: Whether to display original data points")
-println("- colorscale: Color scheme (:viridis, :hot, :plasma, :terrain, etc.)")
+println("- colorscale: Color scheme (:turbo, :hot, :plasma, :terrain, etc.)")
 
 println("\nAvailable functions:")
 println("- mapbox_contour: Advanced version with density-based rendering")

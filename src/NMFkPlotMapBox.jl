@@ -750,7 +750,7 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `filename::AbstractString=""`: Output filename for saving the plot
 - `title::AbstractString=""`: Plot title
 - `title_colorbar::AbstractString=title`: Colorbar title
-- `colorscale::Symbol=:viridis`: Color scale for the heatmap
+- `colorscale::Symbol=:turbo`: Color scale for the heatmap
 - `opacity::Real=0.7`: Opacity of the contour layer
 - `show_points::Bool=false`: Whether to show original data points
 - `concave_hull::Bool=true`: If true, derive extent/masking from a ConcaveHull envelope
@@ -788,7 +788,7 @@ function mapbox_contour(
 	filename::AbstractString="",
 	title::AbstractString="",
 	title_colorbar::AbstractString=title,
-	colorscale::Symbol=:viridis,
+	colorscale::Symbol=:turbo,
 	opacity::Real=0.7,
 	show_locations::Bool=true,
 	location_color::AbstractString="purple",

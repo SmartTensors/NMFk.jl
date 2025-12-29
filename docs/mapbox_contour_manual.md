@@ -29,7 +29,7 @@ Creates a continuous contour heatmap from longitude, latitude, and value vectors
 - `power::Real=2`: IDW power parameter (higher = more localized)
 - `smoothing::Real=0.0`: Smoothing parameter for interpolation
 - `show_points::Bool=false`: Whether to show original data points
-- `colorscale::Symbol=:viridis`: Color scheme
+- `colorscale::Symbol=:turbo`: Color scheme
 - `opacity::Real=0.7`: Transparency of contour layer
 - `filename::AbstractString=""`: Output filename
 
@@ -120,7 +120,7 @@ p = NMFk.mapbox_contour(lon, lat, values;
 
 ### Color Scales
 Popular options include:
-- `:viridis` - Perceptually uniform, good for scientific data
+- `:turbo` - Perceptually uniform, good for scientific data
 - `:hot` - Traditional heat map colors
 - `:plasma` - High contrast, good for presentations
 - `:terrain` - Natural colors for elevation/geological data

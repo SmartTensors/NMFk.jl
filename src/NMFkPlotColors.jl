@@ -2,8 +2,18 @@ import Gadfly
 import Colors
 import ColorSchemes
 
-function colorscale(scheme::Symbol; N = 101)
+# Generate a colorscale array for use in plotting libraries that accept colorscales
+# Good options:
+# :viridis, :turbo, :RdYlGn, :GnYlRd
+function colorscale(scheme::Symbol=:turbo; N::Integer=101, flip::Bool=false)
+	if scheme == :GnYlRd
+		scheme = :RdYlGn
+		flip = true
+	end
 	x = permutedims(0.0:(1.0/(N - 1)):1.0)
+	if flip
+		x = reverse(x)
+	end
 	cs = get(ColorSchemes.colorschemes[scheme], x, :clamp)
 	cs_rgb = Colors.RGB.(cs)
 	return vcat(x, cs_rgb)
@@ -669,6 +679,7 @@ gist_ncar = [0  0 128;
  254 248 254;
  255 255 255];
 
+ # Gadfly colormaps
 colormap_rbwlong = Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rbwlong_ncar[i, :]...) for i=axes(rbwlong_ncar, 1)]...)
 colormap_ncar = Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rgb_ncar[i, :]./255...) for i=axes(rgb_ncar, 1)]...)
 colormap_gist = Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(gist_ncar[i, :]./255...) for i=axes(gist_ncar, 1)]...)
