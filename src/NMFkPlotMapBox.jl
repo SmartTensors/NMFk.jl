@@ -146,10 +146,12 @@ function mapbox(
 	colorbar_bgcolor_fig::AbstractString=colorbar_bgcolor,
 	colorbar_font_color::AbstractString="white",
 	colorbar_font_color_fig::AbstractString=colorbar_font_color,
-	colorbar_font_family::AbstractString="Arial Bold",
+	colorbar_font_family::AbstractString="Arial",
 	colorbar_font_family_fig::AbstractString=colorbar_font_family,
 	colorbar_font_size::Number=font_size,
 	colorbar_font_size_fig::Number=font_size_fig,
+	colorbar_font_bold::Bool=true,
+	colorbar_font_bold_fig::Bool=colorbar_font_bold,
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	paper_bgcolor_fig::AbstractString=paper_bgcolor,
 	showcount::Bool=true
@@ -165,7 +167,7 @@ function mapbox(
 	if filename != ""
 		show_colorbar_fig = style_mapbox_traces!(traces, legend; line_color=line_color, line_width=line_width_fig, marker_color=marker_color, marker_size=marker_size_fig)
 		if colorbar && show_colorbar_fig
-			colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size_fig, font_color=colorbar_font_color_fig, font_family=colorbar_font_family_fig, bgcolor=colorbar_bgcolor_fig)
+			colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size_fig, font_color=colorbar_font_color_fig, font_family=colorbar_font_family_fig, bgcolor=colorbar_bgcolor_fig, bold=colorbar_font_bold_fig)
 		else
 			colorbar_attr = PlotlyJS.attr()
 		end
@@ -177,7 +179,7 @@ function mapbox(
 	end
 	show_colorbar = style_mapbox_traces!(traces, legend; line_color=line_color, line_width=line_width, marker_color=marker_color, marker_size=marker_size)
 	if colorbar && show_colorbar
-		colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor)
+		colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold)
 	else
 		colorbar_attr = PlotlyJS.attr()
 	end
@@ -389,10 +391,23 @@ function mapbox_colorbar_attr(
 	bgcolor::AbstractString,
 	thickness::Number=_DEFAULT_COLORBAR_THICKNESS,
 	len::Real=_DEFAULT_COLORBAR_LEN,
+	bold::Bool=true,
 	kwargs...
 )
 	processed_title = plotly_title_length(title, title_length)
-	return PlotlyJS.attr(; thicknessmode="pixels", thickness=thickness, len=len, bgcolor=bgcolor, title=processed_title, titlefont=PlotlyJS.attr(; size=font_size, color=font_color, family=font_family), tickfont=PlotlyJS.attr(; size=font_size, color=font_color, family=font_family), kwargs...)
+	bold_title = bold ? "<b>" * processed_title * "</b>" : processed_title
+	effective_family = (bold && !occursin(r"(?i)bold", font_family)) ? string(font_family, " Bold") : font_family
+	title_font = PlotlyJS.attr(; size=font_size, color=font_color, family=effective_family)
+	tick_font = PlotlyJS.attr(; size=font_size, color=font_color, family=effective_family)
+	return PlotlyJS.attr(
+		; thicknessmode="pixels",
+		thickness=thickness,
+		len=len,
+		bgcolor=bgcolor,
+		title=PlotlyJS.attr(; text=bold_title, font=title_font),
+		tickfont=tick_font,
+		kwargs...
+	)
 end
 
 function style_mapbox_traces!(traces::AbstractVector, legend::Bool; line_color::AbstractString="", line_width::Number=0, marker_color::AbstractString="", marker_size::Number=0)
@@ -768,7 +783,8 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `opacity::Real=0.7`: Opacity of the contour layer
 - `colorbar_bgcolor::AbstractString="#5a5a5a"`: Background color for the colorbar
 - `colorbar_font_color::AbstractString="white"`: Color for colorbar title and tick labels
-- `colorbar_font_family::AbstractString="Arial Bold"`: Font family for colorbar text
+- `colorbar_font_family::AbstractString="Arial"`: Base font family for colorbar text
+- `colorbar_font_bold::Bool=true`: Whether to render colorbar title/tick labels in bold
 - `colorbar_font_size::Number=font_size`: Font size for the colorbar title and ticks
 - `paper_bgcolor::AbstractString=colorbar_bgcolor`: Canvas background color for the plot
 - `show_points::Bool=false`: Whether to show original data points
@@ -829,7 +845,8 @@ function mapbox_contour(
 	font_size::Number=14,
 	colorbar_bgcolor::AbstractString="#5a5a5a",
 	colorbar_font_color::AbstractString="white",
-	colorbar_font_family::AbstractString="Arial Bold",
+	colorbar_font_family::AbstractString="Arial",
+	colorbar_font_bold::Bool=true,
 	colorbar_font_size::Number=font_size,
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	concave_hull::Bool=true,
@@ -922,7 +939,7 @@ function mapbox_contour(
 	end
 	colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
 	colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
-	colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
+	colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
 
 	hull_vertices = nothing
 	if concave_hull
