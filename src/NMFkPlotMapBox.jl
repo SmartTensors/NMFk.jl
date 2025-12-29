@@ -9,7 +9,7 @@ import PlotlyKaleido
 
 function safe_savefig(args...; kwargs...)
     try
-        safe_savefig(args...; kwargs...)
+        PlotlyJS.savefig(args...; kwargs...)
     catch err
         if err isa InterruptException
             @info "Save interrupted – restarting Kaleido"
