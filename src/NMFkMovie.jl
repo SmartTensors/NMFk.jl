@@ -21,22 +21,23 @@ function _movie_command_args(format::AbstractString, input_args::Vector{String},
 		fmt = "mp4"
 	end
 	setpts_expr = "setpts=$(vspeed)*PTS"
+	args = copy(input_args)
 	if fmt == "avi"
-		args = [input_args... , "-vcodec", "png", "-filter:v", setpts_expr, "-y", "$output_base.avi"]
+		append!(args, ["-vcodec", "png", "-filter:v", setpts_expr, "-y", "$output_base.avi"])
 	elseif fmt == "webm"
-		args = [input_args... , "-vcodec", "libvpx", "-pix_fmt", "yuva420p", "-auto-alt-ref", "0", "-filter:v", setpts_expr, "-y", "$output_base.webm"]
+		append!(args, ["-vcodec", "libvpx", "-pix_fmt", "yuva420p", "-auto-alt-ref", "0", "-filter:v", setpts_expr, "-y", "$output_base.webm"])
 	elseif fmt == "gif"
-		args = [input_args... , "-f", "gif", "-filter:v", setpts_expr, "-y", "$output_base.gif"]
+		append!(args, ["-f", "gif", "-filter:v", setpts_expr, "-y", "$output_base.gif"])
 	else
 		filter_expr = "scale=trunc(iw/2)*2:trunc(ih/2)*2,$setpts_expr,tpad=stop_mode=clone:stop_duration=$stop_duration"
-		args = [input_args... , "-filter:v", filter_expr, "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-g", "30", "-r", "30", "-y", "$output_base.mp4"]
+		append!(args, ["-filter:v", filter_expr, "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-g", "30", "-r", "30", "-y", "$output_base.mp4"])
 		fmt = "mp4"
 	end
 	return fmt, args
 end
 
 "vspeed = 10 - ten times slower; vspped=0.1 - ten times faster"
-function makemovie(; movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", prefix::AbstractString="", imgformat::AbstractString="png", cleanup::Bool=true, quiet::Bool=true, vspeed::Number=1.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric)
+function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", imgformat::AbstractString="png", cleanup::Bool=false, quiet::Bool=true, vspeed::Number=1.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric)
 	if moviedir == "."
 		moviedir, prefix = splitdir(prefix)
 		if moviedir == ""

@@ -35,28 +35,6 @@ function colormap(colors::AbstractVector{String})
 	cm = Gadfly.Scale.lab_gradient(c...)
 end
 
-# r = reshape(repeat(collect(1/100:1/100:1), inner=100), (100,100))
-# NTFk.plotmatrix(r; colormap=NMFk.colormaps[:hsv2]);
-
- # Gadfly colormaps
-const colormaps = Dict(
-	:rbwlong => Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rbwlong_ncar[i, :]...) for i in axes(rbwlong_ncar, 1)]...),
-	:ncar => Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rgb_ncar[i, :]./255...) for i in axes(rgb_ncar, 1)]...),
-	:gist => Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(gist_ncar[i, :]./255...) for i in axes(gist_ncar, 1)]...),
-	:hsv2 => Gadfly.Scale.lab_gradient(Colors.RGB{Colors.N0f8}(42/255, 28/255, 14/255), parse(Colors.Colorant, "coral"), parse(Colors.Colorant, "darkmagenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "darkblue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
-	:hsv => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "magenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
-	:rbw2 => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"), parse(Colors.Colorant, "darkmagenta")),
-	:rbw => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
-	:gyr => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
-	:gy => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow")),
-	:ry => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "red"), parse(Colors.Colorant, "yellow")),
-	:by => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "yellow")),
-	:g => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightgreen"), parse(Colors.Colorant, "green")),
-	:r => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "pink"), parse(Colors.Colorant, "red")),
-	:b => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightblue"), parse(Colors.Colorant, "blue")),
-	:wb => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "white"), parse(Colors.Colorant, "black"))
-)
-
 rbwlong_ncar = [
 0.250980 0.000000 0.276078;
 0.250980 0.000000 0.326275;
@@ -698,3 +676,22 @@ gist_ncar = [0  0 128;
  253 242 253;
  254 248 254;
  255 255 255];
+
+ # Gadfly colormaps
+const colormaps = Dict(
+	:rbwlong => Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rbwlong_ncar[i, :]...) for i in axes(rbwlong_ncar, 1)]...),
+	:ncar => Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(rgb_ncar[i, :]./255...) for i in axes(rgb_ncar, 1)]...),
+	:gist => Gadfly.Scale.lab_gradient([Colors.RGB{Colors.N0f8}(gist_ncar[i, :]./255...) for i in axes(gist_ncar, 1)]...),
+	:hsv2 => Gadfly.Scale.lab_gradient(Colors.RGB{Colors.N0f8}(42/255, 28/255, 14/255), parse(Colors.Colorant, "coral"), parse(Colors.Colorant, "darkmagenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "darkblue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
+	:hsv => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "magenta"), parse(Colors.Colorant, "peachpuff"), parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
+	:rbw2 => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red"), parse(Colors.Colorant, "darkmagenta")),
+	:rbw => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "cyan"), parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
+	:gyr => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow"), parse(Colors.Colorant, "red")),
+	:gy => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "green"), parse(Colors.Colorant, "yellow")),
+	:ry => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "red"), parse(Colors.Colorant, "yellow")),
+	:by => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "blue"), parse(Colors.Colorant, "yellow")),
+	:g => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightgreen"), parse(Colors.Colorant, "green")),
+	:r => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "pink"), parse(Colors.Colorant, "red")),
+	:b => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "lightblue"), parse(Colors.Colorant, "blue")),
+	:wb => Gadfly.Scale.lab_gradient(parse(Colors.Colorant, "white"), parse(Colors.Colorant, "black"))
+)
