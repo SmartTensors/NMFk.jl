@@ -237,8 +237,11 @@ function mapbox(
 	filename::AbstractString="",
 	figuredir::AbstractString=".",
 	format::AbstractString=splitext(filename)[end][2:end],
-	width::Int=2800,
-	height::Int=1400,
+	width::Int=14,
+	height::Int=7,
+	dpi::Int=200,
+	width_dpi::Int=dpi * width,
+	height_dpi::Int=dpi * height,
 	scale::Real=1,
 	legend::Bool=true,
 	colorbar::Bool=legend,
@@ -293,7 +296,7 @@ function mapbox(
 		layout = plotly_layout(lonc, latc, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
-		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p, fn; format=format, width=width_dpi, height=height_dpi, scale=scale)
 	end
 	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(color)))
@@ -887,9 +890,11 @@ function mapbox_contour(
 	mapbox_token=NMFk.mapbox_token,
 	figuredir::AbstractString=".",
 	format::AbstractString=filename == "" ? "html" : splitext(filename)[end][2:end],
+	width::Int=14,
+	height::Int=7,
 	dpi::Int=200,
-	width::Int=dpi * 14,
-	height::Int=dpi * 7,
+	width_dpi::Int=dpi * width,
+	height_dpi::Int=dpi * height,
 	scale::Real=1,
 	font_size::Number=14,
 	colorbar_bgcolor::AbstractString="#5a5a5a",
@@ -1222,8 +1227,8 @@ function mapbox_contour(
 
 	layout = plotly_layout(
 		lonc, latc, zoom;
-		width=width,
-		height=height,
+		width=width_dpi,
+		height=height_dpi,
 		title=title,
 		font_size=font_size,
 		paper_bgcolor=paper_bgcolor,
@@ -1236,7 +1241,7 @@ function mapbox_contour(
 
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
-		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p, fn; format=format, width=width_dpi, height=height_dpi, scale=scale)
 	end
 
 	return p

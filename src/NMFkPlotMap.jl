@@ -5,7 +5,7 @@ import Mads
 import PlotlyJS
 
 # Plot a county based (FIPS) heatmap
-function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize::Measures.AbsoluteLength=12Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, dpi::Integer=300, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, kw...)
+function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim::Integer=1; casefilename::AbstractString="", figuredir::AbstractString=".", moviedir::AbstractString=".", dates=nothing, plotseries::Bool=true, plotpeaks::Bool=false, plottransients::Bool=false, quiet::Bool=false, movie::Bool=false, hsize::Measures.AbsoluteLength=12Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, dpi::Integer=300, name::AbstractString="Wave peak", cleanup::Bool=true, vspeed::Number=1.0, frame_padding_digits::Number=6, kw...)
 	@assert size(W, 2) == size(H, 1)
 	Wa, _, _ = normalizematrix_col!(W)
 	Ha, _, _ = normalizematrix_row!(H)
@@ -37,10 +37,10 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 			progressbar = NMFk.make_progressbar_2d(color)
 			for i in eachindex(dates)
 				p = progressbar(i, true, 1, dates[1])
-				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, 6, '0')).png"), hsize, vsize; dpi=dpi), p)
+				Gadfly.draw(Gadfly.PNG(joinpathcheck(moviedir, casefilename * "-progressbar-$(lpad(i, frame_padding_digits, '0')).png"), hsize, vsize; dpi=dpi), p)
 				!quiet && (Mads.display(p; gw=hsize, gh=vsize))
 			end
-			makemovie(; moviedir=moviedir, prefix=casefilename * "-progressbar", keyword="", numberofdigits=6, cleanup=cleanup, vspeed=vspeed)
+			makemovie(; moviedir=moviedir, prefix=casefilename * "-progressbar", frame_padding_digits=frame_padding_digits, cleanup=cleanup, vspeed=vspeed)
 		end
 	end
 	if plotpeaks
@@ -58,7 +58,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 end
 
 # Plot a county based (FIPS) heatmap
-function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signalorderassignments::AbstractVector=axes(X, dim); signalid::AbstractVector=axes(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::AbstractString="", figuredir::AbstractString=".", title::Bool=false, datetext::AbstractString="", titletext::AbstractString="", leadingzeros::Integer=1 + convert(Int64, ceil(log10(length(signalorderassignments)))), scheme::AbstractString="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, cleanup::Bool=true, vspeed::Number=1.0)
+function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signalorderassignments::AbstractVector=axes(X, dim); signalid::AbstractVector=axes(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::AbstractString="", figuredir::AbstractString=".", title::Bool=false, datetext::AbstractString="", titletext::AbstractString="", frame_padding_digits::Integer=1 + convert(Int64, ceil(log10(length(signalorderassignments)))), scheme::AbstractString="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, cleanup::Bool=true, vspeed::Number=1.0)
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
 	@assert length(signalorderassignments) == length(signalid)
@@ -70,7 +70,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 	for (i, k) in enumerate(signalorderassignments)
 		nt = ntuple(j -> (j == dim ? k : Colon()), ndims(X))
 		df[!, :Z] = [vec(X[nt...]); zeros(sum(.!goodcounties))]
-		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], leadingzeros, '0') : signalid[i]
+		signalidtext = eltype(signalid) <: Integer ? lpad(signalid[i], frame_padding_digits, '0') : signalid[i]
 		if title || (!isnothing(dates) && titletext != "")
 			ttitle = "$(titletext) $(signalidtext)"
 			if !isnothing(dates)
@@ -113,7 +113,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 		end
 	end
 	if casefilename != "" && movie
-		makemovie(; moviedir=figuredir, prefix=casefilename, keyword="", numberofdigits=leadingzeros, cleanup=cleanup, vspeed=vspeed)
+		makemovie(; moviedir=figuredir, prefix=casefilename, frame_padding_digits=frame_padding_digits, cleanup=cleanup, vspeed=vspeed)
 	end
 	return nothing
 end
