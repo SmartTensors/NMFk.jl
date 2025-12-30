@@ -814,6 +814,114 @@ function _build_geojson_tiles(lon_grid::AbstractVector{<:Real}, lat_grid::Abstra
 	return geojson, feature_ids, tile_values
 end
 
+function _colorbar_properties(
+	values::AbstractVector,
+	zmin::Number,
+	zmax::Number,
+	title_colorbar::AbstractString,
+	title_length::Number,
+	colorbar_font_size::Number,
+	colorbar_font_color::AbstractString,
+	colorbar_font_family::AbstractString,
+	colorbar_bgcolor::AbstractString,
+	colorbar_font_bold::Bool
+)
+	zmin_target = float(zmin)
+	zmax_target = float(zmax)
+	finite_values = Float64[value for value in values if isfinite(value)]
+	if !isfinite(zmin_target)
+		zmin_target = isempty(finite_values) ? 0.0 : minimum(finite_values)
+	end
+	if !isfinite(zmax_target)
+		zmax_target = isempty(finite_values) ? 1.0 : maximum(finite_values)
+	end
+	if !isfinite(zmin_target)
+		zmin_target = 0.0
+	end
+	if !isfinite(zmax_target)
+		zmax_target = zmin_target + 1.0
+	end
+	if zmax_target <= zmin_target
+		zmax_target = zmin_target + max(1e-9, max(1.0, abs(zmin_target)) * eps(max(1.0, abs(zmin_target))))
+	end
+	colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
+	colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
+	colorbar_attr = mapbox_colorbar_attr(
+		title_colorbar,
+		title_length;
+		font_size=colorbar_font_size,
+		font_color=colorbar_font_color,
+		font_family=colorbar_font_family,
+		bgcolor=colorbar_bgcolor,
+		bold=colorbar_font_bold,
+		tickmode="array",
+		tickvals=colorbar_ticks,
+		ticktext=colorbar_tick_labels
+	)
+	return zmin_target, zmax_target, colorbar_attr
+end
+
+function _render_placeholder_frame(
+	frame_label::AbstractString,
+	lon_center::Real,
+	lat_center::Real,
+	zoom::Number,
+	title::AbstractString,
+	font_size::Number,
+	paper_bgcolor::AbstractString,
+	style,
+	mapbox_token,
+	colorbar_attr,
+	colorscale::Symbol,
+	zmin_target::Real,
+	zmax_target::Real,
+	filename::AbstractString,
+	figuredir::AbstractString,
+	format::AbstractString,
+	width_dpi::Int,
+	height_dpi::Int,
+	scale::Real,
+	quiet::Bool
+)
+	layout = plotly_layout(
+		lon_center,
+		lat_center,
+		zoom;
+		width=width_dpi,
+		height=height_dpi,
+		title=title,
+		font_size=font_size,
+		paper_bgcolor=paper_bgcolor,
+		style=style,
+		mapbox_token=mapbox_token
+	)
+	placholder_color = [zmin_target]
+	trace = PlotlyJS.scattermapbox(
+		lon=[Float64(lon_center)],
+		lat=[Float64(lat_center)],
+		mode="markers",
+		marker=PlotlyJS.attr(
+			size=1e-3,
+			opacity=0.0,
+			color=placholder_color,
+			colorscale=NMFk.colorscale(colorscale),
+			cmin=zmin_target,
+			cmax=zmax_target,
+			colorbar=colorbar_attr
+		),
+		name=frame_label,
+		showlegend=false,
+		hoverinfo="skip"
+	)
+	p = PlotlyJS.plot([trace], layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	!quiet && display(p)
+	if filename != ""
+		fn = joinpathcheck(figuredir, filename)
+		safe_savefig(p, fn; format=format, width=width_dpi, height=height_dpi, scale=scale)
+	end
+	return p
+end
+
 """
 mapbox_contour(lon, lat, values; resolution=50, power=2, smoothing=0.0, filename="", kw...)
 
@@ -852,6 +960,7 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `hull_color::AbstractString="magenta"`: Hull trace color when `show_hull=true`
 - `hull_line_width::Number=3`: Line width for the hull outline
 - `hull_opacity::Real=0.35`: Opacity applied to the hull trace
+- `frame::Union{Nothing, AbstractString}=nothing`: When provided and insufficient data are available, emit an empty frame (with colorbar) labelled with this identifier instead of returning nothing
 - `kw...`: Additional keyword arguments passed to the mapbox function
 
 # Example
@@ -910,6 +1019,7 @@ function mapbox_contour(
 	hull_color::AbstractString="magenta",
 	hull_line_width::Number=3,
 	hull_opacity::Real=0.35,
+	frame::Union{Nothing, AbstractString}=nothing,
 	quiet::Bool=false,
 	kw...
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
@@ -975,26 +1085,48 @@ function mapbox_contour(
 		names_below_clean = string.(names_below_clean)
 	end
 
-	if length(lon_clean) < 3
-		@error("At least 3 valid data points are required for interpolation!")
-		return nothing
-	end
+	zmin_target, zmax_target, colorbar_attr = _colorbar_properties(
+		values_clean,
+		zmin,
+		zmax,
+		title_colorbar,
+		title_length,
+		colorbar_font_size,
+		colorbar_font_color,
+		colorbar_font_family,
+		colorbar_bgcolor,
+		colorbar_font_bold
+	)
 
-	zmin_target = float(zmin)
-	zmax_target = float(zmax)
-	if !isfinite(zmin_target)
-		zmin_target = minimumnan(values_clean)
+	if length(lon_clean) < 3
+		frame_label = frame === nothing ? nothing : string(frame)
+		if frame_label === nothing
+			@error("At least 3 valid data points are required for interpolation!")
+			return nothing
+		end
+		return _render_placeholder_frame(
+			frame_label,
+			lon_center,
+			lat_center,
+			zoom,
+			title,
+			font_size,
+			paper_bgcolor,
+			style,
+			mapbox_token,
+			colorbar_attr,
+			colorscale,
+			zmin_target,
+			zmax_target,
+			filename,
+			figuredir,
+			format,
+			width_dpi,
+			height_dpi,
+			scale,
+			quiet
+		)
 	end
-	if !isfinite(zmax_target)
-		zmax_target = maximumnan(values_clean)
-	end
-	if zmax_target <= zmin_target
-		@warn "zmax must be greater than zmin; adjusting automatically" zmin=zmin_target zmax=zmax_target
-		zmax_target = zmin_target + max(1e-9, abs(zmin_target) * eps(zmin_target))
-	end
-	colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
-	colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
-	colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
 
 	hull_vertices = nothing
 	if concave_hull
