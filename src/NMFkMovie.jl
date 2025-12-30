@@ -4,7 +4,7 @@ import Colors
 
 function _run_ffmpeg(args::AbstractVector{<:AbstractString}; quiet::Bool)
 	FFMPEG.ffmpeg() do exe
-		cmd = `$exe $(args...)`
+		cmd = Cmd(vcat(exe, String.(args)))
 		if quiet
 			run(pipeline(cmd, stdout=devnull, stderr=devnull))
 		else
@@ -36,8 +36,24 @@ function _movie_command_args(format::AbstractString, input_args::Vector{String},
 	return fmt, args
 end
 
-"vspeed = 10 - ten times slower; vspped=0.1 - ten times faster"
-function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", imgformat::AbstractString="png", cleanup::Bool=false, quiet::Bool=true, vspeed::Number=1.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric)
+"""
+	makemovie(prefix; movieformat="mp4", movieopacity=false, moviedir=".", imgformat="png",
+			  cleanup=false, quiet=true, vspeed=10.0, frame_padding_digits=0,
+			  frame_order=:alphanumeric)
+
+Turn a directory of exported frames into a movie, optionally converting transparent PNGs to
+opaque JPGs first. Keyword arguments control the processing pipeline:
+
+- `movieformat` — Output container (`mp4`, `avi`, `gif`, `webm`).
+- `movieopacity` — When true, flatten alpha using ImageMagick before encoding.
+- `moviedir`/`imgformat` — Location and file type of the source frames.
+- `cleanup` — Remove intermediate frames that match the prefix after movie creation.
+- `quiet` — Suppress ffmpeg stdout/stderr.
+- `vspeed` — Multiplier for ffmpeg `setpts`; values >1 slow the video, <1 speed it up.
+- `frame_padding_digits` — Use ffmpeg's sequential pattern (`%05d`) when frames are zero padded.
+- `frame_order` — Sorting strategy for non-padded frames (`:alphanumeric` or `:timestamp`).
+"""
+function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", imgformat::AbstractString="png", cleanup::Bool=false, quiet::Bool=true, vspeed::Number=10.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric)
 	if moviedir == "."
 		moviedir, prefix = splitdir(prefix)
 		if moviedir == ""
@@ -54,7 +70,7 @@ function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", mo
 			frame_files = _find_frame_files(moviedir, prefix, imgformat)
 		end
 		if isempty(frame_files)
-			@warn "No frames matching $(prefix) found in $(moviedir); skipping opacity conversion."
+			@warn "No frames matching $(prefix) found in specified dir '$(moviedir)'; skipping opacity conversion."
 			return
 		end
 		for f in frame_files
@@ -66,7 +82,7 @@ function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", mo
 		frame_files = _find_frame_files(moviedir, prefix, imgformat)
 	end
 	stop_duration = vspeed / 25
-	concat_file = nothing
+	temp_frame_dir = nothing
 	input_args = String[]
 	if frame_padding_digits > 0
 		frame_pattern = "$p%0$(frame_padding_digits)d.$imgformat"
@@ -76,7 +92,7 @@ function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", mo
 			frame_files = _find_frame_files(moviedir, prefix, imgformat)
 		end
 		if isempty(frame_files)
-			@warn "No frames matching $(prefix)*.$imgformat found in $(moviedir); aborting movie generation."
+			@warn "No frames matching $(prefix)*.$imgformat found in specified dir '$(moviedir)'; aborting movie generation."
 			return
 		end
 		order = frame_order in (:alphanumeric, :timestamp) ? frame_order : begin
@@ -84,15 +100,15 @@ function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", mo
 			:alphanumeric
 		end
 		_sort_frame_files!(frame_files, order)
-		concat_file = _write_concat_list(frame_files)
-		input_args = ["-f", "concat", "-safe", "0", "-i", concat_file]
+		frame_pattern, temp_frame_dir, frame_padding_digits = _materialize_frame_sequence(frame_files, imgformat)
+		input_args = ["-i", frame_pattern]
 	end
 	movieformat, ffmpeg_args = _movie_command_args(movieformat, input_args, p, vspeed, stop_duration)
 	try
 		_run_ffmpeg(ffmpeg_args; quiet=quiet)
 	finally
-		if !isnothing(concat_file)
-			rm(concat_file; force=true)
+		if !isnothing(temp_frame_dir)
+			rm(temp_frame_dir; force=true, recursive=true)
 		end
 	end
 	cleanup && _cleanup_movie_frames(moviedir, prefix, imgformat)
@@ -174,11 +190,10 @@ end
 function _find_frame_files(moviedir::AbstractString, prefix::AbstractString, imgformat::AbstractString)
 	suffix = string(".", imgformat)
 	files = String[]
-	for (root, _, names) in walkdir(moviedir)
-		for name in names
-			if startswith(name, prefix) && endswith(name, suffix)
-				push!(files, abspath(root, name))
-			end
+	for name in readdir(moviedir)
+		path = joinpath(moviedir, name)
+		if isfile(path) && startswith(name, prefix) && endswith(name, suffix)
+			push!(files, abspath(path))
 		end
 	end
 	return files
@@ -193,18 +208,16 @@ function _sort_frame_files!(files::Vector{String}, order::Symbol)
 	return files
 end
 
-function _write_concat_list(files::Vector{String})
-	list_path, io = mktemp()
-	for file in files
-		println(io, "file '", _escape_concat_path(file), "'")
+function _materialize_frame_sequence(files::Vector{String}, imgformat::AbstractString)
+	temp_dir = mktempdir()
+	digits = length(string(length(files)))
+	pattern = joinpath(temp_dir, "frame%0$(digits)d.$imgformat")
+	for (idx, src) in enumerate(files)
+		frame_name = string("frame", lpad(string(idx), digits, '0'), ".", imgformat)
+		dest = joinpath(temp_dir, frame_name)
+		cp(src, dest; force=true)
 	end
-	close(io)
-	return list_path
-end
-
-function _escape_concat_path(path::AbstractString)
-	sanitized = replace(path, "\\" => "/")
-	return replace(sanitized, "'" => "'\\''")
+	return pattern, temp_dir, digits
 end
 
 function _remove_files(files::Vector{String})

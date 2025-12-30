@@ -119,7 +119,7 @@ function mapbox(
 	title_colorbar::AbstractString=title,
 	title_length::Number=0,
 	text::AbstractVector=repeat([""], length(lon)),
-	lonc::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
+	lon_center::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
@@ -136,7 +136,7 @@ function mapbox(
 	marker_color::AbstractString="purple",
 	marker_size::Number=0,
 	marker_size_fig::Number=marker_size * 2,
-	latc::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
+	lat_center::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	zoom_fig::Number=zoom,
 	dot_size::Number=compute_dot_size(lon, lat, zoom),
@@ -185,7 +185,7 @@ function mapbox(
 			colorbar_attr = PlotlyJS.attr()
 		end
 		plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size_fig, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size_fig, label_font_color=label_font_color_fig, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=NMFk.colorscale(colorscale))
-		layout = plotly_layout(lonc, latc, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
+		layout = plotly_layout(lon_center, lat_center, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
@@ -197,7 +197,7 @@ function mapbox(
 		colorbar_attr = PlotlyJS.attr()
 	end
 	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=NMFk.colorscale(colorscale))
-	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
+	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	return p
 end
@@ -210,7 +210,7 @@ function mapbox(
 	title_colorbar::AbstractString="",
 	title_length::Number=0,
 	text::AbstractVector=repeat([""], length(lon)),
-	lonc::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
+	lon_center::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
@@ -227,7 +227,7 @@ function mapbox(
 	marker_color::AbstractString="purple",
 	marker_size::Number=0,
 	marker_size_fig::Number=marker_size * 2,
-	latc::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
+	lat_center::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	zoom_fig::Number=zoom,
 	dot_size::Number=compute_dot_size(lon, lat, zoom),
@@ -293,7 +293,7 @@ function mapbox(
 			end
 			push!(traces_, t)
 		end
-		layout = plotly_layout(lonc, latc, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
+		layout = plotly_layout(lon_center, lat_center, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		safe_savefig(p, fn; format=format, width=width_dpi, height=height_dpi, scale=scale)
@@ -330,7 +330,7 @@ function mapbox(
 		end
 		push!(traces_, t)
 	end
-	layout = plotly_layout(lonc, latc, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token)
+	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	display(p)
 	return p
@@ -367,7 +367,7 @@ function check_traces(traces::AbstractVector, traces_setup::NamedTuple)
 end
 
 # Plotly map layout
-function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Int=2800, height::Int=1400, title::AbstractString="", font_size::Number=14, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
+function plotly_layout(lon_center::Number=-105.9378, lat_center::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Int=2800, height::Int=1400, title::AbstractString="", font_size::Number=14, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
 	layout = PlotlyJS.Layout(;
 		margin=PlotlyJS.attr(; r=0, t=0, b=0, l=0),
 		autosize=true,
@@ -378,7 +378,7 @@ function plotly_layout(lonc::Number=-105.9378, latc::Number=35.6870, zoom::Numbe
 		mapbox=PlotlyJS.attr(;
 			accesstoken=mapbox_token,
 			style=style,
-			center=PlotlyJS.attr(; lon=lonc, lat=latc),
+			center=PlotlyJS.attr(; lon=lon_center, lat=lat_center),
 			zoom=zoom
 		)
 	)
@@ -883,8 +883,8 @@ function mapbox_contour(
 	location_size::Number=10,
 	location_names_above::AbstractVector=String[],
 	location_names_below::AbstractVector=String[],
-	lonc::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
-	latc::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
+	lon_center::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
+	lat_center::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	style="mapbox://styles/mapbox/satellite-streets-v12",
 	mapbox_token=NMFk.mapbox_token,
@@ -1226,7 +1226,7 @@ function mapbox_contour(
 	end
 
 	layout = plotly_layout(
-		lonc, latc, zoom;
+		lon_center, lat_center, zoom;
 		width=width_dpi,
 		height=height_dpi,
 		title=title,
