@@ -4,6 +4,7 @@ import Colors
 import Compose
 import PlotlyJS
 import DataFrames
+import ImageMagick
 
 function plotlymatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximumnan(X), key_title="", title="", xlabel="", ylabel="", xticks=nothing, yticks=nothing, xplot=nothing, yplot=nothing, xmatrix=nothing, ymatrix=nothing, gl=[], colormap=colormaps[:gyr], filename::AbstractString="", hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, figuredir::AbstractString=".", colorkey::Bool=true, key_position::Symbol=:right, mask=nothing, dots=nothing, polygon=nothing, contour=nothing, linewidth::Measures.AbsoluteLength=2Gadfly.pt, key_title_font_size=10Gadfly.pt, key_label_font_size=10Gadfly.pt, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, dotcolor="purple", linecolor="gray", background_color=nothing, defaultcolor=nothing, pointsize=1.5Gadfly.pt, dotsize=1.5Gadfly.pt, transform=nothing, code::Bool=false, plot::Bool=false, yflip::Bool=true, nbins::Integer=0, flatten::Bool=false, rectbin::Bool=(nbins>0) ? false : true, dpi::Number=imagedpi, quiet::Bool=false, permute::Bool=false)
 	PlotlyJS.plot(
@@ -216,8 +217,7 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 		if flatten
 			f = joinpathcheck(figuredir, filename)
 			e = splitext(f)
-			cmd = `convert -background black -flatten -format jpg $f $(e[1]).jpg`
-			run(pipeline(cmd, stdout=devnull, stderr=devnull))
+			_flatten_image_to_jpg(f, string(e[1], ".jpg"))
 			rm(f)
 		end
 	end
@@ -252,4 +252,29 @@ function checkrectbin(M::AbstractMatrix)
 		end
 	end
 	return !(xok && yok)
+end
+
+# Composite against a black background to drop alpha before writing JPEG.
+function _flatten_image_to_jpg(src::AbstractString, dest::AbstractString)
+	img = ImageMagick.load(src)
+	bg = Colors.RGB{Float64}(0, 0, 0)
+	flat_img = map(img) do px
+		_blend_pixel(px, bg)
+	end
+	ImageMagick.save(dest, flat_img)
+	return dest
+end
+
+function _blend_pixel(px, background::Colors.RGB{Float64})
+	a = Colors.alpha(px)
+	if a >= 1
+		return Colors.RGB{Float64}(px)
+	elseif a <= 0
+		return background
+	else
+		fg = Colors.RGB{Float64}(px)
+		return Colors.RGB{Float64}((1 - a) * background.r + a * fg.r,
+			(1 - a) * background.g + a * fg.g,
+			(1 - a) * background.b + a * fg.b)
+	end
 end
