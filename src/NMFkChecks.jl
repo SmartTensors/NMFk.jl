@@ -310,7 +310,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 	iany = Vector{Int64}(undef, 0)
 	mask_keep = trues(number_of_attributes)
 	indices = collect(axes(x, dim))
-	priority_indices = identity.(indexin(priority, names))
+	priority_indices = Int[i for i in indexin(priority, names) if i !== nothing]
 	keep_priority_indices_first = [priority_indices; setdiff(indices, priority_indices)]
 	for (i_counter, i) in enumerate(keep_priority_indices_first)
 		!quiet && print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(NMFk.sprintf("%-$(mlength)s", names[i])):$(Base.text_colors[:normal]) ")
@@ -362,7 +362,7 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 			!quiet && println()
 			if !skip_corr_test && correlation_test
 				for (j_counter, j) in enumerate(keep_priority_indices_first)
-					if i_counter == j_counter || mask_keep[j] == false
+					if i_counter == j_counter || j === nothing || mask_keep[j] == false
 						continue
 					end
 					nt2 = ntuple(k -> (k == dim ? j : Colon()), 2)
