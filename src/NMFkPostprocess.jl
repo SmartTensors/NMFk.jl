@@ -717,7 +717,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			cs = sortperm(chnew)
 			yticks = string.(Hnames) .* " " .* string.(chnew)
 			if createplots
-				if length(chnew) > biplot_importantsize
+				if length(Hranking) > biplot_importantsize
 					@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(biplot_importantsize) columns!")
 					importance_indexing = Hranking[1:biplot_importantsize]
 					cs_plot = sortperm(chnew[importance_indexing])
@@ -773,7 +773,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if (createdendrogramsonly || createplots)
 				@info("H ($(Hcasefilename)) matrix dendrogram plotting ...")
-				if length(chnew) > biplot_importantsize
+				if length(Hranking) > biplot_importantsize
 					!createplots && @warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(biplot_importantsize) columns!")
 					importance_indexing = Hranking[1:biplot_importantsize]
 					cs_plot = sortperm(chnew[importance_indexing])
@@ -890,7 +890,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			cs = sortperm(cwnew)
 			yticks = string.(Wnames) .* " " .* string.(cwnew)
 			if createplots
-				if length(chnew) > biplot_importantsize
+				if length(Wranking) > biplot_importantsize
 					@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(biplot_importantsize) rows ...")
 					importance_indexing = Wranking[1:biplot_importantsize]
 					cs_plot = sortperm(cwnew[importance_indexing])
@@ -956,7 +956,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if (createdendrogramsonly || createplots)
 				@info("W ($(Wcasefilename)) matrix dendrogram plotting ...")
-				if length(chnew) > biplot_importantsize
+				if length(Wranking) > biplot_importantsize
 					!createplots && @warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(biplot_importantsize) rows ...")
 					importance_indexing = Wranking[1:biplot_importantsize]
 					cs_plot = sortperm(cwnew[importance_indexing])
