@@ -146,8 +146,11 @@ function mapbox(
 	filename::AbstractString="",
 	figuredir::AbstractString=".",
 	format::AbstractString=splitext(filename)[end][2:end],
-	width::Int=2800,
-	height::Int=1400,
+	width::Int=14,
+	height::Int=7,
+	dpi::Int=200,
+	width_pixel::Int=dpi * width,
+	height_pixel::Int=dpi * height,
 	scale::Real=1,
 	legend::Bool=true,
 	colorbar::Bool=legend,
@@ -185,10 +188,10 @@ function mapbox(
 			colorbar_attr = PlotlyJS.attr()
 		end
 		plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size_fig, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size_fig, label_font_color=label_font_color_fig, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=NMFk.colorscale(colorscale))
-		layout = plotly_layout(lon_center, lat_center, zoom_fig; width=width, height=height, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
+		layout = plotly_layout(lon_center, lat_center, zoom_fig; width=width_pixel, height=height_pixel, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
-		safe_savefig(p, fn; format=format, width=width, height=height, scale=scale)
+		safe_savefig(p, fn; format=format, width=width_pixel, height=height_pixel, scale=scale)
 	end
 	show_colorbar = style_mapbox_traces!(traces, legend; line_color=line_color, line_width=line_width, marker_color=marker_color, marker_size=marker_size)
 	if colorbar && show_colorbar
@@ -240,8 +243,8 @@ function mapbox(
 	width::Int=14,
 	height::Int=7,
 	dpi::Int=200,
-	width_dpi::Int=dpi * width,
-	height_dpi::Int=dpi * height,
+	width_pixel::Int=dpi * width,
+	height_pixel::Int=dpi * height,
 	scale::Real=1,
 	legend::Bool=true,
 	colorbar::Bool=legend,
@@ -296,7 +299,7 @@ function mapbox(
 		layout = plotly_layout(lon_center, lat_center, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
-		safe_savefig(p, fn; format=format, width=width_dpi, height=height_dpi, scale=scale)
+		safe_savefig(p, fn; format=format, width=width_pixel, height=height_pixel, scale=scale)
 	end
 	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
 	for (j, i) in enumerate(unique(sort(color)))
@@ -1037,8 +1040,13 @@ function mapbox_contour(
 
 	lon_source_raw = hull_vertices === nothing ? lon_coords : first.(hull_vertices)
 	lat_source_raw = hull_vertices === nothing ? lat_coords : last.(hull_vertices)
-	lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
-	lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
+	if length(lon_source_raw) == 0
+		lon_range_raw = 0.0
+		lat_range_raw = 0.0
+	else
+		lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
+		lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
+	end
 	effective_margin = max(0.0, extra_margin)
 	effective_padding = max(0.0, hull_padding)
 	if hull_vertices !== nothing && (effective_padding > 0 || effective_margin > 0)
@@ -1073,15 +1081,12 @@ function mapbox_contour(
 			end
 		end
 	end
-	if hull_vertices === nothing
-		lon_source_raw = lon_coords
-		lat_source_raw = lat_coords
-	else
-		lon_source_raw = first.(hull_vertices)
-		lat_source_raw = last.(hull_vertices)
+	lon_source_raw = hull_vertices === nothing ? lon_coords : first.(hull_vertices)
+	lat_source_raw = hull_vertices === nothing ? lat_coords : last.(hull_vertices)
+	if length(lon_source_raw) > 0
+		lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
+		lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
 	end
-	lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
-	lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
 	hull_plot_vertices = hull_vertices === nothing ? nothing : copy(hull_vertices)
 
 	lon_source = lon_source_raw
@@ -1092,10 +1097,12 @@ function mapbox_contour(
 	lat_span = lat_range == 0 ? 1e-6 : lat_range
 	padding = hull_vertices === nothing ? 0.1 : 0.0
 	margin = hull_vertices === nothing ? effective_margin : 0.0
-	lon_min = minimum(lon_source) - lon_span * padding - margin
-	lon_max = maximum(lon_source) + lon_span * padding + margin
-	lat_min = minimum(lat_source) - lat_span * padding - margin
-	lat_max = maximum(lat_source) + lat_span * padding + margin
+	if length(lon_source) > 0
+		lon_min = minimum(lon_source) - lon_span * padding - margin
+		lon_max = maximum(lon_source) + lon_span * padding + margin
+		lat_min = minimum(lat_source) - lat_span * padding - margin
+		lat_max = maximum(lat_source) + lat_span * padding + margin
+	end
 
 	traces = PlotlyJS.GenericTrace{Dict{Symbol, Any}}[]
 	if insufficient_data
