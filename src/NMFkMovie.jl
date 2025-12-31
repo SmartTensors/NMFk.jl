@@ -13,7 +13,18 @@ function _run_ffmpeg(args::AbstractVector{<:AbstractString}; quiet::Bool)
 	end
 end
 
-function _movie_command_args(format::AbstractString, input_args::Vector{String}, output_base::AbstractString, vspeed::Number, stop_duration::Number)
+function _movie_command_args(
+	format::AbstractString,
+	input_args::Vector{String},
+	output_base::AbstractString,
+	vspeed::Number,
+	stop_duration::Number;
+	codec::Union{Nothing, AbstractString}=nothing,
+	bitrate::Union{Nothing, AbstractString}=nothing,
+	crf::Union{Nothing, Real}=nothing,
+	preset::Union{Nothing, AbstractString}=nothing,
+	extra_args::AbstractVector{<:AbstractString}=String[]
+)
 	fmt = lowercase(strip(format))
 	supported = Set(["avi", "webm", "gif", "mp4"])
 	if fmt ∉ supported
@@ -23,14 +34,33 @@ function _movie_command_args(format::AbstractString, input_args::Vector{String},
 	setpts_expr = "setpts=$(vspeed)*PTS"
 	args = copy(input_args)
 	if fmt == "avi"
-		append!(args, ["-vcodec", "png", "-filter:v", setpts_expr, "-y", "$output_base.avi"])
+		append!(args, ["-vcodec", something(codec, "png"), "-filter:v", setpts_expr])
+		append!(args, String.(extra_args))
+		append!(args, ["-y", "$output_base.avi"])
 	elseif fmt == "webm"
-		append!(args, ["-vcodec", "libvpx", "-pix_fmt", "yuva420p", "-auto-alt-ref", "0", "-filter:v", setpts_expr, "-y", "$output_base.webm"])
+		append!(args, ["-vcodec", something(codec, "libvpx"), "-pix_fmt", "yuva420p", "-auto-alt-ref", "0", "-filter:v", setpts_expr])
+		append!(args, String.(extra_args))
+		append!(args, ["-y", "$output_base.webm"])
 	elseif fmt == "gif"
-		append!(args, ["-f", "gif", "-filter:v", setpts_expr, "-y", "$output_base.gif"])
+		append!(args, ["-f", "gif", "-filter:v", setpts_expr])
+		append!(args, String.(extra_args))
+		append!(args, ["-y", "$output_base.gif"])
 	else
 		filter_expr = "scale=trunc(iw/2)*2:trunc(ih/2)*2,$setpts_expr,tpad=stop_mode=clone:stop_duration=$stop_duration"
-		append!(args, ["-filter:v", filter_expr, "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-g", "30", "-r", "30", "-y", "$output_base.mp4"])
+		append!(args, ["-filter:v", filter_expr])
+		codec_val = something(codec, "libx264")
+		append!(args, ["-c:v", codec_val])
+		append!(args, ["-profile:v", "high", "-pix_fmt", "yuv420p", "-g", "30", "-r", "30"])
+		if bitrate !== nothing
+			append!(args, ["-b:v", String(bitrate)])
+		end
+		crf_val = something(crf, 20)
+		append!(args, ["-crf", string(crf_val)])
+		preset_val = something(preset, "slow")
+		append!(args, ["-preset", String(preset_val)])
+		append!(args, ["-movflags", "+faststart"])
+		append!(args, String.(extra_args))
+		append!(args, ["-y", "$output_base.mp4"])
 		fmt = "mp4"
 	end
 	return fmt, args
@@ -45,6 +75,7 @@ Turn a directory of exported frames into a movie, optionally converting transpar
 opaque JPGs first. Keyword arguments control the processing pipeline:
 
 - `movieformat` — Output container (`mp4`, `avi`, `gif`, `webm`).
+ - `movieformat` — Output container (`mp4`, `avi`, `gif`, `webm`). For `mp4`, high-profile H.264 with CRF=20, preset `slow`, and `+faststart` are used by default.
 - `movieopacity` — When true, flatten alpha using ImageMagick before encoding.
 - `moviedir`/`imgformat` — Location and file type of the source frames.
 - `cleanup` — Remove intermediate frames that match the prefix after movie creation.
@@ -52,8 +83,10 @@ opaque JPGs first. Keyword arguments control the processing pipeline:
 - `vspeed` — Multiplier for ffmpeg `setpts`; values >1 slow the video, <1 speed it up.
 - `frame_padding_digits` — Use ffmpeg's sequential pattern (`%05d`) when frames are zero padded.
 - `frame_order` — Sorting strategy for non-padded frames (`:alphanumeric` or `:timestamp`).
+- `video_codec`, `video_bitrate`, `video_crf`, `video_preset` — Optional overrides for ffmpeg compression settings (default CRF=20, preset=`slow` for mp4).
+- `extra_ffmpeg_args` — Additional raw arguments appended ahead of the output path for advanced tuning.
 """
-function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", imgformat::AbstractString="png", cleanup::Bool=false, quiet::Bool=true, vspeed::Number=10.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric)
+function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", imgformat::AbstractString="png", cleanup::Bool=false, quiet::Bool=true, vspeed::Number=10.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric, video_codec::Union{Nothing, AbstractString}=nothing, video_bitrate::Union{Nothing, AbstractString}=nothing, video_crf::Union{Nothing, Real}=nothing, video_preset::Union{Nothing, AbstractString}=nothing, extra_ffmpeg_args::AbstractVector{<:AbstractString}=String[])
 	if moviedir == "."
 		moviedir, prefix = splitdir(prefix)
 		if moviedir == ""
@@ -103,7 +136,18 @@ function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", mo
 		frame_pattern, temp_frame_dir, frame_padding_digits = _materialize_frame_sequence(frame_files, imgformat)
 		input_args = ["-i", frame_pattern]
 	end
-	movieformat, ffmpeg_args = _movie_command_args(movieformat, input_args, p, vspeed, stop_duration)
+	movieformat, ffmpeg_args = _movie_command_args(
+		movieformat,
+		input_args,
+		p,
+		vspeed,
+		stop_duration;
+		codec=video_codec,
+		bitrate=video_bitrate,
+		crf=video_crf,
+		preset=video_preset,
+		extra_args=extra_ffmpeg_args
+	)
 	try
 		_run_ffmpeg(ffmpeg_args; quiet=quiet)
 	finally

@@ -259,6 +259,10 @@ function mapbox(
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
 	ensure_mapbox_token!(mapbox_token)
+	if width_pixel < 500 || height_pixel < 500
+		@error "Width and height in pixels should be at least 500 for proper rendering" width_pixel=width_pixel height_pixel=height_pixel
+		throw(ArgumentError("Insufficient width/height in pixels"))
+	end
 	if title == title_colorbar
 		title = ""
 	end
@@ -931,8 +935,8 @@ function mapbox_contour(
 	width::Int=14,
 	height::Int=7,
 	dpi::Int=200,
-	width_dpi::Int=dpi * width,
-	height_dpi::Int=dpi * height,
+	width_pixel::Int=dpi * width,
+	height_pixel::Int=dpi * height,
 	scale::Real=1,
 	font_size::Number=14,
 	colorbar_bgcolor::AbstractString="#5a5a5a",
@@ -954,6 +958,13 @@ function mapbox_contour(
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat) == length(zvalue)
 	ensure_mapbox_token!(mapbox_token)
+	if width_pixel < 500 || height_pixel < 500
+		@error "Width and height in pixels should be at least 500 for proper rendering" width_pixel=width_pixel height_pixel=height_pixel
+		throw(ArgumentError("Insufficient width/height in pixels"))
+	end
+	if title == title_colorbar
+		title = ""
+	end
 
 	coord_mask = .!isnan.(lon) .& .!isnan.(lat)
 	lon_coords = lon[coord_mask]
@@ -1287,8 +1298,8 @@ function mapbox_contour(
 
 	layout = plotly_layout(
 		lon_center, lat_center, zoom;
-		width=width_dpi,
-		height=height_dpi,
+		width=width_pixel,
+		height=height_pixel,
 		title=title,
 		font_size=font_size,
 		paper_bgcolor=paper_bgcolor,
@@ -1301,7 +1312,7 @@ function mapbox_contour(
 
 	if filename != ""
 		fn = joinpathcheck(figuredir, filename)
-		safe_savefig(p, fn; format=format, width=width_dpi, height=height_dpi, scale=scale)
+		safe_savefig(p, fn; format=format, width=width_pixel, height=height_pixel, scale=scale)
 	end
 
 	return p
