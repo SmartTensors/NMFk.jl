@@ -187,7 +187,7 @@ function mapbox(
 		else
 			colorbar_attr = PlotlyJS.attr()
 		end
-		plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size_fig, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size_fig, label_font_color=label_font_color_fig, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=NMFk.colorscale(colorscale))
+		plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size_fig, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size_fig, label_font_color=label_font_color_fig, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
 		layout = plotly_layout(lon_center, lat_center, zoom_fig; width=width_pixel, height=height_pixel, title=title, font_size=font_size_fig, style=style, paper_bgcolor=paper_bgcolor_fig, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
@@ -199,7 +199,7 @@ function mapbox(
 	else
 		colorbar_attr = PlotlyJS.attr()
 	end
-	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=NMFk.colorscale(colorscale))
+	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
 	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 	return p
