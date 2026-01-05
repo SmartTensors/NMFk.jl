@@ -546,7 +546,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		elseif size(Wmap, 1) > 0
 			@assert size(Wmap, 1) == size(W[k], 1)
 			mu = unique(Wmap[:, 1])
-			@assert length(Wnames) == length(mu) "Length of Wnames does not match unique entries in Wmap!"
+			@assert length(Wnames) == length(mu)
 			Wa = Matrix{eltype(W[k])}(undef, length(mu), size(W[k], 2))
 			for (i, m) in enumerate(mu)
 				Wa[i,:] = NMFk.sumnan(W[k][Wmap[:, 1] .== m,:]; dims=1)
