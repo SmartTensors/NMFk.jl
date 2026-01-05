@@ -18,6 +18,12 @@ function plotlymatrix(X::AbstractMatrix; minvalue=minimumnan(X), maxvalue=maximu
 	)
 end
 
+function plotmatrix(X::AbstractArray; kw...)
+	maxvalue::Number=maximumnan(X)
+	for i in axes(X, 3)
+		plotmatrix(X[:, :, i]; maxvalue=maxvalue, kw...)
+	end
+end
 function plotmatrix(X::DataFrames.DataFrame; kw...)
 	plotmatrix(permutedims(Matrix(X)); kw...)
 end
