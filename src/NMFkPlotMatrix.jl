@@ -30,7 +30,7 @@ end
 function plotmatrix(X::AbstractVector; kw...)
 	plotmatrix(convert(Matrix{Float64}, permutedims(X)); kw...)
 end
-function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Number=0.0, minvalue::Number=minimumnan(X), maxvalue::Number=maximumnan(X), key_title="", title="", xlabel="", ylabel="", xticks=nothing, yticks=nothing, xplot=nothing, yplot=nothing, xmatrix=nothing, ymatrix=nothing, gl=[], gm=[Gadfly.Guide.xticks(label=false, ticks=nothing), Gadfly.Guide.yticks(label=false, ticks=nothing)], masize::Int64=0, colormap=colormaps[:gyr], filename::AbstractString="", hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, figuredir::AbstractString=".", colorkey::Bool=true, key_position::Symbol=:right, mask=nothing, dots=nothing, polygon=nothing, contour=nothing, linewidth::Measures.AbsoluteLength=2Gadfly.pt, key_title_font_size=10Gadfly.pt, key_label_font_size=10Gadfly.pt, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, dotcolor="purple", linecolor="gray", background_color=nothing, defaultcolor=nothing, pointsize=1.5Gadfly.pt, dotsize=1.5Gadfly.pt, transform=nothing, code::Bool=false, plot::Bool=false, yflip::Bool=true, nbins::Integer=0, flatten::Bool=false, rectbin::Bool=(nbins>0) ? false : true, dpi::Number=imagedpi, quiet::Bool=false, permute::Bool=false)
+function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Number=0.0, minvalue::Number=minimumnan(X), maxvalue::Number=maximumnan(X), key_title="", title="", xlabel="", ylabel="", xticks=nothing, yticks=nothing, xplot=nothing, yplot=nothing, xmatrix=nothing, ymatrix=nothing, gl=[], gm=[Gadfly.Guide.xticks(label=false, ticks=nothing), Gadfly.Guide.yticks(label=false, ticks=nothing)], masize::Int64=0, colormap=colormaps[:gyr], filename::AbstractString="", hsize::Measures.AbsoluteLength=6Compose.inch, vsize::Measures.AbsoluteLength=6Compose.inch, figuredir::AbstractString=".", colorkey::Bool=true, key_position::Symbol=:right, mask=nothing, dots=nothing, polygon=nothing, contour=nothing, linewidth::Measures.AbsoluteLength=2Gadfly.pt, key_title_font_size=10Gadfly.pt, key_label_font_size=10Gadfly.pt, major_label_font_size=12Gadfly.pt, minor_label_font_size=10Gadfly.pt, dotcolor="purple", linecolor="gray", background_color=nothing, defaultcolor=nothing, pointsize=1.5Gadfly.pt, dotsize=2Gadfly.pt, transform=nothing, code::Bool=false, plot::Bool=false, yflip::Bool=true, nbins::Integer=0, flatten::Bool=false, rectbin::Bool=(nbins>0) ? false : true, dpi::Number=imagedpi, quiet::Bool=false, permute::Bool=false)
 	recursivemkdir(figuredir; filename=false)
 	recursivemkdir(filename)
 	if minmax_cutoff > 0 && minmax_dx == 0
@@ -62,6 +62,7 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 		Xp = transform.(Xp)
 	end
 	nanmask!(Xp, mask)
+	dotscoords = isnothing(dots) ? nothing : dots
 	ys, xs, vs = Gadfly._findnz(x->!isnan(x), Xp)
 	n, m = size(Xp)
 	# ratio = n / m
@@ -139,6 +140,11 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 		dy = sy / n
 		xs = xs ./ m * sx .+ xmatrixmin
 		ys = -ys ./ n * sy .+ ymatrixmax
+		if !isnothing(dots)
+			dotsx = dots[:, 1]
+			dotsy = dots[:, 2]
+			dotscoords = hcat(dotsx ./ m .* sx .+ xmatrixmin, -dotsy ./ n .* sy .+ ymatrixmax)
+		end
 		xmin = xmatrixmin + dx / 2
 		xmax = xmatrixmax + dx / 2
 		ymin = ymatrixmin + dy / 2
@@ -190,27 +196,27 @@ function plotmatrix(X::AbstractMatrix; minmax_cutoff::Number=0.0, minmax_dx::Num
 			end
 		end
 	end
-	if isnothing(l) && !isnothing(maxvalue) && !isnothing(minvalue)
+	if isnothing(l) && !isnothing(maxvalue) && !isnothing(minvalue) && !isnothing(dotscoords)
 		l = Gadfly.layer(x=[xmin, xmax], y=[ymin, ymax], color=[minvalue, maxvalue], Gadfly.Theme(point_size=0Gadfly.pt, highlight_width=0Gadfly.pt))
 	end
-	if isnothing(polygon) && isnothing(contour) && isnothing(dots)
+	if isnothing(polygon) && isnothing(contour) && isnothing(dotscoords)
 		c = l..., gl..., ds..., cm..., cs..., gt..., gm...
 	else
 		c = []
 		if !isnothing(polygon)
 			push!(c, Gadfly.layer(x=polygon[:,1], y=polygon[:,2], Gadfly.Geom.polygon(preserve_order=true, fill=false), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
 		end
-		if !isnothing(dots)
-			push!(c, Gadfly.layer(x=dots[:,1], y=dots[:,2], Gadfly.Theme(point_size=dotsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt, default_color=dotcolor)))
+		if !isnothing(dotscoords)
+			push!(c, Gadfly.layer(x=dotscoords[:,1], y=dotscoords[:,2], Gadfly.Theme(point_size=dotsize, highlight_width=0Gadfly.pt, grid_line_width=0Gadfly.pt, default_color=dotcolor)))
 		end
 		if !isnothing(contour)
 			push!(c, Gadfly.layer(z=permutedims(contour .* (maxvalue - minvalue) .+ minvalue), x=collect(axes(contour, 2)), y=collect(axes(contour, 1)), Gadfly.Geom.contour(levels=[minvalue]), Gadfly.Theme(line_width=linewidth, default_color=linecolor)))
 		end
 		if !isnothing(l)
 			if !isnothing(mask)
-				c = l..., gl..., ds..., cm..., cs..., gt..., gm..., c...
+				c = l..., c..., gl..., ds..., cm..., cs..., gt..., gm...
 			else
-				c = l..., gl..., ds..., cm..., cs..., gt..., gm..., c...
+				c = c..., l..., gl..., ds..., cm..., cs..., gt..., gm...
 			end
 		else
 			c = c..., gl..., ds..., cm..., gt..., gm...

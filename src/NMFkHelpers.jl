@@ -554,3 +554,9 @@ end
 
 "Convert `@Printf.sprintf` macro into `sprintf` function"
 sprintf(args...) = eval(:@Printf.sprintf($(args...)))
+
+function uniform_points(n::Integer=8, total::Integer=81, start::Integer=1)
+	Δ = (total - start) / n
+	uniform_pts = round.(Int, range(start + Δ/2; stop=total - Δ/2, length=n))
+	return uniform_pts
+end
