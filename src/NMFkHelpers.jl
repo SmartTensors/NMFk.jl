@@ -3,6 +3,7 @@ import Statistics
 import LinearAlgebra
 import Suppressor
 import Interpolations
+import Random
 
 "Test NMFk functions"
 function test()
@@ -555,8 +556,34 @@ end
 "Convert `@Printf.sprintf` macro into `sprintf` function"
 sprintf(args...) = eval(:@Printf.sprintf($(args...)))
 
-function uniform_points(n::Integer=8, total::Integer=81, start::Integer=1)
-	Δ = (total - start) / n
-	uniform_pts = round.(Int, range(start + Δ/2; stop=total - Δ/2, length=n))
+function uniform_points(n::Integer, total::Integer, start::Integer=1)
+	delta = (total - start) / n
+	uniform_pts = round.(Int, range(start + delta/2; stop=total - delta/2, length=n))
 	return uniform_pts
+end
+
+function random_points(n::Integer, total::Integer, start::Integer=1)
+	delta = 2 * (total - start) / n
+	random_pts = round.(Int, sort(rand(start + delta:total - delta, n)))
+	return random_pts
+end
+
+function latin_hypercube_points(n::Integer, total::Integer, start::Integer=1)
+	delta = (total - start) / n
+	latin_pts = Vector{Int}(undef, n)
+	for i = 1:n
+		latin_pts[i] = round(Int, rand() * delta + start + (i - 1) * delta)
+	end
+	return sort(latin_pts)
+end
+
+function latin_hypercube_points(n::Integer, totals::AbstractVector{<:Number}, starts::AbstractVector{<:Number}=fill(1, length(totals)))
+	@assert length(totals) == length(starts) "totals and starts must have the same length"
+	dims = length(totals)
+	latin_pts = Matrix{Int}(undef, n, dims)
+	for j = 1:dims
+		column = latin_hypercube_points(n, totals[j], starts[j])
+		latin_pts[:, j] = column[Random.randperm(n)]
+	end
+	return latin_pts
 end
