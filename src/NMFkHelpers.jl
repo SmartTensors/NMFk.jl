@@ -556,31 +556,40 @@ end
 "Convert `@Printf.sprintf` macro into `sprintf` function"
 sprintf(args...) = eval(:@Printf.sprintf($(args...)))
 
-function uniform_points(n::Integer, total::Integer, start::Integer=1)
+function uniform_points(n::Integer, total::Number, start::Number=1)
 	delta = (total - start) / n
-	uniform_pts = round.(Int, range(start + delta/2; stop=total - delta/2, length=n))
+	uniform_pts = range(start + delta/2; stop=total - delta/2, length=n)
+	if typeof(start) <: Integer
+		uniform_pts = round.(typeof(start), uniform_pts)
+	end
 	return uniform_pts
 end
 
-function random_points(n::Integer, total::Integer, start::Integer=1)
+function random_points(n::Integer, total::Number, start::Number=1)
 	delta = 2 * (total - start) / n
-	random_pts = round.(Int, sort(rand(start + delta:total - delta, n)))
+	random_pts = rand(start + delta:total - delta, n)
+	if typeof(start) <: Integer
+		random_pts = round.(typeof(start), random_pts)
+	end
 	return random_pts
 end
 
-function latin_hypercube_points(n::Integer, total::Integer, start::Integer=1)
+function latin_hypercube_points(n::Integer, total::Number, start::Number=1)
 	delta = (total - start) / n
-	latin_pts = Vector{Int}(undef, n)
+	latin_pts = Vector{typeof(start)}(undef, n)
 	for i = 1:n
-		latin_pts[i] = round(Int, rand() * delta + start + (i - 1) * delta)
+		latin_pts[i] = rand() * delta + start + (i - 1) * delta
+		if typeof(start) <: Integer
+			latin_pts[i] = round(typeof(start), latin_pts[i])
+		end
 	end
-	return sort(latin_pts)
+	return latin_pts
 end
 
 function latin_hypercube_points(n::Integer, totals::AbstractVector{<:Number}, starts::AbstractVector{<:Number}=fill(1, length(totals)))
 	@assert length(totals) == length(starts) "totals and starts must have the same length"
 	dims = length(totals)
-	latin_pts = Matrix{Int}(undef, n, dims)
+	latin_pts = Matrix{typeof(starts[1])}(undef, n, dims)
 	for j = 1:dims
 		column = latin_hypercube_points(n, totals[j], starts[j])
 		latin_pts[:, j] = column[Random.randperm(n)]
