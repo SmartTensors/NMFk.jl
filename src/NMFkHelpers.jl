@@ -578,9 +578,11 @@ function latin_hypercube_points(n::Integer, total::Number, start::Number=1)
 	delta = (total - start) / n
 	latin_pts = Vector{typeof(start)}(undef, n)
 	for i = 1:n
-		latin_pts[i] = rand() * delta + start + (i - 1) * delta
+		v = rand() * delta + start + (i - 1) * delta
 		if typeof(start) <: Integer
-			latin_pts[i] = round(typeof(start), latin_pts[i])
+			latin_pts[i] = round(typeof(start), v)
+		else
+			latin_pts[i] = v
 		end
 	end
 	return latin_pts
@@ -591,8 +593,8 @@ function latin_hypercube_points(n::Integer, totals::AbstractVector{<:Number}, st
 	dims = length(totals)
 	latin_pts = Matrix{typeof(starts[1])}(undef, n, dims)
 	for j = 1:dims
-		column = latin_hypercube_points(n, totals[j], starts[j])
-		latin_pts[:, j] = column[Random.randperm(n)]
+		v = latin_hypercube_points(n, totals[j], starts[j])
+		latin_pts[:, j] = v[Random.randperm(n)]
 	end
 	return latin_pts
 end
