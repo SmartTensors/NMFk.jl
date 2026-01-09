@@ -86,26 +86,28 @@ opaque JPGs first. Keyword arguments control the processing pipeline:
 - `video_codec`, `video_bitrate`, `video_crf`, `video_preset` — Optional overrides for ffmpeg compression settings (default CRF=20, preset=`slow` for mp4).
 - `extra_ffmpeg_args` — Additional raw arguments appended ahead of the output path for advanced tuning.
 """
-function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", imgformat::AbstractString="png", cleanup::Bool=false, quiet::Bool=true, vspeed::Number=10.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric, video_codec::Union{Nothing, AbstractString}=nothing, video_bitrate::Union{Nothing, AbstractString}=nothing, video_crf::Union{Nothing, Real}=nothing, video_preset::Union{Nothing, AbstractString}=nothing, extra_ffmpeg_args::AbstractVector{<:AbstractString}=String[])
-	if moviedir == "."
-		moviedir, prefix = splitdir(prefix)
-		if moviedir == ""
-			moviedir = "."
+function makemovie(prefix::AbstractString; files::AbstractVector{<:AbstractString}=String[], movieformat::AbstractString="mp4", movieopacity::Bool=false, moviedir::AbstractString=".", imgformat::AbstractString="png", cleanup::Bool=false, quiet::Bool=true, vspeed::Number=10.0, frame_padding_digits::Integer=0, frame_order::Symbol=:alphanumeric, video_codec::Union{Nothing, AbstractString}=nothing, video_bitrate::Union{Nothing, AbstractString}=nothing, video_crf::Union{Nothing, Real}=nothing, video_preset::Union{Nothing, AbstractString}=nothing, extra_ffmpeg_args::AbstractVector{<:AbstractString}=String[])
+	if !isempty(files)
+		if moviedir == "."
+			moviedir, prefix = splitdir(prefix)
+			if moviedir == ""
+				moviedir = "."
+			end
 		end
-	end
-	p = joinpath(moviedir, prefix)
-	frame_files = String[]
-	if movieopacity || frame_padding_digits == 0
-		frame_files = _find_frame_files(moviedir, prefix, imgformat)
-	end
-	if movieopacity
-		if isempty(frame_files)
+		p = joinpath(moviedir, prefix)
+		frame_files = String[]
+		if movieopacity || frame_padding_digits == 0
 			frame_files = _find_frame_files(moviedir, prefix, imgformat)
 		end
-		if isempty(frame_files)
-			@warn "No frames matching $(prefix) found in specified dir '$(moviedir)'; skipping opacity conversion."
-			return
+		order = frame_order in (:alphanumeric, :timestamp) ? frame_order : begin
+			@warn "Unknown frame_order $(frame_order); defaulting to :alphanumeric."
+			:alphanumeric
 		end
+		_sort_frame_files!(frame_files, order)
+	else
+		frame_files = files
+	end
+	if movieopacity
 		for f in frame_files
 			e = splitext(f)
 			_convert_with_background(f, string(e[1], ".jpg"))
@@ -119,23 +121,10 @@ function makemovie(prefix::AbstractString; movieformat::AbstractString="mp4", mo
 	input_args = String[]
 	if frame_padding_digits > 0
 		frame_pattern = "$p%0$(frame_padding_digits)d.$imgformat"
-		input_args = ["-i", frame_pattern]
 	else
-		if isempty(frame_files)
-			frame_files = _find_frame_files(moviedir, prefix, imgformat)
-		end
-		if isempty(frame_files)
-			@warn "No frames matching $(prefix)*.$imgformat found in specified dir '$(moviedir)'; aborting movie generation."
-			return
-		end
-		order = frame_order in (:alphanumeric, :timestamp) ? frame_order : begin
-			@warn "Unknown frame_order $(frame_order); defaulting to :alphanumeric."
-			:alphanumeric
-		end
-		_sort_frame_files!(frame_files, order)
 		frame_pattern, temp_frame_dir, frame_padding_digits = _materialize_frame_sequence(frame_files, imgformat)
-		input_args = ["-i", frame_pattern]
 	end
+	input_args = ["-i", frame_pattern]
 	movieformat, ffmpeg_args = _movie_command_args(
 		movieformat,
 		input_args,
