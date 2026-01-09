@@ -358,7 +358,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		sortmag::Bool=false, plotmethod::Symbol=:frame,
 		point_size_nolabel::Measures.AbsoluteLength=3Gadfly.pt, point_size_label::Measures.AbsoluteLength=3Gadfly.pt,
 		biplotseparate::Bool=false, biplot_point_label_font_size::Measures.AbsoluteLength=12Gadfly.pt,
-		repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats,
+		repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats, movies::Bool=true,
 		quiet::Bool=false, veryquiet::Bool=true)
 	if length(krange) == 0
 		@warn("No optimal solutions")
@@ -703,7 +703,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting H map contour for signal $(c) ...")
 						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
-						if size(Hmap, 2) > 0
+						if movies && size(Hmap, 2) > 0
 							Hm2labels = unique(Hmap[:, 1])
 							Hm2bins = unique(Hmap[:, 2])
 							@assert length(Hnames) == length(Hm2labels)
@@ -891,7 +891,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting W map contour for signal $(c) ...")
 						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
-						if size(Wmap, 2) > 0
+						if movies && size(Wmap, 2) > 0
 							Wm2labels = unique(Wmap[:, 1])
 							Wm2bins = unique(Wmap[:, 2])
 							@assert length(Wnames) == length(Wm2labels)

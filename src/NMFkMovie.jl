@@ -118,7 +118,6 @@ function makemovie(prefix::AbstractString; files::AbstractVector{<:AbstractStrin
 	end
 	stop_duration = vspeed / 25
 	temp_frame_dir = nothing
-	input_args = String[]
 	if frame_padding_digits > 0
 		frame_pattern = "$p%0$(frame_padding_digits)d.$imgformat"
 	else
