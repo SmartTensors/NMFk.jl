@@ -751,21 +751,24 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 						Hm2ranking = sortperm(vec(NMFk.sumnan(Hm2 .^ 2; dims=2)); rev=true)
 						@info("H ($(Hcasefilename)) matrix timeseries for specific locations ...")
 						for i in Hm2ranking[1:Htimeseries_locations_size]
+							println("Plotting timeseries for location: $(Hm2labels[i])")
 							well_signals = H[k][Hmap[:,2] .== Hm2labels[i],:]
-							if size(well_signals, 1) == 0
-								@warn("No signals found for location $(Hm2labels[i])!")
-							else
+							if size(well_signals, 1) > 0
 								@assert size(well_signals, 1) == length(Htimeseries_xaxis)
 								Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(Hm2labels[i])-timeseries.$(plotseriesformat)"; title=string(Hm2labels[i]), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+							else
+								@warn("No signals found for location $(Hm2labels[i])!")
 							end
 						end
+						@info("H ($(Hcasefilename)) matrix timeseries for specific locations ...")
 						for l in Htimeseries_extras
+							println("Plotting timeseries for location: $(l)")
 							well_signals = H[k][Hmap[:,2] .== l,:]
-							if size(well_signals, 1) == 0
-								@warn("No signals found for location $(l)!")
-							else
+							if size(well_signals, 1) > 0
 								@assert size(well_signals, 1) == length(Htimeseries_xaxis)
 								Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(l)-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+							else
+								@warn("No signals found for location $(l)!")
 							end
 						end
 					end
@@ -873,6 +876,18 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting W map contour for signal $(c) ...")
 						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
+						if size(Wmap, 2) > 0
+							Wm2labels = unique(Wmap[:, 1])
+							Wm2bins = unique(Wmap[:, 2])
+							@assert length(Wnames) == length(Wm2labels)
+							@info("W ($(Wcasefilename)) matrix plot as transient movie ...")
+							for b in Wm2bins
+								@info("Plotting W map contour for signal $(c) bin $(b) ...")
+								bin_mask = Wmap[:, 2] .== b
+								NMFk.mapbox_contour(lon, lat, W[k][bin_mask,signalmap][:,i]; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)<br>$(b)", concave_hull=true, map_kw...)
+							end
+							NMFk.makemovie(joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)"))
+						end
 					end
 					NMFk.mapbox(lon, lat, Wm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				else
@@ -932,23 +947,26 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 						end
 						Wm2 = Wa2 ./ NMFk.maximumnan(Wa2; dims=1) # normalize by columns
 						Wm2ranking = sortperm(vec(NMFk.sumnan(Wm2 .^ 2; dims=2)); rev=true)
-						@info("W ($(Wcasefilename)) matrix timeseries plotting for specific locations ...")
+						@info("W ($(Wcasefilename)) matrix timeseries plotting for $(Wtimeseries_locations_size) important locations ...")
 						for i in Wm2ranking[1:Wtimeseries_locations_size]
+							pritln("Plotting location $(Wm2labels[i]) ...")
 							well_signals = W[k][Wmap[:,2] .== Wm2labels[i],:]
-							if size(well_signals, 1) == 0
-								@warn("No signals found for location $(Wm2labels[i])!")
-							else
+							if size(well_signals, 1) > 0
 								@assert size(well_signals, 1) == length(Wtimeseries_xaxis)
 								Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(Wm2labels[i])-timeseries.$(plotseriesformat)"; title=string(Wm2labels[i]), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+							else
+								@warn("No signals found for location $(Wm2labels[i])!")
 							end
 						end
+						@info("W ($(Wcasefilename)) matrix timeseries plotting for specificly requested locations ...")
 						for l in Wtimeseries_extras
+							pritln("Plotting location $(l) ...")
 							well_signals = W[k][Wmap[:,2] .== l,:]
-							if size(well_signals, 1) == 0
-								@warn("No signals found for location $(l)!")
-							else
+							if size(well_signals, 1) > 0
 								@assert size(well_signals, 1) == length(Wtimeseries_xaxis)
 								Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(l)-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+							else
+								@warn("No signals found for location $(l)!")
 							end
 						end
 					end
