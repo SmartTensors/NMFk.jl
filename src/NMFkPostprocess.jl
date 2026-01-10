@@ -433,8 +433,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 	if !isnothing(lon) && !isnothing(lat)
 		if length(lon) == length(lat)
 			if length(Hnames) != length(lon) && length(Wnames) != length(lat)
-				plotmap = false
-				@error("Length of lon/lat coordinates ($(length(lon))) must be equal to length of Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
+				@error("Length of lon/lat coordinates ($(length(lon))) must be equal to length of either Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
+				if plotmap || movies
+					throw(ErrorException("Length of lon/lat coordinates ($(length(lon))) must be equal to length of either Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!"))
+				end
 			else
 				plotmap = true
 			end
@@ -891,6 +893,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting W map contour for signal $(c) ...")
 						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
+						@show movies
+						poop
 						if movies && size(Wmap, 2) > 0
 							Wm2labels = unique(Wmap[:, 1])
 							Wm2bins = unique(Wmap[:, 2])
