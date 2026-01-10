@@ -893,8 +893,6 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting W map contour for signal $(c) ...")
 						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
-						@show movies
-						poop
 						if movies && size(Wmap, 2) > 0
 							Wm2labels = unique(Wmap[:, 1])
 							Wm2bins = unique(Wmap[:, 2])
