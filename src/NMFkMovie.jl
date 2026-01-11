@@ -5,10 +5,22 @@ import Colors
 function _run_ffmpeg(args::AbstractVector{<:AbstractString}; quiet::Bool)
 	FFMPEG.ffmpeg() do exe
 		cmd = Cmd(vcat(exe, String.(args)))
-		if quiet
-			run(pipeline(cmd, stdout=devnull, stderr=devnull))
-		else
-			run(cmd)
+		try
+			if quiet
+				run(pipeline(cmd, stdout=devnull, stderr=devnull))
+			else
+				run(cmd)
+			end
+		catch e
+			# Capture stderr to get better error messages
+			io = IOBuffer()
+			try
+				run(pipeline(cmd, stderr=io))
+			catch
+				stderr_output = String(take!(io))
+				@error "FFmpeg command failed" command=cmd stderr=stderr_output exception=e
+				rethrow(e)
+			end
 		end
 	end
 end
