@@ -453,10 +453,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 	Sorder = Vector{Vector{Int64}}(undef, length(krange))
 	for (ki, k) in enumerate(krange)
 		@info("Number of signals: $k")
-
 		if length(X) > 0 # if the input data is provided
 			Xe = W[k] * H[k]
-			@assert size(Xe) == size(X) "Reconstructed data size does not match input data size!"
+			@assert size(Xe) == size(X)
 			fitquality = NMFk.normnan(X .- Xe)
 			if size(X, 2) < 50
 				@info("Relative fits associated with $(Hcasefilename) ...")
