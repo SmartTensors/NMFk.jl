@@ -968,7 +968,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 						Wm2ranking = sortperm(vec(NMFk.sumnan(Wm2 .^ 2; dims=2)); rev=true)
 						@info("W ($(Wcasefilename)) matrix timeseries plotting for $(Wtimeseries_locations_size) important locations ...")
 						for i in Wm2ranking[1:Wtimeseries_locations_size]
-							pritln("Plotting location $(Wm2labels[i]) ...")
+							println("Plotting location $(Wm2labels[i]) ...")
 							well_signals = W[k][Wmap[:,2] .== Wm2labels[i],:]
 							if size(well_signals, 1) > 0
 								@assert size(well_signals, 1) == length(Wtimeseries_xaxis)
@@ -979,7 +979,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 						end
 						@info("W ($(Wcasefilename)) matrix timeseries plotting for specificly requested locations ...")
 						for l in Wtimeseries_extras
-							pritln("Plotting location $(l) ...")
+							println("Plotting location $(l) ...")
 							well_signals = W[k][Wmap[:,2] .== l,:]
 							if size(well_signals, 1) > 0
 								@assert size(well_signals, 1) == length(Wtimeseries_xaxis)
