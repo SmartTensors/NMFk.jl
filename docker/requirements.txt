@@ -5,7 +5,7 @@ Fiona==1.8.13
 GDAL==3.0.4 # Must stay in sync with version in Dockerfile
 geopandas==0.6.2
 h5py==2.10.0
-Keras==3.9
+Keras==3.13.1
 networkx==2.4
 numpy==1.18.1
 pandas==0.25.3
