@@ -229,7 +229,6 @@ function denormalizematrix!(a::AbstractMatrix, dim::Number, amin::Union{Abstract
 		if logv[i]
 			# @show logtransform[i]
 			if typeof(logtransform[i]) <: Number
-
 				av .= 10. .^ av
 				av .-= logtransform[i]
 			else
