@@ -34,8 +34,8 @@ function plotmatches(X::AbstractArray, Xest::AbstractArray, timebins::AbstractVe
 	Xv2 = @view PermutedDimsArray(Xest, permE)[:, :, :]
 	for i in axes(Xv1, 1)
 		m = max(maximumnan(Xv1[i, :, :]), maximumnan(Xv2[i, :, :]))
-		p1 = Mads.plotseries(Xv1[i, :, :]; title=locations[i], xaxis=timebins, name = "", names=combine ? fill("", ns) : attributes, key_position=combine ? :none : :right, ymax=m, hsize=hsize, vsize=vsize, plotline=!combine, quiet=true, code=combine, returnplot=!combine)
-		p2 = Mads.plotseries(Xv2[i, :, :]; title="", xaxis=timebins, names=attributes, ymax=m, hsize=hsize, vsize=vsize, quiet=true, code=combine, returnplot=!combine)
+		p1 = Mads.plotseries(Xv1[i, :, :]; title=locations[i], xaxis=timebins, name = "", names=combine ? fill("", ns) : attributes, key_position=combine ? :none : :right, ymin=0, ymax=m, hsize=hsize, vsize=vsize, plotline=!combine, quiet=true, code=combine, returnplot=!combine)
+		p2 = Mads.plotseries(Xv2[i, :, :]; title="", xaxis=timebins, names=attributes, ymin=0, ymax=m, hsize=hsize, vsize=vsize, quiet=true, code=combine, returnplot=!combine)
 		if combine
 			p = Gadfly.plot(p1..., p2...)
 			vsize_new = vsize
