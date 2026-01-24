@@ -33,19 +33,20 @@ function plotmatches(X::AbstractArray, Xest::AbstractArray, timebins::AbstractVe
 	Xv1 = @view PermutedDimsArray(X, permX)[:, :, :]
 	Xv2 = @view PermutedDimsArray(Xest, permE)[:, :, :]
 	for i in axes(Xv1, 1)
-		p1 = Mads.plotseries(Xv1[i, :, :]; title=locations[i], xaxis=timebins, name = "", names=combine ? fill("", ns) : attributes, key_position=combine ? :none : :right, hsize=hsize, vsize=vsize, plotline=false, quiet=true, code=combine, returnplot=!combine)
+		p1 = Mads.plotseries(Xv1[i, :, :]; title=locations[i], xaxis=timebins, name = "", names=combine ? fill("", ns) : attributes, key_position=combine ? :none : :right, hsize=hsize, vsize=vsize, plotline=!combine, quiet=true, code=combine, returnplot=!combine)
 		p2 = Mads.plotseries(Xv2[i, :, :]; title="", xaxis=timebins, names=attributes, hsize=hsize, vsize=vsize, quiet=true, code=combine, returnplot=!combine)
 		if combine
 			p = Gadfly.plot(p1..., p2...)
+			vsize_new = vsize
 		else
 			p = Gadfly.vstack(p1, p2)
-			vsize = vsize * 2
+			vsize_new = vsize * 2
 		end
 		display(p)
 		if filename != ""
 			s = splitext(filename)
 			fn = joinpath(figuredir,"$(s[1])_$(locations[i])$(s[2])")
-			Mads.plotfileformat(p, fn, hsize, vsize; dpi=dpi)
+			Mads.plotfileformat(p, fn, hsize, vsize_new; dpi=dpi)
 		end
 	end
 end
