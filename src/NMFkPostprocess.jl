@@ -500,7 +500,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				Ha[:,i] = NMFk.sumnan(H[k][:, Hmap[:, 1] .== m]; dims=2)
 			end
 			Ha = Ha[:,Horder]
-			if size(Hmap, 2) > 0
+			if size(Hmap, 2) > 1
 				Hm2labels = unique(Hmap[:, 2])
 				Ha2 = Matrix{eltype(H[k])}(undef, size(H[k], 1), length(Hm2labels))
 				for (i, m) in enumerate(Hm2labels)
@@ -708,7 +708,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting H map contour for signal $(c) ...")
 						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
-						if movies && size(Hmap, 2) > 0
+						if movies && size(Hmap, 2) > 1
 							Hm2labels = unique(Hmap[:, 1])
 							Hm2bins = unique(Hmap[:, 2])
 							@assert length(Hnames) == length(Hm2labels)
@@ -900,7 +900,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting W map contour for signal $(c) ...")
 						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
-						if movies && size(Wmap, 2) > 0
+						if movies && size(Wmap, 2) > 1
 							Wm2labels = unique(Wmap[:, 1])
 							Wm2bins = unique(Wmap[:, 2])
 							@assert length(Wnames) == length(Wm2labels)
@@ -966,7 +966,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				if plottimeseries == :W || plottimeseries == :WH
 					@info("W ($(Wcasefilename)) matrix timeseries plotting ...")
 					Mads.plotseries(Wm, "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
-					if size(Wmap, 2) > 0
+					if size(Wmap, 2) > 1
 						Wm2labels = unique(Wmap[:, 2])
 						Wa2 = Matrix{eltype(W[k])}(undef, length(Wm2labels), size(W[k], 2))
 						for (i, m) in enumerate(Wm2labels)

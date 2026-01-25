@@ -136,7 +136,7 @@ NMFk.mapbox(X_lon, X_lat, log10.(data_values);
 ### 1. Produced Water Analysis
 ```julia
 map_kw = Dict(:zoom => 4, :showcount => false, :dot_size => 5,
-              :width => 2800, :height => 1800, :zoom_fig => 5,
+              :width => 14, :height => 9,  :zoom_fig => 5,
               :dot_size_fig => 20, :title_length => 22)
 
 NMFk.mapbox(X_df; map_kw...,

@@ -311,6 +311,7 @@ function mapbox(
 		layout = plotly_layout(lon_center, lat_center, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
+		@info("Saving map as $(fn) format $(format) width $(width_pixel) height $(height_pixel) and scale $(scale) ...")
 		safe_savefig(p, fn; format=format, width=width_pixel, height=height_pixel, scale=scale)
 	end
 	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
@@ -489,7 +490,7 @@ function build_scatter_trace(
 	colorscale::Symbol
 )
 	marker = PlotlyJS.attr(; size=dot_size, color=color[sort_idx], colorscale=NMFk.colorscale(colorscale), cmin=zmin, cmax=zmax, colorbar=colorbar_attr)
-	return PlotlyJS.scattermapbox(; lon=lon[sort_idx], lat=lat[sort_idx], text=text[sort_idx], mode=showlabels ? "markers+text" : "markers", hoverinfo="text", marker=marker, textposition=label_position, textfont=PlotlyJS.attr(; size=label_font_size, color=label_font_color), attributionControl=false, showlegend=false)
+	return PlotlyJS.scattermapbox(; lon=lon[sort_idx], lat=lat[sort_idx], text=showlabels ? text[sort_idx] : [], mode=showlabels ? "markers+text" : "markers", hoverinfo="text", marker=marker, textposition=label_position, textfont=PlotlyJS.attr(; size=label_font_size, color=label_font_color), attributionControl=false, showlegend=false)
 end
 
 function compute_zoom_dot_size(x::AbstractVector, y::AbstractVector)
@@ -725,19 +726,19 @@ function compute_concave_hull_vertices(lon::AbstractVector{<:Real}, lat::Abstrac
 		verts = [(Float64(p[1]), Float64(p[2])) for p in hull.vertices]
 		if isempty(verts)
 			@warn "Concave hull returned empty; falling back to convex hull"
-			return _compute_convex_hull_vertices(coords)
+			return compute_convex_hull_vertices(coords)
 		end
 		if verts[1] != verts[end]
 			push!(verts, verts[1])
 		end
 		if _polygon_self_intersects(verts)
 			@warn "Concave hull self-intersection detected; falling back to convex hull"
-			return _compute_convex_hull_vertices(coords)
+			return compute_convex_hull_vertices(coords)
 		end
 		return verts
 	catch e
 		@warn "Concave hull computation failed; falling back to convex hull" error=e
-		return _compute_convex_hull_vertices(coords)
+		return compute_convex_hull_vertices(coords)
 	end
 end
 
