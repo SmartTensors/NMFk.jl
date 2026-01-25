@@ -35,8 +35,11 @@ function load(nkrange::AbstractUnitRange{Int}, nNMF::Integer=10; cutoff::Number=
 	end
 	return W, H, fitquality, robustness, aic, kopt
 end
-function load(X::AbstractArray, ar...; kw...)
-	load(ar...; kw..., filenale=joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld"))
+function load(X::AbstractArray, nk::Integer, nNMF::Integer=10; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", kw...)
+	load(nk, nNMF; kw..., casefilename=casefilename, resultdir=resultdir, filename=joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld"))
+end
+function load(size1::Integer, size2::Integer, nk::Integer, nNMF::Integer=10.; resultdir::AbstractString=".", casefilename::AbstractString="nmfk", kw...)
+	load(nk, nNMF; casefilename=casefilename, resultdir=resultdir, filename=joinpathcheck(resultdir, "$(casefilename)_$(size1)_$(size2)_$(nk)_$(nNMF).jld"))
 end
 function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false, ordersignals::Bool=true)
 	if casefilename != "" && filename == ""
@@ -50,6 +53,10 @@ function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Intege
 		else
 			@warn("Signals are not orered ...")
 			so = axes(W, 2)
+		end
+		if filename == joinpathcheck(resultdir, "$(casefilename)-$(nk)-$(nNMF).jld")
+			@info("Renaming files to match the new convention! Please use `NMFk.load(X, ...)`")
+			mv(filename, joinpathcheck(resultdir, "$(casefilename)_$(size(W,1))_$(size(H,2))_$(nk)_$(nNMF).jld"))
 		end
 		!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 		return W[:,so], H[so,:], fitquality, robustness, aic

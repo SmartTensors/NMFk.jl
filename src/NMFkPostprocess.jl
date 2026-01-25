@@ -697,6 +697,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				if isnothing(hover)
 					hover = Hnames
 				end
+				if length(hover) > 1000
+					@info("Removing hover text; too many labels $(length(Hnames))!")
+					hover = []
+				end
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, chnew; figuredir=figuredir, hover=hover, title="Signals: $k")
 				elseif plotmap_scope == :mapbox
@@ -884,6 +888,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			if plotmap && length(lon) == length(cwnew)
 				if isnothing(hover)
 					hover = Wnames
+				end
+				if length(hover) > 1000
+					@info("Removing hover text; too many labels $(length(Wnames))!")
+					hover = []
 				end
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.$(map_format)", lon, lat, cwnew; figuredir=figuredir, hover=hover, title="Signals: $k")

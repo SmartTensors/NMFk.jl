@@ -118,7 +118,7 @@ function mapbox(
 	title::AbstractString="",
 	title_colorbar::AbstractString=title,
 	title_length::Number=0,
-	text::AbstractVector=repeat([""], length(lon)),
+	text::AbstractVector=[],
 	lon_center::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
@@ -173,7 +173,11 @@ function mapbox(
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
-	@assert length(lon) == length(text)
+	if length(text) > 0
+		@assert length(lon) == length(text)
+	else
+		showlabels = false
+	end
 	ensure_mapbox_token!(mapbox_token)
 	if title == title_colorbar
 		title = ""
@@ -212,7 +216,7 @@ function mapbox(
 	title::AbstractString="",
 	title_colorbar::AbstractString="",
 	title_length::Number=0,
-	text::AbstractVector=repeat([""], length(lon)),
+	text::AbstractVector=[],
 	lon_center::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
@@ -257,7 +261,11 @@ function mapbox(
 ) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
-	@assert length(lon) == length(text)
+	if length(text) > 0
+		@assert length(lon) == length(text)
+	else
+		showlabels = false
+	end
 	ensure_mapbox_token!(mapbox_token)
 	if width_pixel < 500 || height_pixel < 500
 		@error "Width and height in pixels should be at least 500 for proper rendering" width_pixel=width_pixel height_pixel=height_pixel
@@ -278,8 +286,8 @@ function mapbox(
 			t = PlotlyJS.scattermapbox(;
 				lon=lon[iz],
 				lat=lat[iz],
-				text=text[iz],
-				hoverinfo="text",
+				text=showlabels ? text[iz] : nothing,
+				hoverinfo=showlabels ? "text" : "",
 				name=name,
 				mode=showlabels ? "markers+text" : "markers",
 				marker=marker,
@@ -315,8 +323,8 @@ function mapbox(
 		t = PlotlyJS.scattermapbox(;
 			lon=lon[iz],
 			lat=lat[iz],
-			text=text[iz],
-			hoverinfo="text",
+			text=showlabels ? text[iz] : nothing,
+			hoverinfo=showlabels ? "text" : "",
 			name=name,
 			mode=showlabels ? "markers+text" : "markers",
 			marker=marker,
