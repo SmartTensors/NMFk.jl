@@ -12,6 +12,7 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 		casefilename = "nmfk"
 	end
 	if mixture != :null
+		@assert N > 2
 		clusterWmatrix = true
 		method = :ipopt
 	elseif N > 2
@@ -131,7 +132,11 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])NMFk run with $(nk) signals: $(Base.text_colors[:normal])")
 	execute_ordersignals = true
 	if load
-		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld")
+		if !isfile(filename)
+			@info("Filename $(filename) is missing! Checking for old filename convention ...")
+			filename = joinpathcheck(resultdir, "$(casefilename)-$(nk)-$(nNMF).jld")
+		end
 		if isfile(filename)
 			W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
 			if size(W) == (size(X, 1), nk) && size(H) == (nk, size(X, 2))
@@ -186,7 +191,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	end
 	!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 	if save
-		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld")
 		JLD.save(filename, "W", W[:,so], "H", H[so,:], "fit", fitquality, "robustness", robustness, "aic", aic)
 		!quiet && @info("Results are saved in $(filename)!")
 	end
@@ -204,7 +209,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		runflag = true
 	end
 	if loadall && casefilename != ""
-		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF)-all.jld")
 		if isfile(filename)
 			@info("All tesults are loaded from $(filename)!")
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
@@ -327,7 +332,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
 		end
 		if saveall && casefilename != ""
-			filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+			filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF)-all.jld")
 			JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
 			@info("All results are saved in $(filename)!")
 		end
@@ -362,7 +367,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 	# nRC = sizeof(deltas) == 0 ? nC : nC + size(deltas, 2)
 	runflag = true
 	if loadall && casefilename != ""
-		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF)-all.jld")
 		if isfile(filename)
 			@info("All results are loaded from $(filename)!")
 			WBig, HBig, objvalue = JLD.load(filename, "W", "H", "fit")
@@ -513,7 +518,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		Wa, Ha = NMFk.finalize(WBig[idxsol], HBig[idxsol])
 	end
 	if saveall && casefilename != ""
-		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF)-all.jld")
 		JLD.save(filename, "W", WBig, "H", HBig, "Wmean", Wa, "Hmean", Ha, "Wvar", Wv, "Hvar", Hv, "Wbest", Wbest, "Hbest", Hbest, "fit", objvalue, "Cluster Silhouettes", clustersilhouettes, "Cluster assignments", clusterassignments, "Cluster centroids", clustercentroids)
 		@info("All results are saved in $(filename)!")
 	end

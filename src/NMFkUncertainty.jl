@@ -59,12 +59,12 @@ function uncertainty(X::AbstractArray{T,N}, nk::Integer, nreruns::Integer, nNMF:
 end
 
 function uncertaintyranges(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; loadall::Bool=true, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", kw...) where {T <: Number, N}
-	filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF-all.jld")
+	filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF)-all.jld")
 	if loadall && isfile(filename)
 		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
 	else
 		@warn("Filename $(filename) is missing!")
-		NMFk.execute(X, nk, nNMF; kw..., saveall=true, resultdir=resultdir, casefilename="$casefilename-$nk-$nNMF-all.jld")
+		NMFk.execute(X, nk, nNMF; kw..., saveall=true, resultdir=resultdir, casefilename="$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF)-all.jld")
 		WBig, HBig, fitquality = JLD.load(filename, "W", "H", "fit")
 	end
 	Xvar = similar(X)

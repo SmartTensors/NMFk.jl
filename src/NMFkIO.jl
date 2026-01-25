@@ -35,9 +35,12 @@ function load(nkrange::AbstractUnitRange{Int}, nNMF::Integer=10; cutoff::Number=
 	end
 	return W, H, fitquality, robustness, aic, kopt
 end
+function load(X::AbstractArray, ar...; kw...)
+	load(ar...; kw..., filenale=joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld"))
+end
 function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Integer=2, resultdir::AbstractString=".", casefilename::AbstractString="nmfk", filename::AbstractString="", quiet::Bool=false, ordersignals::Bool=true)
 	if casefilename != "" && filename == ""
-		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)-$(nk)-$(nNMF).jld")
 	end
 	if isfile(filename)
 		W, H, fitquality, robustness, aic = JLD.load(filename, "W", "H", "fit", "robustness", "aic")
@@ -72,7 +75,7 @@ function save(W, H, fitquality, robustness, aic, nkrange::AbstractUnitRange{Int}
 end
 function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
-		filename = joinpathcheck(resultdir, "$casefilename-$nk-$nNMF.jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld")
 	else
 		recursivemkdir(filename)
 	end
