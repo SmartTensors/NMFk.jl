@@ -61,7 +61,7 @@ function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Intege
 		!quiet && println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality)) Silhouette: $(Printf.@sprintf("%12.7g", robustness)) AIC: $(Printf.@sprintf("%12.7g", aic)) Signal order: $(so)")
 		return W[:,so], H[so,:], fitquality, robustness, aic
 	else
-		!quiet && @warn("File named $(filename) is missing!")
+		!quiet && @warn("File named $(filename) is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal])!")
 		return Array{type, dim}(undef, [0 for i=1:dim]...), Matrix{type}(undef, 0, 0), NaN, NaN, NaN
 	end
 end

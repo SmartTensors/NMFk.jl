@@ -134,7 +134,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	if load
 		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld")
 		if !isfile(filename)
-			@info("Filename $(filename) is missing! Checking for old filename convention ...")
+			@info("Filename $(filename) is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal])! Checking for old filename convention ...")
 			filename = joinpathcheck(resultdir, "$(casefilename)-$(nk)-$(nNMF).jld")
 		end
 		if isfile(filename)
@@ -216,7 +216,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			saveall = false
 			runflag = false
 		else
-			@warn("File $(filename) with ALL results is missing; runs will be executed!")
+			@warn("File $(filename) with ALL results is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal]); runs will be executed!")
 		end
 	end
 	if runflag
@@ -374,7 +374,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			saveall = false
 			runflag = false
 		else
-			@warn("File $(filename) with ALL results is missing; runs will be executed!")
+			@warn("File $(filename) with ALL results is $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal]); runs will be executed!")
 		end
 	end
 	if runflag

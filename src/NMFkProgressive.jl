@@ -144,7 +144,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 				push!(well_x, df_header[!, :Lon][iwell[1]])
 				push!(well_y, df_header[!, :Lat][iwell[1]])
 			else
-				@info("Well $w coordinates are missing!")
+				@info("Well $w coordinates are $(Base.text_colors[:yellow])$(Base.text_colors[:bold])missing$(Base.text_colors[:normal])!")
 			end
 		end
 
