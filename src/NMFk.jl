@@ -27,10 +27,63 @@ import DocumentFunction
 
 const dir = Base.pkgdir(NMFk)
 
-global global_quiet = true
-global restart = false
-global imagedpi = 300
-global first_warning = true
+global_quiet = true
+restart = false
+imagedpi = 300
+first_warning = true
+
+"""
+    NMFkResult
+
+Container for results produced by `NMFk.execute(X, nk, nNMF; ...)`.
+
+The core factorization outputs are stored in `W` and `H`, along with common
+quality metrics (`fit`, `robustness`, `aic`). Additional run configuration is
+captured for provenance.
+"""
+Base.@kwdef struct NMFkResult{TW,TH,TV,TS}
+	W::TW
+	H::TH
+	fit::TV
+	robustness::TV
+	aic::TV
+	nk::Int
+	nNMF::Int
+	sizeX::TS
+	casefilename::String = ""
+	resultdir::String = "."
+	mixture::Symbol = :null
+	method::Symbol = :simple
+	algorithm::Symbol = :multdiv
+	clusterWmatrix::Bool = false
+	meta::Dict{Symbol,Any} = Dict{Symbol,Any}()
+end
+
+"""
+    NMFkSweepResult
+
+Container for results produced by `NMFk.execute(X, nkrange, nNMF; ...)`.
+"""
+Base.@kwdef struct NMFkSweepResult{TW,TH,TV,TS}
+	W::TW
+	H::TH
+	fitquality::TV
+	robustness::TV
+	aic::TV
+	kopt::Union{Int,Nothing}
+	nkrange::Vector{Int}
+	nNMF::Int
+	sizeX::TS
+	casefilename::String = ""
+	resultdir::String = "."
+	mixture::Symbol = :null
+	method::Symbol = :simple
+	algorithm::Symbol = :multdiv
+	clusterWmatrix::Bool = false
+	meta::Dict{Symbol,Any} = Dict{Symbol,Any}()
+end
+
+
 
 modules = ["NMFk"]
 
