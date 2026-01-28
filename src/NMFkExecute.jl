@@ -84,7 +84,12 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 end
 
 "Execute NMFk analysis for a range of number of signals"
-function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".",load::Bool=true, save::Bool=true, casefilename::AbstractString="", kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".",load::Bool=true, save::Bool=true, casefilename::AbstractString="", dims::Union{AbstractUnitRange{Int},Integer}=1:N, kw...) where {T <: Number, N}
+	if N > 2 && mixture == :null
+		@info("Input is a $(N)-D array; delegating to NMFk.tensorfactorization(...).")
+		cf = (casefilename == "") ? "nmfk-tensor" : casefilename
+		return NMFk.tensorfactorization(X, nkrange, dims, nNMF; cutoff=cutoff, clusterWmatrix=clusterWmatrix, mixture=mixture, method=method, algorithm=algorithm, resultdir=resultdir, load=load, save=save, casefilename=cf, kw...)
+	end
 	load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
 	if save
 		xs = string(["_$i" for i in size(X)]...)
@@ -124,7 +129,12 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 end
 
 "Execute NMFk analysis for a given number of signals"
-function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=false, check_inputs::Bool=true, ordersignals::Bool=true, kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=false, check_inputs::Bool=true, ordersignals::Bool=true, dims::Union{AbstractUnitRange{Int},Integer}=1:N, kw...) where {T <: Number, N}
+	if N > 2 && mixture == :null
+		!quiet && @info("Input is a $(N)-D array; delegating to NMFk.tensorfactorization(...).")
+		cf = (casefilename == "") ? "nmfk-tensor" : casefilename
+		return NMFk.tensorfactorization(X, nk, dims, nNMF; clusterWmatrix=clusterWmatrix, mixture=mixture, method=method, algorithm=algorithm, resultdir=resultdir, load=load, save=save, casefilename=cf, kw...)
+	end
 	if .*(size(X)...) == 0
 		error("Input array has a zero dimension! Array size=$(size(X))")
 	end
