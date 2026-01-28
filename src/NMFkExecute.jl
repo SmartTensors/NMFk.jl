@@ -84,8 +84,17 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 end
 
 "Execute NMFk analysis for a range of number of signals"
-function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, load::Bool=true, save::Bool=true, casefilename::AbstractString="", kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".",load::Bool=true, save::Bool=true, casefilename::AbstractString="", kw...) where {T <: Number, N}
 	load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
+	if save
+		xs = string(["_$i" for i in size(X)]...)
+		if casefilename == ""
+			xfile = joinpath(resultdir, "X_matrix_$(xs).jld")
+		else
+			xfile = joinpath(resultdir, "X_matrix_$(xs)_$(casefilename).jld")
+		end
+		JLD.save(xfile, "X", X)
+	end
 	maxk = maximum(collect(nkrange))
 	W = Vector{Array{T, N}}(undef, maxk)
 	H = Vector{Matrix{T}}(undef, maxk)
@@ -93,7 +102,7 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	robustness = zeros(T, maxk)
 	aic = zeros(T, maxk)
 	for nk in nkrange
-		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; load=load, save=save, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, check_inputs=false, kw...)
+		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; load=load, save=save, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, check_inputs=false, resultdir=resultdir,kw...)
 	end
 	@info("Results:")
 	for nk in nkrange

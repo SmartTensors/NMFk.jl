@@ -83,8 +83,6 @@ Base.@kwdef struct NMFkSweepResult{TW,TH,TV,TS}
 	meta::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
-
-
 modules = ["NMFk"]
 
 include("NMFkHelp.jl")
