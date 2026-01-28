@@ -937,6 +937,7 @@ function mapbox_contour(
 	lon_center::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	lat_center::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
+	zoom_fig::Number=zoom,
 	style="mapbox://styles/mapbox/satellite-streets-v12",
 	mapbox_token=NMFk.mapbox_token,
 	figuredir::AbstractString=".",
@@ -970,6 +971,8 @@ function mapbox_contour(
 	if width_pixel < 500 || height_pixel < 500
 		@error "Width and height in pixels should be at least 500 for proper rendering" width_pixel=width_pixel height_pixel=height_pixel
 		throw(ArgumentError("Insufficient width/height in pixels"))
+	elseif width_pixel > 10000 || height_pixel > 10000
+		@warn "Width and height in pixels exceed typical limits; rendering may fail" width_pixel=width_pixel height_pixel=height_pixel
 	end
 	if title == title_colorbar
 		title = ""
@@ -1320,6 +1323,17 @@ function mapbox_contour(
 	!quiet && display(p)
 
 	if filename != ""
+		layout = plotly_layout(
+			lon_center, lat_center, zoom_fig;
+			width=width_pixel,
+			height=height_pixel,
+			title=title,
+			font_size=font_size,
+			paper_bgcolor=paper_bgcolor,
+			style=style,
+			mapbox_token=mapbox_token
+		)
+		p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		safe_savefig(p, fn; format=format, width=width_pixel, height=height_pixel, scale=scale)
 	end

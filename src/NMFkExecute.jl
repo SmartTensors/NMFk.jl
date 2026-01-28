@@ -84,7 +84,7 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 end
 
 "Execute NMFk analysis for a range of number of signals"
-function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false,  mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".",load::Bool=true, save::Bool=true, casefilename::AbstractString="", dims::Union{AbstractUnitRange{Int},Integer}=1:N, kw...) where {T <: Number, N}
+function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer=10; cutoff::Number=0.5, clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", load::Bool=true, save::Bool=true, casefilename::AbstractString="", dims::Union{AbstractUnitRange{Int},Integer}=1:N, kw...) where {T <: Number, N}
 	if N > 2 && mixture == :null
 		@info("Input is a $(N)-D array; delegating to NMFk.tensorfactorization(...).")
 		cf = (casefilename == "") ? "nmfk-tensor" : casefilename
