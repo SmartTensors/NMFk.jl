@@ -446,7 +446,8 @@ function mapbox_colorbar_attr(
 		thickness=thickness,
 		len=len,
 		bgcolor=bgcolor,
-		title=PlotlyJS.attr(; text=bold_title, font=title_font),
+		title=bold_title,
+		titlefont=title_font,
 		tickfont=tick_font,
 		kwargs...
 	)
@@ -949,11 +950,13 @@ function mapbox_contour(
 	height_pixel::Int=dpi * height,
 	scale::Real=1,
 	font_size::Number=14,
+	font_size_fig::Number=font_size,
 	colorbar_bgcolor::AbstractString="#5a5a5a",
 	colorbar_font_color::AbstractString="white",
 	colorbar_font_family::AbstractString="Arial",
 	colorbar_font_bold::Bool=true,
 	colorbar_font_size::Number=font_size,
+	colorbar_font_size_fig::Number=font_size_fig,
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	concave_hull::Bool=true,
 	hull_padding::Real=0.02,
@@ -1323,17 +1326,32 @@ function mapbox_contour(
 	!quiet && display(p)
 
 	if filename != ""
+		colorbar_attr_fig = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size_fig, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
+
+		traces_fig = deepcopy(traces)
+		for tr in traces_fig
+			if haskey(tr.fields, :marker)
+				marker = tr.fields[:marker]
+				if marker isa AbstractDict && haskey(marker, :colorbar)
+					marker[:colorbar] = colorbar_attr_fig
+					tr.fields[:marker] = marker
+				end
+			end
+			if haskey(tr.fields, :colorbar)
+				tr.fields[:colorbar] = colorbar_attr_fig
+			end
+		end
 		layout = plotly_layout(
 			lon_center, lat_center, zoom_fig;
 			width=width_pixel,
 			height=height_pixel,
 			title=title,
-			font_size=font_size,
+			font_size=font_size_fig,
 			paper_bgcolor=paper_bgcolor,
 			style=style,
 			mapbox_token=mapbox_token
 		)
-		p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+		p = PlotlyJS.plot(traces_fig, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
 		safe_savefig(p, fn; format=format, width=width_pixel, height=height_pixel, scale=scale)
 	end
