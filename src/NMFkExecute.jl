@@ -89,9 +89,9 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	if save
 		xs = string(["_$i" for i in size(X)]...)
 		if casefilename == ""
-			xfile = joinpath(resultdir, "X_matrix_$(xs).jld")
+			xfile = joinpath(resultdir, "nmfk_x_matrix_$(xs).jld")
 		else
-			xfile = joinpath(resultdir, "X_matrix_$(xs)_$(casefilename).jld")
+			xfile = joinpath(resultdir, "$(casefilename)_x_matrix_$(xs).jld")
 		end
 		JLD.save(xfile, "X", X)
 	end
