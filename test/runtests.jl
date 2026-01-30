@@ -6,6 +6,24 @@ import LinearAlgebra
 
 Test.@testset "NMFk" begin
 
+	# Lightweight unit tests for helper utilities
+	include("test_helpers.jl")
+
+	# Normalization / scaling utilities
+	include("test_normalize.jl")
+
+	# Clustering helpers (unit-level)
+	include("test_cluster_unit.jl")
+
+	# Row compression utilities
+	include("test_compress.jl")
+
+	# Global state toggles
+	include("test_toggles.jl")
+
+	# Unit tests for griddata and related helpers
+	include("test_griddata.jl")
+
 function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Matrix{Float32}=Matrix{Float32}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0); conccomponents=collect(axes(concs, 2)), ratiocomponents=Int[], tol::Number=0.0000001)
 	numbuckets = size(buckets, 1)
 	idxnan = isnan.(concs)
