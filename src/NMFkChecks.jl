@@ -380,8 +380,6 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 						if sum(isvalue_all) == 0
 							continue
 						end
-						v1 = vo[isvalue_all]
-						v2 = vo2[isvalue_all]
 						comparison_ratio = sum(isvalue_all) / sum(isvalue)
 						comparison_size = "$(sum(isvalue_all)) out of $(sum(isvalue))"
 					else
@@ -389,6 +387,8 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 						comparison_ratio = 1
 						comparison_size = "$(sum(isvalue)) out of $(sum(isvalue))"
 					end
+					v1 = identity.(vo[isvalue_all])
+					v2 = identity.(vo2[isvalue_all])
 					if isvalue == isvalue2 && v1 == v2
 						!quiet && println("- equivalent with $(Base.text_colors[:cyan])$(Base.text_colors[:bold])$(names[j])$(Base.text_colors[:normal]) (comparison size = $(comparison_size))!")
 						if j_counter > i_counter

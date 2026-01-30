@@ -21,6 +21,13 @@ Test.@testset "NMFk" begin
 	# Global state toggles
 	include("test_toggles.jl")
 
+	# Execute input validation and smoke tests
+	include("test_input_checks.jl")
+	include("test_execute_smoke.jl")
+
+	# Input/matrix checking utilities
+	include("test_checks.jl")
+
 	# Unit tests for griddata and related helpers
 	include("test_griddata.jl")
 
