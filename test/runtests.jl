@@ -28,6 +28,9 @@ Test.@testset "NMFk" begin
 	# Input/matrix checking utilities
 	include("test_checks.jl")
 
+	# Capture + basic IO/path helpers
+	include("test_capture_io.jl")
+
 	# Unit tests for griddata and related helpers
 	include("test_griddata.jl")
 
