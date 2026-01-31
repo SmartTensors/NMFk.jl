@@ -48,7 +48,29 @@ function load(nk::Integer, nNMF::Integer=10; type::DataType=Float64, dim::Intege
 		if !isfile(filename)
 			filename = joinpath(resultdir, "$(casefilename)_$(nk)_$(nNMF).jld")
 			if !isfile(filename)
-				filename = joinpath(resultdir, "$(casefilename)_$(size(W,1))_$(size(H,2))_$(nk)_$(nNMF).jld")
+				# Try to find a file matching the size-encoded naming convention:
+				#   casefilename_<m>_<n>_<nk>_<nNMF>.jld
+				# where <m>, <n> are integer dimensions.
+				prefix = "$(casefilename)_"
+				suffix = "_$(nk)_$(nNMF).jld"
+				matchfile = nothing
+				try
+					for f in readdir(resultdir)
+						if startswith(f, prefix) && endswith(f, suffix)
+							middle = f[(lastindex(prefix)+1):(lastindex(f)-lastindex(suffix))]
+							parts = split(middle, '_')
+							if length(parts) == 2 && all(p -> all(isdigit, p), parts)
+								matchfile = joinpath(resultdir, f)
+								break
+							end
+						end
+					end
+				catch
+					matchfile = nothing
+				end
+				if !isnothing(matchfile)
+					filename = matchfile
+				end
 			end
 		end
 	end
@@ -93,7 +115,7 @@ function save(W, H, fitquality, robustness, aic, nkrange::AbstractUnitRange{Int}
 end
 function save(W, H, fitquality, robustness, aic, nk::Integer, nNMF::Integer=10; resultdir=".", casefilename::AbstractString="nmfk", filename::AbstractString="")
 	if casefilename != "" && filename == ""
-		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(X,1))_$(size(X,2))_$(nk)_$(nNMF).jld")
+		filename = joinpathcheck(resultdir, "$(casefilename)_$(size(W,1))_$(size(H,2))_$(nk)_$(nNMF).jld")
 	else
 		recursivemkdir(filename)
 	end

@@ -60,7 +60,7 @@ macro stdouterrcapture(block)
 				outputreader = @async read(outR, String);
 				errororiginal = stderr;
 				(errR, errW) = redirect_stderr();
-				errorreader = @async read(errR), String;
+				errorreader = @async read(errR, String);
 				evalvalue = $(esc(block))
 				redirect_stdout(outputoriginal);
 				close(outW);
@@ -103,7 +103,7 @@ Returns:
 function stdoutcaptureoff()
 	redirect_stdout(outputoriginal);
 	close(outputwrite);
-	output = wait(outputreader);
+	output = fetch(outputreader);
 	close(outputread);
 	return output
 end
@@ -133,7 +133,7 @@ Returns:
 function stderrcaptureoff()
 	redirect_stderr(errororiginal);
 	close(errorwrite);
-	erroro = wait(errorreader)
+	erroro = fetch(errorreader)
 	close(errorread);
 	return erroro
 end

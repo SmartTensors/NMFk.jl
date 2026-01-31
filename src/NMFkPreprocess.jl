@@ -223,45 +223,26 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 	if !(type <: Number)
 		enforce_nan = false
 	end
-	if eltype(M) <: AbstractFloat
-		missing_value = type(NaN)
-	elseif eltype(M) <: AbstractString
-		if type <: AbstractString
-			missing_value = ""
-		elseif type <: AbstractFloat
-			M = parse.(type, M)
-			missing_value = type(NaN)
-		else
-			missing_value = missing
-		end
-	else
-		missing_value = missing
+	# Choose the value used to represent "NaN" placeholders ("", nanstring) when targeting floats.
+	# NOTE: Under current defaults, `missing` and `nothing` are converted to `missing` (not NaN).
+	nan_value = (type <: AbstractFloat) && enforce_nan ? type(NaN) : missing
+
+	# If input is a concrete string array but we're going to write non-strings
+	# (NaN/missing), widen to an Any container.
+	if (eltype(M) <: AbstractString) && (type <: Number)
+		M = convert(Array{Any}, M)
 	end
-	if enforce_nan
-		nothing_ok = false
-		M[ismissing.(M)] .= missing_value
-		M[M .== ""] .= missing_value
-		M[M .== nanstring] .= missing_value
-	else
-		ie = M .== ""
-		if sum(ismissing.(ie)) < length(ie)
-			ie[ismissing.(ie)] .= false
-			ie = convert(Vector{Bool}, convert.(Bool, ie))
-			M[ie] .= missing
-		end
-		ie = M .== nanstring
-		if sum(ismissing.(ie)) < length(ie)
-			ie[ismissing.(ie)] .= false
-			ie = convert(Vector{Bool}, convert.(Bool, ie))
-			M[ie] .= missing
-		end
+	# Replace string placeholders. Use NaN only for float outputs with enforce_nan=true.
+	ie = coalesce.(M .== "", false)
+	if any(ie)
+		M[ie] .= nan_value
+	end
+	ie = coalesce.(M .== nanstring, false)
+	if any(ie)
+		M[ie] .= nan_value
 	end
 	if !nothing_ok
-		if enforce_nan
-			M[isnothing.(M)] .= missing_value
-		else
-			M[isnothing.(M)] .= missing
-		end
+		M[isnothing.(M)] .= missing
 	end
 
 	if type <: Number
@@ -269,21 +250,29 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 		if sum(is) > 0
 			v = tryparse.(type, M[is])
 			isn = isnothing.(v)
-			if !string_ok
-				v[isn] .= type(NaN)
-			else
-				if sum(isn) > 0
-					v = convert(Array{Any}, v)
-					v[isn] .= M[is][isn]
-					M[is] .= v
+			if sum(isn) > 0
+				if !string_ok
+					if (type <: AbstractFloat) && enforce_nan
+						v[isn] .= type(NaN)
+					else
+						v_any = convert(Vector{Any}, v)
+						v_any[isn] .= missing
+						v = v_any
+					end
 				else
-					M[is] .= v
+					v_any = convert(Vector{Any}, v)
+					v_any[isn] .= M[is][isn]
+					v = v_any
 				end
 			end
 			M[is] .= v
 		end
 		if !negative_ok
-			M[M .< 0] .= type(0)
+			for i in eachindex(M)
+				if M[i] isa Number && M[i] < 0
+					M[i] = type(0)
+				end
+			end
 		end
 		id = typeof.(M) .<: Number
 		M[id] .= convert.(type, M[id])

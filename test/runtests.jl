@@ -31,6 +31,12 @@ Test.@testset "NMFk" begin
 	# Capture + basic IO/path helpers
 	include("test_capture_io.jl")
 
+	# IO helpers (load/save conventions)
+	include("test_io.jl")
+
+	# Preprocess helpers (binning/log transforms)
+	include("test_preprocess.jl")
+
 	# Unit tests for griddata and related helpers
 	include("test_griddata.jl")
 
