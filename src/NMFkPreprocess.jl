@@ -235,14 +235,26 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 	# Replace string placeholders. Use NaN only for float outputs with enforce_nan=true.
 	ie = coalesce.(M .== "", false)
 	if any(ie)
+		if nan_value === missing && !(eltype(M) >: Missing)
+			M = convert(Array{Any}, M)
+		end
 		M[ie] .= nan_value
 	end
 	ie = coalesce.(M .== nanstring, false)
 	if any(ie)
+		if nan_value === missing && !(eltype(M) >: Missing)
+			M = convert(Array{Any}, M)
+		end
 		M[ie] .= nan_value
 	end
 	if !nothing_ok
-		M[isnothing.(M)] .= missing
+		inothing = isnothing.(M)
+		if any(inothing)
+			if !(eltype(M) >: Missing)
+				M = convert(Array{Any}, M)
+			end
+			M[inothing] .= missing
+		end
 	end
 
 	if type <: Number

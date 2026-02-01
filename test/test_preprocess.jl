@@ -51,9 +51,9 @@ Test.@testset "preprocess utilities" begin
 			Test.@test out[4] == 0.0f0
 			# unparseable strings -> NaN when string_ok=false
 			Test.@test isnan(out[5])
-			# missing/nothing -> NaN when enforce_nan=true
-			Test.@test isnan(out[6])
-			Test.@test isnan(out[7])
+			# missing/nothing -> missing under current defaults
+			Test.@test out[6] === missing
+			Test.@test out[7] === missing
 		end
 
 		Test.@testset "Float32, enforce_nan=false keeps missings" begin
