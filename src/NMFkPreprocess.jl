@@ -382,11 +382,10 @@ end
 
 function remap(v::AbstractVector{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Vector{T}(undef, length(mapping))
-	o .= NaN
-	if typeof(T) <: Integer
-		o .= 0
+	if T <: AbstractFloat
+		o .= T(NaN)
 	else
-		o .= NaN
+		o .= zero(T)
 	end
 	i = func.(mapping)
 	o[i] .= v[mapping[i]]
@@ -395,11 +394,10 @@ end
 
 function remap(v::AbstractMatrix{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Matrix{T}(undef, length(mapping), size(v, 2))
-	o .= NaN
-	if typeof(T) <: Integer
-		o .= 0
+	if T <: AbstractFloat
+		o .= T(NaN)
 	else
-		o .= NaN
+		o .= zero(T)
 	end
 	i = func.(mapping)
 	o[i, :] .= v[mapping[i], :]

@@ -132,6 +132,17 @@ Test.@testset "NMFk.griddata() Unit Tests" begin
 		Test.@test size(T2, 3) == 1
 	end
 
+	Test.@testset "griddata averages overlapping points" begin
+		# Force all points into the same (ix, iy) bin by using explicit bounds.
+		x = [0.0, 0.1, 0.1]
+		y = [0.0, 0.1, 0.1]
+		z = [10.0, 20.0, 30.0]
+		T = NMFk.griddata(x, y, z; xnbins=2, ynbins=2, xminvalue=0.0, xmaxvalue=1.0, yminvalue=0.0, ymaxvalue=1.0)
+		Test.@test size(T) == (2, 2, 1)
+		Test.@test T[1, 1, 1] == sum(z) / length(z)
+		Test.@test isnan(T[2, 2, 1])
+	end
+
 	Test.@testset "griddata(x, y, Z): gridding (matrix Z)" begin
 		x = [1.0, 2.0, 3.0, 4.0, 5.0]
 		y = [1.0, 1.5, 2.0, 2.5, 3.0]

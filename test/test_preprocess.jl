@@ -91,4 +91,41 @@ Test.@testset "preprocess utilities" begin
 			Test.@test out[3] == 2.0f0
 		end
 	end
+
+	Test.@testset "remap (vector/matrix)" begin
+		v = Float64[10, 20]
+		mapping = Any[1, nothing, 2]
+		o = NMFk.remap(v, mapping)
+		Test.@test length(o) == 3
+		Test.@test o[1] == 10.0
+		Test.@test isnan(o[2])
+		Test.@test o[3] == 20.0
+
+		vi = Int[10, 20]
+		oi = NMFk.remap(vi, mapping)
+		Test.@test oi == Int[10, 0, 20]
+
+		V = Float64[1 2; 10 20]
+		O = NMFk.remap(V, mapping)
+		Test.@test size(O) == (3, 2)
+		Test.@test O[1, :] == Float64[1, 2]
+		Test.@test all(isnan.(O[2, :]))
+		Test.@test O[3, :] == Float64[10, 20]
+	end
+
+	Test.@testset "slopes" begin
+		v = Float64[1, 2, 4]
+		s = NMFk.slopes(v)
+		Test.@test s == Float64[1, 1.5, 2]
+	end
+
+	Test.@testset "bincoordinates" begin
+		v = Float64[0, 1, 2]
+		b = NMFk.bincoordinates(v; nbins=2, minvalue=0.0, maxvalue=2.0)
+		Test.@test length(b) == 2
+		Test.@test b == Float64[0.5, 1.5]
+
+		brev = NMFk.bincoordinates(v; nbins=2, minvalue=0.0, maxvalue=2.0, rev=true)
+		Test.@test brev == reverse(b)
+	end
 end
