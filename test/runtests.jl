@@ -6,39 +6,49 @@ import LinearAlgebra
 
 Test.@testset "NMFk" begin
 
-	# Lightweight unit tests for helper utilities
-	include("test_helpers.jl")
+	Test.@testset "Unit Utilities" begin
+		# Lightweight unit tests for helper utilities
+		include("test_helpers.jl")
 
-	# Normalization / scaling utilities
-	include("test_normalize.jl")
+		# Normalization / scaling utilities
+		include("test_normalize.jl")
 
-	# Clustering helpers (unit-level)
-	include("test_cluster_unit.jl")
+		# Clustering helpers (unit-level)
+		include("test_cluster_unit.jl")
 
-	# Row compression utilities
-	include("test_compress.jl")
+		# Row compression utilities
+		include("test_compress.jl")
 
-	# Global state toggles
-	include("test_toggles.jl")
+		# Global state toggles
+		include("test_toggles.jl")
 
-	# Execute input validation and smoke tests
-	include("test_input_checks.jl")
-	include("test_execute_smoke.jl")
+		# Input/matrix checking utilities
+		include("test_checks.jl")
+	end
 
-	# Input/matrix checking utilities
-	include("test_checks.jl")
+	Test.@testset "Execute" begin
+		# Execute input validation and smoke tests
+		include("test_input_checks.jl")
+		include("test_execute_smoke.jl")
+	end
 
-	# Capture + basic IO/path helpers
-	include("test_capture_io.jl")
+	Test.@testset "Capture + IO" begin
+		# Capture + basic IO/path helpers
+		include("test_capture_io.jl")
 
-	# IO helpers (load/save conventions)
-	include("test_io.jl")
+		# IO helpers (load/save conventions)
+		include("test_io.jl")
+	end
 
-	# Preprocess helpers (binning/log transforms)
-	include("test_preprocess.jl")
+	Test.@testset "Preprocess + Griddata" begin
+		# Preprocess helpers (binning/log transforms)
+		include("test_preprocess.jl")
 
-	# Unit tests for griddata and related helpers
-	include("test_griddata.jl")
+		# Unit tests for griddata and related helpers
+		include("test_griddata.jl")
+	end
+
+	Test.@testset "Integration / Larger Workflows" begin
 
 function runtest(concs::AbstractMatrix, buckets::AbstractMatrix, ratios::Matrix{Float32}=Matrix{Float32}(undef, 0, 0), ratioindices::Union{AbstractVector{Int},AbstractMatrix{Int}}=Matrix{Int}(undef, 0, 0); conccomponents=collect(axes(concs, 2)), ratiocomponents=Int[], tol::Number=0.0000001)
 	numbuckets = size(buckets, 1)
@@ -268,6 +278,8 @@ a0 = 20.0
 b = NMFk.getisotopeconcentration(a0, 0.001, 100)
 a = NMFk.getisotopedelta(b, 0.001, 100)[1]
 Test.@test a0 ≈ a
+
+	end
 
 end
 

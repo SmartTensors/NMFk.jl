@@ -8,6 +8,7 @@ functions that are easy to validate without running full factorization workflows
 import Test
 import NMFk
 import Statistics
+import Random
 
 Test.@testset "NMFk.Helpers Unit Tests" begin
 
@@ -140,6 +141,44 @@ Test.@testset "NMFk.Helpers Unit Tests" begin
 		Test.@test NMFk.flip(v) == [3.0, 2.0, 1.0]
 		M = Float64.([1 2; 3 4])
 		Test.@test NMFk.flip(M) == Float64.([4 3; 2 1])
+	end
+
+	Test.@testset "aisnan/aisnan!" begin
+		x = [1.0, NaN, 3.0]
+		y = NMFk.aisnan(x)
+		Test.@test y == [1.0, 1.0, 3.0]
+		Test.@test x[2] !== 1.0  # aisnan makes a copy
+
+		x2 = [NaN, 0.0]
+		NMFk.aisnan!(x2)
+		Test.@test x2 == [1.0, 0.0]
+
+		x3 = [NaN, NaN]
+		NMFk.aisnan!(x3, 7)
+		Test.@test x3 == [7.0, 7.0]
+	end
+
+	Test.@testset "uniform_points/random_points" begin
+		u = NMFk.uniform_points(4, 10, 1)
+		Test.@test length(u) == 4
+		Test.@test all(1 .<= u .<= 10)
+		Test.@test eltype(u) <: Integer
+		Test.@test issorted(u)
+
+		Random.seed!(1234)
+		r = NMFk.random_points(5, 100, 1)
+		Test.@test length(r) == 5
+		Test.@test all(1 .<= r .<= 100)
+		Test.@test eltype(r) <: Integer
+	end
+
+	Test.@testset "stringproduct" begin
+		a = ["a", "b"]
+		b = ["1", "2", "3"]
+		M = NMFk.stringproduct(a, b)
+		Test.@test size(M) == (2, 3)
+		Test.@test M[1, 1] == "a:1"
+		Test.@test M[2, 3] == "b:3"
 	end
 
 end

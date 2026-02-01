@@ -73,5 +73,22 @@ Test.@testset "preprocess utilities" begin
 			Test.@test out[2] == "2.5"
 			Test.@test out[3] === missing
 		end
+
+		Test.@testset "Matrix Any input handles placeholders" begin
+			M = Any["1" ""; nothing "NaN"]
+			out = NMFk.processdata!(copy(M), Float32; enforce_nan=true, string_ok=false)
+			Test.@test out[1, 1] == 1.0f0
+			Test.@test isnan(out[1, 2])
+			Test.@test out[2, 1] === missing
+			Test.@test isnan(out[2, 2])
+		end
+
+		Test.@testset "String array widens when targeting numbers" begin
+			M = ["1", "", "2"]
+			out = NMFk.processdata!(copy(M), Float32; enforce_nan=false)
+			Test.@test out[1] == 1.0f0
+			Test.@test out[2] === missing
+			Test.@test out[3] == 2.0f0
+		end
 	end
 end
