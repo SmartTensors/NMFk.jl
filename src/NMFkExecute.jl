@@ -92,7 +92,7 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	end
 	load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
 	if save
-		xs = string(["_$i" for i in size(X)]...)
+		xs = string(["_$i" for i in size(X)]...)[2:end] # remove the first underscore
 		if casefilename == ""
 			xfile = joinpath(resultdir, "nmfk_x_matrix_$(xs).jld")
 		else
