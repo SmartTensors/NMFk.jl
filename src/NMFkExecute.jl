@@ -105,25 +105,32 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	H = Vector{Matrix{T}}(undef, maxk)
 	fitquality = zeros(T, maxk)
 	robustness = zeros(T, maxk)
+	fitquality[1] = Inf
+	robustness[1] = -1
 	aic = zeros(T, maxk)
 	for nk in nkrange
-		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; load=load, save=save, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, check_inputs=false, resultdir=resultdir,kw...)
+		W[nk], H[nk], fitquality[nk], robustness[nk], aic[nk] = NMFk.execute(X, nk, nNMF; load=load, save=save, casefilename=casefilename, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, check_inputs=false, resultdir=resultdir, kw...)
 	end
-	@info("Results:")
-	for nk in nkrange
-		Xe = W[nk] * H[nk]
-		fit = normnan(X .- Xe)
-		if abs(fit - fitquality[nk]) > eps(Float16)
-			@warn("Fit quality is not consistent: $(fit) != $(fitquality[nk])")
-		end
-		fitquality[nk] = fit
-		println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality[nk])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[nk])) AIC: $(Printf.@sprintf("%12.7g", aic[nk]))")
-	end
-	kopt = getk(nkrange, robustness[nkrange], cutoff)
-	if isnothing(kopt)
-		@warn("No optimal solutions")
+	if all(isinf.(fitquality[nkrange]))
+		@warn("No successful NMFk runs!")
+		kopt = 0
 	else
-		@info("Optimal solution: $kopt signals")
+		@info("Results:")
+		for nk in nkrange
+			Xe = W[nk] * H[nk]
+			fit = normnan(X .- Xe)
+			if abs(fit - fitquality[nk]) > eps(Float16)
+				@warn("Fit quality is not consistent: $(fit) != $(fitquality[nk])")
+			end
+			fitquality[nk] = fit
+			println("Signals: $(Printf.@sprintf("%2d", nk)) Fit: $(Printf.@sprintf("%12.7g", fitquality[nk])) Silhouette: $(Printf.@sprintf("%12.7g", robustness[nk])) AIC: $(Printf.@sprintf("%12.7g", aic[nk]))")
+		end
+		kopt = getk(nkrange, robustness[nkrange], cutoff)
+		if isnothing(kopt)
+			@warn("No optimal solutions")
+		else
+			@info("Optimal solution: $kopt signals")
+		end
 	end
 	return W, H, fitquality, robustness, aic, kopt
 end
