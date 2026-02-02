@@ -707,7 +707,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.mapbox(lon, lat, chnew; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
 					for (i, c) in enumerate(clusterlabels)
 						@info("Plotting H map contour for signal $(c) ...")
-						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
+						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
 						if movies && size(Hmap, 2) > 1
 							Hm2labels = unique(Hmap[:, 1])
 							Hm2bins = unique(Hmap[:, 2])
@@ -719,7 +719,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 								@info("Plotting H map contour for signal $(c) bin $(b) ...")
 								bin_mask = Hmap[:, 2] .== b
 								png_files[j] = joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)")
-								NMFk.mapbox_contour(lon, lat, H[k][signalmap,bin_mask][i,:] ./ hmax[i]; zmin=0, zmax=1, filename=png_files[j	], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, map_kw...)
+								NMFk.mapbox_contour(lon, lat, H[k][signalmap,bin_mask][i,:] ./ hmax[i]; zmin=0, zmax=1, filename=png_files[j], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
 							end
 							NMFk.makemovie(joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)"); files=png_files,cleanup=true)
 						end
