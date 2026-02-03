@@ -364,6 +364,61 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		@warn("No optimal solutions")
 		return
 	end
+	function _select_importance_indexing(ranking::AbstractVector{<:Integer}, names::AbstractVector, important::AbstractVector, labels::AbstractVector, limit::Integer;
+			matrix_label::AbstractString, casefilename::AbstractString)
+		limit <= 0 && return Int[]
+		mandatory = Int[]
+		names_str = string.(names)
+		if !isempty(important)
+			wanted = Set(string.(important))
+			for (i, n) in pairs(names_str)
+				(n in wanted) && push!(mandatory, i)
+			end
+			missing = setdiff(wanted, Set(names_str))
+			if !isempty(missing)
+				@warn("Requested $(matrix_label)_important names not found in $(matrix_label)names: $(collect(missing))")
+			end
+		end
+		for c in unique(labels)
+			if (c isa Char) && c == ' '
+				continue
+			end
+			pos = Base.findfirst(i -> labels[i] == c, ranking)
+			!isnothing(pos) && push!(mandatory, ranking[pos])
+		end
+		mandatory = unique(mandatory)
+		if length(mandatory) > limit
+			@warn("$(matrix_label) ($(casefilename)) required $(matrix_label)_important + cluster representatives ($(length(mandatory))) exceed plot_important_size=$(limit); truncating selection.")
+			selected = Int[]
+			if !isempty(important)
+				wanted = Set(string.(important))
+				for (i, n) in pairs(names_str)
+					if (n in wanted) && !(i in selected)
+						push!(selected, i)
+						length(selected) >= limit && break
+					end
+				end
+			end
+			if length(selected) < limit
+				for idx in ranking
+					(idx in mandatory) || continue
+					(idx in selected) && continue
+					push!(selected, idx)
+					length(selected) >= limit && break
+				end
+			end
+			return selected
+		end
+		selected = copy(mandatory)
+		if length(selected) < limit
+			for idx in ranking
+				(idx in selected) && continue
+				push!(selected, idx)
+				length(selected) >= limit && break
+			end
+		end
+		return selected
+	end
 	@assert length(Wnames) > 0
 	@assert length(Hnames) > 0
 	@assert length(Wnames) == length(Worder)
@@ -519,7 +574,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			throw(ErrorException("All rows in H matrix are NaN!"))
 		end
 		Hm = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
+		Hm_col = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=1)) # normalize by cols and PERMUTE (TRANSPOSE)
 		Hm[Hm .< eps(eltype(Ha))] .= 0
+		Hm_col[Hm_col .< eps(eltype(Ha))] .= 0
 		Hranking = sortperm(vec(NMFk.sumnan(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
 
 		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Hnames permutedims(Ha)], ',')
@@ -563,7 +620,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			throw(ErrorException("All rows in W matrix are NaN!"))
 		end
 		Wm = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=1) # normalize by columns
+		Wm_row = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=2) # normalize by rows
 		Wm[Wm .< eps(eltype(Wa))] .= 0
+		Wm_row[Wm_row .< eps(eltype(Wa))] .= 0
 		Wranking = sortperm(vec(NMFk.sumnan(Wm .^ 2; dims=2)); rev=true)
 
 		if (createplots || createdendrogramsonly) && adjustsize
@@ -735,6 +794,12 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Hnames Hm[:,signalmap] chnew], ',')
 			end
 			cs = sortperm(chnew)
+			importance_indexing_H = Colon()
+			cs_plot_H = cs
+			if (createdendrogramsonly || createplots) && length(Hranking) > plot_important_size
+				importance_indexing_H = _select_importance_indexing(Hranking, Hnames, H_important, chnew, plot_important_size; matrix_label="H", casefilename=Hcasefilename)
+				cs_plot_H = sortperm(chnew[importance_indexing_H])
+			end
 			yticks = string.(Hnames) .* " " .* string.(chnew)
 			if createplots
 				if length(Hranking) > plot_important_size
@@ -743,32 +808,21 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					else
 						@warn("H ($(Hcasefilename)) matrix has too many columns to plot; plotting top $(plot_important_size) columns plus requested H_important columns!")
 					end
-					importance_indexing = Hranking[1:plot_important_size]
-					if !isempty(H_important)
-						wanted = Set(string.(H_important))
-						extra_idx = findall(n -> string(n) in wanted, Hnames)
-						if !isempty(extra_idx)
-							importance_indexing = unique(vcat(importance_indexing, extra_idx))
-						end
-						missing_h = setdiff(wanted, Set(string.(Hnames)))
-						if !isempty(missing_h)
-							@warn("Requested H_important names not found in Hnames: $(collect(missing_h))")
-						end
-					end
-					cs_plot = sortperm(chnew[importance_indexing])
-					H_plot = Hm[importance_indexing,:]
 				else
 					@info("H ($(Hcasefilename)) matrix plotting all columns ...")
-					importance_indexing = Colon()
-					cs_plot = cs
-					H_plot = Hm
 				end
+				importance_indexing = importance_indexing_H
+				cs_plot = cs_plot_H
+				H_plot = Hm[importance_indexing,:]
+				H_plot_col = Hm_col[importance_indexing,:]
 				H_plot[isnan.(H_plot)] .= 0.0
+				H_plot_col[isnan.(H_plot_col)] .= 0.0
 				if creatematrixplotsall
 					NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				NMFk.plotmatrix(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(H_plot_col[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-column.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				if length(Htypes) > 0
 					yticks2 = (string.(Hnametypes) .* " " .* string.(chnew))[importance_indexing]
 					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
@@ -819,26 +873,12 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 							@warn("H ($(Hcasefilename)) matrix has too many columns to plot; plotting top $(plot_important_size) columns plus requested H_important columns!")
 						end
 					end
-					importance_indexing = Hranking[1:plot_important_size]
-					if !isempty(H_important)
-						wanted = Set(string.(H_important))
-						extra_idx = findall(n -> string(n) in wanted, Hnames)
-						if !isempty(extra_idx)
-							importance_indexing = unique(vcat(importance_indexing, extra_idx))
-						end
-						missing_h = setdiff(wanted, Set(string.(Hnames)))
-						if !isempty(missing_h)
-							@warn("Requested H_important names not found in Hnames: $(collect(missing_h))")
-						end
-					end
-					cs_plot = sortperm(chnew[importance_indexing])
-					H_plot = Hm[importance_indexing,:]
 				else
 					!createplots && @info("H ($(Hcasefilename)) matrix plotting all columns ...")
-					importance_indexing = Colon()
-					cs_plot = cs
-					H_plot = Hm
 				end
+				importance_indexing = importance_indexing_H
+				cs_plot = cs_plot_H
+				H_plot = Hm[importance_indexing,:]
 				H_plot[isnan.(H_plot)] .= 0.0
 				try
 					NMFk.plotdendrogram(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
@@ -962,35 +1002,29 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				@warn("Length of lat/lon coordinates ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 			end
 			cs = sortperm(cwnew)
+			importance_indexing_W = Colon()
+			cs_plot_W = cs
+			if (createdendrogramsonly || createplots) && length(Wranking) > plot_important_size
+				importance_indexing_W = _select_importance_indexing(Wranking, Wnames, W_important, cwnew, plot_important_size; matrix_label="W", casefilename=Wcasefilename)
+				cs_plot_W = sortperm(cwnew[importance_indexing_W])
+			end
 			yticks = string.(Wnames) .* " " .* string.(cwnew)
 			if createplots
 				if length(Wranking) > plot_important_size
 					if isempty(W_important)
-						@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(plot_important_size) rows ...")
+						@warn("W ($(Wcasefilename)) matrix has too many rows to plot; selecting $(plot_important_size) rows (ensuring one per cluster label) ...")
 					else
-						@warn("W ($(Wcasefilename)) matrix has too many rows to plot; plotting top $(plot_important_size) rows plus requested W_important rows ...")
+						@warn("W ($(Wcasefilename)) matrix has too many rows to plot; selecting $(plot_important_size) rows including requested W_important and one per cluster label ...")
 					end
-					importance_indexing = Wranking[1:plot_important_size]
-					if !isempty(W_important)
-						wanted = Set(string.(W_important))
-						extra_idx = findall(n -> string(n) in wanted, Wnames)
-						if !isempty(extra_idx)
-							importance_indexing = unique(vcat(importance_indexing, extra_idx))
-						end
-						missing_w = setdiff(wanted, Set(string.(Wnames)))
-						if !isempty(missing_w)
-							@warn("Requested W_important names not found in Wnames: $(collect(missing_w))")
-						end
-					end
-					cs_plot = sortperm(cwnew[importance_indexing])
-					W_plot = Wm[importance_indexing,:]
 				else
 					@info("W ($(Wcasefilename)) matrix plotting all rows ...")
-					importance_indexing = Colon()
-					cs_plot = cs
-					W_plot = Wm
 				end
+				importance_indexing = importance_indexing_W
+				cs_plot = cs_plot_W
+				W_plot = Wm[importance_indexing,:]
+				W_plot_col = Wm_col[importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
+				W_plot_col[isnan.(W_plot_col)] .= 0.0
 				if creatematrixplotsall
 					NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
 					# sorted by Wa magnitude
@@ -1007,6 +1041,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, quiet=quiet)
 				end
 				NMFk.plotmatrix(W_plot[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(W_plot_row[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-row.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
 				# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
@@ -1051,31 +1086,17 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				if length(Wranking) > plot_important_size
 					if !createplots
 						if isempty(W_important)
-							@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(plot_important_size) rows ...")
+							@warn("W ($(Wcasefilename)) matrix has too many rows to plot; selecting $(plot_important_size) rows (ensuring one per cluster label) ...")
 						else
-							@warn("W ($(Wcasefilename)) matrix has too many rows to plot; plotting top $(plot_important_size) rows plus requested W_important rows ...")
+							@warn("W ($(Wcasefilename)) matrix has too many rows to plot; selecting $(plot_important_size) rows including requested W_important and one per cluster label ...")
 						end
 					end
-					importance_indexing = Wranking[1:plot_important_size]
-					if !isempty(W_important)
-						wanted = Set(string.(W_important))
-						extra_idx = findall(n -> string(n) in wanted, Wnames)
-						if !isempty(extra_idx)
-							importance_indexing = unique(vcat(importance_indexing, extra_idx))
-						end
-						missing_w = setdiff(wanted, Set(string.(Wnames)))
-						if !isempty(missing_w)
-							@warn("Requested W_important names not found in Wnames: $(collect(missing_w))")
-						end
-					end
-					cs_plot = sortperm(cwnew[importance_indexing])
-					W_plot = Wm[importance_indexing,:]
 				else
 					!createplots && @info("W ($(Wcasefilename)) matrix plotting all rows ...")
-					importance_indexing = Colon()
-					cs_plot = cs
-					W_plot = Wm
 				end
+				importance_indexing = importance_indexing_W
+				cs_plot = cs_plot_W
+				W_plot = Wm[importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
 				try
 					NMFk.plotdendrogram(W_plot[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
