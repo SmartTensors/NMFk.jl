@@ -324,7 +324,7 @@ end
 
 function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0); Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
-		ordersignals::Symbol=:importance, biplot_importantsize::Integer=30, Wtimeseries_locations_size::Integer=3, Wtimeseries_extras::AbstractVector=[], Htimeseries_locations_size::Integer=3, Htimeseries_extras::AbstractVector=[],
+		ordersignals::Symbol=:importance, plot_important_size::Integer=30, Wtimeseries_locations_size::Integer=3, W_important::AbstractVector=[], Htimeseries_locations_size::Integer=3, H_important::AbstractVector=[],
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
 		Wsize::Integer=0, Hsize::Integer=0, Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
 		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
@@ -737,9 +737,24 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			cs = sortperm(chnew)
 			yticks = string.(Hnames) .* " " .* string.(chnew)
 			if createplots
-				if length(Hranking) > biplot_importantsize
-					@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(biplot_importantsize) columns!")
-					importance_indexing = Hranking[1:biplot_importantsize]
+				if length(Hranking) > plot_important_size
+					if isempty(H_important)
+						@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(plot_important_size) columns!")
+					else
+						@warn("H ($(Hcasefilename)) matrix has too many columns to plot; plotting top $(plot_important_size) columns plus requested H_important columns!")
+					end
+					importance_indexing = Hranking[1:plot_important_size]
+					if !isempty(H_important)
+						wanted = Set(string.(H_important))
+						extra_idx = findall(n -> string(n) in wanted, Hnames)
+						if !isempty(extra_idx)
+							importance_indexing = unique(vcat(importance_indexing, extra_idx))
+						end
+						missing_h = setdiff(wanted, Set(string.(Hnames)))
+						if !isempty(missing_h)
+							@warn("Requested H_important names not found in Hnames: $(collect(missing_h))")
+						end
+					end
 					cs_plot = sortperm(chnew[importance_indexing])
 					H_plot = Hm[importance_indexing,:]
 				else
@@ -781,7 +796,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 							end
 						end
 						@info("H ($(Hcasefilename)) matrix timeseries for specific locations ...")
-						for l in Htimeseries_extras
+						for l in H_important
 							println("Plotting timeseries for location: $(l)")
 							well_signals = H[k][Hmap[:,2] .== l,:]
 							if size(well_signals, 1) > 0
@@ -796,9 +811,26 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if (createdendrogramsonly || createplots)
 				@info("H ($(Hcasefilename)) matrix dendrogram plotting ...")
-				if length(Hranking) > biplot_importantsize
-					!createplots && @warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(biplot_importantsize) columns!")
-					importance_indexing = Hranking[1:biplot_importantsize]
+				if length(Hranking) > plot_important_size
+					if !createplots
+						if isempty(H_important)
+							@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(plot_important_size) columns!")
+						else
+							@warn("H ($(Hcasefilename)) matrix has too many columns to plot; plotting top $(plot_important_size) columns plus requested H_important columns!")
+						end
+					end
+					importance_indexing = Hranking[1:plot_important_size]
+					if !isempty(H_important)
+						wanted = Set(string.(H_important))
+						extra_idx = findall(n -> string(n) in wanted, Hnames)
+						if !isempty(extra_idx)
+							importance_indexing = unique(vcat(importance_indexing, extra_idx))
+						end
+						missing_h = setdiff(wanted, Set(string.(Hnames)))
+						if !isempty(missing_h)
+							@warn("Requested H_important names not found in Hnames: $(collect(missing_h))")
+						end
+					end
 					cs_plot = sortperm(chnew[importance_indexing])
 					H_plot = Hm[importance_indexing,:]
 				else
@@ -932,9 +964,24 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			cs = sortperm(cwnew)
 			yticks = string.(Wnames) .* " " .* string.(cwnew)
 			if createplots
-				if length(Wranking) > biplot_importantsize
-					@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(biplot_importantsize) rows ...")
-					importance_indexing = Wranking[1:biplot_importantsize]
+				if length(Wranking) > plot_important_size
+					if isempty(W_important)
+						@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(plot_important_size) rows ...")
+					else
+						@warn("W ($(Wcasefilename)) matrix has too many rows to plot; plotting top $(plot_important_size) rows plus requested W_important rows ...")
+					end
+					importance_indexing = Wranking[1:plot_important_size]
+					if !isempty(W_important)
+						wanted = Set(string.(W_important))
+						extra_idx = findall(n -> string(n) in wanted, Wnames)
+						if !isempty(extra_idx)
+							importance_indexing = unique(vcat(importance_indexing, extra_idx))
+						end
+						missing_w = setdiff(wanted, Set(string.(Wnames)))
+						if !isempty(missing_w)
+							@warn("Requested W_important names not found in Wnames: $(collect(missing_w))")
+						end
+					end
 					cs_plot = sortperm(cwnew[importance_indexing])
 					W_plot = Wm[importance_indexing,:]
 				else
@@ -986,7 +1033,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 							end
 						end
 						@info("W ($(Wcasefilename)) matrix timeseries plotting for specificly requested locations ...")
-						for l in Wtimeseries_extras
+						for l in W_important
 							println("Plotting location $(l) ...")
 							well_signals = W[k][Wmap[:,2] .== l,:]
 							if size(well_signals, 1) > 0
@@ -1001,9 +1048,26 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			end
 			if (createdendrogramsonly || createplots)
 				@info("W ($(Wcasefilename)) matrix dendrogram plotting ...")
-				if length(Wranking) > biplot_importantsize
-					!createplots && @warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(biplot_importantsize) rows ...")
-					importance_indexing = Wranking[1:biplot_importantsize]
+				if length(Wranking) > plot_important_size
+					if !createplots
+						if isempty(W_important)
+							@warn("W ($(Wcasefilename)) matrix has too many rows to plot; only plotting top $(plot_important_size) rows ...")
+						else
+							@warn("W ($(Wcasefilename)) matrix has too many rows to plot; plotting top $(plot_important_size) rows plus requested W_important rows ...")
+						end
+					end
+					importance_indexing = Wranking[1:plot_important_size]
+					if !isempty(W_important)
+						wanted = Set(string.(W_important))
+						extra_idx = findall(n -> string(n) in wanted, Wnames)
+						if !isempty(extra_idx)
+							importance_indexing = unique(vcat(importance_indexing, extra_idx))
+						end
+						missing_w = setdiff(wanted, Set(string.(Wnames)))
+						if !isempty(missing_w)
+							@warn("Requested W_important names not found in Wnames: $(collect(missing_w))")
+						end
+					end
 					cs_plot = sortperm(cwnew[importance_indexing])
 					W_plot = Wm[importance_indexing,:]
 				else
