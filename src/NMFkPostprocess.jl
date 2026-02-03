@@ -1022,9 +1022,9 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				importance_indexing = importance_indexing_W
 				cs_plot = cs_plot_W
 				W_plot = Wm[importance_indexing,:]
-				W_plot_col = Wm_col[importance_indexing,:]
+				W_plot_row = Wm_row[importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
-				W_plot_col[isnan.(W_plot_col)] .= 0.0
+				W_plot_row[isnan.(W_plot_row)] .= 0.0
 				if creatematrixplotsall
 					NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
 					# sorted by Wa magnitude
