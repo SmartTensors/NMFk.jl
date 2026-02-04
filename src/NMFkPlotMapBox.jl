@@ -924,8 +924,8 @@ function mapbox_contour(
 	lon::AbstractVector{T1},
 	lat::AbstractVector{T1},
 	zvalue::AbstractVector{T2};
-	zmin::Number=minimumnan(zvalue),
-	zmax::Number=maximumnan(zvalue),
+	zmin::Union{Number,Nothing}=nothing,
+	zmax::Union{Number,Nothing}=nothing,
 	resolution::Int=50,
 	power::Real=2,
 	smoothing::Real=0.0,
@@ -1057,11 +1057,6 @@ function mapbox_contour(
 		end
 	end
 
-	zmin_target, zmax_target = _resolve_color_bounds(zmin, zmax, values_clean)
-	colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
-	colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
-	colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
-
 	if hull_vertices === nothing && concave_hull
 		# Build the hull from the data actually being interpolated (finite z values).
 		# Using all coordinate positions (including NaN-valued samples) can expand the hull
@@ -1141,6 +1136,12 @@ function mapbox_contour(
 
 	traces = PlotlyJS.GenericTrace{Dict{Symbol, Any}}[]
 	if insufficient_data
+		zmin = zmin === nothing ? minimumnan(zvalue) : NaN
+		zmax = zmax === nothing ? maximumnan(zvalue) : NaN
+		zmin_target, zmax_target = _resolve_color_bounds(zmin, zmax, values_clean)
+		colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
+		colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
+		colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
 		dummy_marker = PlotlyJS.attr(
 			size=1,
 			opacity=0.0,
@@ -1181,6 +1182,14 @@ function mapbox_contour(
 		end
 
 		geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(lon_grid, lat_grid, z_grid; mask_polygon=hull_vertices)
+
+		zmin = zmin === nothing ? minimumnan(geojson_values) : NaN
+		zmax = zmax === nothing ? maximumnan(geojson_values) : NaN
+		zmin_target, zmax_target = _resolve_color_bounds(zmin, zmax, values_clean)
+		colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
+		colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
+		colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
+
 		if !isempty(geojson_ids)
 			plot_values = copy(geojson_values)
 			plot_values .= clamp.(plot_values, zmin_target, zmax_target)
