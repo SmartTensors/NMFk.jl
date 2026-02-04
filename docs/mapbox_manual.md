@@ -58,7 +58,7 @@ NMFk.mapbox(df[!, [:LONGITUDE, :LATITUDE, :VALUE_COLUMN]]; keyword_arguments...)
 - **`title_length`**: Maximum characters in title
 
 ### Additional Parameters
-- **`showcount`**: Boolean to show/hide point count
+- **`show_count`**: Boolean to show/hide point count
 - **`traces`**: Additional map traces/overlays
 - **`marker_color`**: Custom marker colors
 
@@ -74,7 +74,7 @@ NMFk.mapbox(my_dataframe)
 ```julia
 map_kw = Dict(
     :zoom => 6,
-    :showcount => false,
+    :show_count => false,
     :dot_size => 8,
     :width => 2800,
     :height => 1800,
@@ -135,8 +135,8 @@ NMFk.mapbox(X_lon, X_lat, log10.(data_values);
 
 ### 1. Produced Water Analysis
 ```julia
-map_kw = Dict(:zoom => 4, :showcount => false, :dot_size => 5,
-              :width => 14, :height => 9,  :zoom_fig => 5,
+map_kw = Dict(:zoom => 4, :show_count => false, :dot_size => 5,
+              :width => 14, :height => 9, :zoom_fig => 5,
               :dot_size_fig => 20, :title_length => 22)
 
 NMFk.mapbox(X_df; map_kw...,

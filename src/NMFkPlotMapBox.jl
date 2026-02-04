@@ -169,7 +169,8 @@ function mapbox(
 	colorbar_font_bold_fig::Bool=colorbar_font_bold,
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	paper_bgcolor_fig::AbstractString=paper_bgcolor,
-	showcount::Bool=true
+	quiet::Bool=false,
+	show_count::Bool=true
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
@@ -206,6 +207,7 @@ function mapbox(
 	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
 	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
 	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	!quiet && display(p)
 	return p
 end
 
@@ -257,7 +259,7 @@ function mapbox(
 	showlegend=false,
 	colorscale::Symbol=:turbo,
 	paper_bgcolor::AbstractString="white",
-	showcount::Bool=true
+	show_count::Bool=true
 ) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
@@ -282,7 +284,7 @@ function mapbox(
 			jj = j % length(NMFk.colors)
 			k = jj == 0 ? length(NMFk.colors) : jj
 			marker = PlotlyJS.attr(; size=dot_size_fig, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(; size=font_size_fig, color=paper_bgcolor), tickfont=PlotlyJS.attr(; size=font_size_fig, color=paper_bgcolor)))
-			name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
+			name = show_count ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
 			t = PlotlyJS.scattermapbox(;
 				lon=lon[iz],
 				lat=lat[iz],
@@ -320,7 +322,7 @@ function mapbox(
 		jj = j % length(NMFk.colors)
 		k = jj == 0 ? length(NMFk.colors) : jj
 		marker = PlotlyJS.attr(; size=dot_size, color=NMFk.colors[k], colorbar=PlotlyJS.attr(; thicknessmode="pixels", thickness=30, len=0.5, title=plotly_title_length(repeat("&nbsp;", title_length) * " colorbar " * title, title_length), titlefont=PlotlyJS.attr(; size=font_size, color=paper_bgcolor), tickfont=PlotlyJS.attr(; size=font_size, color=paper_bgcolor)))
-		name = showcount ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
+		name = show_count ? "$(string(i)) [$(sum(iz))]" : "$(string(i))"
 		t = PlotlyJS.scattermapbox(;
 			lon=lon[iz],
 			lat=lat[iz],
@@ -895,7 +897,7 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `concave_hull::Bool=true`: If true, derive extent/masking from a ConcaveHull envelope
 - `hull_padding::Real=0.02`: Fractional padding applied to the concave hull shape itself
 - `extra_margin::Real=0.0`: Absolute degree margin added radially outside the hull
-- `show_locations::Bool=true`: Display input locations as colored circular markers
+- `show_locations::Bool=false`: Display input locations as colored circular markers
 - `location_color::AbstractString="purple"`: Marker color used for the location circles
 - `location_size::Number=10`: Marker diameter for the location circles
 - `location_names_above::AbstractVector=String[]`: Optional labels plotted above each location marker
@@ -930,7 +932,7 @@ function mapbox_contour(
 	colorscale::Symbol=:turbo,
 	title_length::Number=0,
 	opacity::Real=0.7,
-	show_locations::Bool=true,
+	show_locations::Bool=false,
 	location_color::AbstractString="purple",
 	location_size::Number=10,
 	location_names_above::AbstractVector=String[],
