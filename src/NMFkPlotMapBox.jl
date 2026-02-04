@@ -837,9 +837,61 @@ function _build_geojson_tiles(lon_grid::AbstractVector{<:Real}, lat_grid::Abstra
 	return geojson, feature_ids, tile_values
 end
 
-function _resolve_color_bounds(zmin_input::Number, zmax_input::Number, values::AbstractVector{<:Real})
-	zmin_target = float(zmin_input)
-	zmax_target = float(zmax_input)
+function _nicenum(x::Float64, do_round::Bool)
+	if !isfinite(x) || x == 0.0
+		return 0.0
+	end
+	exp = floor(log10(abs(x)))
+	f = abs(x) / 10.0^exp
+	nf = if do_round
+		f < 1.5 ? 1.0 : (f < 3.0 ? 2.0 : (f < 7.0 ? 5.0 : 10.0))
+	else
+		f <= 1.0 ? 1.0 : (f <= 2.0 ? 2.0 : (f <= 5.0 ? 5.0 : 10.0))
+	end
+	return copysign(nf * 10.0^exp, x)
+end
+
+function _nice_color_bounds(
+	zmin::Float64,
+	zmax::Float64;
+	tick_count::Int=5,
+	keep_min::Bool=false,
+	keep_max::Bool=false
+)
+	if !isfinite(zmin) || !isfinite(zmax) || zmax <= zmin
+		return zmin, zmax
+	end
+	tick_count = max(2, tick_count)
+	range = zmax - zmin
+	nice_range = _nicenum(range, false)
+	step = _nicenum(nice_range / (tick_count - 1), true)
+	if step <= 0 || !isfinite(step)
+		return zmin, zmax
+	end
+	nice_min = floor(zmin / step) * step
+	nice_max = ceil(zmax / step) * step
+	if nice_max <= nice_min
+		nice_max = nice_min + step
+	end
+	out_min = keep_min ? zmin : nice_min
+	out_max = keep_max ? zmax : nice_max
+	if out_max <= out_min
+		out_max = out_min + step
+	end
+	return out_min, out_max
+end
+
+function _resolve_color_bounds(
+	zmin_input::Union{Number, Nothing},
+	zmax_input::Union{Number, Nothing},
+	values::AbstractVector{<:Real};
+	nice::Bool=true,
+	tick_count::Int=5
+)
+	keep_min = zmin_input !== nothing
+	keep_max = zmax_input !== nothing
+	zmin_target = zmin_input === nothing ? NaN : float(zmin_input)
+	zmax_target = zmax_input === nothing ? NaN : float(zmax_input)
 	if !isfinite(zmin_target)
 		candidate = minimumnan(values)
 		if isfinite(candidate)
@@ -849,6 +901,7 @@ function _resolve_color_bounds(zmin_input::Number, zmax_input::Number, values::A
 		else
 			zmin_target = 0.0
 		end
+		keep_min = false
 	end
 	if !isfinite(zmax_target)
 		candidate = maximumnan(values)
@@ -857,17 +910,24 @@ function _resolve_color_bounds(zmin_input::Number, zmax_input::Number, values::A
 		else
 			zmax_target = zmin_target + 1.0
 		end
+		keep_max = false
 	end
 	if !isfinite(zmin_target)
 		zmin_target = 0.0
+		keep_min = false
 	end
 	if !isfinite(zmax_target)
 		zmax_target = zmin_target + 1.0
+		keep_max = false
 	end
 	if zmax_target <= zmin_target
 		@warn "zmax must be greater than zmin; adjusting automatically" zmin=zmin_target zmax=zmax_target
 		delta = max(1e-9, abs(zmin_target) * eps(zmin_target))
 		zmax_target = zmin_target + (delta == 0 ? 1e-9 : delta)
+		keep_max = false
+	end
+	if nice
+		zmin_target, zmax_target = _nice_color_bounds(zmin_target, zmax_target; tick_count=tick_count, keep_min=keep_min, keep_max=keep_max)
 	end
 	return zmin_target, zmax_target
 end
@@ -1136,8 +1196,6 @@ function mapbox_contour(
 
 	traces = PlotlyJS.GenericTrace{Dict{Symbol, Any}}[]
 	if insufficient_data
-		zmin = zmin === nothing ? minimumnan(zvalue) : NaN
-		zmax = zmax === nothing ? maximumnan(zvalue) : NaN
 		zmin_target, zmax_target = _resolve_color_bounds(zmin, zmax, values_clean)
 		colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
 		colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
@@ -1182,10 +1240,7 @@ function mapbox_contour(
 		end
 
 		geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(lon_grid, lat_grid, z_grid; mask_polygon=hull_vertices)
-
-		zmin = zmin === nothing ? minimumnan(geojson_values) : NaN
-		zmax = zmax === nothing ? maximumnan(geojson_values) : NaN
-		zmin_target, zmax_target = _resolve_color_bounds(zmin, zmax, values_clean)
+		zmin_target, zmax_target = _resolve_color_bounds(zmin, zmax, geojson_values)
 		colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
 		colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
 		colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
