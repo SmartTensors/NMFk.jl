@@ -718,8 +718,12 @@ function _polygon_self_intersects(vertices::Vector{Tuple{Float64, Float64}}; eps
 	return false
 end
 
-function compute_concave_hull_vertices(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
+function compute_concave_hull_vertices(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real}; convex::Bool=false)
 	coords = _prepare_hull_points(lon, lat)
+	if convex
+		@info "Convex hull requested; skipping concave hull computation"
+		return compute_convex_hull_vertices(coords)
+	end
 	if length(coords) < 3
 		return nothing
 	end
@@ -960,9 +964,10 @@ function mapbox_contour(
 	colorbar_font_size::Number=font_size,
 	colorbar_font_size_fig::Number=font_size_fig,
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
+	hull_vertices::Union{Nothing, Vector{Tuple{Float64, Float64}}}=nothing,
 	concave_hull::Bool=true,
-	hull_padding::Real=0.02,
-	extra_margin::Real=0.005,
+	hull_padding::Real=0.0,
+	extra_margin::Real=0.0,
 	show_hull::Bool=false,
 	hull_color::AbstractString="magenta",
 	hull_line_width::Number=3,
@@ -1057,17 +1062,19 @@ function mapbox_contour(
 	colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
 	colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
 
-	hull_vertices = nothing
-	if concave_hull
-		hull_vertices = compute_concave_hull_vertices(lon_coords, lat_coords)
+	if hull_vertices === nothing && concave_hull
+		# Build the hull from the data actually being interpolated (finite z values).
+		# Using all coordinate positions (including NaN-valued samples) can expand the hull
+		# and defeat the intended masking.
+		hull_vertices = compute_concave_hull_vertices(lon_clean, lat_clean)
 		if hull_vertices === nothing || length(hull_vertices) < 3
 			@info "Concave hull unavailable; reverting to padded bounding box"
 			hull_vertices = nothing
 		end
 	end
 
-	lon_source_raw = hull_vertices === nothing ? lon_coords : first.(hull_vertices)
-	lat_source_raw = hull_vertices === nothing ? lat_coords : last.(hull_vertices)
+	lon_source_raw = hull_vertices === nothing ? lon_clean : first.(hull_vertices)
+	lat_source_raw = hull_vertices === nothing ? lat_clean : last.(hull_vertices)
 	if length(lon_source_raw) == 0
 		lon_range_raw = 0.0
 		lat_range_raw = 0.0
@@ -1087,7 +1094,7 @@ function mapbox_contour(
 		)
 		if _polygon_self_intersects(hull_vertices)
 			@warn "Expanded concave hull self-intersection detected; reverting to convex hull"
-			coords = [(Float64(lon_coords[i]), Float64(lat_coords[i])) for i in eachindex(lon_coords)]
+			coords = [(Float64(lon_clean[i]), Float64(lat_clean[i])) for i in eachindex(lon_clean)]
 			if length(coords) >= 3
 				hull_vertices = compute_convex_hull_vertices(coords)
 				if hull_vertices !== nothing && (effective_padding > 0 || effective_margin > 0)
@@ -1109,8 +1116,8 @@ function mapbox_contour(
 			end
 		end
 	end
-	lon_source_raw = hull_vertices === nothing ? lon_coords : first.(hull_vertices)
-	lat_source_raw = hull_vertices === nothing ? lat_coords : last.(hull_vertices)
+	lon_source_raw = hull_vertices === nothing ? lon_clean : first.(hull_vertices)
+	lat_source_raw = hull_vertices === nothing ? lat_clean : last.(hull_vertices)
 	if length(lon_source_raw) > 0
 		lon_range_raw = maximum(lon_source_raw) - minimum(lon_source_raw)
 		lat_range_raw = maximum(lat_source_raw) - minimum(lat_source_raw)
