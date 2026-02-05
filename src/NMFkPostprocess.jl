@@ -794,11 +794,11 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Hnames Hm[:,signalmap] chnew], ',')
 			end
 			cs = sortperm(chnew)
-			importance_indexing_H = Colon()
-			cs_plot_H = cs
+			H_importance_indexing = Colon()
+			H_cs_plot = cs
 			if (createdendrogramsonly || createplots) && length(Hranking) > plot_important_size
-				importance_indexing_H = _select_importance_indexing(Hranking, Hnames, H_important, chnew, plot_important_size; matrix_label="H", casefilename=Hcasefilename)
-				cs_plot_H = sortperm(chnew[importance_indexing_H])
+				H_importance_indexing = _select_importance_indexing(Hranking, Hnames, H_important, chnew, plot_important_size; matrix_label="H", casefilename=Hcasefilename)
+				H_cs_plot = sortperm(chnew[H_importance_indexing])
 			end
 			yticks = string.(Hnames) .* " " .* string.(chnew)
 			if createplots
@@ -811,8 +811,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					@info("H ($(Hcasefilename)) matrix plotting all columns ...")
 				end
-				importance_indexing = importance_indexing_H
-				cs_plot = cs_plot_H
+				importance_indexing = H_importance_indexing
+				cs_plot = H_cs_plot
 				H_plot = Hm[importance_indexing,:]
 				H_plot_col = Hm_col[importance_indexing,:]
 				H_plot[isnan.(H_plot)] .= 0.0
@@ -876,8 +876,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					!createplots && @info("H ($(Hcasefilename)) matrix plotting all columns ...")
 				end
-				importance_indexing = importance_indexing_H
-				cs_plot = cs_plot_H
+				importance_indexing = H_importance_indexing
+				cs_plot = H_cs_plot
 				H_plot = Hm[importance_indexing,:]
 				H_plot[isnan.(H_plot)] .= 0.0
 				try
@@ -1002,11 +1002,11 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				@warn("Length of lat/lon coordinates ($(length(lon))) does not match the number of either W matrix rows ($(length(cwnew))) or H matrix columns ($(length(chnew)))!")
 			end
 			cs = sortperm(cwnew)
-			importance_indexing_W = Colon()
-			cs_plot_W = cs
+			W_importance_indexing = Colon()
+			W_cs_plot = cs
 			if (createdendrogramsonly || createplots) && length(Wranking) > plot_important_size
-				importance_indexing_W = _select_importance_indexing(Wranking, Wnames, W_important, cwnew, plot_important_size; matrix_label="W", casefilename=Wcasefilename)
-				cs_plot_W = sortperm(cwnew[importance_indexing_W])
+				W_importance_indexing = _select_importance_indexing(Wranking, Wnames, W_important, cwnew, plot_important_size; matrix_label="W", casefilename=Wcasefilename)
+				W_cs_plot = sortperm(cwnew[W_importance_indexing])
 			end
 			yticks = string.(Wnames) .* " " .* string.(cwnew)
 			if createplots
@@ -1019,8 +1019,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					@info("W ($(Wcasefilename)) matrix plotting all rows ...")
 				end
-				importance_indexing = importance_indexing_W
-				cs_plot = cs_plot_W
+				importance_indexing = W_importance_indexing
+				cs_plot = W_cs_plot
 				W_plot = Wm[importance_indexing,:]
 				W_plot_row = Wm_row[importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
@@ -1094,8 +1094,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					!createplots && @info("W ($(Wcasefilename)) matrix plotting all rows ...")
 				end
-				importance_indexing = importance_indexing_W
-				cs_plot = cs_plot_W
+				importance_indexing = W_importance_indexing
+				cs_plot = W_cs_plot
 				W_plot = Wm[importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
 				try
