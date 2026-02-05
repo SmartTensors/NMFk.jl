@@ -575,8 +575,6 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		end
 		Hm = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
 		Hm[Hm .< eps(eltype(Ha))] .= 0
-		Hm_col = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=1)) # normalize by cols and PERMUTE (TRANSPOSE)
-		Hm_col[Hm_col .< eps(eltype(Ha))] .= 0
 		Hranking = sortperm(vec(NMFk.sumnan(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
 
 		DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", [["Name" permutedims(map(i->"S$i", 1:k))]; Hnames permutedims(Ha)], ',')
@@ -812,8 +810,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					@info("H ($(Hcasefilename)) matrix plotting all columns ...")
 				end
 				H_plot = Hm[H_importance_indexing,:]
-				H_plot_col = Hm_col[H_importance_indexing,:]
 				H_plot[isnan.(H_plot)] .= 0.0
+				Hm_col = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=1)) # normalize by cols and PERMUTE (TRANSPOSE)
+				Hm_col[Hm_col .< eps(eltype(Ha))] .= 0
+				H_plot_col = Hm_col[H_importance_indexing,:]
 				H_plot_col[isnan.(H_plot_col)] .= 0.0
 				if creatematrixplotsall
 					NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[H_importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)

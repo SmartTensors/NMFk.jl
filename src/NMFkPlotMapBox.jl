@@ -170,7 +170,8 @@ function mapbox(
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	paper_bgcolor_fig::AbstractString=paper_bgcolor,
 	quiet::Bool=false,
-	show_count::Bool=true
+	show_count::Bool=true,
+	show_locations::Bool=false # dummy
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
@@ -256,8 +257,9 @@ function mapbox(
 	colorbar::Bool=legend,
 	traces::AbstractVector=[],
 	traces_setup=(; mode="lines", line_width=8, line_color="purple", attributionControl=false),
-	showlegend=false,
-	colorscale::Symbol=:turbo,
+	showlegend::Bool=false, # dummy
+	show_locations::Bool=false, # dummy
+	colorscale::Symbol=:turbo, # dummy
 	paper_bgcolor::AbstractString="white",
 	show_count::Bool=true
 ) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
