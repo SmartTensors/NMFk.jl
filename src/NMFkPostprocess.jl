@@ -618,9 +618,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			throw(ErrorException("All rows in W matrix are NaN!"))
 		end
 		Wm = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=1) # normalize by columns
-		Wm_row = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=2) # normalize by rows
 		Wm[Wm .< eps(eltype(Wa))] .= 0
-		Wm_row[Wm_row .< eps(eltype(Wa))] .= 0
 		Wranking = sortperm(vec(NMFk.sumnan(Wm .^ 2; dims=2)); rev=true)
 
 		if (createplots || createdendrogramsonly) && adjustsize
@@ -1016,8 +1014,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 					@info("W ($(Wcasefilename)) matrix plotting all rows ...")
 				end
 				W_plot = Wm[W_importance_indexing,:]
-				W_plot_row = Wm_row[W_importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
+				Wm_row = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=2) # normalize by rows
+				Wm_row[Wm_row .< eps(eltype(Wa))] .= 0
+				W_plot_row = Wm_row[W_importance_indexing,:]
 				W_plot_row[isnan.(W_plot_row)] .= 0.0
 				if creatematrixplotsall
 					NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
