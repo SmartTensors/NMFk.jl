@@ -574,8 +574,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			throw(ErrorException("All rows in H matrix are NaN!"))
 		end
 		Hm = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
-		Hm_col = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=1)) # normalize by cols and PERMUTE (TRANSPOSE)
 		Hm[Hm .< eps(eltype(Ha))] .= 0
+		Hm_col = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=1)) # normalize by cols and PERMUTE (TRANSPOSE)
 		Hm_col[Hm_col .< eps(eltype(Ha))] .= 0
 		Hranking = sortperm(vec(NMFk.sumnan(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
 
@@ -811,20 +811,18 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					@info("H ($(Hcasefilename)) matrix plotting all columns ...")
 				end
-				importance_indexing = H_importance_indexing
-				cs_plot = H_cs_plot
-				H_plot = Hm[importance_indexing,:]
-				H_plot_col = Hm_col[importance_indexing,:]
+				H_plot = Hm[H_importance_indexing,:]
+				H_plot_col = Hm_col[H_importance_indexing,:]
 				H_plot[isnan.(H_plot)] .= 0.0
 				H_plot_col[isnan.(H_plot_col)] .= 0.0
 				if creatematrixplotsall
-					NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
-					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+					NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[H_importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[H_importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
-				NMFk.plotmatrix(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
-				NMFk.plotmatrix(H_plot_col[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-column.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(H_plot[H_cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[H_importance_indexing][H_cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(H_plot_col[H_cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-column.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[H_importance_indexing][H_cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				if length(Htypes) > 0
-					yticks2 = (string.(Hnametypes) .* " " .* string.(chnew))[importance_indexing]
+					yticks2 = (string.(Hnametypes) .* " " .* string.(chnew))[H_importance_indexing]
 					NMFk.plotmatrix(H_plot[:,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if plottimeseries == :H || plottimeseries == :WH
@@ -876,12 +874,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					!createplots && @info("H ($(Hcasefilename)) matrix plotting all columns ...")
 				end
-				importance_indexing = H_importance_indexing
-				cs_plot = H_cs_plot
-				H_plot = Hm[importance_indexing,:]
+				H_plot = Hm[H_importance_indexing,:]
 				H_plot[isnan.(H_plot)] .= 0.0
 				try
-					NMFk.plotdendrogram(H_plot[cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+					NMFk.plotdendrogram(H_plot[H_cs_plot,signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[H_importance_indexing][H_cs_plot], minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
 					@warn("H ($(Hcasefilename)) matrix dendrogram plotting failed!")
@@ -1019,29 +1015,27 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					@info("W ($(Wcasefilename)) matrix plotting all rows ...")
 				end
-				importance_indexing = W_importance_indexing
-				cs_plot = W_cs_plot
-				W_plot = Wm[importance_indexing,:]
-				W_plot_row = Wm_row[importance_indexing,:]
+				W_plot = Wm[W_importance_indexing,:]
+				W_plot_row = Wm_row[W_importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
 				W_plot_row[isnan.(W_plot_row)] .= 0.0
 				if creatematrixplotsall
-					NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
+					NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
 					# sorted by Wa magnitude
 					# ws = sortperm(vec(sum(Wa; dims=1)); rev=true)
 					# NMFk.plotmatrix(Wm[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cw)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 					cws = sortperm(cw)
-					yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=eachindex(cw)][importance_indexing]
-					NMFk.plotmatrix(W_plot[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
-					yticks = ["$(Wnames[i]) $(cwnew[i])" for i=eachindex(cwnew)][importance_indexing]
-					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+					yticks = ["$(Wnames[cws][i]) $(cw[cws][i])" for i=eachindex(cw)][W_importance_indexing]
+					NMFk.plotmatrix(W_plot[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+					yticks = ["$(Wnames[i]) $(cwnew[i])" for i=eachindex(cwnew)][W_importance_indexing]
+					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
 				end
 				if length(Wtypes) > 0
-					yticks2 = (string.Wnametypes .* " " .* cwnew)[importance_indexing]
+					yticks2 = (string.Wnametypes .* " " .* cwnew)[W_importance_indexing]
 					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, quiet=quiet)
 				end
-				NMFk.plotmatrix(W_plot[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
-				NMFk.plotmatrix(W_plot_row[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-row.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(W_plot[W_cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[W_importance_indexing][W_cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(W_plot_row[W_cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-row.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[W_importance_indexing][W_cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
 				# NMFk.plotmatrix(Wa./sum(Wa; dims=1); filename="$figuredir/$(Wcasefilename)-$(k)-sum.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa./sum(Wa; dims=1))[cs,:]; filename="$figuredir/$(Wcasefilename)-$(k)-sum2.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[cs][i]) $(cw[cs][i])" for i=eachindex(cols)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 				# NMFk.plotmatrix((Wa ./ sum(Wa; dims=1))[cs,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-labeled-sorted-sumrows.$(plotmatrixformat)", xticks=clusterlabels, yticks=["$(Wnames[cs][i]) $(cwnew[cs][i])" for i=eachindex(cwnew)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
@@ -1094,12 +1088,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				else
 					!createplots && @info("W ($(Wcasefilename)) matrix plotting all rows ...")
 				end
-				importance_indexing = W_importance_indexing
-				cs_plot = W_cs_plot
-				W_plot = Wm[importance_indexing,:]
+				W_plot = Wm[W_importance_indexing,:]
 				W_plot[isnan.(W_plot)] .= 0.0
 				try
-					NMFk.plotdendrogram(W_plot[cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[importance_indexing][cs_plot], minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+					NMFk.plotdendrogram(W_plot[W_cs_plot,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[W_importance_indexing][W_cs_plot], minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
 				catch errmsg
 					!veryquiet && println(errmsg)
 					@warn("W ($(Wcasefilename)) matrix dendrogram plotting failed!")
