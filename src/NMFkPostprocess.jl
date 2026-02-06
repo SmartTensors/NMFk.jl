@@ -998,15 +998,12 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				W_plot_row = Wm_row[W_importance_indexing,:]
 				W_plot_row[W_plot_row .< eps(eltype(W_plot_row))] .= 0
 				W_plot_row[isnan.(W_plot_row)] .= 0.0
-				if !createdendrogramsonly && (createplots || creatematrixplotsall)
+				if !createdendrogramsonly && creatematrixplotsall
 					NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
 					# sorted by Wa magnitude
 					# ws = sortperm(vec(sum(W_plot; dims=1)); rev=true)
 					# NMFk.plotmatrix(W_plot[:,ws]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=["$(Wnames[i]) $(cw[i])" for i=eachindex(cw)], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize)
 					cws = sortperm(W_labels[W_importance_indexing])
-					@show size(cws)
-					@show size(W_importance_indexing)
-					@show size(W_labels_new)
 					yticks3 = ["$(Wnames[i]) $(W_labels[i])" for i=eachindex(W_labels)][W_importance_indexing][cws]
 					NMFk.plotmatrix(W_plot[cws,:]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i=1:k], yticks=yticks3, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
 					NMFk.plotmatrix(W_plot[:,signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
