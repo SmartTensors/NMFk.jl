@@ -54,4 +54,29 @@ Test.@testset "checks utilities" begin
 		Test.@test_throws ArgumentError NMFk.recoupmatrix_rows(Xf, Int[0, 1, 0])
 		Test.@test_throws ArgumentError NMFk.recoupmatrix_rows(Xf, Bool[0, 1])
 	end
+
+	Test.@testset "recoupmatrix_cols" begin
+		X = reshape(collect(1:12), 3, 4)
+		col_mask = Bool[false, true, false, true]  # remove columns 2 and 4
+		Xf = X[:, .!col_mask]
+		Xr = NMFk.recoupmatrix_cols(Xf, col_mask; fillvalue=-1)
+		Test.@test size(Xr) == size(X)
+		Test.@test Xr[:, 1] == X[:, 1]
+		Test.@test Xr[:, 3] == X[:, 3]
+		Test.@test Xr[:, 2] == fill(-1, size(X, 1))
+		Test.@test Xr[:, 4] == fill(-1, size(X, 1))
+
+		# Default fillvalue should promote element type when needed
+		Xf_float = Float64.(Xf)
+		Xr_nan = NMFk.recoupmatrix_cols(Xf_float, col_mask)
+		Test.@test eltype(Xr_nan) == Float64
+		Test.@test all(isnan, Xr_nan[:, 2])
+		Test.@test all(isnan, Xr_nan[:, 4])
+
+		# Dimension mismatch should throw
+		Test.@test_throws ArgumentError NMFk.recoupmatrix_cols(Xf[:, 1:1], col_mask)
+
+		# Mask type should throw
+		Test.@test_throws ArgumentError NMFk.recoupmatrix_cols(Xf, [0, 1, 0, 1])
+	end
 end

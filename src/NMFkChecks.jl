@@ -261,6 +261,41 @@ function recoupmatrix_rows(x_filtered::AbstractMatrix, row_mask::AbstractVector;
 	return result
 end
 
+"""
+recoupmatrix_cols(x_filtered::AbstractMatrix, col_mask::AbstractVector; fillvalue=NaN)
+
+Recreates the original column layout after [`checkmatrix_robust`](@ref) while keeping the
+filtered values for the columns that were retained. Provide the matrix returned as the
+first output of `checkmatrix_robust` and the corresponding `col_mask` output. Columns
+that were removed (where the mask is `true`) are reinserted and filled with
+`fillvalue` (defaults to `NaN`).
+
+# Examples
+```
+Xnew, parameters_new, row_mask, col_mask, info = checkmatrix_robust(X, names)
+Xfull = recoupmatrix_cols(Xnew, col_mask)
+```
+"""
+function recoupmatrix_cols(x_filtered::AbstractMatrix, col_mask::AbstractVector; fillvalue=NaN)
+	eltype(col_mask) <: Bool || throw(ArgumentError("col_mask must contain Bool values."))
+	rows, cols_filtered = size(x_filtered)
+	cols_original = length(col_mask)
+	kept_cols = count(!, col_mask)
+	cols_filtered == kept_cols || throw(ArgumentError("Number of kept columns implied by col_mask does not match size of x_filtered."))
+	result_eltype, resolved_fillvalue = _resolve_recoup_fillvalue(eltype(x_filtered), fillvalue)
+	result = Array{result_eltype}(undef, rows, cols_original)
+	src_col = 1
+	for dest_col in 1:cols_original
+		if col_mask[dest_col]
+			@views result[:, dest_col] .= resolved_fillvalue
+		else
+			@views copyto!(result[:, dest_col], x_filtered[:, src_col])
+			src_col += 1
+		end
+	end
+	return result
+end
+
 function _resolve_recoup_fillvalue(T::Type, fillvalue)
 	try
 		return T, convert(T, fillvalue)
