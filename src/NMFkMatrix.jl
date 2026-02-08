@@ -64,8 +64,8 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 	@assert length(amin) == size(a, dim)
 	@assert length(amax) == size(a, dim)
 	@assert length(logv) == size(a, dim)
-	logtransform = Vector{Union{Float64,Symbol}}(undef, length(amin))
-	logtransform .= :nothing
+	logtransform_type = Vector{Union{Float64,Symbol}}(undef, length(amin))
+	logtransform_type .= :nothing
 	lamin = copy(amin)
 	lamax = copy(amax)
 	for (i, m) in enumerate(lamin)
@@ -76,20 +76,20 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 			inz = avn .<= 0
 			if sum(inz) == length(inz) # if all negative or zero
 				av .= abs.(av)
-				logtransform[i] = :absflip
+				logtransform_type[i] = :absflip
 			elseif (sum(avn .< 0) > 0) && (sum(avn .> 0 ) > 0) # if some negative and some positive
 				minavn = minimum(avn)
 				av .+= abs(minavn) + offset # make all positive by shifting
-				logtransform[i] = abs(minavn) + offset
+				logtransform_type[i] = abs(minavn) + offset
 			end
 			iz = av .== 0
 			av[iz] .= NaN # if there are zero values make them NaN
 			av .= log10.(av)
 			if sum(iz) > 0
 				av[iz] .= minimumnan(av) - offset # make the negative and zero values something very small
-				logtransform[i] = logtransform[i] == :absflip ? :absflip_min_zero : :min_zero
+				logtransform_type[i] = logtransform_type[i] == :absflip ? :absflip_min_zero : :min_zero
 			end
-			# @show logtransform[i]
+			# @show logtransform_type[i]
 			lamin[nt...] .= minimumnan(av)
 			lamax[nt...] .= maximumnan(av)
 		end
@@ -101,10 +101,10 @@ function normalizematrix!(a::AbstractMatrix, dim::Integer; amin::AbstractArray=m
 	end
 	if rev
 		a .= (lamax .- a) ./ dx
-		return a, lamax, lamin, logtransform
+		return a, lamax, lamin, logtransform_type
 	else
 		a .= (a .- lamin) ./ dx
-		return a, lamin, lamax, logtransform
+		return a, lamin, lamax, logtransform_type
 	end
 end
 
@@ -208,7 +208,7 @@ end
 function denormalizematrix(a::AbstractMatrix, at...; kw...)
 	return denormalizematrix!(copy(a), at...; kw...)
 end
-function denormalizematrix!(a::AbstractMatrix, dim::Number, amin::Union{AbstractVector,AbstractMatrix}, amax::Union{AbstractVector,AbstractMatrix}; log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), logtransform::AbstractVector=fill(:nothing, size(a, dim)))
+function denormalizematrix!(a::AbstractMatrix, dim::Number, amin::Union{AbstractVector,AbstractMatrix}, amax::Union{AbstractVector,AbstractMatrix}; log::Bool=false, logv::AbstractVector=fill(log, size(a, dim)), logtransform_type::AbstractVector=fill(:nothing, size(a, dim)))
 	dx = amax .- amin
 	dx[dx .== 0] .= 1
 	if dim == 1
@@ -227,19 +227,19 @@ function denormalizematrix!(a::AbstractMatrix, dim::Number, amin::Union{Abstract
 		nt = ntuple(k->(k == dim ? i : Colon()), ndims(a))
 		av = view(a, nt...)
 		if logv[i]
-			# @show logtransform[i]
-			if typeof(logtransform[i]) <: Number
+			# @show logtransform_type[i]
+			if typeof(logtransform_type[i]) <: Number
 				av .= 10. .^ av
-				av .-= logtransform[i]
+				av .-= logtransform_type[i]
 			else
-				if logtransform[i] .== :absflip_min_zero || logtransform[i] .== :min_zero
+				if logtransform_type[i] .== :absflip_min_zero || logtransform_type[i] .== :min_zero
 					iz = av .== m
 					av .= 10. .^ av
 					av[iz] .= 0
 				else
 					av .= 10. .^ av
 				end
-				if logtransform[i] .== :absflip_min_zero || logtransform[i] .== :absflip
+				if logtransform_type[i] .== :absflip_min_zero || logtransform_type[i] .== :absflip
 					av .= -abs.(av)
 				end
 			end

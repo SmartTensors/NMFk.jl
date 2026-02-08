@@ -31,13 +31,13 @@ Test.@testset "Normalization utilities" begin
 
 	Test.@testset "normalizematrix_col + denormalizematrix_col" begin
 		X = [1.0 10.0; 2.0 20.0; 3.0 30.0]
-		Xn, xmin, xmax, logtransform = NMFk.normalizematrix_col(X)
+		Xn, xmin, xmax, X_logtransform_type = NMFk.normalizematrix_col(X)
 		Test.@test size(Xn) == size(X)
 		Test.@test size(xmin) == (1, size(X, 2))
 		Test.@test size(xmax) == (1, size(X, 2))
-		Test.@test length(logtransform) == size(X, 2)
+		Test.@test length(X_logtransform_type) == size(X, 2)
 
-		Xback = NMFk.denormalizematrix_col!(copy(Xn), xmin, xmax; logv=falses(size(X, 2)), logtransform=logtransform)
+		Xback = NMFk.denormalizematrix_col!(copy(Xn), xmin, xmax; logv=falses(size(X, 2)), logtransform_type=X_logtransform_type)
 		Test.@test isapprox(Xback, X; atol=0, rtol=0)
 	end
 

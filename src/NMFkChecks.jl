@@ -242,11 +242,11 @@ Xfull = recoupmatrix_rows(Xnew, row_mask)
 ```
 """
 function recoupmatrix_rows(x_filtered::AbstractMatrix, row_mask::AbstractVector; fillvalue=NaN)
-	eltype(row_mask) <: Bool || throw(ArgumentError("row_mask must contain Bool values."))
+	eltype(row_mask) <: Bool || throw(ArgumentError("Row mask must contain Bool values."))
 	rows_filtered, cols = size(x_filtered)
 	rows_original = length(row_mask)
 	kept_rows = count(!, row_mask)
-	rows_filtered == kept_rows || throw(ArgumentError("Number of kept rows implied by row_mask does not match size of x_filtered."))
+	rows_filtered == kept_rows || throw(ArgumentError("Number of kept rows implied by row mask $(kept_rows) does not match the number of rows in input matrix $(rows_filtered)."))
 	result_eltype, resolved_fillvalue = _resolve_recoup_fillvalue(eltype(x_filtered), fillvalue)
 	result = Array{result_eltype}(undef, rows_original, cols)
 	src_row = 1
@@ -276,24 +276,24 @@ Xnew, parameters_new, row_mask, col_mask, info = checkmatrix_robust(X, names)
 Xfull = recoupmatrix_cols(Xnew, col_mask)
 ```
 """
-function recoupmatrix_cols(x_filtered::AbstractMatrix, col_mask::AbstractVector; fillvalue=NaN)
-	eltype(col_mask) <: Bool || throw(ArgumentError("col_mask must contain Bool values."))
-	rows, cols_filtered = size(x_filtered)
+function recoupmatrix_cols(Xin::AbstractMatrix, col_mask::AbstractVector; fillvalue=NaN)
+	eltype(col_mask) <: Bool || throw(ArgumentError("Column mask must contain Bool values."))
+	rows, cols_filtered = size(Xin)
 	cols_original = length(col_mask)
 	kept_cols = count(!, col_mask)
-	cols_filtered == kept_cols || throw(ArgumentError("Number of kept columns implied by col_mask does not match size of x_filtered."))
-	result_eltype, resolved_fillvalue = _resolve_recoup_fillvalue(eltype(x_filtered), fillvalue)
-	result = Array{result_eltype}(undef, rows, cols_original)
+	cols_filtered == kept_cols || throw(ArgumentError("Number of kept columns implied by column mask $(kept_cols) does not match the columns in the input matrix $(cols_filtered)."))
+	result_eltype, resolved_fillvalue = _resolve_recoup_fillvalue(eltype(Xin), fillvalue)
+	X = Array{result_eltype}(undef, rows, cols_original)
 	src_col = 1
 	for dest_col in 1:cols_original
 		if col_mask[dest_col]
-			@views result[:, dest_col] .= resolved_fillvalue
+			@views X[:, dest_col] .= resolved_fillvalue
 		else
-			@views copyto!(result[:, dest_col], x_filtered[:, src_col])
+			@views copyto!(X[:, dest_col], Xin[:, src_col])
 			src_col += 1
 		end
 	end
-	return result
+	return X
 end
 
 function _resolve_recoup_fillvalue(T::Type, fillvalue)
