@@ -186,7 +186,7 @@ function checkvector(v::AbstractVector, name::AbstractString=""; cutoff::Integer
 	return result_tuple
 end
 
-function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector; kw...)
+function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector=["C$i" for i in 1:size(x, 2)]; kw...)
 	@assert length(names) == size(x, 2)
 	x_work = x
 	names_work = copy(names)
