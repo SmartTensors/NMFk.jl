@@ -1232,7 +1232,7 @@ function mapbox_contour(
 				distances = sqrt.((lon_clean .- lon_interp).^2 .+ (lat_clean .- lat_interp).^2)
 				min_dist = minimum(distances)
 				if min_dist < 1e-10
-					closest_idx = findfirst(distances .== min_dist)
+					closest_idx = Base.findfirst(distances .== min_dist)
 					z_grid[i, j] = values_clean[closest_idx]
 				else
 					weights = 1.0 ./ (distances.^power .+ smoothing)
@@ -1465,7 +1465,7 @@ function idw_interpolate(
 	# Handle case where interpolation point coincides with data point
 	min_dist = minimumnan(distances)
 	if min_dist < 1e-10
-		closest_idx = findfirst(distances .== min_dist)
+		closest_idx = Base.findfirst(distances .== min_dist)
 		return values[closest_idx]
 	end
 
