@@ -232,50 +232,6 @@ function finduniquesignals(X::AbstractMatrix; quiet::Bool=false)
 	return o, signalmap
 end
 
-function finduniquesignals_new(X::AbstractMatrix; quiet::Bool=false)
-	k = size(X, 1)
-	@assert k == size(X, 2)
-	signalmap = zeros(Int64, k)
-	# Work on a floating copy so we can safely mark visited entries as -Inf.
-	Xc = float.(X)
-	# Ensure NaNs don't poison findmax tie-breaking.
-	Xc[isnan.(Xc)] .= -Inf
-	failed = false
-	# Preserve prior behaviour: an all-zero matrix provides no usable signal.
-	if all(Xc .== 0.0)
-		!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
-		return 0, signalmap
-	end
-	maxiters = 2 * length(Xc)
-	iters = 0
-	while any(signalmap .== 0)
-		iters += 1
-		if iters > maxiters
-			!quiet && @warn("Procedure to find unique signals exceeded iteration budget $(maxiters); aborting...")
-			failed = true
-			break
-		end
-		maxval, rc = findmax(Xc)
-		if isnan(maxval) || maxval == -Inf
-			!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
-			failed = true
-			break
-		end
-		# Mark this candidate as visited so we always make progress.
-		Xc[rc] = -Inf
-		if signalmap[rc[1]] == 0 && !any(signalmap .== rc[2])
-			signalmap[rc[1]] = rc[2]
-		end
-	end
-	o = 0
-	if !failed
-		for i = 1:k
-			o += X[i,signalmap[i]]
-		end
-	end
-	return o, signalmap
-end
-
 function finduniquesignalsbest(X::AbstractMatrix)
 	o, signalmap = finduniquesignals(X)
 	k = size(X, 1)
