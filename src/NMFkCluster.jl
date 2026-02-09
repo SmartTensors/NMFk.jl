@@ -67,16 +67,22 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	if load && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
 		if isfile(filename)
-			sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
-			@info("Robust k-means analysis results are loaded from file $(filename)!")
-			if length(best_silhouettes) == size(X, 2)
+			try
 				if silhouettes_flag
-					return sc, best_silhouettes
+					sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
+					@info("Robust k-means analysis results are loaded from file $(filename)!")
+					if length(best_silhouettes) == size(X, 2)
+						return sc, best_silhouettes
+					else
+						@warn("File $(filename) does not contain correct information! Robust k-means analysis will be executed ...")
+					end
 				else
+					sc = JLD.load(filename, "assignments")
+					@info("Robust k-means analysis results are loaded from file $(filename)!")
 					return sc
 				end
-			else
-				@warn("File $(filename) does not contain correct information! Robust k-means analysis will be executed ...")
+			catch err
+				@warn("Failed to load robust k-means results from $(filename) ($(typeof(err))); Robust k-means analysis will be executed ...")
 			end
 		else
 			@info("File $(filename) does not exist! Robust k-means analysis will be executed ...")
@@ -85,25 +91,34 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	local c = nothing
 	local best_totalcost = Inf
 	local best_mean_silhouette = Inf
-	local best_silhouettes = []
+	local best_silhouettes = zeros(size(X, 2))
 	Xn = zerostoepsilon(X)
+	Xd = nothing
+	if silhouettes_flag
+		Xd = Distances.pairwise(distance, Xn; dims=2)
+	end
 	for i = 1:repeats
 		local c_new
 		Suppressor.@suppress begin
 			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		end
-		Xd = Distances.pairwise(distance, Xn; dims=2)
-		if maximum(c_new.assignments) >= 2
-			silhouettes = Clustering.silhouettes(c_new, Xd)
+		if silhouettes_flag
+			if maximum(c_new.assignments) >= 2
+				silhouettes = Clustering.silhouettes(c_new, Xd)
+			else
+				@warn("Only one cluster found during k-means clustering; silhouettes set to zero.")
+				silhouettes = zeros(size(X, 2))
+			end
 		else
-			@warn("Only one cluster found during k-means clustering; silhouettes set to zero.")
-			silhouettes = zeros(size(X, 2))
+			silhouettes = nothing
 		end
 		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost
-			best_mean_silhouette = Statistics.mean(silhouettes)
-			best_silhouettes = silhouettes
+			if silhouettes_flag
+				best_mean_silhouette = Statistics.mean(silhouettes)
+				best_silhouettes = silhouettes
+			end
 		end
 	end
 	if length(unique(c.assignments)) < k
