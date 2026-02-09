@@ -238,7 +238,7 @@ function progressive(syears::AbstractVector, eyears::AbstractVector, df::DataFra
 			if load && isfile("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2")
 				c_gas = JLD2.load("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas")
 			else
-				c_gas = NMFk.labelassignements(NMFk.robustkmeans(Hall, dk[j]; silhouettes_flag=false).assignments)
+				c_gas = NMFk.labelassignements(NMFk.robustkmeans(Hall, dk[j]; compute_silhouettes_flag=false).assignments)
 				JLD2.save("$(resultdir)-$(problem)/gas_$(period)_$(ds[j])-$(dk[j])-$(nNMF)-assignments.jld2", "c_gas", c_gas)
 			end
 

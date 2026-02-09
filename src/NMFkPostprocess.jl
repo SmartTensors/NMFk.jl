@@ -168,7 +168,7 @@ end
 
 function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir::AbstractString=".", loadassignements::Bool=true, Wclusterlabelcasefilename::AbstractString="Wmatrix", Hclusterlabelcasefilename::AbstractString="Hmatrix", repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats)
 	k = size(H, 1)
-	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k, Wrepeats; resuldir=resultdir, casefilename=Hclusterlabelcasefilename, load=loadassignements, save=true, silhouettes_flag=false).assignments)
+	Hclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(H, k, Wrepeats; resuldir=resultdir, casefilename=Hclusterlabelcasefilename, load=loadassignements, save=true, compute_silhouettes_flag=false).assignments)
 	Hcs = sortperm(Hclusterlabels)
 	clusterlabels = sort(unique(Hclusterlabels))
 	Hsignalmap = NMFk.signalassignments(H, Hclusterlabels; clusterlabels=clusterlabels, dims=2)
@@ -179,7 +179,7 @@ function signalorderassignments(W::AbstractMatrix, H::AbstractMatrix; resultdir:
 		Hclustermap[Hsignalmap[j]] = i
 		Hsignals[Hclusterlabels .== i] .= "S$(Hsignalmap[j])"
 	end
-	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k, repeats; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true, silhouettes_flag=false).assignments)
+	Wclusterlabels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(W), k, repeats; resultdir=resultdir, casefilename=Wclusterlabelcasefilename, load=loadassignements, save=true, compute_silhouettes_flag=false).assignments)
 	@assert clusterlabels == sort(unique(Wclusterlabels))
 	Wsignalmap = NMFk.signalassignments(W[:,Hsignalmap], Wclusterlabels; clusterlabels=clusterlabels, dims=1)
 	Wclusterlabelsnew = Vector{eltype(Wclusterlabels)}(undef, length(Wclusterlabels))
@@ -647,7 +647,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				v = NMFk.meannan(Ha[:, .!Hmask_nan_cols]; dims=2)
 				Ha[:, Hmask_nan_cols] .= repeat(v, inner=(count(Hmask_nan_cols), 1))
 			end
-			robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false)
+			robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, compute_silhouettes_flag=false)
 			H_labels = NMFk.labelassignements(robustkmeans_results.assignments)
 			@info("Cluster labels: $(H_labels)")
 			if count(Hmask_nan_cols) > 0
@@ -677,7 +677,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				v = NMFk.meannan(Wa[.!Wmask_nan_rows, :]; dims=1)
 				Wa[Wmask_nan_rows, :] .= repeat(v, inner=(sum(Wmask_nan_rows), 1))
 			end
-			W_labels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
+			W_labels = NMFk.labelassignements(NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, compute_silhouettes_flag=false).assignments)
 			if count(Wmask_nan_rows) > 0
 				Wa[Wmask_nan_rows, :] .= NaN
 			end

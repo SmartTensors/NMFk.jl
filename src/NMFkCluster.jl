@@ -44,7 +44,7 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractUnitRange{Int},Ab
 			@info("$k: cannot be computed (k is greater than or equal to size(X,2); $k >= $(size(X, 2)))")
 			continue
 		end
-		cresult[i], silhouettes = robustkmeans(X, k, repeats; distance=distance, kw..., silhouettes_flag=true)
+		cresult[i], silhouettes = robustkmeans(X, k, repeats; distance=distance, kw..., compute_silhouettes_flag=true)
 		totalcosts[i] = cresult[i].totalcost
 		mean_silhouette[i] = Statistics.mean(silhouettes)
 		cluster_silhouettes[i] = map(j->Statistics.mean(silhouettes[cresult[i].assignments .== j]), unique(cresult[i].assignments))
@@ -63,12 +63,12 @@ function robustkmeans(X::AbstractMatrix, krange::Union{AbstractUnitRange{Int},Ab
 	return cresult[ki]
 end
 
-function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", load::Bool=false, save::Bool=false, silhouettes_flag::Bool=false)
+function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxiter::Integer=1000, tol::Number=1e-32, display=:none, distance=Distances.CosineDist(), resultdir::AbstractString=".", casefilename::AbstractString="assignments", load::Bool=false, save::Bool=false, compute_silhouettes_flag::Bool=false)
 	if load && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
 		if isfile(filename)
 			try
-				if silhouettes_flag
+				if compute_silhouettes_flag
 					sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
 					@info("Robust k-means analysis results are loaded from file $(filename)!")
 					if length(best_silhouettes) == size(X, 2)
@@ -94,7 +94,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	local best_silhouettes = zeros(size(X, 2))
 	Xn = zerostoepsilon(X)
 	Xd = nothing
-	if silhouettes_flag
+	if compute_silhouettes_flag
 		Xd = Distances.pairwise(distance, Xn; dims=2)
 	end
 	for i = 1:repeats
@@ -102,7 +102,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 		Suppressor.@suppress begin
 			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		end
-		if silhouettes_flag
+		if compute_silhouettes_flag
 			if maximum(c_new.assignments) >= 2
 				silhouettes = Clustering.silhouettes(c_new, Xd)
 			else
@@ -115,7 +115,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost
-			if silhouettes_flag
+			if compute_silhouettes_flag
 				best_mean_silhouette = Statistics.mean(silhouettes)
 				best_silhouettes = silhouettes
 			end
@@ -130,7 +130,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 		JLD.save(filename, "assignments", sc, "best_silhouettes", best_silhouettes)
 		@info("Robust k-means analysis results are saved in file $(filename)!")
 	end
-	if silhouettes_flag
+	if compute_silhouettes_flag
 		return sc, best_silhouettes
 	else
 		return sc

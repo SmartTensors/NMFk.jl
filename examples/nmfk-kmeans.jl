@@ -6,11 +6,11 @@ iris = RDatasets.dataset("datasets", "iris")
 NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], iris[:, :Species]; hover=iris[:, :Species])
 data = float.(Matrix(iris)[:,1:4])
 
-rkmeans = Clustering.kmeans(permutedims(data), 3; silhouettes_flag=false)
+rkmeans = Clustering.kmeans(permutedims(data), 3; compute_silhouettes_flag=false)
 ca = NMFk.labelassignements(rkmeans.assignments)
 NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], ca; hover=iris[:, :Species])
 
-rbkmeans = NMFk.robustkmeans(permutedims(data), 2:5; silhouettes_flag=false)
+rbkmeans = NMFk.robustkmeans(permutedims(data), 2:5; compute_silhouettes_flag=false)
 ca = NMFk.labelassignements(rbkmeans.assignments)
 NMFk.plot_dots(iris[:, :PetalLength], iris[:, :SepalLength], ca; hover=iris[:, :Species])
 
