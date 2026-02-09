@@ -69,10 +69,10 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 		if isfile(filename)
 			try
 				if compute_silhouettes_flag
-					sc, best_silhouettes = JLD.load(filename, "assignments", "best_silhouettes")
+					sc  = JLD.load(filename, "assignments")
 					@info("Robust k-means analysis results are loaded from file $(filename)!")
 					if length(best_silhouettes) == size(X, 2)
-						return sc, best_silhouettes
+						return sc
 					else
 						@warn("File $(filename) does not contain correct information! Robust k-means analysis will be executed ...")
 					end
@@ -131,7 +131,7 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 		@info("Robust k-means analysis results are saved in file $(filename)!")
 	end
 	if compute_silhouettes_flag
-		return sc, best_silhouettes
+		return sc
 	else
 		return sc
 	end
