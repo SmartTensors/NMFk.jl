@@ -36,4 +36,16 @@ Test.@testset "Clustering utilities" begin
 		Test.@test sort(labels[:, 2]) == [1, 2]
 		Test.@test size(centers) == (2, 4)
 	end
+
+	Test.@testset "finduniquesignals avoids rare infinite loop" begin
+		# This used to be able to hang because findmax kept returning a 0 entry
+		# that was repeatedly set to 0 without changing Xc.
+		X = [
+			0.0 0.0
+			0.0 -1.0
+		]
+		o, signalmap = NMFk.finduniquesignals(X; quiet=true)
+		Test.@test signalmap == [1, 2]
+		Test.@test o == -1.0
+	end
 end

@@ -647,11 +647,14 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				v = NMFk.meannan(Ha[:, .!Hmask_nan_cols]; dims=2)
 				Ha[:, Hmask_nan_cols] .= repeat(v, inner=(count(Hmask_nan_cols), 1))
 			end
-			H_labels = NMFk.labelassignements(NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false).assignments)
+			robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, silhouettes_flag=false)
+			H_labels = NMFk.labelassignements(robustkmeans_results.assignments)
+			@info("Cluster labels: $(H_labels)")
 			if count(Hmask_nan_cols) > 0
 				Ha[:, Hmask_nan_cols] .= NaN
 			end
 			clusterlabels = sort(unique(H_labels))
+			@info("Finding best cluster labels ...")
 			Hsignalmap = NMFk.signalassignments(Ha, H_labels; clusterlabels=clusterlabels, dims=2)
 		end
 

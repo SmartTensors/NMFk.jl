@@ -188,21 +188,86 @@ function finduniquesignals(X::AbstractMatrix; quiet::Bool=false)
 	k = size(X, 1)
 	@assert k == size(X, 2)
 	signalmap = zeros(Int64, k)
-	Xc = copy(X)
+	Xc = abs.(copy(X)) # absolute value ensures we can handle negative values in the input
+	Xc[isnan.(Xc)] .= 0.
 	failed = false
+	maxiters = 2 * length(Xc)
+	iters = 0
 	while any(signalmap .== 0)
+		iters += 1
+		if iters > maxiters
+			!quiet && @warn("Procedure to find unique signals exceeded iteration budget $(maxiters); aborting...")
+			failed = true
+			break
+		end
 		if all(Xc .== 0.)
 			!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
 			failed = true
 			break
 		end
-		rc = findmax(Xc)[2]
+		maxvalue, rc = findmax(Xc)
+		if isnan(maxvalue) || maxvalue == 0.
+			!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
+			failed = true
+			break
+		end
 		Xc[rc] = 0.
 		if signalmap[rc[1]] == 0 && !any(signalmap .== rc[2])
 			signalmap[rc[1]] = rc[2]
 		end
 	end
-	local o = 0
+	o = 0
+	if failed
+		@warn("Procedure to find unique signals failed to find a valid signal map.")
+		@info("Max value in Xc at failure: $(maximum(Xc))")
+		@info("Max rows: $(maximumnan(Xc; dims=1))")
+		@info("Max columns: $(maximumnan(Xc; dims=2))")
+		@info("Signal map at failure: $(signalmap)")
+	else
+		@info("Signal map: $(signalmap)")
+		for i = 1:k
+			o += X[i,signalmap[i]]
+		end
+	end
+	return o, signalmap
+end
+
+function finduniquesignals_new(X::AbstractMatrix; quiet::Bool=false)
+	k = size(X, 1)
+	@assert k == size(X, 2)
+	signalmap = zeros(Int64, k)
+	# Work on a floating copy so we can safely mark visited entries as -Inf.
+	Xc = float.(X)
+	# Ensure NaNs don't poison findmax tie-breaking.
+	Xc[isnan.(Xc)] .= -Inf
+	failed = false
+	# Preserve prior behaviour: an all-zero matrix provides no usable signal.
+	if all(Xc .== 0.0)
+		!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
+		return 0, signalmap
+	end
+	maxiters = 2 * length(Xc)
+	iters = 0
+	while any(signalmap .== 0)
+		iters += 1
+		if iters > maxiters
+			!quiet && @warn("Procedure to find unique signals exceeded iteration budget $(maxiters); aborting...")
+			failed = true
+			break
+		end
+		maxval, rc = findmax(Xc)
+		if isnan(maxval) || maxval == -Inf
+			!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
+			failed = true
+			break
+		end
+		# Mark this candidate as visited so we always make progress.
+		Xc[rc] = -Inf
+		if signalmap[rc[1]] == 0 && !any(signalmap .== rc[2])
+			signalmap[rc[1]] = rc[2]
+		end
+	end
+	o = 0
 	if !failed
 		for i = 1:k
 			o += X[i,signalmap[i]]
