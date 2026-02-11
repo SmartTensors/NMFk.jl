@@ -1,6 +1,112 @@
 import Distances
 import Suppressor
 import Clustering
+import GaussianMixtures
+
+Base.@kwdef struct GMMClusterResult{TG,TM}
+	model::TG
+	assignments::Vector{Int}
+	responsibilities::TM
+	loglik::Float64
+	bic::Float64
+	aic::Float64
+	k::Int
+end
+
+function _gmm_num_params(k::Int, d::Int; kind::Symbol=:full)
+	if kind == :diag
+		# weights (k-1) + means (k*d) + diagonal variances (k*d)
+		return (k - 1) + k * d + k * d
+	elseif kind == :full
+		# weights (k-1) + means (k*d) + full covariances (k*d*(d+1)/2)
+		return (k - 1) + k * d + k * (d * (d + 1) ÷ 2)
+	else
+		throw(ArgumentError("Unknown covariance kind=$kind (expected :diag or :full)"))
+	end
+end
+
+function robustbgmm(X::AbstractMatrix, krange::Union{AbstractUnitRange{Int},AbstractVector{<:Integer}}, repeats::Int=20;
+		criterion::Symbol=:bic,
+		kind::Symbol=:full,
+		nInit::Int=1,
+		nIter::Int=50,
+		nFinal::Int=10,
+		sparse::Int=0,
+		parallel::Bool=false)
+	ks = sort!(collect(krange))
+	if isempty(ks)
+		throw(ArgumentError("krange is empty"))
+	end
+	# Clustering.kmeans uses observations in columns; GaussianMixtures expects samples in rows.
+	Xn = zerostoepsilon(X)
+	Xn[isnan.(Xn)] .= 0
+	x = Matrix{Float64}(permutedims(Xn))
+	n = size(x, 1)
+	d = size(x, 2)
+
+	best_gmm = nothing
+	best_k = 0
+	best_ll = -Inf
+	best_bic = Inf
+	best_aic = Inf
+	best_score = Inf
+
+	for k in ks
+		if k >= n
+			@info("$k: cannot be computed (k >= number of samples; $k >= $n)")
+			continue
+		end
+		local best_gmm_k = nothing
+		local best_ll_k = -Inf
+		for _ = 1:repeats
+			local gmm
+			Suppressor.@suppress begin
+				gmm = GaussianMixtures.GMM(k, x; kind=kind, nInit=nInit, nIter=nIter, nFinal=nFinal, sparse=sparse, parallel=parallel)
+			end
+			ll = GaussianMixtures.avll(gmm, x) * n
+			if ll > best_ll_k
+				best_ll_k = ll
+				best_gmm_k = gmm
+			end
+		end
+		p = _gmm_num_params(k, d; kind=kind)
+		bic = -2 * best_ll_k + p * log(n)
+		aic = -2 * best_ll_k + 2 * p
+		score = criterion == :bic ? bic : criterion == :aic ? aic : throw(ArgumentError("criterion must be :bic or :aic"))
+		@info("$k: GMM loglik=$(best_ll_k) BIC=$(bic) AIC=$(aic)")
+		if score < best_score
+			best_score = score
+			best_gmm = best_gmm_k
+			best_k = k
+			best_ll = best_ll_k
+			best_bic = bic
+			best_aic = aic
+		end
+	end
+	if isnothing(best_gmm)
+		return nothing
+	end
+	resp, _ = GaussianMixtures.gmmposterior(best_gmm, x)
+	assignments = Vector{Int}(undef, n)
+	@inbounds for i in 1:n
+		_, j = findmax(@view resp[i, :])
+		assignments[i] = j
+	end
+	assignments = remap2count(assignments)
+	@info("Best k=$(best_k) using $(criterion): score=$(best_score)")
+	return GMMClusterResult(model=best_gmm, assignments=assignments, responsibilities=resp, loglik=best_ll, bic=best_bic, aic=best_aic, k=best_k)
+end
+
+function robustcluster(X::AbstractMatrix, krange::Union{AbstractUnitRange{Int},AbstractVector{<:Integer}}, repeats::Int=1000;
+		method::Symbol=:kmeans, kw...)
+	if method == :kmeans
+		return robustkmeans(X, krange, repeats; kw...)
+	elseif method == :bgmm
+		return robustbgmm(X, krange, repeats; kw...)
+	else
+		throw(ArgumentError("Unknown method=$method (expected :kmeans or :bgmm)"))
+	end
+end
 
 """
 Given a vector of classifiers, return a vector where
