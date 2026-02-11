@@ -56,6 +56,7 @@ Base.@kwdef struct NMFkResult{TW,TH,TV,TS}
 	method::Symbol = :simple
 	algorithm::Symbol = :multdiv
 	clusterWmatrix::Bool = false
+	extra::Dict{Symbol,Any} = Dict{Symbol,Any}()
 	meta::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
@@ -80,6 +81,7 @@ Base.@kwdef struct NMFkSweepResult{TW,TH,TV,TS}
 	method::Symbol = :simple
 	algorithm::Symbol = :multdiv
 	clusterWmatrix::Bool = false
+	extra::Dict{Symbol,Any} = Dict{Symbol,Any}()
 	meta::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
