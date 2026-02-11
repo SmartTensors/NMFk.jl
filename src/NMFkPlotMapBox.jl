@@ -151,6 +151,8 @@ function mapbox(
 	dpi::Int=200,
 	width_pixel::Int=dpi * width,
 	height_pixel::Int=dpi * height,
+	display_width_pixel::Union{Int,Nothing}=nothing,
+	display_height_pixel::Union{Int,Nothing}=nothing,
 	scale::Real=1,
 	legend::Bool=true,
 	colorbar::Bool=legend,
@@ -206,8 +208,9 @@ function mapbox(
 		colorbar_attr = PlotlyJS.attr()
 	end
 	plot = build_scatter_trace(lon, lat, text, color, sort_color; dot_size=dot_size, showlabels=showlabels, label_position=label_position, label_font_size=label_font_size, label_font_color=label_font_color, colorbar_attr=colorbar_attr, zmin=zmin, zmax=zmax, colorscale=colorscale)
-	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token)
-	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, style=style, mapbox_token=mapbox_token, width=display_width_pixel, height=display_height_pixel)
+	responsive = isnothing(display_width_pixel) && isnothing(display_height_pixel)
+	p = PlotlyJS.plot([plot, traces...], layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=responsive))
 	!quiet && display(p)
 	return p
 end
@@ -252,6 +255,8 @@ function mapbox(
 	dpi::Int=200,
 	width_pixel::Int=dpi * width,
 	height_pixel::Int=dpi * height,
+	display_width_pixel::Union{Int,Nothing}=nothing,
+	display_height_pixel::Union{Int,Nothing}=nothing,
 	scale::Real=1,
 	legend::Bool=true,
 	colorbar::Bool=legend,
@@ -350,8 +355,9 @@ function mapbox(
 		end
 		push!(traces_, t)
 	end
-	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token)
-	p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token, width=display_width_pixel, height=display_height_pixel)
+	responsive = isnothing(display_width_pixel) && isnothing(display_height_pixel)
+	p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=responsive))
 	display(p)
 	return p
 end
@@ -387,22 +393,51 @@ function check_traces(traces::AbstractVector, traces_setup::NamedTuple)
 end
 
 # Plotly map layout
-function plotly_layout(lon_center::Number=-105.9378, lat_center::Number=35.6870, zoom::Number=4; paper_bgcolor::AbstractString="white", width::Int=2800, height::Int=1400, title::AbstractString="", font_size::Number=14, font_color="black", style="mapbox://styles/mapbox/satellite-streets-v12", mapbox_token=NMFk.mapbox_token)
-	layout = PlotlyJS.Layout(;
-		margin=PlotlyJS.attr(; r=0, t=0, b=0, l=0),
-		autosize=true,
-		width=width,
-		height=height,
+function plotly_layout(
+	lon_center::Number=-105.9378,
+	lat_center::Number=35.6870,
+	zoom::Number=4;
+	paper_bgcolor::AbstractString="white",
+	width::Union{Int,Nothing}=nothing,
+	height::Union{Int,Nothing}=nothing,
+	title::AbstractString="",
+	font_size::Number=14,
+	font_color="black",
+	style="mapbox://styles/mapbox/satellite-streets-v12",
+	mapbox_token=NMFk.mapbox_token,
+	margin=PlotlyJS.attr(; r=0, t=0, b=0, l=0),
+	autosize::Union{Bool,Nothing}=nothing,
+)
+	# If width/height are not provided, let the frontend (e.g., VS Code plots panel)
+	# size the plot; this avoids huge default canvases that appear "oversized".
+	local_autosize = isnothing(autosize) ? (isnothing(width) && isnothing(height)) : autosize
+	base = (
+		margin=margin,
+		autosize=local_autosize,
 		legend=PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", font=PlotlyJS.attr(; size=font_size, color=font_color), bgcolor=paper_bgcolor),
 		paper_bgcolor=paper_bgcolor,
-		mapbox=PlotlyJS.attr(;
-			accesstoken=mapbox_token,
+		mapbox=PlotlyJS.attr(
+			; accesstoken=mapbox_token,
 			style=style,
 			center=PlotlyJS.attr(; lon=lon_center, lat=lat_center),
-			zoom=zoom
-		)
+			zoom=zoom,
+		),
 	)
-	return layout
+	if isnothing(width) && isnothing(height)
+		return PlotlyJS.Layout(; base...)
+	end
+	extra = (;)
+	if !isnothing(width)
+		extra = merge(extra, (; width=width))
+	end
+	if !isnothing(height)
+		extra = merge(extra, (; height=height))
+	end
+	# If explicit dimensions are provided, autosize should normally be false.
+	if isnothing(autosize)
+		extra = merge(extra, (; autosize=false))
+	end
+	return PlotlyJS.Layout(; base..., extra...)
 end
 
 function plotly_title_length(title::AbstractString, length::Number)
