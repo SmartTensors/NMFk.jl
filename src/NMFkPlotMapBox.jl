@@ -1137,6 +1137,7 @@ mapbox_contour(lon, lat, values; resolution=50, power=2, smoothing=0.0, filename
 Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weighting) interpolation.
 
 # Arguments
+- `preset::Symbol=:balanced`: Preset tuning for large datasets. Supported: `:fast`, `:balanced`, `:quality`
 - `lon::AbstractVector`: Vector of longitude coordinates
 - `lat::AbstractVector`: Vector of latitude coordinates
 - `values::AbstractVector`: Vector of values to interpolate
@@ -1193,6 +1194,7 @@ function mapbox_contour(
 	lon::AbstractVector{T1},
 	lat::AbstractVector{T1},
 	zvalue::AbstractVector{T2};
+	preset::Symbol=:balanced,
 	zmin::Union{Number,Nothing}=nothing,
 	zmax::Union{Number,Nothing}=nothing,
 	resolution::Int=50,
@@ -1269,7 +1271,27 @@ function mapbox_contour(
 	end
 	@assert length(lon) == length(lat) == length(zvalue)
 	ensure_mapbox_token!(mapbox_token)
-	_logstep("Start", n=length(lon), resolution=resolution)
+	_logstep("Start", n=length(lon), resolution=resolution, preset=String(preset))
+	# Presets provide safe defaults for large datasets without requiring many knobs.
+	# They only apply when the relevant keyword is still set to its function default.
+	if preset == :fast
+		(resolution == 50) && (resolution = 30)
+		(max_features == 50_000) && (max_features = 10_000)
+		(hover_max_features == 5_000) && (hover_max_features = 0)
+		(neighbors == 0) && (neighbors = 32)
+		(hull_max_points == 10_000) && (hull_max_points = 5_000)
+		(hull_force_convex_above == 200_000) && (hull_force_convex_above = 1) # always convex for speed
+	elseif preset == :quality
+		(resolution == 50) && (resolution = 80)
+		(max_features == 50_000) && (max_features = 80_000)
+		(neighbors == 0) && (neighbors = 64)
+		(hull_max_points == 10_000) && (hull_max_points = 50_000)
+		(hull_force_convex_above == 200_000) && (hull_force_convex_above = 500_000)
+	elseif preset == :balanced
+		# keep defaults
+	else
+		throw(ArgumentError("Unknown preset=$(preset). Supported presets: :fast, :balanced, :quality"))
+	end
 	if resolution < 2
 		throw(ArgumentError("resolution must be >= 2"))
 	end
