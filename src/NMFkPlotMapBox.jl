@@ -21,7 +21,7 @@ function safe_savefig(args...; kwargs...)
     end
 end
 
-mapbox_token = "pk.eyJ1IjoibW9udHl2IiwiYSI6ImNsMDhvNTJwMzA1OHgzY256N2c2aDdzdXoifQ.cGUz0Wuc3rYRqGNwm9v5iQ"
+mapbox_token = get(ENV, "MAPBOX_ACCESS_TOKEN", "")
 
 function ensure_mapbox_token!(token)
 	if token isa AbstractString
@@ -31,6 +31,7 @@ function ensure_mapbox_token!(token)
 			if current !== token
 				ENV["MAPBOX_ACCESS_TOKEN"] = token
 			end
+			global mapbox_token = token
 		end
 	end
 end
@@ -654,9 +655,61 @@ function _colorbar_tick_labels(values::Vector{Float64})
 	return [formatter(val) for val in values]
 end
 
-function _prepare_hull_points(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real})
-	coords = Vector{Tuple{Float64, Float64}}()
+function _grid_thin_indices(
+	lon::AbstractVector{<:Real},
+	lat::AbstractVector{<:Real};
+	max_points::Int,
+	grid_bins::Int=0,
+)
+	n = length(lon)
+	if max_points <= 0 || n <= max_points
+		return collect(eachindex(lon))
+	end
+	# Pick at most one point per grid cell to approximate the boundary
+	# while discarding obvious interior duplicates.
+	bins = grid_bins > 0 ? grid_bins : floor(Int, sqrt(max_points))
+	bins = max(2, bins)
+	lon_min = minimum(Float64.(lon))
+	lon_max = maximum(Float64.(lon))
+	lat_min = minimum(Float64.(lat))
+	lat_max = maximum(Float64.(lat))
+	span_lon = max(lon_max - lon_min, 1e-12)
+	span_lat = max(lat_max - lat_min, 1e-12)
+	cell_lon = span_lon / bins
+	cell_lat = span_lat / bins
+	seen = Dict{UInt64, Int}()
+	idxs = Int[]
+	sizehint!(idxs, max_points)
 	for i in eachindex(lon)
+		x = Float64(lon[i])
+		y = Float64(lat[i])
+		if !isfinite(x) || !isfinite(y)
+			continue
+		end
+		ix = clamp(floor(Int, (x - lon_min) / cell_lon) + 1, 1, bins)
+		iy = clamp(floor(Int, (y - lat_min) / cell_lat) + 1, 1, bins)
+		key = (UInt64(ix) << 32) | UInt64(iy)
+		if !haskey(seen, key)
+			seen[key] = Int(i)
+			push!(idxs, Int(i))
+		end
+	end
+	# Ensure we keep the extreme points (helps stabilize hull for sparse bins)
+	iminlon = argmin(Float64.(lon))
+	imaxlon = argmax(Float64.(lon))
+	iminlat = argmin(Float64.(lat))
+	imaxlat = argmax(Float64.(lat))
+	for ii in (iminlon, imaxlon, iminlat, imaxlat)
+		push!(idxs, Int(ii))
+	end
+	return unique(idxs)
+end
+
+function _prepare_hull_points(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real}; max_points::Int=0, grid_bins::Int=0)
+	idxs = _grid_thin_indices(lon, lat; max_points=max_points, grid_bins=grid_bins)
+	coords = Vector{Tuple{Float64, Float64}}()
+	sizehint!(coords, length(idxs))
+	for i in idxs
 		x = Float64(lon[i])
 		y = Float64(lat[i])
 		if isfinite(x) && isfinite(y)
@@ -755,8 +808,14 @@ function _polygon_self_intersects(vertices::Vector{Tuple{Float64, Float64}}; eps
 	return false
 end
 
-function compute_concave_hull_vertices(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real}; convex::Bool=false)
-	coords = _prepare_hull_points(lon, lat)
+function compute_concave_hull_vertices(
+	lon::AbstractVector{<:Real},
+	lat::AbstractVector{<:Real};
+	convex::Bool=false,
+	max_points::Int=0,
+	grid_bins::Int=0,
+)
+	coords = _prepare_hull_points(lon, lat; max_points=max_points, grid_bins=grid_bins)
 	if convex
 		@info "Convex hull requested; skipping concave hull computation"
 		return compute_convex_hull_vertices(coords)
@@ -827,7 +886,14 @@ function _expand_polygon_vertices(
 	return expanded
 end
 
-function _build_geojson_tiles(lon_grid::AbstractVector{<:Real}, lat_grid::AbstractVector{<:Real}, values::AbstractMatrix{<:Real}; mask_polygon::Union{Nothing, Vector{Tuple{Float64, Float64}}}=nothing)
+function _build_geojson_tiles(
+	lon_grid::AbstractVector{<:Real},
+	lat_grid::AbstractVector{<:Real},
+	values::AbstractMatrix{<:Real};
+	mask_polygon::Union{Nothing, Vector{Tuple{Float64, Float64}}}=nothing,
+	progress::Bool=false,
+	progress_every::Int=0,
+)
 	if length(lon_grid) < 2 || length(lat_grid) < 2
 		return (Dict("type" => "FeatureCollection", "features" => Any[]), String[], Float64[])
 	end
@@ -839,7 +905,17 @@ function _build_geojson_tiles(lon_grid::AbstractVector{<:Real}, lat_grid::Abstra
 	rows, cols = size(values)
 	max_i = min(rows - 1, length(lat_edges) - 1)
 	max_j = min(cols - 1, length(lon_edges) - 1)
+	sizehint!(features, max(0, max_i * max_j))
+	sizehint!(feature_ids, max(0, max_i * max_j))
+	sizehint!(tile_values, max(0, max_i * max_j))
+	stride = progress_every > 0 ? progress_every : max(1, cld(max_i, 10))
+	if progress
+		@info "[mapbox_contour] Building GeoJSON tiles" rows=max_i cols=max_j expected=max_i*max_j
+	end
 	for i = 1:max_i
+		if progress && (i == 1 || i % stride == 0 || i == max_i)
+			@info "[mapbox_contour] GeoJSON tiling progress" row=i total_rows=max_i pct=round(100 * i / max_i; digits=1) kept=length(features)
+		end
 		for j = 1:max_j
 			val = Float64(values[i, j])
 			if !isfinite(val)
@@ -979,6 +1055,9 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `lat::AbstractVector`: Vector of latitude coordinates
 - `values::AbstractVector`: Vector of values to interpolate
 - `resolution::Int=50`: Grid resolution for interpolation (higher = smoother but slower)
+- `max_features::Int=50000`: Maximum number of GeoJSON tiles to emit; resolution is auto-reduced to stay within this limit
+- `hover_max_features::Int=5000`: Disable hover tooltips for the interpolated layer when the number of tiles exceeds this threshold (0 disables hover always)
+- `neighbors::Int=0`: Use KNN-IDW interpolation with this many neighbors (0 = auto for large datasets)
 - `power::Real=2`: IDW power parameter (higher = more localized interpolation)
 - `smoothing::Real=0.0`: Smoothing parameter for interpolation
 - `contour_levels::Int=10`: Number of contour levels
@@ -998,6 +1077,9 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `concave_hull::Bool=true`: If true, derive extent/masking from a ConcaveHull envelope
 - `hull_padding::Real=0.02`: Fractional padding applied to the concave hull shape itself
 - `extra_margin::Real=0.0`: Absolute degree margin added radially outside the hull
+- `hull_max_points::Int=10000`: If the point set is larger, thin points before hull computation (grid-based) for speed
+- `hull_grid_bins::Int=0`: Optional fixed number of grid bins used for hull thinning (0 = auto from `hull_max_points`)
+- `hull_force_convex_above::Int=200000`: If the point set exceeds this size, skip concave hull and use convex hull
 - `show_locations::Bool=false`: Display input locations as colored circular markers
 - `location_color::AbstractString="purple"`: Marker color used for the location circles
 - `location_size::Number=10`: Marker diameter for the location circles
@@ -1008,6 +1090,10 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `hull_line_width::Number=3`: Line width for the hull outline
 - `hull_opacity::Real=0.35`: Opacity applied to the hull trace
 - `kw...`: Additional keyword arguments passed to the mapbox function
+
+# Debugging
+- `progress::Bool=false`: If true, prints stage-by-stage timing/progress information to help diagnose slowdowns
+- `progress_every::Int=0`: Row stride for progress logs (0 = auto)
 
 # Example
 ```julia
@@ -1024,6 +1110,9 @@ function mapbox_contour(
 	zmin::Union{Number,Nothing}=nothing,
 	zmax::Union{Number,Nothing}=nothing,
 	resolution::Int=50,
+	max_features::Int=10_000,
+	hover_max_features::Int=5_000,
+	neighbors::Int=0,
 	power::Real=2,
 	smoothing::Real=0.0,
 	contour_levels::Int=20,
@@ -1051,6 +1140,8 @@ function mapbox_contour(
 	dpi::Int=200,
 	width_pixel::Int=dpi * width,
 	height_pixel::Int=dpi * height,
+	display_width_pixel::Union{Int,Nothing}=nothing,
+	display_height_pixel::Union{Int,Nothing}=nothing,
 	scale::Real=1,
 	font_size::Number=14,
 	font_size_fig::Number=font_size,
@@ -1063,6 +1154,9 @@ function mapbox_contour(
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	hull_vertices::Union{Nothing, Vector{Tuple{Float64, Float64}}}=nothing,
 	concave_hull::Bool=true,
+	hull_max_points::Int=10_000,
+	hull_grid_bins::Int=0,
+	hull_force_convex_above::Int=200_000,
 	hull_padding::Real=0.0,
 	extra_margin::Real=0.0,
 	show_hull::Bool=false,
@@ -1070,11 +1164,48 @@ function mapbox_contour(
 	hull_line_width::Number=3,
 	hull_opacity::Real=0.35,
 	quiet::Bool=false,
+	progress::Bool=true,
+	progress_every::Int=100,
 	frame_insufficient_data::Bool=false,
 	kw...
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+	start_ns = time_ns()
+	last_ns = start_ns
+	function _logstep(msg; kwargs...)
+		if progress
+			now_ns = time_ns()
+			elapsed = (now_ns - start_ns) / 1e9
+			delta = (now_ns - last_ns) / 1e9
+			last_ns = now_ns
+			@info "[mapbox_contour] $(msg)" elapsed_s=round(elapsed; digits=2) step_s=round(delta; digits=2) kwargs...
+		end
+		nothing
+	end
 	@assert length(lon) == length(lat) == length(zvalue)
 	ensure_mapbox_token!(mapbox_token)
+	_logstep("Start", n=length(lon), resolution=resolution)
+	if resolution < 2
+		throw(ArgumentError("resolution must be >= 2"))
+	end
+	if max_features < 1
+		throw(ArgumentError("max_features must be >= 1"))
+	end
+	if hover_max_features < 0
+		throw(ArgumentError("hover_max_features must be >= 0"))
+	end
+	if hull_max_points < 0
+		throw(ArgumentError("hull_max_points must be >= 0"))
+	end
+	if hull_force_convex_above < 0
+		throw(ArgumentError("hull_force_convex_above must be >= 0"))
+	end
+	estimated_features = (resolution - 1) * (resolution - 1)
+	if estimated_features > max_features
+		new_resolution = max(2, floor(Int, sqrt(max_features)) + 1)
+		@warn "Requested contour resolution would generate too many GeoJSON tiles; reducing resolution automatically" resolution=resolution new_resolution=new_resolution max_features=max_features estimated_features=estimated_features
+		resolution = new_resolution
+	end
+	_logstep("Validated settings", resolution=resolution, max_features=max_features, neighbors=neighbors)
 	if width_pixel < 500 || height_pixel < 500
 		@error "Width and height in pixels should be at least 500 for proper rendering" width_pixel=width_pixel height_pixel=height_pixel
 		throw(ArgumentError("Insufficient width/height in pixels"))
@@ -1093,6 +1224,7 @@ function mapbox_contour(
 	lon_clean = lon[valid_mask]
 	lat_clean = lat[valid_mask]
 	values_clean = zvalue[valid_mask]
+	_logstep("Filtered inputs", coord_points=length(lon_coords), valid_points=length(lon_clean))
 
 	function resolve_location_labels(raw_names, label)
 		if isempty(raw_names)
@@ -1153,17 +1285,31 @@ function mapbox_contour(
 			return nothing
 		end
 	end
+	_logstep("Checked minimum data", insufficient_data=insufficient_data)
 
 	if hull_vertices === nothing && concave_hull
+		@info("Computing hull for masking/interpolation extent ...")
 		# Build the hull from the data actually being interpolated (finite z values).
 		# Using all coordinate positions (including NaN-valued samples) can expand the hull
 		# and defeat the intended masking.
-		hull_vertices = compute_concave_hull_vertices(lon_clean, lat_clean)
+		use_convex = (hull_force_convex_above > 0) && (length(lon_clean) > hull_force_convex_above)
+		thin = (hull_max_points > 0) && (length(lon_clean) > hull_max_points)
+		if thin
+			_logstep("Thinning points for hull", n_in=length(lon_clean), hull_max_points=hull_max_points)
+		end
+		hull_vertices = compute_concave_hull_vertices(
+			lon_clean,
+			lat_clean;
+			convex=use_convex,
+			max_points=hull_max_points,
+			grid_bins=hull_grid_bins,
+		)
 		if hull_vertices === nothing || length(hull_vertices) < 3
 			@info "Concave hull unavailable; reverting to padded bounding box"
 			hull_vertices = nothing
 		end
 	end
+	_logstep("Resolved hull", use_hull=hull_vertices !== nothing)
 
 	lon_source_raw = hull_vertices === nothing ? lon_clean : first.(hull_vertices)
 	lat_source_raw = hull_vertices === nothing ? lat_clean : last.(hull_vertices)
@@ -1258,31 +1404,91 @@ function mapbox_contour(
 		)
 		push!(traces, dummy_trace)
 	else
+		_logstep("Building interpolation grid")
 		lon_grid = range(lon_min, lon_max, length=resolution)
 		lat_grid = range(lat_min, lat_max, length=resolution)
 
 		z_grid = Matrix{Float64}(undef, resolution, resolution)
-		for (i, lat_interp) in enumerate(lat_grid)
-			for (j, lon_interp) in enumerate(lon_grid)
-				distances = sqrt.((lon_clean .- lon_interp).^2 .+ (lat_clean .- lat_interp).^2)
-				min_dist = minimum(distances)
-				if min_dist < 1e-10
-					closest_idx = Base.findfirst(distances .== min_dist)
-					z_grid[i, j] = values_clean[closest_idx]
-				else
-					weights = 1.0 ./ (distances.^power .+ smoothing)
-					z_grid[i, j] = sum(weights .* values_clean) / sum(weights)
+		npoints = length(lon_clean)
+		use_knn = (neighbors > 0) || (neighbors == 0 && npoints >= 2_000)
+		k = neighbors > 0 ? neighbors : 32
+		_logstep("Interpolating", method=(use_knn ? "knn-idw" : "bruteforce-idw"), npoints=npoints, k=k, grid=resolution*resolution)
+		if use_knn && npoints > 0
+			# KNN-based IDW avoids O(npoints) work per grid cell for large datasets.
+			coords = Matrix{Float64}(undef, 2, npoints)
+			@inbounds begin
+				coords[1, :] = lon_clean
+				coords[2, :] = lat_clean
+			end
+			@info("KNN-based interpolation ...")
+			tree = NearestNeighbors.KDTree(coords)
+			k_eff = min(max(1, k), npoints)
+			q = Vector{Float64}(undef, 2)
+			stride = progress_every > 0 ? progress_every : max(1, cld(resolution, 10))
+			!quiet && @info("Performing IDW interpolation on grid ...")
+			@inbounds for (i, lat_interp) in enumerate(lat_grid)
+				if progress && (i == 1 || i % stride == 0 || i == resolution)
+					_logstep("interpolation progress", row=i, total_rows=resolution, pct=round(100 * i / resolution; digits=1))
+				end
+				q[2] = Float64(lat_interp)
+				for (j, lon_interp) in enumerate(lon_grid)
+					q[1] = Float64(lon_interp)
+					idxs, d2s = NearestNeighbors.knn(tree, q, k_eff, true)
+					z_val = 0.0
+					w_sum = 0.0
+					assigned = false
+					for t in eachindex(idxs)
+						d2 = d2s[t]
+						if d2 <= 1e-20
+							z_grid[i, j] = Float64(values_clean[idxs[t]])
+							assigned = true
+							break
+						end
+						d = sqrt(d2)
+						w = 1.0 / (d^power + smoothing)
+						z_val += w * Float64(values_clean[idxs[t]])
+						w_sum += w
+					end
+					if !assigned
+						z_grid[i, j] = w_sum > 0 ? (z_val / w_sum) : NaN
+					end
+				end
+			end
+		else
+			!quiet && @info("Brute-force interpolation ...") # Brute-force fallback; fine for small point sets.
+			stride = progress_every > 0 ? progress_every : max(1, cld(resolution, 10))
+			@inbounds for (i, lat_interp) in enumerate(lat_grid)
+				if progress && (i == 1 || i % stride == 0 || i == resolution)
+					_logstep("Interpolation progress", row=i, total_rows=resolution, pct=round(100 * i / resolution; digits=1))
+				end
+				for (j, lon_interp) in enumerate(lon_grid)
+					distances = sqrt.((lon_clean .- lon_interp).^2 .+ (lat_clean .- lat_interp).^2)
+					min_dist = minimum(distances)
+					if min_dist < 1e-10
+						closest_idx = Base.findfirst(distances .== min_dist)
+						z_grid[i, j] = values_clean[closest_idx]
+					else
+						weights = 1.0 ./ (distances.^power .+ smoothing)
+						z_grid[i, j] = sum(weights .* values_clean) / sum(weights)
+					end
 				end
 			end
 		end
-
-		geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(lon_grid, lat_grid, z_grid; mask_polygon=hull_vertices)
+		_logstep("Building GeoJSON")
+		geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(lon_grid, lat_grid, z_grid; mask_polygon=hull_vertices, progress=progress, progress_every=progress_every)
+		_logstep("GeoJSON built", tiles=length(geojson_ids))
+		disable_hover = hover_max_features == 0 ? true : (length(geojson_ids) > hover_max_features)
+		if disable_hover
+			_logstep("Disabling hover (too many features)", tiles=length(geojson_ids), hover_max_features=hover_max_features)
+		end
 		zmin_target, zmax_target = _resolve_color_bounds(zmin, zmax, geojson_values)
+		_logstep("Resolved color bounds", zmin=zmin_target, zmax=zmax_target)
 		colorbar_ticks = _colorbar_tick_values(zmin_target, zmax_target)
 		colorbar_tick_labels = _colorbar_tick_labels(colorbar_ticks)
 		colorbar_attr = mapbox_colorbar_attr(title_colorbar, title_length; font_size=colorbar_font_size, font_color=colorbar_font_color, font_family=colorbar_font_family, bgcolor=colorbar_bgcolor, bold=colorbar_font_bold, tickmode="array", tickvals=colorbar_ticks, ticktext=colorbar_tick_labels)
 
 		if !isempty(geojson_ids)
+			_logstep("Building choropleth trace")
 			plot_values = copy(geojson_values)
 			plot_values .= clamp.(plot_values, zmin_target, zmax_target)
 			if contour_levels > 1 && zmax_target > zmin_target
@@ -1306,13 +1512,15 @@ function mapbox_contour(
 				zmax=zmax_target,
 				marker=PlotlyJS.attr(line=PlotlyJS.attr(width=0)),
 				colorbar=colorbar_attr,
-				hovertemplate="<b>Value:</b> %{customdata:.3f}<extra></extra>",
+				hoverinfo=disable_hover ? "skip" : "",
+				hovertemplate=disable_hover ? "<extra></extra>" : "<b>Value:</b> %{customdata:.3f}<extra></extra>",
 				name="Interpolated Field",
 				showscale=true,
 				showlegend=false
 			)
 			push!(traces, choropleth_trace)
 		else
+			_logstep("GeoJSON empty; building fallback scatter")
 			fallback_lon = Float64[]
 			fallback_lat = Float64[]
 			fallback_vals = Float64[]
@@ -1340,7 +1548,8 @@ function mapbox_contour(
 						opacity=opacity,
 						colorbar=colorbar_attr
 					),
-					hovertemplate="<b>Lon:</b> %{lon}<br><b>Lat:</b> %{lat}<br><b>Value:</b> %{marker.color}<extra></extra>",
+					hoverinfo=disable_hover ? "skip" : "",
+					hovertemplate=disable_hover ? "<extra></extra>" : "<b>Lon:</b> %{lon}<br><b>Lat:</b> %{lat}<br><b>Value:</b> %{marker.color}<extra></extra>",
 					showlegend=false,
 					name="Interpolated Surface"
 				)
@@ -1348,8 +1557,8 @@ function mapbox_contour(
 			end
 		end
 	end
-
-	if show_locations && !isempty(lon_clean)
+	if show_locations && !isempty(lon_clean) && length(lon_clean) < 1000
+		!quiet && @info("Plotting location markers")
 		marker_attr = PlotlyJS.attr(
 			size=location_size,
 			color=location_color,
@@ -1399,6 +1608,7 @@ function mapbox_contour(
 	end
 
 	if show_hull && hull_plot_vertices !== nothing
+		!quiet && @info("Plotting hull polygon ...")
 		hull_lon = first.(hull_plot_vertices)
 		hull_lat = last.(hull_plot_vertices)
 		if isempty(hull_lon)
@@ -1421,18 +1631,21 @@ function mapbox_contour(
 		end
 	end
 
+	_logstep("Building layout")
 	layout = plotly_layout(
 		lon_center, lat_center, zoom;
-		width=width_pixel,
-		height=height_pixel,
+		width=display_width_pixel,
+		height=display_height_pixel,
 		title=title,
 		font_size=font_size,
 		paper_bgcolor=paper_bgcolor,
 		style=style,
 		mapbox_token=mapbox_token
 	)
-
-	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
+	responsive = isnothing(display_width_pixel) && isnothing(display_height_pixel)
+	_logstep("Rendering Plotly figure", responsive=responsive)
+	p = PlotlyJS.plot(traces, layout; config=PlotlyJS.PlotConfig(scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=responsive))
+	_logstep("Render complete")
 	!quiet && display(p)
 
 	if filename != ""

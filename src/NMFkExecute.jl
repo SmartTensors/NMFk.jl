@@ -1,5 +1,42 @@
 import Distributed
 import JLD
+import Serialization
+import SHA
+
+
+function _x_hash_sha256_hex(X)
+	io = IOBuffer()
+	Serialization.serialize(io, X)
+	return bytes2hex(SHA.sha256(take!(io)))
+end
+
+
+function _x_hashfile_path(xfile::AbstractString)
+	return xfile * ".sha256"
+end
+
+
+function _check_or_write_x_hash!(X, xfile::AbstractString; write_if_missing::Bool)
+	hashfile = _x_hashfile_path(xfile)
+	if !write_if_missing && !isfile(hashfile)
+		return nothing
+	end
+
+	h = _x_hash_sha256_hex(X)
+	if isfile(hashfile)
+		stored = strip(read(hashfile, String))
+		if !isempty(stored) && stored != h
+			@warn("Matrix X hash mismatch in '$(hashfile)': stored '$(stored)' != current '$(h)'. Cached results may not correspond to this X.")
+		end
+	else
+		open(hashfile, "w") do f
+			write(f, h)
+			write(f, "\n")
+		end
+		@info("X hash saved in '$(hashfile)'.")
+	end
+	return h
+end
 
 function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilename::AbstractString, mixture::Symbol, method::Symbol, algorithm::Symbol, clusterWmatrix::Bool) where {T <: Number, N}
 	global first_warning = true
@@ -91,13 +128,14 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 		return NMFk.tensorfactorization(X, nkrange, dims, nNMF; cutoff=cutoff, clusterWmatrix=clusterWmatrix, mixture=mixture, method=method, algorithm=algorithm, resultdir=resultdir, load=load, save=save, casefilename=cf, kw...)
 	end
 	load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
+	_check_or_write_x_hash!(X, xfile; write_if_missing=save)
+	xs = string(["_$i" for i in size(X)]...)[2:end] # remove the first underscore
+	if casefilename == ""
+		xfile = joinpath(resultdir, "nmfk_x_matrix_$(xs).jld")
+	else
+		xfile = joinpath(resultdir, "$(casefilename)_x_matrix_$(xs).jld")
+	end
 	if save
-		xs = string(["_$i" for i in size(X)]...)[2:end] # remove the first underscore
-		if casefilename == ""
-			xfile = joinpath(resultdir, "nmfk_x_matrix_$(xs).jld")
-		else
-			xfile = joinpath(resultdir, "$(casefilename)_x_matrix_$(xs).jld")
-		end
 		JLD.save(xfile, "X", X)
 	end
 	maxk = maximum(collect(nkrange))
@@ -138,7 +176,7 @@ end
 "Execute NMFk analysis for a given number of signals"
 function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWmatrix::Bool=false, mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, load::Bool=true, save::Bool=true, quiet::Bool=false, check_inputs::Bool=true, ordersignals::Bool=true, dims::Union{AbstractUnitRange{Int},Integer}=1:N, kw...) where {T <: Number, N}
 	if N > 2 && mixture == :null
-		!quiet && @info("Input is a $(N)-D array; delegating to NMFk.tensorfactorization(...).")
+		!quiet && @info("Input is a $(N)-dimensional array; delegating to NMFk.tensorfactorization(...).")
 		cf = (casefilename == "") ? "nmfk-tensor" : casefilename
 		return NMFk.tensorfactorization(X, nk, dims, nNMF; clusterWmatrix=clusterWmatrix, mixture=mixture, method=method, algorithm=algorithm, resultdir=resultdir, load=load, save=save, casefilename=cf, kw...)
 	end
@@ -155,6 +193,13 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	if check_inputs
 		load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
 	end
+	xs = string(["_$i" for i in size(X)]...)[2:end] # remove the first underscore
+	if casefilename == ""
+		xfile = joinpath(resultdir, "nmfk_x_matrix_$(xs).jld")
+	else
+		xfile = joinpath(resultdir, "$(casefilename)_x_matrix_$(xs).jld")
+	end
+	_check_or_write_x_hash!(X, xfile; write_if_missing=save)
 	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])NMFk run with $(nk) signals: $(Base.text_colors[:normal])")
 	execute_ordersignals = true
 	if load
