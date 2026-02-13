@@ -201,6 +201,7 @@ function mapbox(
 	quiet::Bool=false,
 	show_count::Bool=true,
 	show_locations::Bool=false # dummy
+	preset::Symbol=:none # dummy
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
