@@ -16,6 +16,10 @@ function safe_savefig(args...; kwargs...)
             PlotlyKaleido.restart()
             rethrow()
         else
+			msg = sprint(showerror, err)
+			if occursin("Missing Mapbox access token", msg) || occursin("mapboxAccessToken", msg)
+				@error "Plotly export failed due to missing Mapbox token. Either set ENV[\"MAPBOX_ACCESS_TOKEN\"], pass mapbox_token=... to NMFk plotting calls, or use a token-free basemap style like style=\"open-street-map\"." 
+			end
             rethrow()
         end
     end
@@ -24,16 +28,28 @@ end
 mapbox_token = get(ENV, "MAPBOX_ACCESS_TOKEN", "")
 
 function ensure_mapbox_token!(token)
+	# If an explicit token is provided, register it. Otherwise, pick up the
+	# current ENV token (useful when ENV is set after module load).
 	if token isa AbstractString
-		token = strip(token)
-		if !isempty(token)
-			current = get(ENV, "MAPBOX_ACCESS_TOKEN", nothing)
-			if current !== token
-				ENV["MAPBOX_ACCESS_TOKEN"] = token
+		tok = strip(token)
+		if isempty(tok)
+			env_tok = strip(get(ENV, "MAPBOX_ACCESS_TOKEN", ""))
+			if !isempty(env_tok)
+				global mapbox_token = env_tok
 			end
-			global mapbox_token = token
+			return
 		end
+		current = get(ENV, "MAPBOX_ACCESS_TOKEN", nothing)
+		if current !== tok
+			ENV["MAPBOX_ACCESS_TOKEN"] = tok
+		end
+		global mapbox_token = tok
 	end
+end
+
+function _token_free_style(style::AbstractString)
+	# Plotly supports token-free Mapbox styles like open-street-map/carto/stamen.
+	return "open-street-map"
 end
 
 regex_lon = r"^[Xx]$|^[Ll]on$|^LONGITUDE$|^LON$|^[Ll]ongitude$" # regex for longitude
@@ -409,6 +425,21 @@ function plotly_layout(
 	margin=PlotlyJS.attr(; r=0, t=0, b=0, l=0),
 	autosize::Union{Bool,Nothing}=nothing,
 )
+	style_str = String(style)
+	token_str = mapbox_token isa AbstractString ? strip(mapbox_token) : ""
+	if isempty(token_str) && startswith(style_str, "mapbox://")
+		# Mapbox-hosted styles require a token; fall back to a token-free basemap.
+		@warn "Mapbox style requested but MAPBOX_ACCESS_TOKEN is missing; falling back to a token-free basemap style" requested_style=style_str fallback_style=_token_free_style(style_str)
+		style_str = _token_free_style(style_str)
+	end
+	mapbox_attr = PlotlyJS.attr(
+		; style=style_str,
+		center=PlotlyJS.attr(; lon=lon_center, lat=lat_center),
+		zoom=zoom,
+	)
+	if !isempty(token_str)
+		mapbox_attr[:accesstoken] = token_str
+	end
 	# If width/height are not provided, let the frontend (e.g., VS Code plots panel)
 	# size the plot; this avoids huge default canvases that appear "oversized".
 	local_autosize = isnothing(autosize) ? (isnothing(width) && isnothing(height)) : autosize
@@ -417,12 +448,7 @@ function plotly_layout(
 		autosize=local_autosize,
 		legend=PlotlyJS.attr(; title_text=title, title_font_size=font_size, itemsizing="constant", font=PlotlyJS.attr(; size=font_size, color=font_color), bgcolor=paper_bgcolor),
 		paper_bgcolor=paper_bgcolor,
-		mapbox=PlotlyJS.attr(
-			; accesstoken=mapbox_token,
-			style=style,
-			center=PlotlyJS.attr(; lon=lon_center, lat=lat_center),
-			zoom=zoom,
-		),
+		mapbox=mapbox_attr,
 	)
 	if isnothing(width) && isnothing(height)
 		return PlotlyJS.Layout(; base...)
