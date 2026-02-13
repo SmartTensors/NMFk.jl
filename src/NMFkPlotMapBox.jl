@@ -7,25 +7,17 @@ import ConcaveHull
 import Printf
 import PlotlyKaleido
 
-function safe_savefig(args...; kwargs...)
-    try
-        PlotlyJS.savefig(args...; kwargs...)
-    catch err
-        if err isa InterruptException
-            @info "Save interrupted – restarting Kaleido"
-            PlotlyKaleido.restart()
-            rethrow()
-        else
-			msg = sprint(showerror, err)
-			if occursin("Missing Mapbox access token", msg) || occursin("mapboxAccessToken", msg)
-				@error "Plotly export failed due to missing Mapbox token. Either set ENV[\"MAPBOX_ACCESS_TOKEN\"], pass mapbox_token=... to NMFk plotting calls, or use a token-free basemap style like style=\"open-street-map\"." 
-			end
-            rethrow()
-        end
-    end
-end
-
 mapbox_token = get(ENV, "MAPBOX_ACCESS_TOKEN", "")
+
+function __init__()
+	# NMFk is frequently precompiled; make sure we pick up the current runtime
+	# environment token rather than whatever was present at precompile time.
+	env_tok = strip(get(ENV, "MAPBOX_ACCESS_TOKEN", ""))
+	if !isempty(env_tok)
+		global mapbox_token = env_tok
+	end
+	return nothing
+end
 
 function ensure_mapbox_token!(token)
 	# If an explicit token is provided, register it. Otherwise, pick up the
@@ -54,6 +46,24 @@ end
 
 regex_lon = r"^[Xx]$|^[Ll]on$|^LONGITUDE$|^LON$|^[Ll]ongitude$" # regex for longitude
 regex_lat = r"^[Yy]$|^[Ll]at$|^LATITUDE$|^LAT$|^[Ll]atitude$" # regex for latitude
+
+function safe_savefig(args...; kwargs...)
+    try
+        PlotlyJS.savefig(args...; kwargs...)
+    catch err
+        if err isa InterruptException
+            @info "Save interrupted – restarting Kaleido"
+            PlotlyKaleido.restart()
+            rethrow()
+        else
+			msg = sprint(showerror, err)
+			if occursin("Missing Mapbox access token", msg) || occursin("mapboxAccessToken", msg)
+				@error "Plotly export failed due to missing Mapbox token. Either set ENV[\"MAPBOX_ACCESS_TOKEN\"], pass mapbox_token=... to NMFk plotting calls, or use a token-free basemap style like style=\"open-street-map\"."
+			end
+            rethrow()
+        end
+    end
+end
 
 # Mapbox for a dataframe with multiple columns
 function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symbol, AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, kw...)
@@ -427,6 +437,10 @@ function plotly_layout(
 )
 	style_str = String(style)
 	token_str = mapbox_token isa AbstractString ? strip(mapbox_token) : ""
+	if isempty(token_str)
+		# If caller didn't pass a token (or passed an empty token), fall back to ENV.
+		token_str = strip(get(ENV, "MAPBOX_ACCESS_TOKEN", ""))
+	end
 	if isempty(token_str) && startswith(style_str, "mapbox://")
 		# Mapbox-hosted styles require a token; fall back to a token-free basemap.
 		@warn "Mapbox style requested but MAPBOX_ACCESS_TOKEN is missing; falling back to a token-free basemap style" requested_style=style_str fallback_style=_token_free_style(style_str)
