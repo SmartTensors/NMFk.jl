@@ -705,21 +705,61 @@ function _grid_thin_indices(
 	if max_points <= 0 || n <= max_points
 		return collect(eachindex(lon))
 	end
-	# Pick at most one point per grid cell to approximate the boundary
-	# while discarding obvious interior duplicates.
+	# Pick (approximately) one representative point per grid cell.
+	# To preserve the boundary better, keep the point farthest from the
+	# global centroid within each occupied cell.
 	bins = grid_bins > 0 ? grid_bins : floor(Int, sqrt(max_points))
 	bins = max(2, bins)
-	lon_min = minimum(Float64.(lon))
-	lon_max = maximum(Float64.(lon))
-	lat_min = minimum(Float64.(lat))
-	lat_max = maximum(Float64.(lat))
+
+	# Compute bounding box + centroid without allocating large temporaries.
+	lon_min = Inf
+	lon_max = -Inf
+	lat_min = Inf
+	lat_max = -Inf
+	sumx = 0.0
+	sumy = 0.0
+	count = 0
+	iminlon = 0
+	imaxlon = 0
+	iminlat = 0
+	imaxlat = 0
+	for i in eachindex(lon)
+		x = Float64(lon[i])
+		y = Float64(lat[i])
+		if !isfinite(x) || !isfinite(y)
+			continue
+		end
+		count += 1
+		sumx += x
+		sumy += y
+		if x < lon_min
+			lon_min = x
+			iminlon = Int(i)
+		end
+		if x > lon_max
+			lon_max = x
+			imaxlon = Int(i)
+		end
+		if y < lat_min
+			lat_min = y
+			iminlat = Int(i)
+		end
+		if y > lat_max
+			lat_max = y
+			imaxlat = Int(i)
+		end
+	end
+	if count == 0
+		return Int[]
+	end
+	cx = sumx / count
+	cy = sumy / count
 	span_lon = max(lon_max - lon_min, 1e-12)
 	span_lat = max(lat_max - lat_min, 1e-12)
 	cell_lon = span_lon / bins
 	cell_lat = span_lat / bins
-	seen = Dict{UInt64, Int}()
-	idxs = Int[]
-	sizehint!(idxs, max_points)
+	# cell key -> (index, score)
+	seen = Dict{UInt64, Tuple{Int, Float64}}()
 	for i in eachindex(lon)
 		x = Float64(lon[i])
 		y = Float64(lat[i])
@@ -729,18 +769,24 @@ function _grid_thin_indices(
 		ix = clamp(floor(Int, (x - lon_min) / cell_lon) + 1, 1, bins)
 		iy = clamp(floor(Int, (y - lat_min) / cell_lat) + 1, 1, bins)
 		key = (UInt64(ix) << 32) | UInt64(iy)
-		if !haskey(seen, key)
-			seen[key] = Int(i)
-			push!(idxs, Int(i))
+		score = (x - cx) * (x - cx) + (y - cy) * (y - cy)
+		if haskey(seen, key)
+			idx_prev, score_prev = seen[key]
+			if score > score_prev
+				seen[key] = (Int(i), score)
+			end
+		else
+			seen[key] = (Int(i), score)
 		end
 	end
+	idxs = Int[]
+	sizehint!(idxs, min(max_points, length(seen) + 8))
+	for (_k, (idx, _score)) in seen
+		push!(idxs, idx)
+	end
 	# Ensure we keep the extreme points (helps stabilize hull for sparse bins)
-	iminlon = argmin(Float64.(lon))
-	imaxlon = argmax(Float64.(lon))
-	iminlat = argmin(Float64.(lat))
-	imaxlat = argmax(Float64.(lat))
 	for ii in (iminlon, imaxlon, iminlat, imaxlat)
-		push!(idxs, Int(ii))
+		ii > 0 && push!(idxs, ii)
 	end
 	return unique(idxs)
 end
