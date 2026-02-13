@@ -128,7 +128,6 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 		return NMFk.tensorfactorization(X, nkrange, dims, nNMF; cutoff=cutoff, clusterWmatrix=clusterWmatrix, mixture=mixture, method=method, algorithm=algorithm, resultdir=resultdir, load=load, save=save, casefilename=cf, kw...)
 	end
 	load, save, casefilename, mixture, method, algorithm, clusterWmatrix = input_checks(X, load, save, casefilename, mixture, method, algorithm, clusterWmatrix)
-	_check_or_write_x_hash!(X, xfile; write_if_missing=save)
 	xs = string(["_$i" for i in size(X)]...)[2:end] # remove the first underscore
 	if casefilename == ""
 		xfile = joinpath(resultdir, "nmfk_x_matrix_$(xs).jld")
@@ -138,6 +137,7 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	if save
 		JLD.save(xfile, "X", X)
 	end
+	_check_or_write_x_hash!(X, xfile; write_if_missing=save)
 	maxk = maximum(collect(nkrange))
 	W = Vector{Array{T, N}}(undef, maxk)
 	H = Vector{Matrix{T}}(undef, maxk)
