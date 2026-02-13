@@ -764,28 +764,30 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				end
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, W_labels_new; figuredir=figuredir, hover=hover, title="Signals: $k")
-				elseif plotmap_scope == :mapbox
+				elseif plotmap_scope == :mapbox || plotmap_scope == :mapbox_contour
 					NMFk.mapbox(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
-					for (i, c) in enumerate(clusterlabels)
-						@info("Plotting H map contour for signal $(c) ...")
-						NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
-						if movies && size(Hmap, 2) > 1
-							Hm2labels = unique(Hmap[:, 1])
-							Hm2bins = unique(Hmap[:, 2])
-							@assert length(Hnames) == length(Hm2labels)
-							@info("H ($(Hcasefilename)) matrix plot as transient movie ...")
-							png_files = Vector{String}(undef, length(Hm2bins))
-							hmax = NMFk.maximumnan(H[k]; dims=2)[signalmap]
-							for (j, b) in enumerate(Hm2bins)
-								@info("Plotting H map contour for signal $(c) bin $(b) ...")
-								bin_mask = Hmap[:, 2] .== b
-								png_files[j] = joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)")
-								NMFk.mapbox_contour(lon, lat, H[k][signalmap,bin_mask][i,:] ./ hmax[i]; zmin=0, zmax=1, filename=png_files[j], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
+					NMFk.mapbox(lon, lat, Hm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
+					if plotmap_scope == :mapbox_contour
+						for (i, c) in enumerate(clusterlabels)
+							@info("Plotting H map contour for signal $(c) ...")
+							NMFk.mapbox_contour(lon, lat, Hm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
+							if movies && size(Hmap, 2) > 1
+								Hm2labels = unique(Hmap[:, 1])
+								Hm2bins = unique(Hmap[:, 2])
+								@assert length(Hnames) == length(Hm2labels)
+								@info("H ($(Hcasefilename)) matrix plot as transient movie ...")
+								png_files = Vector{String}(undef, length(Hm2bins))
+								hmax = NMFk.maximumnan(H[k]; dims=2)[signalmap]
+								for (j, b) in enumerate(Hm2bins)
+									@info("Plotting H map contour for signal $(c) bin $(b) ...")
+									bin_mask = Hmap[:, 2] .== b
+									png_files[j] = joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)")
+									NMFk.mapbox_contour(lon, lat, H[k][signalmap,bin_mask][i,:] ./ hmax[i]; zmin=0, zmax=1, filename=png_files[j], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
+								end
+								NMFk.makemovie(joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)"); files=png_files,cleanup=true)
 							end
-							NMFk.makemovie(joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)"); files=png_files,cleanup=true)
 						end
 					end
-					NMFk.mapbox(lon, lat, Hm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				else
 					NMFk.plotmaps(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
 				end
@@ -949,28 +951,30 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				end
 				if plotmap_scope == :well
 					NMFk.plot_wells("$(Wcasefilename)-$(k)-map.$(map_format)", lon, lat, W_labels_new; figuredir=figuredir, hover=hover, title="Signals: $k")
-				elseif plotmap_scope == :mapbox
+				elseif plotmap_scope == :mapbox || plotmap_scope == :mapbox_contour
 					NMFk.mapbox(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
-					for (i, c) in enumerate(clusterlabels)
-						@info("Plotting W map contour for signal $(c) ...")
-						NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
-						if movies && size(Wmap, 2) > 1
-							Wm2labels = unique(Wmap[:, 1])
-							Wm2bins = unique(Wmap[:, 2])
-							@assert length(Wnames) == length(Wm2labels)
-							@info("W ($(Wcasefilename)) matrix plot as transient movie ...")
-							png_files = Vector{String}(undef, length(Wm2bins))
-							wmax = NMFk.maximumnan(W[k]; dims=1)[signalmap]
-							for (j, b) in enumerate(Wm2bins)
-								@info("Plotting W map contour for signal $(c) bin $(b) ...")
-								bin_mask = Wmap[:, 2] .== b
-								png_files[j] = joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)")
-								NMFk.mapbox_contour(lon, lat, W[k][bin_mask,signalmap][:,i] ./ wmax[i]; zmin=0, zmax=1, filename=png_files[j], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, map_kw...)
+					NMFk.mapbox(lon, lat, Wm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
+					if plotmap_scope == :mapbox_contour
+						for (i, c) in enumerate(clusterlabels)
+							@info("Plotting W map contour for signal $(c) ...")
+							NMFk.mapbox_contour(lon, lat, Wm[:,signalmap][:,i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
+							if movies && size(Wmap, 2) > 1
+								Wm2labels = unique(Wmap[:, 1])
+								Wm2bins = unique(Wmap[:, 2])
+								@assert length(Wnames) == length(Wm2labels)
+								@info("W ($(Wcasefilename)) matrix plot as transient movie ...")
+								png_files = Vector{String}(undef, length(Wm2bins))
+								wmax = NMFk.maximumnan(W[k]; dims=1)[signalmap]
+								for (j, b) in enumerate(Wm2bins)
+									@info("Plotting W map contour for signal $(c) bin $(b) ...")
+									bin_mask = Wmap[:, 2] .== b
+									png_files[j] = joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)")
+									NMFk.mapbox_contour(lon, lat, W[k][bin_mask,signalmap][:,i] ./ wmax[i]; zmin=0, zmax=1, filename=png_files[j], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, map_kw...)
+								end
+								NMFk.makemovie(joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)"); files=png_files, cleanup=true)
 							end
-							NMFk.makemovie(joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)"); files=png_files, cleanup=true)
 						end
 					end
-					NMFk.mapbox(lon, lat, Wm[:,signalmap], clusterlabels; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				else
 					NMFk.plotmaps(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
 				end
