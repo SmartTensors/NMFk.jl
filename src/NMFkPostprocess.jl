@@ -396,7 +396,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20),
 		adjustbiplotlabel::Bool=false, biplotlabel::Symbol=:WH, biplotcolor::Symbol=:WH,
 		plottimeseries::Symbol=:none, plotmaps::Bool=false, plotmap_scope::Symbol=:mapbox, map_format::AbstractString="png",
-		map_kw::Union{Base.Pairs,AbstractDict}=Dict(),
+		map_kw::Union{Base.Pairs,NamedTuple,AbstractDict}=Dict(),
 		cutoff::Number=0, # cutoff::Number = 0.9 recommended
  		cutoff_s::Number=0, # cutoff_s::Number = 0.95 recommended
 		cutoff_label::Number=0.2,
