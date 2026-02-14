@@ -15,9 +15,68 @@ const _DEFAULT_MAPBOX_CONTOUR_HULL_MAX_POINTS = 10_000
 const _DEFAULT_MAPBOX_CONTOUR_HULL_FORCE_CONVEX_ABOVE = 200_000
 const _DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS = 12_000
 const _DEFAULT_MAPBOX_CONTOUR_HULL_MODE = :direct
-const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS = 20_000
-const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS = 2.5
-const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS = 5_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS = 40_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS = 6
+const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS = 20_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_PASSES = 3
+
+const _DEFAULT_MAPBOX_CONTOUR_MASK_MODE = :hull
+const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MULTIPLIER = 2.0
+const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_QUANTILE = 0.5
+const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MAX_POINTS = 5_000
+
+function _mean_finite(v::AbstractVector{<:Real}; default::Float64=0.0)
+	acc = 0.0
+	n = 0
+	for x in v
+		xf = Float64(x)
+		if isfinite(xf)
+			acc += xf
+			n += 1
+		end
+	end
+	return n > 0 ? (acc / n) : default
+end
+
+function _estimate_nn_spacing(
+	tree::NearestNeighbors.KDTree,
+	coords::AbstractMatrix{<:Real};
+	max_points::Int=_DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MAX_POINTS,
+	q::Real=_DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_QUANTILE,
+)
+	n = size(coords, 2)
+	if n < 2
+		return 0.0
+	end
+	qf = Float64(q)
+	if !(0.0 <= qf <= 1.0)
+		throw(ArgumentError("q must be in [0, 1]"))
+	end
+	m = max_points > 0 ? min(n, max_points) : n
+	stride = n <= m ? 1 : max(1, cld(n, m))
+	idxs = collect(1:stride:n)
+	Q = Matrix{Float64}(undef, 2, length(idxs))
+	@inbounds for (k, i) in enumerate(idxs)
+		Q[1, k] = Float64(coords[1, i])
+		Q[2, k] = Float64(coords[2, i])
+	end
+	_, d2s = NearestNeighbors.knn(tree, Q, 2, true)
+	d = Float64[]
+	sizehint!(d, length(d2s))
+	@inbounds for k in eachindex(d2s)
+		vec = d2s[k]
+		if length(vec) >= 2
+			d2 = vec[2]
+			if isfinite(d2) && d2 > 0
+				push!(d, sqrt(Float64(d2)))
+			end
+		end
+	end
+	if isempty(d)
+		return 0.0
+	end
+	return Float64(Statistics.quantile(d, qf))
+end
 
 function _compute_bounds_and_bins(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real}; max_points::Int, grid_bins::Int=0)
 	n = length(lon)
@@ -1037,7 +1096,47 @@ function compute_concave_hull_vertices(
 	stepwise_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS,
 	stepwise_min_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS,
 	stepwise_buffer_cells::Real=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS,
+	stepwise_passes::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_PASSES,
 )
+	function _direct_concave_from_coords(coords_local::Vector{Tuple{Float64, Float64}})
+		if length(coords_local) < 3
+			return nothing
+		end
+		# ConcaveHull can become unstable/slow for very large input sizes; for
+		# robustness, re-thin specifically for the concave hull stage.
+		if concave_max_points > 0 && length(coords_local) > concave_max_points
+			lon2 = Vector{Float64}(undef, length(coords_local))
+			lat2 = Vector{Float64}(undef, length(coords_local))
+			@inbounds for i in eachindex(coords_local)
+				lon2[i] = coords_local[i][1]
+				lat2[i] = coords_local[i][2]
+			end
+			idxs2 = _grid_thin_indices(lon2, lat2; max_points=concave_max_points, grid_bins=grid_bins)
+			coords_local = coords_local[idxs2]
+			@warn "Concave hull input thinned for stability" n_in=length(lon2) n_used=length(coords_local) concave_max_points=concave_max_points
+		end
+		pts = [[p[1], p[2]] for p in coords_local]
+		try
+			hull = ConcaveHull.concave_hull(pts)
+			verts = [(Float64(p[1]), Float64(p[2])) for p in hull.vertices]
+			if isempty(verts)
+				@warn "Concave hull returned empty; falling back to convex hull"
+				return compute_convex_hull_vertices(coords_local)
+			end
+			if verts[1] != verts[end]
+				push!(verts, verts[1])
+			end
+			if _polygon_self_intersects(verts)
+				@warn "Concave hull self-intersection detected; falling back to convex hull"
+				return compute_convex_hull_vertices(coords_local)
+			end
+			return verts
+		catch e
+			@warn "Concave hull computation failed; falling back to convex hull" error=e
+			return compute_convex_hull_vertices(coords_local)
+		end
+	end
+
 	coords = _prepare_hull_points(lon, lat; max_points=max_points, grid_bins=grid_bins)
 	if convex
 		@info "Convex hull requested; skipping concave hull computation"
@@ -1047,74 +1146,59 @@ function compute_concave_hull_vertices(
 		throw(ArgumentError("Unknown hull mode=$(mode). Supported: :direct, :stepwise"))
 	end
 	if mode == :stepwise
-		# Step 1: compute a fast convex hull on a thinned representation
-		convex_vertices = compute_convex_hull_vertices(coords)
-		if convex_vertices === nothing || length(convex_vertices) < 3
+		stepwise_passes < 1 && (stepwise_passes = 1)
+		# Base hull for the first pass: convex hull on a thinned representation.
+		base_vertices = compute_convex_hull_vertices(coords)
+		if base_vertices === nothing || length(base_vertices) < 3
 			@warn "Stepwise hull: convex hull unavailable; falling back to direct concave hull"
-		else
-			# Step 2: keep only points near the convex hull boundary (most interior points are irrelevant)
+			return _direct_concave_from_coords(coords)
+		end
+		# Select boundary-near points (most interior points are irrelevant) and refine
+		# the boundary estimate for additional passes.
+		for pass in 1:stepwise_passes
 			lon_min, lon_max, lat_min, lat_max, bins = _compute_bounds_and_bins(lon, lat; max_points=max_points, grid_bins=grid_bins)
-			if bins > 0 && isfinite(lon_min) && isfinite(lon_max) && isfinite(lat_min) && isfinite(lat_max)
-				span_lon = max(lon_max - lon_min, 1e-12)
-				span_lat = max(lat_max - lat_min, 1e-12)
-				cell_lon = span_lon / bins
-				cell_lat = span_lat / bins
-				cell_diag = hypot(cell_lon, cell_lat)
-				near_dist = Float64(stepwise_buffer_cells) * max(cell_diag, 1e-12)
-				boundary_step = max(near_dist / 2, cell_diag / 3)
-				boundary_pts = _sample_polygon_boundary(convex_vertices; step=boundary_step)
-				if size(boundary_pts, 2) > 1
-					tree = NearestNeighbors.KDTree(boundary_pts)
-					idxs = _select_points_near_boundary(lon, lat, tree; max_points=stepwise_max_points, min_points=stepwise_min_points, near_dist=near_dist)
-					if length(idxs) >= 3
-						@info "Stepwise hull: using boundary-near subset for concave hull" n_all=length(lon) n_subset=length(idxs) near_dist=near_dist stepwise_max_points=stepwise_max_points
-						lon = lon[idxs]
-						lat = lat[idxs]
-						# Rebuild thin coords for the reduced set before concave hull.
-						coords = _prepare_hull_points(lon, lat; max_points=max_points, grid_bins=grid_bins)
-					else
-						@warn "Stepwise hull: boundary-near subset too small; falling back to direct concave hull" n_subset=length(idxs)
-					end
+			if !(bins > 0 && isfinite(lon_min) && isfinite(lon_max) && isfinite(lat_min) && isfinite(lat_max))
+				@warn "Stepwise hull: invalid bounds; falling back to direct concave hull"
+				return _direct_concave_from_coords(coords)
+			end
+			span_lon = max(lon_max - lon_min, 1e-12)
+			span_lat = max(lat_max - lat_min, 1e-12)
+			cell_lon = span_lon / bins
+			cell_lat = span_lat / bins
+			cell_diag = hypot(cell_lon, cell_lat)
+			# Avoid too-tiny thresholds on wide domains: ensure a minimum fraction of extent.
+			min_near = 0.005 * max(span_lon, span_lat)
+			near_dist = max(Float64(stepwise_buffer_cells) * max(cell_diag, 1e-12), min_near)
+			boundary_step = max(near_dist / 2, cell_diag / 2)
+			boundary_pts = _sample_polygon_boundary(base_vertices; step=boundary_step)
+			if size(boundary_pts, 2) <= 1
+				@warn "Stepwise hull: boundary sampling failed; falling back to direct concave hull"
+				return _direct_concave_from_coords(coords)
+			end
+			tree = NearestNeighbors.KDTree(boundary_pts)
+			idxs = _select_points_near_boundary(lon, lat, tree; max_points=stepwise_max_points, min_points=stepwise_min_points, near_dist=near_dist)
+			if length(idxs) < 3
+				@warn "Stepwise hull: subset too small; falling back to direct concave hull" n_subset=length(idxs)
+				return _direct_concave_from_coords(coords)
+			end
+			coords_subset = _prepare_hull_points(lon[idxs], lat[idxs]; max_points=max_points, grid_bins=grid_bins)
+			@info "Stepwise hull: pass subset selected" pass=pass passes=stepwise_passes n_all=length(lon) n_subset=length(idxs) n_thin=length(coords_subset) near_dist=near_dist
+			if pass < stepwise_passes
+				# Update base hull for the next pass using a concave hull on the subset.
+				updated = _direct_concave_from_coords(coords_subset)
+				base_vertices = updated === nothing ? compute_convex_hull_vertices(coords_subset) : updated
+				if base_vertices === nothing || length(base_vertices) < 3
+					@warn "Stepwise hull: refinement hull failed; stopping early" pass=pass
+					return _direct_concave_from_coords(coords_subset)
 				end
+			else
+				return _direct_concave_from_coords(coords_subset)
 			end
 		end
+		return _direct_concave_from_coords(coords)
 	end
-	if length(coords) < 3
-		return nothing
-	end
-	# ConcaveHull can become unstable/slow for very large input sizes; for
-	# robustness, re-thin specifically for the concave hull stage.
-	if concave_max_points > 0 && length(coords) > concave_max_points
-		lon2 = Vector{Float64}(undef, length(coords))
-		lat2 = Vector{Float64}(undef, length(coords))
-		@inbounds for i in eachindex(coords)
-			lon2[i] = coords[i][1]
-			lat2[i] = coords[i][2]
-		end
-		idxs2 = _grid_thin_indices(lon2, lat2; max_points=concave_max_points, grid_bins=grid_bins)
-		coords = coords[idxs2]
-		@warn "Concave hull input thinned for stability" n_in=length(lon2) n_used=length(coords) concave_max_points=concave_max_points
-	end
-	pts = [[p[1], p[2]] for p in coords]
-	try
-		hull = ConcaveHull.concave_hull(pts)
-		verts = [(Float64(p[1]), Float64(p[2])) for p in hull.vertices]
-		if isempty(verts)
-			@warn "Concave hull returned empty; falling back to convex hull"
-			return compute_convex_hull_vertices(coords)
-		end
-		if verts[1] != verts[end]
-			push!(verts, verts[1])
-		end
-		if _polygon_self_intersects(verts)
-			@warn "Concave hull self-intersection detected; falling back to convex hull"
-			return compute_convex_hull_vertices(coords)
-		end
-		return verts
-	catch e
-		@warn "Concave hull computation failed; falling back to convex hull" error=e
-		return compute_convex_hull_vertices(coords)
-	end
+
+	return _direct_concave_from_coords(coords)
 end
 
 function _expand_polygon_vertices(
@@ -1163,6 +1247,10 @@ function _build_geojson_tiles(
 	lat_grid::AbstractVector{<:Real},
 	values::AbstractMatrix{<:Real};
 	mask_polygon::Union{Nothing, Vector{Tuple{Float64, Float64}}}=nothing,
+	mask_mode::Symbol=:hull,
+	mask_tree::Union{Nothing, NearestNeighbors.KDTree}=nothing,
+	mask_max_distance::Real=Inf,
+	mask_lon_scale::Real=1.0,
 	progress::Bool=false,
 	progress_every::Int=0,
 )
@@ -1184,6 +1272,10 @@ function _build_geojson_tiles(
 	if progress
 		@info "[mapbox_contour] Building GeoJSON tiles" rows=max_i cols=max_j expected=max_i*max_j
 	end
+	q = Vector{Float64}(undef, 2)
+	use_distance_mask = (mask_mode == :distance) && (mask_tree !== nothing) && isfinite(Float64(mask_max_distance))
+	use_polygon_mask = (mask_mode in (:hull, :polygon)) && (mask_polygon !== nothing)
+	max_d2 = use_distance_mask ? (Float64(mask_max_distance) * Float64(mask_max_distance)) : Inf
 	for i = 1:max_i
 		if progress && (i == 1 || i % stride == 0 || i == max_i)
 			@info "[mapbox_contour] GeoJSON tiling progress" row=i total_rows=max_i pct=round(100 * i / max_i; digits=1) kept=length(features)
@@ -1193,11 +1285,25 @@ function _build_geojson_tiles(
 			if !isfinite(val)
 				continue
 			end
-			if mask_polygon !== nothing
-				center = ((lon_edges[j] + lon_edges[j + 1]) / 2, (lat_edges[i] + lat_edges[i + 1]) / 2)
+			center_lon = (lon_edges[j] + lon_edges[j + 1]) / 2
+			center_lat = (lat_edges[i] + lat_edges[i + 1]) / 2
+			if use_polygon_mask
+				center = (center_lon, center_lat)
 				if !_point_in_polygon(center, mask_polygon)
 					continue
 				end
+			elseif use_distance_mask
+				q[1] = Float64(center_lon) * Float64(mask_lon_scale)
+				q[2] = Float64(center_lat)
+				_, d2s = NearestNeighbors.knn(mask_tree, q, 1, true)
+				d2 = d2s[1]
+				if !(isfinite(d2) && d2 <= max_d2)
+					continue
+				end
+			elseif mask_mode == :none
+				# keep all finite tiles
+			elseif mask_mode != :hull && mask_mode != :polygon && mask_mode != :distance
+				throw(ArgumentError("mask_mode must be :hull, :distance, or :none"))
 			end
 			fid = string("tile_", i, "_", j)
 			coords = [
@@ -1358,6 +1464,7 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `hull_stepwise_max_points::Int=20000`: Maximum points to pass to the stepwise concave hull stage (closest-to-boundary points are kept)
 - `hull_stepwise_min_points::Int=5000`: Minimum points to pass to the stepwise concave hull stage (if the distance threshold yields fewer, the closest-to-boundary points are used instead)
 - `hull_stepwise_buffer_cells::Real=2.5`: How far from the fast hull boundary (in "grid cell" units) a point must be to be included in the stepwise subset
+- `hull_stepwise_passes::Int=2`: Number of stepwise refinement passes (pass 1 uses convex hull; later passes refine using the previously computed hull)
 - `show_locations::Bool=false`: Display input locations as colored circular markers
 - `location_color::AbstractString="purple"`: Marker color used for the location circles
 - `location_size::Number=10`: Marker diameter for the location circles
@@ -1441,12 +1548,18 @@ function mapbox_contour(
 	hull_stepwise_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS,
 	hull_stepwise_min_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS,
 	hull_stepwise_buffer_cells::Real=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS,
+	hull_stepwise_passes::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_PASSES,
 	hull_padding::Real=0.0,
 	extra_margin::Real=0.0,
 	show_hull::Bool=false,
 	hull_color::AbstractString="magenta",
 	hull_line_width::Number=3,
 	hull_opacity::Real=0.35,
+	mask_mode::Symbol=_DEFAULT_MAPBOX_CONTOUR_MASK_MODE,
+	mask_distance::Union{Nothing, Real}=nothing,
+	mask_distance_multiplier::Real=_DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MULTIPLIER,
+	mask_distance_quantile::Real=_DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_QUANTILE,
+	mask_distance_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MAX_POINTS,
 	quiet::Bool=false,
 	progress::Bool=true,
 	progress_every::Int=100,
@@ -1487,8 +1600,10 @@ function mapbox_contour(
 		(hull_concave_max_points == _DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS) && (hull_concave_max_points = 12_000)
 		(hull_mode == _DEFAULT_MAPBOX_CONTOUR_HULL_MODE) && (hull_mode = :stepwise)
 		(hull_stepwise_max_points == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS) && (hull_stepwise_max_points = 20_000)
-		(hull_stepwise_min_points == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS) && (hull_stepwise_min_points = 6_000)
-		(hull_stepwise_buffer_cells == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS) && (hull_stepwise_buffer_cells = 2.5)
+		(hull_stepwise_min_points == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS) && (hull_stepwise_min_points = 12_000)
+		(hull_stepwise_buffer_cells == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS) && (hull_stepwise_buffer_cells = 4.0)
+		(hull_stepwise_passes == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_PASSES) && (hull_stepwise_passes = 2)
+		(mask_mode == _DEFAULT_MAPBOX_CONTOUR_MASK_MODE) && (mask_mode = :distance)
 	elseif preset == :balanced
 		# keep defaults
 	else
@@ -1518,8 +1633,24 @@ function mapbox_contour(
 	if hull_stepwise_min_points < 0
 		throw(ArgumentError("hull_stepwise_min_points must be >= 0"))
 	end
+	if hull_stepwise_passes < 1
+		throw(ArgumentError("hull_stepwise_passes must be >= 1"))
+	end
 	if !(hull_mode in (:direct, :stepwise))
 		throw(ArgumentError("hull_mode must be :direct or :stepwise"))
+	end
+	if !(mask_mode in (:hull, :distance, :none, :polygon))
+		throw(ArgumentError("mask_mode must be :hull, :distance, or :none"))
+	end
+	if mask_distance_multiplier < 0
+		throw(ArgumentError("mask_distance_multiplier must be >= 0"))
+	end
+	qd = Float64(mask_distance_quantile)
+	if !(0.0 <= qd <= 1.0)
+		throw(ArgumentError("mask_distance_quantile must be in [0, 1]"))
+	end
+	if mask_distance_max_points < 0
+		throw(ArgumentError("mask_distance_max_points must be >= 0"))
 	end
 	estimated_features = (resolution - 1) * (resolution - 1)
 	if estimated_features > max_features
@@ -1609,7 +1740,8 @@ function mapbox_contour(
 	end
 	_logstep("Checked minimum data", insufficient_data=insufficient_data)
 
-	if hull_vertices === nothing && concave_hull
+	need_hull = (mask_mode == :hull || mask_mode == :polygon || show_hull)
+	if need_hull && hull_vertices === nothing && concave_hull
 		@info("Computing hull for masking/interpolation extent ...")
 		# Build the hull from the data actually being interpolated (finite z values).
 		# Using all coordinate positions (including NaN-valued samples) can expand the hull
@@ -1630,6 +1762,7 @@ function mapbox_contour(
 			stepwise_max_points=hull_stepwise_max_points,
 				stepwise_min_points=hull_stepwise_min_points,
 			stepwise_buffer_cells=hull_stepwise_buffer_cells,
+				stepwise_passes=hull_stepwise_passes,
 		)
 		if hull_vertices === nothing || length(hull_vertices) < 3
 			@info "Concave hull unavailable; reverting to padded bounding box"
@@ -1637,6 +1770,28 @@ function mapbox_contour(
 		end
 	end
 	_logstep("Resolved hull", use_hull=hull_vertices !== nothing)
+
+	mask_tree = nothing
+	mask_lon_scale = 1.0
+	mask_max_distance = Inf
+	if mask_mode == :distance
+		if length(lon_clean) >= 2
+			lat_mean = _mean_finite(lat_clean; default=0.0)
+			mask_lon_scale = cosd(lat_mean)
+			coords_mask = Matrix{Float64}(undef, 2, length(lon_clean))
+			@inbounds for i in eachindex(lon_clean)
+				coords_mask[1, i] = Float64(lon_clean[i]) * mask_lon_scale
+				coords_mask[2, i] = Float64(lat_clean[i])
+			end
+			mask_tree = NearestNeighbors.KDTree(coords_mask)
+			spacing = _estimate_nn_spacing(mask_tree, coords_mask; max_points=mask_distance_max_points, q=qd)
+			mask_max_distance = mask_distance === nothing ? (Float64(mask_distance_multiplier) * spacing) : Float64(mask_distance)
+			_logstep("Distance mask prepared", lon_scale=round(mask_lon_scale; digits=4), spacing=spacing, mask_max_distance=mask_max_distance)
+		else
+			@warn "Distance mask requested but insufficient points; disabling mask" n=length(lon_clean)
+			mask_mode = :none
+		end
+	end
 
 	lon_source_raw = hull_vertices === nothing ? lon_clean : first.(hull_vertices)
 	lat_source_raw = hull_vertices === nothing ? lat_clean : last.(hull_vertices)
@@ -1801,8 +1956,28 @@ function mapbox_contour(
 				end
 			end
 		end
+		if mask_mode == :distance && mask_tree !== nothing && length(lon_grid) >= 2 && length(lat_grid) >= 2 && isfinite(mask_max_distance)
+			lon_step = abs(Float64(lon_grid[2]) - Float64(lon_grid[1])) * mask_lon_scale
+			lat_step = abs(Float64(lat_grid[2]) - Float64(lat_grid[1]))
+			min_keep = 0.75 * hypot(lon_step, lat_step)
+			if mask_max_distance < min_keep
+				mask_max_distance = min_keep
+				_logstep("Distance mask increased for grid", min_keep=min_keep, mask_max_distance=mask_max_distance)
+			end
+		end
 		_logstep("Building GeoJSON")
-		geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(lon_grid, lat_grid, z_grid; mask_polygon=hull_vertices, progress=progress, progress_every=progress_every)
+		geojson_tiles, geojson_ids, geojson_values = _build_geojson_tiles(
+			lon_grid,
+			lat_grid,
+			z_grid;
+			mask_polygon=(mask_mode in (:hull, :polygon) ? hull_vertices : nothing),
+			mask_mode=mask_mode,
+			mask_tree=mask_tree,
+			mask_max_distance=mask_max_distance,
+			mask_lon_scale=mask_lon_scale,
+			progress=progress,
+			progress_every=progress_every,
+		)
 		_logstep("GeoJSON built", tiles=length(geojson_ids))
 		disable_hover = hover_max_features == 0 ? true : (length(geojson_ids) > hover_max_features)
 		if disable_hover
