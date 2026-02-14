@@ -7,6 +7,136 @@ import ConcaveHull
 import Printf
 import PlotlyKaleido
 
+const _DEFAULT_MAPBOX_CONTOUR_RESOLUTION = 50
+const _DEFAULT_MAPBOX_CONTOUR_MAX_FEATURES = 50_000
+const _DEFAULT_MAPBOX_CONTOUR_HOVER_MAX_FEATURES = 5_000
+const _DEFAULT_MAPBOX_CONTOUR_NEIGHBORS = 0
+const _DEFAULT_MAPBOX_CONTOUR_HULL_MAX_POINTS = 10_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_FORCE_CONVEX_ABOVE = 200_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS = 12_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_MODE = :direct
+const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS = 20_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS = 2.5
+const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS = 5_000
+
+function _compute_bounds_and_bins(lon::AbstractVector{<:Real}, lat::AbstractVector{<:Real}; max_points::Int, grid_bins::Int=0)
+	n = length(lon)
+	if n == 0
+		return (Inf, -Inf, Inf, -Inf, 0)
+	end
+	bins = grid_bins > 0 ? grid_bins : floor(Int, sqrt(max_points))
+	bins = max(2, bins)
+	lon_min = Inf
+	lon_max = -Inf
+	lat_min = Inf
+	lat_max = -Inf
+	count = 0
+	for i in eachindex(lon)
+		x = Float64(lon[i])
+		y = Float64(lat[i])
+		if !isfinite(x) || !isfinite(y)
+			continue
+		end
+		count += 1
+		if x < lon_min
+			lon_min = x
+		end
+		if x > lon_max
+			lon_max = x
+		end
+		if y < lat_min
+			lat_min = y
+		end
+		if y > lat_max
+			lat_max = y
+		end
+	end
+	if count == 0
+		return (Inf, -Inf, Inf, -Inf, 0)
+	end
+	return (lon_min, lon_max, lat_min, lat_max, bins)
+end
+
+function _sample_polygon_boundary(vertices::Vector{Tuple{Float64, Float64}}; step::Float64)
+	if length(vertices) < 2
+		return Matrix{Float64}(undef, 2, 0)
+	end
+	step = max(step, 1e-12)
+	closed = vertices[1] == vertices[end]
+	verts = closed ? vertices : vcat(vertices, vertices[1])
+	# Conservative size estimate
+	coords = Vector{Tuple{Float64, Float64}}()
+	sizehint!(coords, max(32, length(verts) * 4))
+	for i in 1:(length(verts) - 1)
+		p1 = verts[i]
+		p2 = verts[i + 1]
+		dx = p2[1] - p1[1]
+		dy = p2[2] - p1[2]
+		len = hypot(dx, dy)
+		if len <= 0
+			push!(coords, p1)
+			continue
+		end
+		nseg = max(1, ceil(Int, len / step))
+		for s in 0:nseg
+			t = s / nseg
+			push!(coords, (p1[1] + t * dx, p1[2] + t * dy))
+		end
+	end
+	m = length(coords)
+	M = Matrix{Float64}(undef, 2, m)
+	@inbounds for j in 1:m
+		M[1, j] = coords[j][1]
+		M[2, j] = coords[j][2]
+	end
+	return M
+end
+
+function _select_points_near_boundary(
+	lon::AbstractVector{<:Real},
+	lat::AbstractVector{<:Real},
+	boundary_tree::NearestNeighbors.KDTree;
+	max_points::Int,
+	min_points::Int,
+	near_dist::Float64,
+)
+	n = length(lon)
+	if n == 0
+		return Int[]
+	end
+	near2 = near_dist * near_dist
+	d2 = Vector{Float64}(undef, n)
+	chunk = 50_000
+	Q = Matrix{Float64}(undef, 2, min(chunk, n))
+	pos = 1
+	while pos <= n
+		last = min(n, pos + chunk - 1)
+		len = last - pos + 1
+		if size(Q, 2) != len
+			Q = Matrix{Float64}(undef, 2, len)
+		end
+		@inbounds for j in 1:len
+			Q[1, j] = Float64(lon[pos + j - 1])
+			Q[2, j] = Float64(lat[pos + j - 1])
+		end
+		_idx, d2s = NearestNeighbors.knn(boundary_tree, Q, 1, true)
+		@inbounds for j in 1:len
+			d2[pos + j - 1] = d2s[j][1]
+		end
+		pos = last + 1
+	end
+	idxs = findall(x -> x <= near2, d2)
+	min_points_eff = max(3, min_points)
+	if length(idxs) < min_points_eff
+		k = min(n, (max_points > 0 ? min(max_points, min_points_eff) : min_points_eff))
+		return partialsortperm(d2, 1:k)
+	end
+	if max_points > 0 && length(idxs) > max_points
+		return partialsortperm(d2, 1:max_points)
+	end
+	return idxs
+end
+
 mapbox_token = get(ENV, "MAPBOX_ACCESS_TOKEN", "")
 
 function __init__()
@@ -900,16 +1030,70 @@ function compute_concave_hull_vertices(
 	lon::AbstractVector{<:Real},
 	lat::AbstractVector{<:Real};
 	convex::Bool=false,
+	mode::Symbol=_DEFAULT_MAPBOX_CONTOUR_HULL_MODE,
 	max_points::Int=0,
 	grid_bins::Int=0,
+	concave_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS,
+	stepwise_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS,
+	stepwise_min_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS,
+	stepwise_buffer_cells::Real=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS,
 )
 	coords = _prepare_hull_points(lon, lat; max_points=max_points, grid_bins=grid_bins)
 	if convex
 		@info "Convex hull requested; skipping concave hull computation"
 		return compute_convex_hull_vertices(coords)
 	end
+	if mode != :direct && mode != :stepwise
+		throw(ArgumentError("Unknown hull mode=$(mode). Supported: :direct, :stepwise"))
+	end
+	if mode == :stepwise
+		# Step 1: compute a fast convex hull on a thinned representation
+		convex_vertices = compute_convex_hull_vertices(coords)
+		if convex_vertices === nothing || length(convex_vertices) < 3
+			@warn "Stepwise hull: convex hull unavailable; falling back to direct concave hull"
+		else
+			# Step 2: keep only points near the convex hull boundary (most interior points are irrelevant)
+			lon_min, lon_max, lat_min, lat_max, bins = _compute_bounds_and_bins(lon, lat; max_points=max_points, grid_bins=grid_bins)
+			if bins > 0 && isfinite(lon_min) && isfinite(lon_max) && isfinite(lat_min) && isfinite(lat_max)
+				span_lon = max(lon_max - lon_min, 1e-12)
+				span_lat = max(lat_max - lat_min, 1e-12)
+				cell_lon = span_lon / bins
+				cell_lat = span_lat / bins
+				cell_diag = hypot(cell_lon, cell_lat)
+				near_dist = Float64(stepwise_buffer_cells) * max(cell_diag, 1e-12)
+				boundary_step = max(near_dist / 2, cell_diag / 3)
+				boundary_pts = _sample_polygon_boundary(convex_vertices; step=boundary_step)
+				if size(boundary_pts, 2) > 1
+					tree = NearestNeighbors.KDTree(boundary_pts)
+					idxs = _select_points_near_boundary(lon, lat, tree; max_points=stepwise_max_points, min_points=stepwise_min_points, near_dist=near_dist)
+					if length(idxs) >= 3
+						@info "Stepwise hull: using boundary-near subset for concave hull" n_all=length(lon) n_subset=length(idxs) near_dist=near_dist stepwise_max_points=stepwise_max_points
+						lon = lon[idxs]
+						lat = lat[idxs]
+						# Rebuild thin coords for the reduced set before concave hull.
+						coords = _prepare_hull_points(lon, lat; max_points=max_points, grid_bins=grid_bins)
+					else
+						@warn "Stepwise hull: boundary-near subset too small; falling back to direct concave hull" n_subset=length(idxs)
+					end
+				end
+			end
+		end
+	end
 	if length(coords) < 3
 		return nothing
+	end
+	# ConcaveHull can become unstable/slow for very large input sizes; for
+	# robustness, re-thin specifically for the concave hull stage.
+	if concave_max_points > 0 && length(coords) > concave_max_points
+		lon2 = Vector{Float64}(undef, length(coords))
+		lat2 = Vector{Float64}(undef, length(coords))
+		@inbounds for i in eachindex(coords)
+			lon2[i] = coords[i][1]
+			lat2[i] = coords[i][2]
+		end
+		idxs2 = _grid_thin_indices(lon2, lat2; max_points=concave_max_points, grid_bins=grid_bins)
+		coords = coords[idxs2]
+		@warn "Concave hull input thinned for stability" n_in=length(lon2) n_used=length(coords) concave_max_points=concave_max_points
 	end
 	pts = [[p[1], p[2]] for p in coords]
 	try
@@ -1169,6 +1353,11 @@ Create GeoJSON-based continuous contour heatmap using IDW (Inverse Distance Weig
 - `hull_max_points::Int=10000`: If the point set is larger, thin points before hull computation (grid-based) for speed
 - `hull_grid_bins::Int=0`: Optional fixed number of grid bins used for hull thinning (0 = auto from `hull_max_points`)
 - `hull_force_convex_above::Int=200000`: If the point set exceeds this size, skip concave hull and use convex hull
+- `hull_concave_max_points::Int=12000`: Safety cap for ConcaveHull input size; concave hull is computed on a thinned subset when needed
+- `hull_mode::Symbol=:direct`: Hull strategy. `:direct` runs concave hull on a thinned point set; `:stepwise` runs convex hull first, then keeps only points near the hull boundary before concave hull
+- `hull_stepwise_max_points::Int=20000`: Maximum points to pass to the stepwise concave hull stage (closest-to-boundary points are kept)
+- `hull_stepwise_min_points::Int=5000`: Minimum points to pass to the stepwise concave hull stage (if the distance threshold yields fewer, the closest-to-boundary points are used instead)
+- `hull_stepwise_buffer_cells::Real=2.5`: How far from the fast hull boundary (in "grid cell" units) a point must be to be included in the stepwise subset
 - `show_locations::Bool=false`: Display input locations as colored circular markers
 - `location_color::AbstractString="purple"`: Marker color used for the location circles
 - `location_size::Number=10`: Marker diameter for the location circles
@@ -1199,10 +1388,10 @@ function mapbox_contour(
 	preset::Symbol=:balanced,
 	zmin::Union{Number,Nothing}=nothing,
 	zmax::Union{Number,Nothing}=nothing,
-	resolution::Int=50,
-	max_features::Int=10_000,
-	hover_max_features::Int=5_000,
-	neighbors::Int=0,
+	resolution::Int=_DEFAULT_MAPBOX_CONTOUR_RESOLUTION,
+	max_features::Int=_DEFAULT_MAPBOX_CONTOUR_MAX_FEATURES,
+	hover_max_features::Int=_DEFAULT_MAPBOX_CONTOUR_HOVER_MAX_FEATURES,
+	neighbors::Int=_DEFAULT_MAPBOX_CONTOUR_NEIGHBORS,
 	power::Real=2,
 	smoothing::Real=0.0,
 	contour_levels::Int=20,
@@ -1244,9 +1433,14 @@ function mapbox_contour(
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	hull_vertices::Union{Nothing, Vector{Tuple{Float64, Float64}}}=nothing,
 	concave_hull::Bool=true,
-	hull_max_points::Int=10_000,
+	hull_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_MAX_POINTS,
 	hull_grid_bins::Int=0,
-	hull_force_convex_above::Int=200_000,
+	hull_force_convex_above::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_FORCE_CONVEX_ABOVE,
+	hull_concave_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS,
+	hull_mode::Symbol=_DEFAULT_MAPBOX_CONTOUR_HULL_MODE,
+	hull_stepwise_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS,
+	hull_stepwise_min_points::Int=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS,
+	hull_stepwise_buffer_cells::Real=_DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS,
 	hull_padding::Real=0.0,
 	extra_margin::Real=0.0,
 	show_hull::Bool=false,
@@ -1277,18 +1471,24 @@ function mapbox_contour(
 	# Presets provide safe defaults for large datasets without requiring many knobs.
 	# They only apply when the relevant keyword is still set to its function default.
 	if preset == :fast
-		(resolution == 50) && (resolution = 30)
-		(max_features == 50_000) && (max_features = 10_000)
-		(hover_max_features == 5_000) && (hover_max_features = 0)
-		(neighbors == 0) && (neighbors = 32)
-		(hull_max_points == 10_000) && (hull_max_points = 5_000)
-		(hull_force_convex_above == 200_000) && (hull_force_convex_above = 1) # always convex for speed
+		(resolution == _DEFAULT_MAPBOX_CONTOUR_RESOLUTION) && (resolution = 30)
+		(max_features == _DEFAULT_MAPBOX_CONTOUR_MAX_FEATURES) && (max_features = 10_000)
+		(hover_max_features == _DEFAULT_MAPBOX_CONTOUR_HOVER_MAX_FEATURES) && (hover_max_features = 0)
+		(neighbors == _DEFAULT_MAPBOX_CONTOUR_NEIGHBORS) && (neighbors = 32)
+		(hull_max_points == _DEFAULT_MAPBOX_CONTOUR_HULL_MAX_POINTS) && (hull_max_points = 5_000)
+		(hull_force_convex_above == _DEFAULT_MAPBOX_CONTOUR_HULL_FORCE_CONVEX_ABOVE) && (hull_force_convex_above = 1) # always convex for speed
+		(hull_concave_max_points == _DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS) && (hull_concave_max_points = 0)
 	elseif preset == :quality
-		(resolution == 50) && (resolution = 80)
-		(max_features == 50_000) && (max_features = 80_000)
-		(neighbors == 0) && (neighbors = 64)
-		(hull_max_points == 10_000) && (hull_max_points = 50_000)
-		(hull_force_convex_above == 200_000) && (hull_force_convex_above = 500_000)
+		(resolution == _DEFAULT_MAPBOX_CONTOUR_RESOLUTION) && (resolution = 120)
+		(max_features == _DEFAULT_MAPBOX_CONTOUR_MAX_FEATURES) && (max_features = 80_000)
+		(neighbors == _DEFAULT_MAPBOX_CONTOUR_NEIGHBORS) && (neighbors = 96)
+		(hull_max_points == _DEFAULT_MAPBOX_CONTOUR_HULL_MAX_POINTS) && (hull_max_points = 15_000)
+		(hull_force_convex_above == _DEFAULT_MAPBOX_CONTOUR_HULL_FORCE_CONVEX_ABOVE) && (hull_force_convex_above = 0) # allow concave hull; concave input size is capped via hull_concave_max_points
+		(hull_concave_max_points == _DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS) && (hull_concave_max_points = 12_000)
+		(hull_mode == _DEFAULT_MAPBOX_CONTOUR_HULL_MODE) && (hull_mode = :stepwise)
+		(hull_stepwise_max_points == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS) && (hull_stepwise_max_points = 20_000)
+		(hull_stepwise_min_points == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS) && (hull_stepwise_min_points = 6_000)
+		(hull_stepwise_buffer_cells == _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS) && (hull_stepwise_buffer_cells = 2.5)
 	elseif preset == :balanced
 		# keep defaults
 	else
@@ -1308,6 +1508,18 @@ function mapbox_contour(
 	end
 	if hull_force_convex_above < 0
 		throw(ArgumentError("hull_force_convex_above must be >= 0"))
+	end
+	if hull_concave_max_points < 0
+		throw(ArgumentError("hull_concave_max_points must be >= 0"))
+	end
+	if hull_stepwise_max_points < 0
+		throw(ArgumentError("hull_stepwise_max_points must be >= 0"))
+	end
+	if hull_stepwise_min_points < 0
+		throw(ArgumentError("hull_stepwise_min_points must be >= 0"))
+	end
+	if !(hull_mode in (:direct, :stepwise))
+		throw(ArgumentError("hull_mode must be :direct or :stepwise"))
 	end
 	estimated_features = (resolution - 1) * (resolution - 1)
 	if estimated_features > max_features
@@ -1411,8 +1623,13 @@ function mapbox_contour(
 			lon_clean,
 			lat_clean;
 			convex=use_convex,
+			mode=hull_mode,
 			max_points=hull_max_points,
 			grid_bins=hull_grid_bins,
+			concave_max_points=hull_concave_max_points,
+			stepwise_max_points=hull_stepwise_max_points,
+				stepwise_min_points=hull_stepwise_min_points,
+			stepwise_buffer_cells=hull_stepwise_buffer_cells,
 		)
 		if hull_vertices === nothing || length(hull_vertices) < 3
 			@info "Concave hull unavailable; reverting to padded bounding box"
