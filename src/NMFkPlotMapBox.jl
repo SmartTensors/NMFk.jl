@@ -12,7 +12,7 @@ const _DEFAULT_MAPBOX_CONTOUR_MAX_FEATURES = 50_000
 const _DEFAULT_MAPBOX_CONTOUR_HOVER_MAX_FEATURES = 5_000
 const _DEFAULT_MAPBOX_CONTOUR_NEIGHBORS = 0
 const _DEFAULT_MAPBOX_CONTOUR_HULL_MAX_POINTS = 10_000
-const _DEFAULT_MAPBOX_CONTOUR_HULL_FORCE_CONVEX_ABOVE = 200_000
+const _DEFAULT_MAPBOX_CONTOUR_HULL_FORCE_CONVEX_ABOVE = 0
 const _DEFAULT_MAPBOX_CONTOUR_HULL_CONCAVE_MAX_POINTS = 12_000
 const _DEFAULT_MAPBOX_CONTOUR_HULL_MODE = :direct
 const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MAX_POINTS = 40_000
@@ -20,7 +20,7 @@ const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS = 6
 const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS = 20_000
 const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_PASSES = 3
 
-const _DEFAULT_MAPBOX_CONTOUR_MASK_MODE = :hull
+const _DEFAULT_MAPBOX_CONTOUR_MASK_MODE = :distance
 const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MULTIPLIER = 2.0
 const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_QUANTILE = 0.5
 const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MAX_POINTS = 5_000
@@ -1639,8 +1639,8 @@ function mapbox_contour(
 	if !(hull_mode in (:direct, :stepwise))
 		throw(ArgumentError("hull_mode must be :direct or :stepwise"))
 	end
-	if !(mask_mode in (:hull, :distance, :none, :polygon))
-		throw(ArgumentError("mask_mode must be :hull, :distance, or :none"))
+	if !(mask_mode in (:hull, :distance, :none, :polygon, :auto))
+		throw(ArgumentError("mask_mode must be :hull, :distance, :auto, or :none"))
 	end
 	if mask_distance_multiplier < 0
 		throw(ArgumentError("mask_distance_multiplier must be >= 0"))
@@ -1678,6 +1678,15 @@ function mapbox_contour(
 	lat_clean = lat[valid_mask]
 	values_clean = zvalue[valid_mask]
 	_logstep("Filtered inputs", coord_points=length(lon_coords), valid_points=length(lon_clean))
+
+	# Auto masking chooses between support-based masking (:distance) and hull masking (:hull)
+	# based on how dense the grid is compared to the sample count.
+	if mask_mode == :auto
+		ntiles = (resolution - 1) * (resolution - 1)
+		npoints = length(lon_clean)
+		mask_mode = (ntiles * 100 < npoints) ? :distance : :hull
+		_logstep("Resolved mask_mode=:auto", ntiles=ntiles, npoints=npoints, chosen=String(mask_mode))
+	end
 
 	function resolve_location_labels(raw_names, label)
 		if isempty(raw_names)
@@ -1751,22 +1760,36 @@ function mapbox_contour(
 		if thin
 			_logstep("Thinning points for hull", n_in=length(lon_clean), hull_max_points=hull_max_points)
 		end
-		hull_vertices = compute_concave_hull_vertices(
-			lon_clean,
-			lat_clean;
-			convex=use_convex,
-			mode=hull_mode,
-			max_points=hull_max_points,
-			grid_bins=hull_grid_bins,
-			concave_max_points=hull_concave_max_points,
-			stepwise_max_points=hull_stepwise_max_points,
-				stepwise_min_points=hull_stepwise_min_points,
-			stepwise_buffer_cells=hull_stepwise_buffer_cells,
-				stepwise_passes=hull_stepwise_passes,
-		)
-		if hull_vertices === nothing || length(hull_vertices) < 3
-			@info "Concave hull unavailable; reverting to padded bounding box"
+		try
+			hull_vertices = compute_concave_hull_vertices(
+				lon_clean,
+				lat_clean;
+				convex=use_convex,
+				mode=hull_mode,
+				max_points=hull_max_points,
+				grid_bins=hull_grid_bins,
+				concave_max_points=hull_concave_max_points,
+				stepwise_max_points=hull_stepwise_max_points,
+					stepwise_min_points=hull_stepwise_min_points,
+				stepwise_buffer_cells=hull_stepwise_buffer_cells,
+					stepwise_passes=hull_stepwise_passes,
+			)
+		catch err
+			@warn "Concave hull failed; falling back to convex hull" exception=(err, catch_backtrace())
 			hull_vertices = nothing
+		end
+		if hull_vertices === nothing || length(hull_vertices) < 3
+			coords = [(Float64(lon_clean[i]), Float64(lat_clean[i])) for i in eachindex(lon_clean)]
+			if length(coords) >= 3
+				hull_vertices = compute_convex_hull_vertices(coords)
+				if hull_vertices === nothing || length(hull_vertices) < 3
+					@info "Hull unavailable; reverting to padded bounding box"
+					hull_vertices = nothing
+				end
+			else
+				@info "Hull unavailable; reverting to padded bounding box"
+				hull_vertices = nothing
+			end
 		end
 	end
 	_logstep("Resolved hull", use_hull=hull_vertices !== nothing)
