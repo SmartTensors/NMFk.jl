@@ -1690,6 +1690,8 @@ function mapbox_contour(
 		_logstep("Resolved mask_mode=:auto", ntiles=ntiles, npoints=npoints, chosen=String(mask_mode))
 	else
 		@info("Using specified mask mode $(mask_mode) ...")
+		ntiles = (resolution - 1) * (resolution - 1)
+		npoints = length(lon_clean)
 		_logstep("Using specified mask_mode", ntiles=ntiles, npoints=npoints, mask_mode=String(mask_mode))
 	end
 
