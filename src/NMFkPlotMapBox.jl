@@ -20,7 +20,7 @@ const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_BUFFER_CELLS = 6
 const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_MIN_POINTS = 20_000
 const _DEFAULT_MAPBOX_CONTOUR_HULL_STEPWISE_PASSES = 3
 
-const _DEFAULT_MAPBOX_CONTOUR_MASK_MODE = :distance
+const _DEFAULT_MAPBOX_CONTOUR_MASK_MODE = :auto
 const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MULTIPLIER = 2.0
 const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_QUANTILE = 0.5
 const _DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MAX_POINTS = 5_000
@@ -1561,7 +1561,7 @@ function mapbox_contour(
 	mask_distance_quantile::Real=_DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_QUANTILE,
 	mask_distance_max_points::Int=_DEFAULT_MAPBOX_CONTOUR_MASK_DISTANCE_MAX_POINTS,
 	quiet::Bool=false,
-	progress::Bool=true,
+	progress::Bool=false,
 	progress_every::Int=100,
 	frame_insufficient_data::Bool=false,
 	kw...
@@ -1682,10 +1682,15 @@ function mapbox_contour(
 	# Auto masking chooses between support-based masking (:distance) and hull masking (:hull)
 	# based on how dense the grid is compared to the sample count.
 	if mask_mode == :auto
+		@info("Resolving mask_mode=:auto ...")
 		ntiles = (resolution - 1) * (resolution - 1)
 		npoints = length(lon_clean)
 		mask_mode = (ntiles * 100 < npoints) ? :distance : :hull
+		@info("Using resolved mask mode $(mask_mode) ...")
 		_logstep("Resolved mask_mode=:auto", ntiles=ntiles, npoints=npoints, chosen=String(mask_mode))
+	else
+		@info("Using specified mask mode $(mask_mode) ...")
+		_logstep("Using specified mask_mode", ntiles=ntiles, npoints=npoints, mask_mode=String(mask_mode))
 	end
 
 	function resolve_location_labels(raw_names, label)
