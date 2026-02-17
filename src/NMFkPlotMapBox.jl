@@ -255,7 +255,7 @@ function safe_savefig(args...; kwargs...)
 end
 
 # Mapbox for a dataframe with multiple columns
-function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symbol, AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, kw...)
+function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symbol, AbstractString}="", filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, categorical::Bool=false, quiet::Bool=false, kw...)
 	lon, lat = get_lonlat(df)
 	if isnothing(lon) || isnothing(lat)
 		@error("Longitude and latitude columns are required for plotting!")
@@ -281,11 +281,11 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 					t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(varname, title_length)
 				end
 				if categorical
-					p = mapbox(lon, lat, string.(df[!, a]); filename=f, title_colorbar=t, title=title, kw...)
+					p = mapbox(lon, lat, string.(df[!, a]); filename=f, title_colorbar=t, title=title, quiet=true, kw...)
 				else
-					p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, title=title, kw...)
+					p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, title=title, quiet=true, kw...)
 				end
-				display(p)
+				!quiet && display(p)
 			else
 				if length(namesmap) == length(names(df))
 					col += 1
@@ -298,14 +298,14 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 		else
 			f = ""
 		end
-		p = mapbox(lon, lat, df[!, column]; filename=f, title_colorbar=plotly_title_length(column, title_length), title=title, kw...)
-		display(p)
+		p = mapbox(lon, lat, df[!, column]; filename=f, title_colorbar=plotly_title_length(column, title_length), title=title, quiet=true, kw...)
+		!quiet && display(p)
 	end
-	return p
+	return nothing
 end
 
 # Mapbox for a matrix with multiple columns
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i in axes(M, 2)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i in axes(M, 2)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, quiet::Bool=false, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
 		println("Plotting $(names[i]) ...")
@@ -320,9 +320,10 @@ function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMat
 		else
 			t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(string(names[i]), title_length)
 		end
-		p = mapbox(lon, lat, M[:, i]; filename=f, title_colorbar=t, title=title, kw...)
-		display(p)
+		p = mapbox(lon, lat, M[:, i]; filename=f, title_colorbar=t, title=title, quiet=true, kw...)
+		!quiet && display(p)
 	end
+	return nothing
 end
 
 function mapbox(
@@ -483,6 +484,7 @@ function mapbox(
 	show_locations::Bool=false, # dummy
 	colorscale::Symbol=:turbo, # dummy
 	preset::Symbol=:none, # dummy
+	quiet::Bool=false,
 	paper_bgcolor::AbstractString="white",
 	show_count::Bool=true
 ) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
@@ -576,7 +578,7 @@ function mapbox(
 	layout = plotly_layout(lon_center, lat_center, zoom; paper_bgcolor=paper_bgcolor, title=title, font_size=font_size, font_color=font_color, style=style, mapbox_token=mapbox_token, width=display_width_pixel, height=display_height_pixel)
 	responsive = isnothing(display_width_pixel) && isnothing(display_height_pixel)
 	p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=responsive))
-	display(p)
+	!quiet && display(p)
 	return p
 end
 
