@@ -15,16 +15,16 @@ function check_x_hash!(X, xfile::AbstractString)
 	if isfile(hashfile)
 		stored = strip(read(hashfile, String))
 		if !isempty(stored) && stored != h
-			@warn("Matrix X hash mismatch in '$(hashfile)': stored '$(stored)' != current '$(h)'. Cached results may not correspond to this X.")
+			@warn("Matrix hash mismatch in '$(hashfile)': stored '$(stored)' != current '$(h)'. Cached results may not correspond to this matrix! Consider deleting the hash file and cached results to avoid confusion.")
 		else
-			@info("Matrix X hash matches the stored hash in '$(hashfile)'.")
+			@info("Matrix hash matches the stored hash in '$(hashfile)'.")
 		end
 	else
 		open(hashfile, "w") do f
 			write(f, h)
 			write(f, "\n")
 		end
-		@info("X hash saved in '$(hashfile)'.")
+		@info("Matrix hash saved in '$(hashfile)'.")
 	end
 	return h
 end
@@ -147,7 +147,12 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 		@info("Results:")
 		for nk in nkrange
 			Xe = W[nk] * H[nk]
-			fit = normnan(X .- Xe)
+			if size(Xe) != size(X)
+				@warn("Reconstructed matrix size $(size(Xe)) does not match original matrix size $(size(X))! Fit quality cannot be computed.")
+				fit = Inf
+			else
+				fit = normnan(X .- Xe)
+			end
 			if abs(fit - fitquality[nk]) > eps(Float16)
 				@warn("Fit quality is not consistent: $(fit) != $(fitquality[nk])")
 			end
