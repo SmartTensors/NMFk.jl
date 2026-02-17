@@ -3,30 +3,21 @@ import JLD
 import Serialization
 import SHA
 
-
-function _x_hash_sha256_hex(X)
+function hash_sha256_hex(X)
 	io = IOBuffer()
 	Serialization.serialize(io, X)
 	return bytes2hex(SHA.sha256(take!(io)))
 end
 
-
-function _x_hashfile_path(xfile::AbstractString)
-	return xfile * ".sha256"
-end
-
-
-function _check_or_write_x_hash!(X, xfile::AbstractString; write_if_missing::Bool)
-	hashfile = _x_hashfile_path(xfile)
-	if !write_if_missing && !isfile(hashfile)
-		return nothing
-	end
-
-	h = _x_hash_sha256_hex(X)
+function check_x_hash!(X, xfile::AbstractString)
+	h = hash_sha256_hex(X)
+	hashfile = xfile * ".sha256"
 	if isfile(hashfile)
 		stored = strip(read(hashfile, String))
 		if !isempty(stored) && stored != h
 			@warn("Matrix X hash mismatch in '$(hashfile)': stored '$(stored)' != current '$(h)'. Cached results may not correspond to this X.")
+		else
+			@info("Matrix X hash matches the stored hash in '$(hashfile)'.")
 		end
 	else
 		open(hashfile, "w") do f
@@ -137,7 +128,7 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	if save
 		JLD.save(xfile, "X", X)
 	end
-	_check_or_write_x_hash!(X, xfile; write_if_missing=save)
+	check_x_hash!(X, xfile)
 	maxk = maximum(collect(nkrange))
 	W = Vector{Array{T, N}}(undef, maxk)
 	H = Vector{Matrix{T}}(undef, maxk)
@@ -199,7 +190,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	else
 		xfile = joinpath(resultdir, "$(casefilename)_x_matrix_$(xs).jld")
 	end
-	_check_or_write_x_hash!(X, xfile; write_if_missing=save)
+	check_x_hash!(X, xfile)
 	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])NMFk run with $(nk) signals: $(Base.text_colors[:normal])")
 	execute_ordersignals = true
 	if load
