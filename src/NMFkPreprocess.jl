@@ -626,7 +626,9 @@ function minmax_dx(x::AbstractVector)
 	return minx, maxx, maxx - minx
 end
 
-function grid_reduction(lon::AbstractVector, lat::AbstractVector; skip::Int=0, sigdigits::Int=8)
+function grid_reduction(lon::AbstractVector, lat::AbstractVector; skip::Int=1, sigdigits::Int=8)
+	@assert length(lon) == length(lat)
+	@assert skip >= 1
 	lon_rounded = round.(lon; sigdigits=sigdigits)
 	lat_rounded = round.(lat; sigdigits=sigdigits)
 	@info("Number of original points       = $(length(lon_rounded))")
@@ -636,12 +638,8 @@ function grid_reduction(lon::AbstractVector, lat::AbstractVector; skip::Int=0, s
 	@info("Number of Longitude unique grid points = $(length(lon_unique))")
 	@info("Number of Latitude  unique grid points = $(length(lat_unique))")
 	@info("Number of unique grid points = $(length(lon_unique) * length(lat_unique))")
-	if skip > 0
-		lon_grid = lon_unique[1:skip:end]
-		lat_grid = lat_unique[1:skip:end]
-	else
-		@error("Skip value is zero!")
-	end
+	lon_grid = lon_unique[1:skip:end]
+	lat_grid = lat_unique[1:skip:end]
 	@info("Number of Longitude grid points = $(length(lon_grid))")
 	@info("Number of Latitude  grid points = $(length(lat_grid))")
 	@info("Number of grid points = $(length(lon_grid) * length(lat_grid))")
