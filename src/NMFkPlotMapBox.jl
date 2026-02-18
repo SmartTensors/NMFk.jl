@@ -236,6 +236,31 @@ end
 regex_lon = r"^[Xx]$|^[Ll]on$|^LONGITUDE$|^LON$|^[Ll]ongitude$" # regex for longitude
 regex_lat = r"^[Yy]$|^[Ll]at$|^LATITUDE$|^LAT$|^[Ll]atitude$" # regex for latitude
 
+function vector_float64(v::AbstractVector)
+	out = Vector{Float64}(undef, length(v))
+	@inbounds for i in eachindex(v)
+		x = v[i]
+		if x isa Missing
+			out[i] = NaN
+		elseif x isa Real
+			out[i] = Float64(x)
+		else
+			y = tryparse(Float64, string(x))
+			out[i] = isnothing(y) ? NaN : y
+		end
+	end
+	return out
+end
+
+function vector_string(v::AbstractVector)
+	out = Vector{String}(undef, length(v))
+	@inbounds for i in eachindex(v)
+		x = v[i]
+		out[i] = x isa Missing ? "missing" : string(x)
+	end
+	return out
+end
+
 function safe_savefig(args...; kwargs...)
     try
         PlotlyJS.savefig(args...; kwargs...)
@@ -261,6 +286,8 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 		@error("Longitude and latitude columns are required for plotting!")
 		return nothing
 	end
+	lonf = vector_float64(lon)
+	latf = vector_float64(lat)
 	fileroot, fileext = splitext(filename)
 	if column == ""
 		local col = 1
@@ -268,7 +295,7 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 			if !(occursin(regex_lon, a) || occursin(regex_lat, a))
 				varname = namesmap[col]
 				col += 1
-				println("Plotting $(varname) ...")
+				println("Plotting '$(varname)' ...")
 				if filename != ""
 					aa = replace(string(a), '/' => Char(0x2215))
 					f = fileroot * "_" * aa * fileext
@@ -281,9 +308,9 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 					t = plotly_title_length(title_colorbar, title_length) * "<br>" * plotly_title_length(varname, title_length)
 				end
 				if categorical
-					p = mapbox(lon, lat, string.(df[!, a]); filename=f, title_colorbar=t, title=title, quiet=true, kw...)
+					p = mapbox(lonf, latf, vector_string(df[!, a]); filename=f, title_colorbar=t, title=title, quiet=true, kw...)
 				else
-					p = mapbox(lon, lat, df[!, a]; filename=f, title_colorbar=t, title=title, quiet=true, kw...)
+					p = mapbox(lonf, latf, vector_float64(df[!, a]); filename=f, title_colorbar=t, title=title, quiet=true, kw...)
 				end
 				!quiet && display(p)
 			else
@@ -298,7 +325,11 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 		else
 			f = ""
 		end
-		p = mapbox(lon, lat, df[!, column]; filename=f, title_colorbar=plotly_title_length(column, title_length), title=title, quiet=true, kw...)
+		if categorical
+			p = mapbox(lonf, latf, vector_string(df[!, column]); filename=f, title_colorbar=plotly_title_length(column, title_length), title=title, quiet=true, kw...)
+		else
+			p = mapbox(lonf, latf, vector_float64(df[!, column]); filename=f, title_colorbar=plotly_title_length(column, title_length), title=title, quiet=true, kw...)
+		end
 		!quiet && display(p)
 	end
 	return nothing
@@ -308,7 +339,7 @@ end
 function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i in axes(M, 2)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, quiet::Bool=false, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
-		println("Plotting $(names[i]) ...")
+		println("Plotting '$(names[i])' ...")
 		if filename != ""
 			aa = replace(string(names[i]), '/' => '\u2215')
 			f = fileroot * "_" * aa * fileext
@@ -389,9 +420,9 @@ function mapbox(
 	paper_bgcolor::AbstractString=colorbar_bgcolor,
 	paper_bgcolor_fig::AbstractString=paper_bgcolor,
 	quiet::Bool=false,
-	show_count::Bool=true,
+	show_count::Bool=true, # dummy
 	show_locations::Bool=false, # dummy
-	preset::Symbol=:none # dummy
+	preset::Symbol=:none, # dummy
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
@@ -540,7 +571,7 @@ function mapbox(
 		layout = plotly_layout(lon_center, lat_center, zoom_fig; paper_bgcolor=paper_bgcolor, font_size=font_size_fig, font_color=font_color_fig, title=title, style=style, mapbox_token=mapbox_token)
 		p = PlotlyJS.plot(traces_, layout; config=PlotlyJS.PlotConfig(; scrollZoom=true, staticPlot=false, displayModeBar=false, responsive=true))
 		fn = joinpathcheck(figuredir, filename)
-		@info("Saving map as $(fn) format $(format) width $(width_pixel) height $(height_pixel) and scale $(scale) ...")
+		@info("Saving map as '$(fn)' with format '$(format)' width $(width_pixel) height $(height_pixel) and scale $(scale) ...")
 		safe_savefig(p, fn; format=format, width=width_pixel, height=height_pixel, scale=scale)
 	end
 	traces_ = Vector{PlotlyJS.GenericTrace{Dict{Symbol, Any}}}(undef, 0)
@@ -1707,7 +1738,7 @@ function mapbox_contour(
 		elseif length(name_vec) == length(lon_clean)
 			return name_vec
 		else
-			@warn "$(label) length does not match lon/lat; skipping labels"
+			@warn "'$(label)' length does not match lon/lat; skipping labels"
 			return nothing
 		end
 	end
