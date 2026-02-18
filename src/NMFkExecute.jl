@@ -14,7 +14,7 @@ function check_x_hash!(X, xfile::AbstractString)
 	hashfile = xfile * ".sha256"
 	if isfile(hashfile)
 		stored = strip(read(hashfile, String))
-		if && stored != h
+		if !isempty(stored) && stored != h
 			@info("Matrix hash: $(h)")
 			@info("Stored hash: $(stored)")
 			@warn("Matrix hash mismatch in '$(hashfile)': Cached results may not correspond to this matrix! Consider deleting the hash file and cached results to avoid confusion.")
