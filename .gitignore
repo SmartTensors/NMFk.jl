@@ -7,3 +7,4 @@ texput.log
 *.jld
 config/*
 .theme
+*.sha256

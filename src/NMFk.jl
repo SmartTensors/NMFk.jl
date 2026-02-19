@@ -27,10 +27,10 @@ import DocumentFunction
 
 const dir = Base.pkgdir(NMFk)
 
-global_quiet = true
-restart = false
-imagedpi = 300
-first_warning = true
+global_quiet::Bool = true
+restart::Bool = false
+imagedpi::Int = 300
+first_warning::Bool = true
 
 """
     NMFkResult
@@ -127,8 +127,6 @@ include("NMFkProgressive.jl")
 include("NMFkCompress.jl")
 include("NMFkGeo.jl")
 include("NMFkWells.jl")
-
-restartoff()
 
 # NMFk.welcome()
 
