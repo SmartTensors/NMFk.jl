@@ -514,11 +514,15 @@ function postprocess(options::PostprocessOptions,
 	return NMFk.postprocess(krange, W, H, X; merged...)
 end
 
-function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0); Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
+function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0);
+		Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
-		ordersignals::Symbol=:importance, plot_important_size::Integer=30, Wtimeseries_locations_size::Integer=3, W_important::AbstractVector=[], Htimeseries_locations_size::Integer=3, H_important::AbstractVector=[],
+		ordersignals::Symbol=:importance, plot_important_size::Integer=30,
+		Wtimeseries_locations_size::Integer=3, W_important::AbstractVector=[],
+		Htimeseries_locations_size::Integer=3, H_important::AbstractVector=[],
 		clusterW::Bool=true, clusterH::Bool=true, loadassignements::Bool=true,
-		Wsize::Integer=0, Hsize::Integer=0, Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
+		Wsize::Integer=0, Hsize::Integer=0,
+		Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
 		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
 		lon=nothing, lat=nothing, hover=nothing,
 		resultdir::AbstractString=".", figuredir::AbstractString=resultdir,
