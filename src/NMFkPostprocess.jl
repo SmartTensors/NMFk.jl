@@ -391,7 +391,6 @@ struct PostprocessOptions{T<:NamedTuple}
 	values::T
 end
 
-PostprocessOptions() = PostprocessOptions((;))
 PostprocessOptions(; kw...) = PostprocessOptions((; kw...))
 
 const _POSTPROCESS_ALLOWED_KEYS = Set{Symbol}([
@@ -514,6 +513,162 @@ function postprocess(options::PostprocessOptions,
 	return NMFk.postprocess(krange, W, H, X; merged...)
 end
 
+function _resolve_postprocess_settings(; krange,
+		Wnames,
+		Hnames,
+		Worder,
+		Horder,
+		Wtimeseries_xaxis,
+		Htimeseries_xaxis,
+		plotmaps,
+		lon,
+		lat,
+		hover,
+		map_kw,
+		plotmap_scope,
+		adjustbiplotlabel,
+		biplotlabel,
+		Wtypes,
+		Htypes,
+		Wcolors,
+		Hcolors,
+		movies)
+	if length(krange) == 0
+		@warn("No optimal solutions")
+		return (; krange,
+			Wnames,
+			Hnames,
+			Wnametypes=Wnames,
+			Hnametypes=Hnames,
+			Wnamesmaxlength=0,
+			Hnamesmaxlength=0,
+			Wcolors,
+			Hcolors,
+			map_kw,
+			plotmaps=false,
+			biplotlabel,
+			hover,
+			Wnames_label=string.(Wnames),
+			Hnames_label=string.(Hnames))
+	end
+	@assert length(Wnames) > 0
+	@assert length(Hnames) > 0
+	@assert length(Wnames) == length(Worder)
+	@assert length(Hnames) == length(Horder)
+	@assert length(Wtimeseries_xaxis) == length(Wnames)
+	@assert length(Htimeseries_xaxis) == length(Hnames)
+	@assert any(Worder .=== nothing) == false
+	@assert any(Horder .=== nothing) == false
+
+	if map_kw == Dict()
+		if plotmap_scope == :well
+			map_kw = Dict(:showland => false, :size => 5, :scale => 2)
+		end
+	end
+
+	# Adjust biplot labels based on the number of names and the specified biplotlabel option.
+	if adjustbiplotlabel
+		if length(Wnames) > 100 && length(Hnames) > 100
+			biplotlabel = :none
+		elseif length(Wnames) > 100
+			if biplotlabel == :W
+				biplotlabel = :none
+			elseif biplotlabel == :WH
+				biplotlabel = :H
+			end
+		elseif length(Hnames) > 100
+			if biplotlabel == :H
+				biplotlabel = :none
+			elseif biplotlabel == :WH
+				if length(Wnames) > 100
+					biplotlabel = :none
+				else
+					biplotlabel = :W
+				end
+			end
+		end
+	end
+
+	# Generate signal orderings based on the specified method (importance, cluster, or original).
+	if length(Htypes) > 0
+		if Hcolors == NMFk.colors
+			Hcolors = Vector{String}(undef, length(Htypes))
+			for (j, t) in enumerate(unique(Htypes))
+				Hcolors[Htypes .== t] .= NMFk.colors[j]
+			end
+		end
+		Hnametypes = (Hnames .* " " .* String.(Htypes))[Horder]
+	else
+		Hnametypes = Hnames[Horder]
+	end
+	if eltype(Hnames) <: AbstractString
+		Hnamesmaxlength = max(length.(Hnames)...)
+	elseif eltype(Hnames) <: Dates.AbstractDateTime
+		Hnamesmaxlength = max(length.(string.(Hnames))...)
+	else
+		Hnamesmaxlength = 0
+	end
+
+	# Adjust Wnametypes and Wcolors based on Wtypes, ensuring that colors are assigned according to unique types and that names are concatenated with types for labeling.
+	if length(Wtypes) > 0
+		if Wcolors == NMFk.colors
+			Wcolors = Vector{String}(undef, length(Wtypes))
+			for (j, t) in enumerate(unique(Wtypes))
+				Wcolors[Wtypes .== t] .= NMFk.colors[j]
+			end
+		end
+		Wnametypes = (Wnames .* " " .* String.(Wtypes))[Worder]
+	else
+		Wnametypes = Wnames[Worder]
+	end
+	if eltype(Wnames) <: AbstractString
+		Wnamesmaxlength = max(length.(Wnames)...)
+	elseif eltype(Wnames) <: Dates.AbstractDateTime
+		Wnamesmaxlength = max(length.(string.(Wnames))...)
+	else
+		Wnamesmaxlength = 0
+	end
+
+	# Reorder Wnames and Hnames according to Worder and Horder.
+	Wnames = Wnames[Worder]
+	Hnames = Hnames[Horder]
+	Wnames_label = string.(Wnames)
+	Hnames_label = string.(Hnames)
+
+	# Validate the lengths of lon and lat coordinates.
+	if plotmaps && !isnothing(lon) && !isnothing(lat)
+		if length(lon) == length(lat)
+			if length(lon) != length(Wnames) && length(lon) != length(Hnames)
+				@error("Length of lon/lat coordinates ($(length(lon))) must be equal to length of either Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
+				if plotmaps || movies
+					throw(ErrorException("Length of lon/lat coordinates ($(length(lon))) must be equal to length of either Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!"))
+				end
+			end
+		else
+			plotmaps = false
+			@error("Lat/Lon vector lengths do not match!")
+			throw(ErrorException("Lat/Lon vector lengths do not match!"))
+		end
+	else
+		plotmaps = false
+	end
+
+	return (; Wnames,
+		Hnames,
+		Wnametypes,
+		Hnametypes,
+		Wnamesmaxlength,
+		Hnamesmaxlength,
+		Wcolors,
+		Hcolors,
+		map_kw,
+		plotmaps,
+		biplotlabel,
+		hover,
+		Wnames_label,
+		Hnames_label)
+end
+
 function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0);
 		Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
@@ -560,98 +715,88 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		@warn("No optimal solutions")
 		return
 	end
-	@assert length(Wnames) > 0
-	@assert length(Hnames) > 0
-	@assert length(Wnames) == length(Worder)
-	@assert length(Hnames) == length(Horder)
-	@assert length(Wtimeseries_xaxis) == length(Wnames)
-	@assert length(Htimeseries_xaxis) == length(Hnames)
-	@assert any(Worder .=== nothing) == false
-	@assert any(Horder .=== nothing) == false
-	if map_kw == Dict()
-		if plotmap_scope == :well
-			map_kw = Dict(:showland=>false, :size=>5, :scale=>2)
-		end
-	end
-	# Adjust biplot labels based on the number of names and the specified biplotlabel option.
-	if adjustbiplotlabel
-		if length(Wnames) > 100 && length(Hnames) > 100
-			biplotlabel = :none
-		elseif length(Wnames) > 100
-			if biplotlabel == :W
-				biplotlabel = :none
-			elseif biplotlabel == :WH
-				biplotlabel = :H
-			end
-		elseif length(Hnames) > 100
-			if biplotlabel == :H
-				biplotlabel = :none
-			elseif biplotlabel == :WH
-				if length(Wnames) > 100
-					biplotlabel = :none
-				else
-					biplotlabel = :W
-				end
-			end
-		end
-	end
-	# Generate signal orderings based on the specified method (importance, cluster, or original).
-	if length(Htypes) > 0
-		if Hcolors == NMFk.colors
-			Hcolors = Vector{String}(undef, length(Htypes))
-			for (j, t) in enumerate(unique(Htypes))
-				Hcolors[Htypes .== t] .= NMFk.colors[j]
-			end
-		end
-		Hnametypes = (Hnames .* " " .* String.(Htypes))[Horder]
-	else
-		Hnametypes = Hnames[Horder]
-	end
-	Hnamesmaxlength = max(length.(Hnames)...)
-	# Adjust Wnametypes and Wcolors based on Wtypes, ensuring that colors are assigned according to unique types and that names are concatenated with types for labeling.
-	if length(Wtypes) > 0
-		if Wcolors == NMFk.colors
-			Wcolors = Vector{String}(undef, length(Wtypes))
-			for (j, t) in enumerate(unique(Wtypes))
-				Wcolors[Wtypes .== t] .= NMFk.colors[j]
-			end
-		end
-		Wnametypes = (Wnames .* " " .* String.(Wtypes))[Worder]
-	else
-		Wnametypes = Wnames[Worder]
-	end
-	if eltype(Wnames) <: AbstractString
-		Wnamesmaxlength = max(length.(Wnames)...)
-	elseif eltype(Wnames) <: Dates.AbstractDateTime
-		Wnamesmaxlength = max(length.(string.(Wnames))...)
-	else
-		Wnamesmaxlength = 0
-	end
-	# Reorder Wnames and Hnames according to Worder and Horder, ensuring that the names are aligned with the order of the signals for subsequent plotting and analysis.
-	Wnames = Wnames[Worder]
-	Hnames = Hnames[Horder]
-	# Validate the lengths of lon and lat coordinates against the lengths of Wnames and Hnames, ensuring that they are compatible for plotting on a map. If the lengths do not match, an error is raised, and if plotting is enabled, an exception is thrown to prevent further execution.
-	if plotmaps && !isnothing(lon) && !isnothing(lat)
-		if length(lon) == length(lat)
-			if length(Hnames) != length(lon) && length(Wnames) != length(lat)
-				@error("Length of lon/lat coordinates ($(length(lon))) must be equal to length of either Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!")
-				if plotmaps || movies
-					throw(ErrorException("Length of lon/lat coordinates ($(length(lon))) must be equal to length of either Wnames ($(length(Wnames))) or Hnames ($(length(Hnames)))!"))
-				end
-			end
-		else
-			plotmaps = false
-			@error("Lat/Lon vector lengths do not match!")
-			throw(ErrorException("Lat/Lon vector lengths do not match!"))
-		end
-	else
-		plotmaps = false
-	end
+	resolved = _resolve_postprocess_settings(; krange=krange,
+		Wnames=Wnames,
+		Hnames=Hnames,
+		Worder=Worder,
+		Horder=Horder,
+		Wtimeseries_xaxis=Wtimeseries_xaxis,
+		Htimeseries_xaxis=Htimeseries_xaxis,
+		plotmaps=plotmaps,
+		lon=lon,
+		lat=lat,
+		hover=hover,
+		map_kw=map_kw,
+		plotmap_scope=plotmap_scope,
+		adjustbiplotlabel=adjustbiplotlabel,
+		biplotlabel=biplotlabel,
+		Wtypes=Wtypes,
+		Htypes=Htypes,
+		Wcolors=Wcolors,
+		Hcolors=Hcolors,
+		movies=movies)
+	Wnames = resolved.Wnames
+	Hnames = resolved.Hnames
+	Wnametypes = resolved.Wnametypes
+	Hnametypes = resolved.Hnametypes
+	Wnamesmaxlength = resolved.Wnamesmaxlength
+	Hnamesmaxlength = resolved.Hnamesmaxlength
+	Wcolors = resolved.Wcolors
+	Hcolors = resolved.Hcolors
+	map_kw = resolved.map_kw
+	plotmaps = resolved.plotmaps
+	biplotlabel = resolved.biplotlabel
+	hover = resolved.hover
+	Wnames_label = resolved.Wnames_label
+	Hnames_label = resolved.Hnames_label
 	Wclusters = Vector{Vector{Char}}(undef, length(krange))
 	Hclusters = Vector{Vector{Char}}(undef, length(krange))
 	Sorder = Vector{Vector{Int64}}(undef, length(krange))
+	settings = (; Wnames, Hnames,
+		Wnametypes, Hnametypes,
+		Wnamesmaxlength, Hnamesmaxlength,
+		Wnames_label, Hnames_label,
+		ordersignals, plot_important_size,
+		Wtimeseries_locations_size, W_important,
+		Htimeseries_locations_size, H_important,
+		clusterW, clusterH, loadassignements,
+		Wsize, Hsize,
+		Wmap, Hmap,
+		Worder, Horder,
+		lon, lat,
+		resultdir, figuredir,
+		Wcasefilename, Hcasefilename,
+		Wtypes, Htypes,
+		Wcolors, Hcolors,
+		dendrogram_color,
+		background_color,
+		createdendrogramsonly, createplots, creatematrixplotsall, createbiplots, createbiplotsall,
+		Wbiplotlabel, Hbiplotlabel,
+		biplotlabel, biplotcolor,
+		plottimeseries,
+		plotmaps, plotmap_scope, map_format,
+		map_kw,
+		cutoff, cutoff_s, cutoff_label,
+		Wmatrix_font_size, Hmatrix_font_size,
+		adjustsize, vsize, hsize,
+		W_vsize, W_hsize, H_vsize, H_hsize,
+		Wmatrix_vsize, Wmatrix_hsize,
+		Wdendrogram_vsize, Wdendrogram_hsize,
+		Wtimeseries_vsize, Wtimeseries_hsize,
+		Hmatrix_vsize, Hmatrix_hsize,
+		Hdendrogram_vsize, Hdendrogram_hsize,
+		Htimeseries_vsize, Htimeseries_hsize,
+		Wtimeseries_xaxis, Htimeseries_xaxis,
+		plotmatrixformat, biplotformat, plotseriesformat,
+		sortmag, plotmethod,
+		point_size_nolabel, point_size_label,
+		biplotseparate, biplot_point_label_font_size,
+		repeats, movies,
+		quiet, veryquiet)
 	# Generate signal orderings based on the specified method (importance, cluster, or original) for each value of k in krange, and store the results in Wclusters, Hclusters, and Sorder for subsequent analysis and plotting.
 	for (ki, k) in enumerate(krange)
+		Wrepeats, Hrepeats, hover = _postprocess_one_k!(Sorder, Wclusters, Hclusters, ki, k, krange, W, H, X, settings, Wrepeats, Hrepeats, hover)
+		continue
 		@info("Number of signals: $k")
 		if length(X) > 0 # if the input data is provided
 			Xe = W[k] * H[k]
@@ -1297,6 +1442,699 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		end
 	end
 	return Sorder, Wclusters, Hclusters
+end
+
+function _postprocess_one_k!(Sorder::AbstractVector,
+		Wclusters::AbstractVector,
+		Hclusters::AbstractVector,
+		ki::Integer,
+		k::Integer,
+		krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer},
+		W::AbstractVector,
+		H::AbstractVector,
+		X::AbstractMatrix,
+		settings::NamedTuple,
+		Wrepeats::Integer,
+		Hrepeats::Integer,
+		hover)
+	(; Wnames, Hnames,
+		Wnametypes, Hnametypes,
+		Wnamesmaxlength, Hnamesmaxlength,
+		Wnames_label, Hnames_label,
+		ordersignals, plot_important_size,
+		Wtimeseries_locations_size, W_important,
+		Htimeseries_locations_size, H_important,
+		clusterW, clusterH, loadassignements,
+		Wsize, Hsize,
+		Wmap, Hmap,
+		Worder, Horder,
+		lon, lat,
+		resultdir, figuredir,
+		Wcasefilename, Hcasefilename,
+		Wtypes, Htypes,
+		Wcolors, Hcolors,
+		dendrogram_color,
+		background_color,
+		createdendrogramsonly, createplots, creatematrixplotsall, createbiplots, createbiplotsall,
+		Wbiplotlabel, Hbiplotlabel,
+		biplotlabel, biplotcolor,
+		plottimeseries,
+		plotmaps, plotmap_scope, map_format,
+		map_kw,
+		cutoff, cutoff_s, cutoff_label,
+		Wmatrix_font_size, Hmatrix_font_size,
+		adjustsize, vsize, hsize,
+		W_vsize, W_hsize, H_vsize, H_hsize,
+		Wmatrix_vsize, Wmatrix_hsize,
+		Wdendrogram_vsize, Wdendrogram_hsize,
+		Wtimeseries_vsize, Wtimeseries_hsize,
+		Hmatrix_vsize, Hmatrix_hsize,
+		Hdendrogram_vsize, Hdendrogram_hsize,
+		Htimeseries_vsize, Htimeseries_hsize,
+		Wtimeseries_xaxis, Htimeseries_xaxis,
+		plotmatrixformat, biplotformat, plotseriesformat,
+		sortmag, plotmethod,
+		point_size_nolabel, point_size_label,
+		biplotseparate, biplot_point_label_font_size,
+		repeats, movies,
+		quiet, veryquiet) = settings
+
+	@info("Number of signals: $k")
+	if length(X) > 0 # if the input data is provided
+		Xe = W[k] * H[k]
+		@assert size(Xe) == size(X)
+		fitquality = NMFk.normnan(X .- Xe)
+		if size(X, 2) < 50
+			@info("Relative fits associated with $(Hcasefilename) ...")
+			for i in axes(X, 2)
+				fitattribute = NMFk.normnan(X[:, i] .- Xe[:, i])
+				println("$(Hnames[i]): $(fitattribute / fitquality)")
+			end
+		end
+		if size(X, 1) < 50
+			@info("Relative fits associated with $(Wcasefilename) ...")
+			for i in axes(X, 1)
+				fitattribute = NMFk.normnan(X[i, :] .- Xe[i, :])
+				println("$(Wnames[i]): $(fitattribute / fitquality)")
+			end
+		end
+	end
+
+	isignalmap = signalorder(W[k], H[k])
+
+	@info("$(uppercasefirst(Hcasefilename)) (signals=$k)")
+	recursivemkdir(resultdir; filename=false)
+
+	if Hsize > 1
+		na = convert(Int64, size(H[k], 2) / Hsize)
+		Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), na)
+		@assert length(Hnames) == na
+		i1 = 1
+		i2 = Hsize
+		for i = 1:na
+			Ha[:, i] = sum(H[k][:, i1:i2]; dims=2)
+			i1 += Hsize
+			i2 += Hsize
+		end
+		Ha = Ha[:, Horder]
+	elseif size(Hmap, 1) > 0
+		@assert size(Hmap, 1) == size(H[k], 2)
+		mu = unique(Hmap[:, 1])
+		@assert length(Hnames) == length(mu)
+		Ha = Matrix{eltype(H[k])}(undef, size(H[k], 1), length(mu))
+		for (i, m) in enumerate(mu)
+			Ha[:, i] = NMFk.sumnan(H[k][:, Hmap[:, 1] .== m]; dims=2)
+		end
+		Ha = Ha[:, Horder]
+	else
+		@assert length(Hnames) == size(H[k], 2)
+		Ha = H[k][:, Horder]
+	end
+	Hmask_nan_cols = vec(all(isnan.(Ha); dims=1))
+	if count(Hmask_nan_cols) == size(Ha, 2)
+		error("All rows in H matrix are NaN!")
+		throw(ErrorException("All rows in H matrix are NaN!"))
+	end
+	Hm = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=2)) # normalize by rows and PERMUTE (TRANSPOSE)
+	Hm[Hm .< eps(eltype(Ha))] .= 0
+	Hranking = sortperm(vec(NMFk.sumnan(Hm .^ 2; dims=2)); rev=true) # dims=2 because Hm is already transposed
+
+	# Save the processed H matrix to a CSV file.
+	DelimitedFiles.writedlm("$resultdir/Hmatrix-$(k).csv", [["Name" permutedims(map(i -> "S$i", 1:k))]; Hnames permutedims(Ha)], ',')
+
+	if cutoff > 0
+		ia = (Ha ./ maximum(Ha; dims=2)) .> cutoff
+		for i in 1:k
+			@info("Signal $i (max-normalized elements > $cutoff)")
+			display(Hnames[ia[i, :]])
+		end
+	end
+
+	if Wsize > 1
+		na = convert(Int64, size(W[k], 1) / Wsize)
+		Wa = Matrix{eltype(W[k])}(undef, na, size(W[k], 2))
+		@assert length(Wnames) == na
+		i1 = 1
+		i2 = Wsize
+		for i = 1:na
+			Wa[i, :] = NMFk.sumnan(W[k][i1:i2, :]; dims=1)
+			i1 += Wsize
+			i2 += Wsize
+		end
+		Wa = Wa[Worder, :]
+	elseif size(Wmap, 1) > 0
+		@assert size(Wmap, 1) == size(W[k], 1)
+		mu = unique(Wmap[:, 1])
+		@assert length(Wnames) == length(mu)
+		Wa = Matrix{eltype(W[k])}(undef, length(mu), size(W[k], 2))
+		for (i, m) in enumerate(mu)
+			Wa[i, :] = NMFk.sumnan(W[k][Wmap[:, 1] .== m, :]; dims=1)
+		end
+		Wa = Wa[Worder, :]
+	else
+		@assert length(Wnames) == size(W[k], 1)
+		Wa = W[k][Worder, :]
+	end
+	Wmask_nan_rows = vec(all(isnan.(Wa); dims=2))
+	if count(Wmask_nan_rows) == size(Wa, 1)
+		error("All rows in W matrix are NaN!")
+		throw(ErrorException("All rows in W matrix are NaN!"))
+	end
+	Wm = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=1) # normalize by columns
+	Wm[Wm .< eps(eltype(Wa))] .= 0
+	Wranking = sortperm(vec(NMFk.sumnan(Wm .^ 2; dims=2)); rev=true)
+
+	# Define plot sizes based on the number of names and the number of signals
+	if (createplots || createdendrogramsonly) && adjustsize
+		wr = length(Wnames) / k
+		Wmatrix_hsize = Wmatrix_vsize / wr + 3Gadfly.inch
+		Wdendrogram_hsize = Wdendrogram_vsize / wr + 5Gadfly.inch
+		wr = length(Hnames) / k
+		Hmatrix_hsize = Hmatrix_vsize / wr + 3Gadfly.inch
+		Hdendrogram_hsize = Hdendrogram_vsize / wr + 5Gadfly.inch
+	end
+
+	# Signal importance order based on H clustering
+	if clusterH
+		reduced = false
+		if size(Ha, 1) > 100_000 && Hrepeats > 1
+			Hrepeats = 1
+			reduced = true
+		elseif size(Ha, 1) > 10_000 && Hrepeats > 10
+			Hrepeats = 10
+			reduced = true
+		elseif size(Ha, 1) > 1_000 && Hrepeats > 100
+			Hrepeats = 100
+			reduced = true
+		end
+		reduced && @warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))! The number of repeats reduced to $(Hrepeats).")
+		if count(Hmask_nan_cols) > 0
+			@info("Masking NaN cols in H matrix for clustering with average row values...")
+			v = NMFk.meannan(Ha[:, .!Hmask_nan_cols]; dims=2)
+			Ha[:, Hmask_nan_cols] .= repeat(v, inner=(count(Hmask_nan_cols), 1))
+		end
+		robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, compute_silhouettes_flag=size(Ha, 1) <= 1000)
+		H_labels = NMFk.labelassignements(robustkmeans_results.assignments)
+		@info("Cluster labels: $(H_labels)")
+		if count(Hmask_nan_cols) > 0
+			Ha[:, Hmask_nan_cols] .= NaN
+		end
+		clusterlabels = sort(unique(H_labels))
+		@info("Finding best cluster labels ...")
+		Hsignalmap = NMFk.signalassignments(Ha, H_labels; clusterlabels=clusterlabels, dims=2)
+	end
+
+	# Signal importance order based on W clustering
+	if clusterW
+		reduced = false
+		if size(Wa, 1) > 100_000 && Wrepeats > 1
+			Wrepeats = 1
+			reduced = true
+		elseif size(Wa, 1) > 10_000 && Wrepeats > 10
+			Wrepeats = 10
+			reduced = true
+		elseif size(Wa, 1) > 1_000 && Wrepeats > 100
+			Wrepeats = 100
+			reduced = true
+		end
+		reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
+		if count(Wmask_nan_rows) > 0
+			@info("Masking NaN rows in W matrix for clustering with average col values ...")
+			v = NMFk.meannan(Wa[.!Wmask_nan_rows, :]; dims=1)
+			Wa[Wmask_nan_rows, :] .= repeat(v, inner=(sum(Wmask_nan_rows), 1))
+		end
+		robustkmeans_results = NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, compute_silhouettes_flag=size(Wa, 1) <= 1000)
+		W_labels = NMFk.labelassignements(robustkmeans_results.assignments)
+		if count(Wmask_nan_rows) > 0
+			Wa[Wmask_nan_rows, :] .= NaN
+		end
+		if clusterH
+			if clusterlabels != sort(unique(W_labels))
+				@warn("W and H cluster labels do not match!")
+			end
+		else
+			clusterlabels = sort(unique(W_labels))
+		end
+		Wsignalmap = NMFk.signalassignments(Wa, W_labels; clusterlabels=clusterlabels, dims=1)
+	end
+
+	# Signal importance order
+	if ordersignals == :importance
+		@info("Signal importance based on the contribution: $isignalmap")
+		signalmap = isignalmap
+	elseif ordersignals == :Hcount && clusterH
+		@info("Signal importance based on H matrix clustering: $Hsignalmap")
+		signalmap = Hsignalmap
+	elseif ordersignals == :Wcount && clusterW
+		@info("Signal importance based on W matrix clustering: $Wsignalmap")
+		signalmap = Wsignalmap
+	elseif ordersignals == :none
+		@info("No signal importance order requested!")
+		signalmap = 1:k
+	else
+		@warn("Unknown signal order requested $(ordersignals); Signal importance based on the contribution will be used!")
+		signalmap = isignalmap
+	end
+	Sorder[ki] = signalmap
+
+	# W Clustering and plotting
+	if clusterH
+		Hsignalremap = indexin(signalmap, Hsignalmap)
+		cassgined = zeros(Int64, length(Hnames))
+		W_labels_new = Vector{eltype(H_labels)}(undef, length(H_labels))
+		W_labels_new .= ' '
+		for (j, i) in enumerate(clusterlabels)
+			ii = indexin(H_labels, [clusterlabels[Hsignalremap[j]]]) .== true
+			W_labels_new[ii] .= i
+			cassgined[ii] .+= 1
+			@info("Signal $(clusterlabels[Hsignalremap[j]]) -> $(i) Count: $(sum(ii))")
+		end
+		Hclusters[ki] = W_labels_new
+		if any(cassgined .== 0)
+			@warn("$(uppercasefirst(Hcasefilename)) not assigned to any cluster:")
+			display(Hnames[cassgined .== 0])
+			@error("Something is wrong!")
+		end
+		if any(cassgined .> 1)
+			@warn("$(uppercasefirst(Hcasefilename)) assigned to more than cluster:")
+			display([Hnames[cassgined .> 1] cassgined[cassgined .> 1]])
+			@error("Something is wrong!")
+		end
+		clustermap = Vector{Char}(undef, k)
+		clustermap .= ' '
+		io = open("$resultdir/$(Hcasefilename)-$(k)-groups.txt", "w")
+		for (j, i) in enumerate(clusterlabels)
+			@info("Signal $i (S$(signalmap[j])) (k-means clustering)")
+			write(io, "Signal $i (S$(signalmap[j]))\n")
+			ii = indexin(W_labels_new, [i]) .== true
+			is = sortperm(Hm[ii, signalmap[j]]; rev=true)
+			d = [Hnames[ii] Hm[ii, signalmap[j]]][is, :]
+			display(d)
+			for i in axes(d, 1)
+				write(io, "$(rpad(d[i, 1], Hnamesmaxlength))\t$(round(d[i, 2]; sigdigits=3))\n")
+			end
+			write(io, '\n')
+			clustermap[signalmap[j]] = i
+		end
+		close(io)
+		@assert signalmap == sortperm(clustermap)
+		@assert clustermap[signalmap] == clusterlabels
+		dumpcsv = true
+		if plotmaps && length(lon) == length(W_labels_new)
+			if isnothing(hover)
+				hover = Hnames
+			end
+			if length(hover) > 1000
+				@info("Removing hover text; too many labels $(length(Hnames))!")
+				hover = []
+			end
+			if plotmap_scope == :well
+				NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, W_labels_new; figuredir=figuredir, hover=hover, title="Signals: $k")
+			elseif plotmap_scope == :mapbox || plotmap_scope == :mapbox_contour
+				NMFk.mapbox(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
+				NMFk.mapbox(lon, lat, Hm[:, signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
+				if plotmap_scope == :mapbox_contour
+					for (i, c) in enumerate(clusterlabels)
+						@info("Plotting H map contour for signal $(c) ...")
+						NMFk.mapbox_contour(lon, lat, Hm[:, signalmap][:, i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
+						if movies && size(Hmap, 2) > 1
+							Hm2labels = unique(Hmap[:, 1])
+							Hm2bins = unique(Hmap[:, 2])
+							@assert length(Hnames) == length(Hm2labels)
+							@info("H ($(Hcasefilename)) matrix plot as transient movie ...")
+							png_files = Vector{String}(undef, length(Hm2bins))
+							hmax = NMFk.maximumnan(H[k]; dims=2)[signalmap]
+							for (j, b) in enumerate(Hm2bins)
+								@info("Plotting H map contour for signal $(c) bin $(b) ...")
+								bin_mask = Hmap[:, 2] .== b
+								png_files[j] = joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)")
+								NMFk.mapbox_contour(lon, lat, H[k][signalmap, bin_mask][i, :] ./ hmax[i]; zmin=0, zmax=1, filename=png_files[j], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, show_locations=false, map_kw...)
+							end
+							NMFk.makemovie(joinpath(figuredir, "$(Hcasefilename)-$(k)-map-contour-signal-$(c)"); files=png_files, cleanup=true)
+						end
+					end
+				end
+			end
+		else
+			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Hnames lon lat Hm[:, signalmap] W_labels_new], ',')
+			dumpcsv = false
+			NMFk.plotmaps(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
+		end
+		if dumpcsv
+		DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Hnames Hm[:, signalmap] W_labels_new], ',')
+		end
+		yticks = string.(Hnames) .* " " .* string.(W_labels_new)
+		if (createdendrogramsonly || createplots || creatematrixplotsall)
+		if length(Hranking) > plot_important_size
+			@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(plot_important_size) columns!")
+			H_importance_indexing = _select_importance_indexing(Hranking, Hnames, H_important, W_labels_new, plot_important_size; matrix_label="H", casefilename=Hcasefilename)
+			H_cs_plot = sortperm(W_labels_new[H_importance_indexing])
+		else
+			@info("H ($(Hcasefilename)) matrix plotting all columns ...")
+			H_importance_indexing = Colon()
+			H_cs_plot = sortperm(W_labels_new)
+		end
+		H_plot = Hm[H_importance_indexing, :]
+		H_plot[isnan.(H_plot)] .= 0.0
+		Hm_col = permutedims(Ha ./ maximum(Ha[:, .!Hmask_nan_cols]; dims=1)) # normalize by cols and PERMUTE (TRANSPOSE)
+		H_plot_col = Hm_col[H_importance_indexing, :]
+		H_plot_col[H_plot_col .< eps(eltype(H_plot_col))] .= 0
+		H_plot_col[isnan.(H_plot_col)] .= 0.0
+		if !createdendrogramsonly && creatematrixplotsall
+			NMFk.plotmatrix(H_plot; filename="$figuredir/$(Hcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i = 1:k], yticks=yticks[H_importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+			NMFk.plotmatrix(H_plot[:, signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[H_importance_indexing], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+		end
+		if !createdendrogramsonly && createplots
+			NMFk.plotmatrix(H_plot[H_cs_plot, signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[H_importance_indexing][H_cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+			NMFk.plotmatrix(H_plot_col[H_cs_plot, signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-column.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[H_importance_indexing][H_cs_plot], colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+			if length(Htypes) > 0
+				yticks2 = (string.(Hnametypes) .* " " .* string.(W_labels_new))[H_importance_indexing]
+				NMFk.plotmatrix(H_plot[:, signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Hmatrix_vsize, hsize=Hmatrix_hsize, background_color=background_color, quiet=quiet)
+			end
+			if plottimeseries == :H || plottimeseries == :WH
+				@info("H ($(Hcasefilename)) matrix timeseries plotting ...")
+				Mads.plotseries(Hm, "$figuredir/$(Hcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+				if size(Hmap, 2) > 0
+					Hm2labels = unique(Hmap[:, 2])
+					Ha2 = Matrix{eltype(H[k])}(undef, length(Hm2labels), size(H[k], 1))
+					for (i, m) in enumerate(Hm2labels)
+						Ha2[i, :] = NMFk.sumnan(H[k][Hmap[:, 2] .== m, :]; dims=1)
+					end
+					Hm2 = Ha2 ./ NMFk.maximumnan(Ha2; dims=1) # normalize by columns
+					Hm2ranking = sortperm(vec(NMFk.sumnan(Hm2 .^ 2; dims=2)); rev=true)
+					@info("H ($(Hcasefilename)) matrix timeseries for specific locations ...")
+					for i in Hm2ranking[1:Htimeseries_locations_size]
+						println("Plotting timeseries for location: $(Hm2labels[i])")
+						well_signals = H[k][Hmap[:, 2] .== Hm2labels[i], :]
+						if size(well_signals, 1) > 0
+							@assert size(well_signals, 1) == length(Htimeseries_xaxis)
+							Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(Hm2labels[i])-timeseries.$(plotseriesformat)"; title=string(Hm2labels[i]), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+						else
+							@warn("No signals found for location $(Hm2labels[i])!")
+						end
+					end
+					@info("H ($(Hcasefilename)) matrix timeseries for specific locations ...")
+					for l in H_important
+						println("Plotting timeseries for location: $(l)")
+						well_signals = H[k][Hmap[:, 2] .== l, :]
+						if size(well_signals, 1) > 0
+							@assert size(well_signals, 1) == length(Htimeseries_xaxis)
+							Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Hcasefilename)-$(k)-$(l)-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Htimeseries_xaxis, xmin=minimum(Htimeseries_xaxis), xmax=maximum(Htimeseries_xaxis), vsize=Htimeseries_vsize, hsize=Htimeseries_hsize, names=string.(clusterlabels))
+						else
+							@warn("No signals found for location $(l)!")
+						end
+					end
+				end
+			end
+		end
+		if (createdendrogramsonly || createplots)
+			@info("H ($(Hcasefilename)) matrix dendrogram plotting ...")
+			try
+				NMFk.plotdendrogram(H_plot[H_cs_plot, signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[H_importance_indexing][H_cs_plot], minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+				NMFk.plotdendrogram(H_plot_col[H_cs_plot, signalmap]; filename="$figuredir/$(Hcasefilename)-$(k)-labeled-sorted-dendrogram-column.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[H_importance_indexing][H_cs_plot], minor_label_font_size=Hmatrix_font_size, vsize=Hdendrogram_vsize, hsize=Hdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+			catch errmsg
+				!veryquiet && println(errmsg)
+				@warn("H ($(Hcasefilename)) matrix dendrogram plotting failed!")
+			end
+		end
+		end
+		if createbiplots
+			@info("Biplotting H ($(Hcasefilename)) matrix ...")
+			createbiplotsall && NMFk.biplots(Hm, Hnames, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=W_labels_new, plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+			NMFk.biplots(Hm[H_cs_plot, signalmap], Hnames[H_cs_plot], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=W_labels_new[H_cs_plot], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+			length(Htypes) > 0 && NMFk.biplots(Hm[H_cs_plot, signalmap], Hnames[H_cs_plot], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Hcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Hcolors[H_cs_plot], plotlabel=Hbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
+		end
+	end
+
+	# W signal importance and clustering results
+	@info("$(uppercasefirst(Wcasefilename)) (signals=$k)")
+	if cutoff > 0 # if a cutoff is specified
+		ia = (Wa ./ maximum(Wa; dims=1)) .> cutoff
+		for i in 1:k
+			@info("Signal $i (max-normalized elements > $cutoff)")
+			display(Wnames[ia[:, i]])
+		end
+	end
+	DelimitedFiles.writedlm("$resultdir/Wmatrix-$(k).csv", [["Name" permutedims(map(i -> "S$i", 1:k))]; Wnames Wa], ',')
+
+	if clusterW
+		for (j, i) in enumerate(clusterlabels)
+			ii = indexin(W_labels, [i]) .== true
+			@info("Signal $i (S$(Wsignalmap[j])) Count: $(sum(ii))")
+		end
+		Wsignalremap = indexin(signalmap, Wsignalmap)
+		cassgined = zeros(Int64, length(Wnames))
+		W_labels_new = Vector{eltype(W_labels)}(undef, length(W_labels))
+		W_labels_new .= ' '
+		for (j, i) in enumerate(clusterlabels)
+			ii = indexin(W_labels, [clusterlabels[Wsignalremap[j]]]) .== true
+			W_labels_new[ii] .= i
+			cassgined[ii] .+= 1
+			@info("Signal $(clusterlabels[Wsignalremap[j]]) -> $(i) Count: $(sum(ii))")
+		end
+		Wclusters[ki] = W_labels_new
+		if any(cassgined .== 0)
+			@warn("$(uppercasefirst(Wcasefilename)) not assigned to any cluster:")
+			display(Wnames[cassgined .== 0])
+			@error("Something is wrong!")
+		end
+		if any(cassgined .> 1)
+			@warn("$(uppercasefirst(Wcasefilename)) assigned to more than cluster:")
+			display([Wnames[cassgined .> 1] cassgined[cassgined .> 1]])
+			@error("Something is wrong!")
+		end
+		io = open("$resultdir/$(Wcasefilename)-$(k)-groups.txt", "w")
+		for (j, i) in enumerate(clusterlabels)
+			@info("Signal $i (remapped k-means clustering)")
+			write(io, "Signal $i (remapped k-means clustering)\n")
+			ii = indexin(W_labels_new, [i]) .== true
+			is = sortperm(Wm[ii, signalmap[j]]; rev=true)
+			d = [Wnames[ii] Wm[ii, signalmap[j]]][is, :]
+			display(d)
+			if Wnamesmaxlength > 0
+				for i in axes(d, 1)
+					write(io, "$(rpad(d[i, 1], Wnamesmaxlength))\t$(round(d[i, 2]; sigdigits=3))\n")
+				end
+			else
+				for i in axes(d, 1)
+					write(io, "$(d[i, 1])\t$(round(d[i, 2]; sigdigits=3))\n")
+				end
+			end
+			write(io, '\n')
+		end
+		close(io)
+		dumpcsv = true
+		if plotmaps && length(lon) == length(W_labels_new)
+			if isnothing(hover)
+				hover = Wnames
+			end
+			if length(hover) > 1000
+				@info("Removing hover text; too many labels $(length(Wnames))!")
+				hover = []
+			end
+			if plotmap_scope == :well
+				NMFk.plot_wells("$(Wcasefilename)-$(k)-map.$(map_format)", lon, lat, W_labels_new; figuredir=figuredir, hover=hover, title="Signals: $k")
+			elseif plotmap_scope == :mapbox || plotmap_scope == :mapbox_contour
+				NMFk.mapbox(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
+				NMFk.mapbox(lon, lat, Wm[:, signalmap], clusterlabels; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
+				if plotmap_scope == :mapbox_contour
+					for (i, c) in enumerate(clusterlabels)
+						@info("Plotting W map contour for signal $(c) ...")
+						NMFk.mapbox_contour(lon, lat, Wm[:, signalmap][:, i]; zmin=0, zmax=1, filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c).$(map_format)"), location_names=hover, title_colorbar="Signal $(c)", concave_hull=true, map_kw...)
+						if movies && size(Wmap, 2) > 1
+							Wm2labels = unique(Wmap[:, 1])
+							Wm2bins = unique(Wmap[:, 2])
+							@assert length(Wnames) == length(Wm2labels)
+							@info("W ($(Wcasefilename)) matrix plot as transient movie ...")
+							png_files = Vector{String}(undef, length(Wm2bins))
+							wmax = NMFk.maximumnan(W[k]; dims=1)[signalmap]
+							for (j, b) in enumerate(Wm2bins)
+								@info("Plotting W map contour for signal $(c) bin $(b) ...")
+								bin_mask = Wmap[:, 2] .== b
+								png_files[j] = joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)-bin-$(b).$(map_format)")
+								NMFk.mapbox_contour(lon, lat, W[k][bin_mask, signalmap][:, i] ./ wmax[i]; zmin=0, zmax=1, filename=png_files[j], location_names=hover, title_colorbar="$(b)<br>Signal $(c)", concave_hull=true, map_kw...)
+							end
+							NMFk.makemovie(joinpath(figuredir, "$(Wcasefilename)-$(k)-map-contour-signal-$(c)"); files=png_files, cleanup=true)
+						end
+					end
+				end
+			else
+				NMFk.plotmaps(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
+			end
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Wnames lon lat Wm[:, signalmap] W_labels_new], ',')
+			dumpcsv = false
+		end
+		if dumpcsv
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Wnames Wm[:, signalmap] W_labels_new], ',')
+		end
+		if !isnothing(lon) && (length(lon) != length(W_labels_new)) && (length(lon) != length(W_labels_new))
+			@warn("Length of lat/lon coordinates ($(length(lon))) does not match the number of either W matrix rows ($(length(W_labels_new))) or H matrix columns ($(length(W_labels_new)))!")
+		end
+		yticks = string.(Wnames) .* " " .* string.(W_labels_new)
+		if (createdendrogramsonly || createplots || creatematrixplotsall)
+			if length(Wranking) > plot_important_size
+				@warn("W ($(Wcasefilename)) matrix has too many rows to plot; selecting $(plot_important_size) rows (ensuring one per cluster label) ...")
+				W_importance_indexing = _select_importance_indexing(Wranking, Wnames, W_important, W_labels_new, plot_important_size; matrix_label="W", casefilename=Wcasefilename)
+				W_cs_plot = sortperm(W_labels_new[W_importance_indexing])
+			else
+				@info("W ($(Wcasefilename)) matrix plotting all rows ...")
+				W_importance_indexing = Colon()
+				W_cs_plot = sortperm(W_labels_new)
+			end
+			W_plot = Wm[W_importance_indexing, :]
+			W_plot[isnan.(W_plot)] .= 0.0
+			Wm_row = Wa ./ maximum(Wa[.!Wmask_nan_rows, :]; dims=2) # normalize by rows
+			W_plot_row = Wm_row[W_importance_indexing, :]
+			W_plot_row[W_plot_row .< eps(eltype(W_plot_row))] .= 0
+			W_plot_row[isnan.(W_plot_row)] .= 0.0
+			if !createdendrogramsonly && creatematrixplotsall
+				NMFk.plotmatrix(W_plot; filename="$figuredir/$(Wcasefilename)-$(k)-original.$(plotmatrixformat)", xticks=["S$i" for i = 1:k], yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color)
+				cws = sortperm(W_labels[W_importance_indexing])
+				yticks3 = ["$(Wnames[i]) $(W_labels[i])" for i in eachindex(W_labels)][W_importance_indexing][cws]
+				NMFk.plotmatrix(W_plot[cws, :]; filename="$figuredir/$(Wcasefilename)-$(k)-original-sorted.$(plotmatrixformat)", xticks=["S$i" for i = 1:k], yticks=yticks3, colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(W_plot[:, signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[W_importance_indexing], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+			end
+			if !createdendrogramsonly && createplots
+				if length(Wtypes) > 0
+					yticks2 = (string.(Wnametypes) .* " " .* string.(W_labels_new))[W_importance_indexing]
+					NMFk.plotmatrix(W_plot[:, signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-types.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks2, colorkey=true, minor_label_font_size=Hmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, quiet=quiet)
+				end
+				NMFk.plotmatrix(W_plot[W_cs_plot, signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[W_importance_indexing][W_cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+				NMFk.plotmatrix(W_plot_row[W_cs_plot, signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-row.$(plotmatrixformat)", xticks=clusterlabels, yticks=yticks[W_importance_indexing][W_cs_plot], colorkey=true, minor_label_font_size=Wmatrix_font_size, vsize=Wmatrix_vsize, hsize=Wmatrix_hsize, background_color=background_color, quiet=quiet)
+				if plottimeseries == :W || plottimeseries == :WH
+					@info("W ($(Wcasefilename)) matrix timeseries plotting ...")
+					Mads.plotseries(Wm, "$figuredir/$(Wcasefilename)-$(k)-timeseries.$(plotseriesformat)"; xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+					if size(Wmap, 2) > 1
+						Wm2labels = unique(Wmap[:, 2])
+						Wa2 = Matrix{eltype(W[k])}(undef, length(Wm2labels), size(W[k], 2))
+						for (i, m) in enumerate(Wm2labels)
+							Wa2[i, :] = NMFk.sumnan(W[k][Wmap[:, 2] .== m, :]; dims=1)
+						end
+						Wm2 = Wa2 ./ NMFk.maximumnan(Wa2; dims=1) # normalize by columns
+						Wm2ranking = sortperm(vec(NMFk.sumnan(Wm2 .^ 2; dims=2)); rev=true)
+						@info("W ($(Wcasefilename)) matrix timeseries plotting for $(Wtimeseries_locations_size) important locations ...")
+						for i in Wm2ranking[1:Wtimeseries_locations_size]
+							println("Plotting location $(Wm2labels[i]) ...")
+							well_signals = W[k][Wmap[:, 2] .== Wm2labels[i], :]
+							if size(well_signals, 1) > 0
+								@assert size(well_signals, 1) == length(Wtimeseries_xaxis)
+								Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(Wm2labels[i])-timeseries.$(plotseriesformat)"; title=string(Wm2labels[i]), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+							else
+								@warn("No signals found for location $(Wm2labels[i])!")
+							end
+						end
+						@info("W ($(Wcasefilename)) matrix timeseries plotting for specificly requested locations ...")
+						for l in W_important
+							println("Plotting location $(l) ...")
+							well_signals = W[k][Wmap[:, 2] .== l, :]
+							if size(well_signals, 1) > 0
+								@assert size(well_signals, 1) == length(Wtimeseries_xaxis)
+								Mads.plotseries(well_signals ./ NMFk.maximumnan(well_signals), "$figuredir/$(Wcasefilename)-$(k)-$(l)-timeseries.$(plotseriesformat)"; title=string(l), xaxis=Wtimeseries_xaxis, xmin=minimum(Wtimeseries_xaxis), xmax=maximum(Wtimeseries_xaxis), vsize=Wtimeseries_vsize, hsize=Wtimeseries_hsize, names=string.(clusterlabels))
+							else
+								@warn("No signals found for location $(l)!")
+							end
+						end
+					end
+				end
+			end
+			if createdendrogramsonly || createplots
+				try
+					@info("W ($(Wcasefilename)) matrix dendrogram plotting ...")
+					NMFk.plotdendrogram(W_plot[W_cs_plot, signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[W_importance_indexing][W_cs_plot], minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+					NMFk.plotdendrogram(W_plot_row[W_cs_plot, signalmap]; filename="$figuredir/$(Wcasefilename)-$(k)-remappped-sorted-dendrogram-row.$(plotmatrixformat)", metricheat=nothing, xticks=clusterlabels, yticks=yticks[W_importance_indexing][W_cs_plot], minor_label_font_size=Wmatrix_font_size, vsize=Wdendrogram_vsize, hsize=Wdendrogram_hsize, color=dendrogram_color, background_color=background_color, quiet=quiet)
+				catch errmsg
+					!veryquiet && println(errmsg)
+					@warn("W ($(Wcasefilename)) matrix dendrogram plotting failed!")
+				end
+			end
+		end
+		if createbiplots
+			@info("Biplotting W ($(Wcasefilename)) matrix matrix ...")
+			createbiplotsall && NMFk.biplots(Wm, Wnames, collect(1:k); smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-original.$(biplotformat)", background_color=background_color, types=W_labels_new, plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+			NMFk.biplots(Wm[W_cs_plot, signalmap], Wnames[W_cs_plot], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, types=W_labels_new[W_cs_plot], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+			length(Wtypes) > 0 && NMFk.biplots(Wm[W_cs_plot, signalmap], Wnames[W_cs_plot], clusterlabels; smartplotlabel=true, filename="$figuredir/$(Wcasefilename)-$(k)-biplots-type.$(biplotformat)", background_color=background_color, colors=Wcolors[W_cs_plot], plotlabel=Wbiplotlabel, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size)
+		end
+		if createbiplots && createbiplotsall
+			@info("Biplotting combined W and H matrices ...")
+			if biplotlabel == :W
+				biplotlabels = [Wnames_label; fill("", length(Hnames))]
+				biplotlabelflag = true
+			elseif biplotlabel == :WH
+				biplotlabels = [Wnames_label; Hnames_label]
+				biplotlabelflag = true
+			elseif biplotlabel == :H
+				biplotlabels = [fill("", length(Wnames)); Hnames_label]
+				biplotlabelflag = true
+			elseif biplotlabel == :none
+				biplotlabels = [fill("", length(Wnames)); fill("", length(Hnames))]
+				biplotlabelflag = false
+			end
+			Wbiplottypecolors = length(Wtypes) > 0 ? Wcolors : set_typecolors(W_labels_new, Wcolors)
+			Hbiplottypecolors = length(Htypes) > 0 ? Hcolors : set_typecolors(W_labels_new, Hcolors)
+			if biplotcolor == :W
+				biplotcolors = [Wbiplottypecolors; fill("gray", length(Hnames))]
+			elseif biplotcolor == :WH
+				Hbiplottypecolors = length(Htypes) > 0 ? Hcolors : set_typecolors(W_labels_new, Hcolors[k + 1:end])
+				biplotcolors = [Wbiplottypecolors; Hbiplottypecolors]
+			elseif biplotcolor == :H
+				biplotcolors = [fill("gray", length(Wnames)); Hbiplottypecolors]
+			elseif biplotcolor == :none
+				biplotcolors = [fill("blue", length(Wnames)); fill("red", length(Hnames))]
+			end
+
+			# Define M before first use (original code referenced it before assignment).
+			if biplotcolor == :H
+				M_base = [permutedims(Ha ./ maximum(Ha)); Wa ./ maximum(Wa)]
+			else
+				M_base = [Wa ./ maximum(Wa); permutedims(Ha ./ maximum(Ha))]
+			end
+			NMFk.biplots(M_base, biplotlabels, collect(1:k); smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-original.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+			M = M_base[:, signalmap]
+			NMFk.biplots(M, biplotlabels, clusterlabels; smartplotlabel=true, filename="$figuredir/all-$(k)-biplots-labeled.$(biplotformat)", background_color=background_color, typecolors=biplotcolors, plotlabel=biplotlabelflag, sortmag=sortmag, plotmethod=plotmethod, point_size_nolabel=point_size_nolabel, point_size_label=point_size_label, separate=biplotseparate, point_label_font_size=biplot_point_label_font_size, quiet=quiet)
+		end
+	end
+
+	# generate association tables
+	if cutoff_s > 0
+		attributesl = Wsize > 1 ? repeat(Wnames; inner=Wsize) : Wnames
+		Xe = W[k] * Ha
+		local table = Hnames
+		local table2 = Hnames
+		local table3 = Hnames
+		for i = 1:k
+			Xek = (W[k][:, i:i] * Ha[i:i, :]) ./ Xe
+			Xekm = Xek .> cutoff_s
+			o = findmax(Xek; dims=1)
+			table = hcat(table, map(i -> attributesl[i], map(i -> o[2][i][1], eachindex(Hnames))))
+			table2 = hcat(table2, map(i -> attributesl[Xekm[:, i]], eachindex(Hnames)))
+			table3 = hcat(table3, map(i -> sum(Xekm[:, i]), eachindex(Hnames)))
+		end
+		if !isnothing(lon) && !isnothing(lat)
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_max.csv", [lon lat table], ',')
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_$(cutoff_s).csv", [lon lat table2], ';')
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_count_$(cutoff_s).csv", [lon lat table3], ',')
+		else
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_max.csv", table, ',')
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_$(cutoff_s).csv", table2, ';')
+			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k)-table_count_$(cutoff_s).csv", table3, ',')
+		end
+		local table = attributesl
+		local table2 = attributesl
+		local table3 = attributesl
+		for i = 1:k
+			Xek = (W[k][:, i:i] * Ha[i:i, :]) ./ Xe
+			Xekm = Xek .> cutoff_s
+			o = findmax(Xek; dims=2)
+			table = hcat(table, map(i -> Hnames[i], map(i -> o[2][i][2], eachindex(attributesl))))
+			table2 = hcat(table2, map(i -> Hnames[Xekm[i, :]], eachindex(attributesl)))
+			table3 = hcat(table3, map(i -> sum(Xekm[i, :]), eachindex(attributesl)))
+		end
+		DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k)-table_max.csv", table, ',')
+		DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k)-table_$(cutoff_s).csv", table2, ';')
+		DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k)-table_count_$(cutoff_s).csv", table3, ',')
+	end
+
+	return Wrepeats, Hrepeats, hover
 end
 
 function getmissingattributes(X::AbstractMatrix, attributes::AbstractVector, locationclusters::AbstractVector; locationmatrix::Union{Nothing,AbstractMatrix}=nothing, attributematrix::Union{Nothing,AbstractMatrix}=nothing, dims::Integer=2, plothistogram::Bool=false, quiet::Bool=true)
