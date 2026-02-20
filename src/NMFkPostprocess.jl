@@ -506,7 +506,7 @@ function postprocess(options::PostprocessOptions,
 	# Track explicit overrides when both provide the same key.
 	for k in intersect(keys(opt_nt), keys(kw_nt))
 		if opt_nt[k] != kw_nt[k]
-			@warn "Postprocess option overridden" key=k option_value=opt_nt[k] kw_value=kw_nt[k]
+			@warn("Postprocess option overridden: key=$(k) option_value=$(opt_nt[k]) kw_value=$(kw_nt[k])")
 		end
 	end
 	merged = merge(opt_nt, kw_nt)
