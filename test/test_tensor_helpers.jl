@@ -96,6 +96,19 @@ Test.@testset "Tensor + flatten helpers" begin
 			quiet=true,
 		)
 		Test.@test length(R2) == 3
+
+		opts = NMFk.ExecuteOptions(
+			; casefilename="tfexec_opts",
+			resultdir=tmp,
+			loadonly=true,
+			load=true,
+			save=false,
+			method=:simple,
+			quiet=true,
+			dims=1:3,
+		)
+		R3 = Suppressor.@suppress NMFk.execute(X, 1, 1, opts)
+		Test.@test length(R3) == 3
 	end
 
 end

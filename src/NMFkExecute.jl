@@ -3,6 +3,67 @@ import JLD
 import Serialization
 import SHA
 
+"""
+    ExecuteOptions
+
+Configuration container for `NMFk.execute`.
+
+This is an additive, backwards-compatible way to avoid very long keyword lists
+at call sites. The existing keyword-based `execute` methods remain the primary
+implementation; these options-based overloads simply forward to them.
+"""
+Base.@kwdef struct ExecuteOptions
+	cutoff::Float64 = 0.5
+	clusterWmatrix::Bool = false
+	mixture::Symbol = :null
+	method::Symbol = :simple
+	algorithm::Symbol = :multdiv
+	resultdir::String = "."
+	load::Bool = true
+	save::Bool = true
+	casefilename::String = ""
+	dims::Any = 1:2
+	loadonly::Bool = false
+	quiet::Bool = false
+	check_inputs::Bool = true
+	ordersignals::Bool = true
+end
+
+"Execute NMFk analysis for a range of number of signals (options overload)"
+function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitRange{Int}}, nNMF::Integer, opts::ExecuteOptions; kw...) where {T <: Number, N}
+	return NMFk.execute(X, nkrange, nNMF;
+		cutoff=opts.cutoff,
+		clusterWmatrix=opts.clusterWmatrix,
+		mixture=opts.mixture,
+		method=opts.method,
+		algorithm=opts.algorithm,
+		resultdir=opts.resultdir,
+		load=opts.load,
+		save=opts.save,
+		casefilename=opts.casefilename,
+		dims=opts.dims,
+		kw...)
+end
+
+"Execute NMFk analysis for a given number of signals (options overload)"
+function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer, opts::ExecuteOptions; kw...) where {T <: Number, N}
+	return NMFk.execute(X, nk, nNMF;
+		clusterWmatrix=opts.clusterWmatrix,
+		mixture=opts.mixture,
+		method=opts.method,
+		algorithm=opts.algorithm,
+		resultdir=opts.resultdir,
+		casefilename=opts.casefilename,
+		loadonly=opts.loadonly,
+		load=opts.load,
+		save=opts.save,
+		quiet=opts.quiet,
+		check_inputs=opts.check_inputs,
+		ordersignals=opts.ordersignals,
+		dims=opts.dims,
+		kw...)
+end
+
 function hash_sha256_hex(X)
 	io = IOBuffer()
 	Serialization.serialize(io, X)
