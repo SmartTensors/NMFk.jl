@@ -379,6 +379,141 @@ function postprocess(W::AbstractMatrix, H::AbstractMatrix, aw...; kw...)
 	NMFk.postprocess(kopt, Wvector, Hvector, aw...; kw...)
 end
 
+"""
+    PostprocessOptions
+
+Container for `postprocess` options.
+
+This is intentionally lightweight: it stores only explicitly provided option
+values as a `NamedTuple` so callers can keep `postprocess` call sites short.
+"""
+struct PostprocessOptions{T<:NamedTuple}
+	values::T
+end
+
+PostprocessOptions() = PostprocessOptions((;))
+PostprocessOptions(; kw...) = PostprocessOptions((; kw...))
+
+const _POSTPROCESS_ALLOWED_KEYS = Set{Symbol}([
+	:Wnames,
+	:Hnames,
+	:ordersignals,
+	:plot_important_size,
+	:Wtimeseries_locations_size,
+	:W_important,
+	:Htimeseries_locations_size,
+	:H_important,
+	:clusterW,
+	:clusterH,
+	:loadassignements,
+	:Wsize,
+	:Hsize,
+	:Wmap,
+	:Hmap,
+	:Worder,
+	:Horder,
+	:lon,
+	:lat,
+	:hover,
+	:resultdir,
+	:figuredir,
+	:Wcasefilename,
+	:Hcasefilename,
+	:Wtypes,
+	:Htypes,
+	:Wcolors,
+	:Hcolors,
+	:dendrogram_color,
+	:background_color,
+	:createdendrogramsonly,
+	:createplots,
+	:creatematrixplotsall,
+	:createbiplots,
+	:createbiplotsall,
+	:Wbiplotlabel,
+	:Hbiplotlabel,
+	:adjustbiplotlabel,
+	:biplotlabel,
+	:biplotcolor,
+	:plottimeseries,
+	:plotmaps,
+	:plotmap_scope,
+	:map_format,
+	:map_kw,
+	:cutoff,
+	:cutoff_s,
+	:cutoff_label,
+	:Wmatrix_font_size,
+	:Hmatrix_font_size,
+	:adjustsize,
+	:vsize,
+	:hsize,
+	:W_vsize,
+	:W_hsize,
+	:H_vsize,
+	:H_hsize,
+	:Wmatrix_vsize,
+	:Wmatrix_hsize,
+	:Wdendrogram_vsize,
+	:Wdendrogram_hsize,
+	:Wtimeseries_vsize,
+	:Wtimeseries_hsize,
+	:Hmatrix_vsize,
+	:Hmatrix_hsize,
+	:Hdendrogram_vsize,
+	:Hdendrogram_hsize,
+	:Htimeseries_vsize,
+	:Htimeseries_hsize,
+	:Wtimeseries_xaxis,
+	:Htimeseries_xaxis,
+	:plotmatrixformat,
+	:biplotformat,
+	:plotseriesformat,
+	:sortmag,
+	:plotmethod,
+	:point_size_nolabel,
+	:point_size_label,
+	:biplotseparate,
+	:biplot_point_label_font_size,
+	:repeats,
+	:Wrepeats,
+	:Hrepeats,
+	:movies,
+	:quiet,
+	:veryquiet,
+])
+
+function _postprocess_validate_keys!(merged::NamedTuple)
+	bad = Symbol[]
+	for k in keys(merged)
+		(k in _POSTPROCESS_ALLOWED_KEYS) || push!(bad, k)
+	end
+	if !isempty(bad)
+		throw(ArgumentError("Unsupported postprocess keyword(s): $(join(string.(sort(bad)), ", "))"))
+	end
+	return nothing
+end
+
+"""Postprocess (options as positional argument)."""
+function postprocess(options::PostprocessOptions,
+		krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer},
+		W::AbstractVector,
+		H::AbstractVector,
+		X::AbstractMatrix=Matrix{Float32}(undef, 0, 0);
+		kw...)
+	opt_nt = options.values
+	kw_nt = (; kw...)
+	# Track explicit overrides when both provide the same key.
+	for k in intersect(keys(opt_nt), keys(kw_nt))
+		if opt_nt[k] != kw_nt[k]
+			@warn "Postprocess option overridden" key=k option_value=opt_nt[k] kw_value=kw_nt[k]
+		end
+	end
+	merged = merge(opt_nt, kw_nt)
+	_postprocess_validate_keys!(merged)
+	return NMFk.postprocess(krange, W, H, X; merged...)
+end
+
 function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},Integer}, W::AbstractVector, H::AbstractVector, X::AbstractMatrix=Matrix{Float32}(undef, 0, 0); Wnames::AbstractVector=["W$i" for i in axes(W[krange[1]], 1)],
 		Hnames::AbstractVector=["H$i" for i in axes(H[krange[1]], 2)],
 		ordersignals::Symbol=:importance, plot_important_size::Integer=30, Wtimeseries_locations_size::Integer=3, W_important::AbstractVector=[], Htimeseries_locations_size::Integer=3, H_important::AbstractVector=[],

@@ -52,6 +52,9 @@ Test.@testset "NMFk" begin
 
 		# Unit tests for griddata and related helpers
 		include("test_griddata.jl")
+
+		# Options-based entrypoint for postprocess
+		include("test_postprocess_options.jl")
 	end
 
 	Test.@testset "Integration / Larger Workflows" begin
