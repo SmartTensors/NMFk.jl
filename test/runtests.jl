@@ -10,6 +10,9 @@ Test.@testset "NMFk" begin
 		# Lightweight unit tests for helper utilities
 		include("test_helpers.jl")
 
+		# Tensor-related helpers (flattening, wrapper behavior)
+		include("test_tensor_helpers.jl")
+
 		# Normalization / scaling utilities
 		include("test_normalize.jl")
 
@@ -29,6 +32,9 @@ Test.@testset "NMFk" begin
 	Test.@testset "Execute" begin
 		# Execute input validation and smoke tests
 		include("test_input_checks.jl")
+
+		# Helpers used by execute() for caching/correctness checks
+		include("test_execute_hash.jl")
 		include("test_execute_smoke.jl")
 	end
 
