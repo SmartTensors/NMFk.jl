@@ -173,31 +173,30 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	if load && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
 		if isfile(filename)
-			try
-				if compute_silhouettes_flag
-					sc  = JLD.load(filename, "assignments")
-					@info("Robust k-means analysis results are loaded from file $(filename)!")
-					if length(best_silhouettes) == size(X, 2)
-						return sc
-					else
-						@warn("File $(filename) does not contain correct information! Robust k-means analysis will be executed ...")
-					end
+			f = JLD.load(filename)
+			if compute_silhouettes_flag
+				if haskey(f, "best_silhouettes")
+					sc = f["assignments"]
+					best_silhouettes = f["best_silhouettes"]
+					@info("Robust k-means results loaded from file '$(filename)'!")
+					return sc, best_silhouettes
 				else
-					sc = JLD.load(filename, "assignments")
-					@info("Robust k-means analysis results are loaded from file $(filename)!")
-					return sc
+					@warn("Failed to load best silhouettes results from '$(filename)'; Robust k-means analysis will be executed ...")
 				end
-			catch err
-				@warn("Failed to load robust k-means results from $(filename) ($(typeof(err))); Robust k-means analysis will be executed ...")
+			elseif haskey(f, "assignments")
+				sc = f["assignments"]
+				@info("Robust k-means results loaded from file '$(filename)'!")
+				return sc
+			else
+				@warn("Failed to load robust k-means results from '$(filename)'; Robust k-means analysis will be executed ...")
 			end
 		else
-			@info("File $(filename) does not exist! Robust k-means analysis will be executed ...")
+			@info("File '$(filename)' does not exist! Robust k-means analysis will be executed ...")
 		end
 	end
-	local c = nothing
-	local best_totalcost = Inf
-	local best_mean_silhouette = Inf
-	local best_silhouettes = zeros(size(X, 2))
+	c = nothing
+	best_totalcost = Inf
+	best_silhouettes = zeros(size(X, 2))
 	Xn = zerostoepsilon(X)
 	Xd = nothing
 	if compute_silhouettes_flag
@@ -205,24 +204,23 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	end
 	for i = 1:repeats
 		local c_new
-		Suppressor.@suppress begin
+		Suppressor.@suppress  begin
 			c_new = Clustering.kmeans(X, k; maxiter=maxiter, tol=tol, display=display, distance=distance)
 		end
 		if compute_silhouettes_flag
-			if maximum(c_new.assignments) >= 2
+			if maximum(c_new.assignments) > 1
 				silhouettes = Clustering.silhouettes(c_new, Xd)
 			else
 				@warn("Only one cluster found during k-means clustering; silhouettes set to zero.")
 				silhouettes = zeros(size(X, 2))
 			end
 		else
-			silhouettes = nothing
+			silhouettes = zeros(size(X, 2))
 		end
 		if i == 1 || c_new.totalcost < best_totalcost
 			c = deepcopy(c_new)
 			best_totalcost = c_new.totalcost
 			if compute_silhouettes_flag
-				best_mean_silhouette = Statistics.mean(silhouettes)
 				best_silhouettes = silhouettes
 			end
 		end
@@ -233,11 +231,15 @@ function robustkmeans(X::AbstractMatrix, k::Integer, repeats::Integer=1000; maxi
 	sc = sortclustering(c)
 	if save && casefilename != ""
 		filename = joinpathcheck(resultdir, "$casefilename-$k-$(join(size(X), '_'))-$repeats.jld")
-		JLD.save(filename, "assignments", sc, "best_silhouettes", best_silhouettes)
-		@info("Robust k-means analysis results are saved in file $(filename)!")
+		if compute_silhouettes_flag
+			JLD.save(filename, "assignments", sc, "best_silhouettes", best_silhouettes)
+		else
+			JLD.save(filename, "assignments", sc)
+		end
+		@info("Robust k-means analysis results are saved in file '$(filename)'!")
 	end
 	if compute_silhouettes_flag
-		return sc
+		return sc, best_silhouettes
 	else
 		return sc
 	end
@@ -305,23 +307,24 @@ function labelassignements(c::AbstractVector)
 	return cassignments
 end
 
-function finduniquesignals(X::AbstractMatrix; quiet::Bool=false)
+function _finduniquesignals_impl(X::AbstractMatrix; quiet::Bool=false, maxiters::Union{Nothing,Int}=nothing)
 	k = size(X, 1)
 	@assert k == size(X, 2)
 	signalmap = zeros(Int64, k)
-	Xc = abs.(copy(X)) # absolute value ensures we can handle negative values in the input
+	# Absolute value ensures we can handle negative values in the input
+	Xc = abs.(X)
 	Xc[isnan.(Xc)] .= 0.
 	failed = false
-	maxiters = 2 * length(Xc)
+	maxiters = isnothing(maxiters) ? 2 * length(Xc) : maxiters
 	iters = 0
-	while any(signalmap .== 0)
+	while any(==(0), signalmap)
 		iters += 1
 		if iters > maxiters
 			!quiet && @warn("Procedure to find unique signals exceeded iteration budget $(maxiters); aborting...")
 			failed = true
 			break
 		end
-		if all(Xc .== 0.)
+		if all(iszero, Xc)
 			!quiet && @warn("Procedure to find unique signals could not identify an optimal solution ...")
 			failed = true
 			break
@@ -333,35 +336,69 @@ function finduniquesignals(X::AbstractMatrix; quiet::Bool=false)
 			break
 		end
 		Xc[rc] = 0.
-		if signalmap[rc[1]] == 0 && !any(signalmap .== rc[2])
+		if signalmap[rc[1]] == 0 && !any(==(rc[2]), signalmap)
 			signalmap[rc[1]] = rc[2]
 		end
 	end
 	o = 0
 	if failed
-		@warn("Procedure to find unique signals failed to find a valid signal map.")
-		@info("Max value in Xc at failure: $(maximum(Xc))")
-		@info("Max rows: $(maximumnan(Xc; dims=1))")
-		@info("Max columns: $(maximumnan(Xc; dims=2))")
-		@info("Signal map at failure: $(signalmap)")
+		if !quiet
+			@warn("Procedure to find unique signals failed to find a valid signal map.")
+			@info("Max value in Xc at failure: $(maximum(Xc))")
+			@info("Max rows: $(maximumnan(Xc; dims=1))")
+			@info("Max columns: $(maximumnan(Xc; dims=2))")
+			@info("Signal map at failure: $(signalmap)")
+		end
 	else
-		@info("Signal map: $(signalmap)")
+		!quiet && @info("Signal map: $(signalmap)")
 		for i = 1:k
 			o += X[i,signalmap[i]]
 		end
 	end
-	return o, signalmap
+	return (o=o, signalmap=signalmap, iters=iters, failed=failed)
+end
+
+function finduniquesignals(X::AbstractMatrix; quiet::Bool=false, fallback::Bool=true)
+	# Run greedy quietly first so successful fallbacks don't spam warnings.
+	res = _finduniquesignals_impl(X; quiet=true)
+	if !res.failed
+		return res.o, res.signalmap
+	end
+	if !fallback
+		# If the caller explicitly disables fallback, preserve the old behavior
+		# of emitting diagnostics when quiet=false.
+		quiet || _finduniquesignals_impl(X; quiet=false)
+		return res.o, res.signalmap
+	end
+
+	# Greedy failed: try a small perturbation-based search.
+	signalmapbest = finduniquesignalsbest(X)
+	if any(==(0), signalmapbest)
+		quiet || _finduniquesignals_impl(X; quiet=false)
+		return res.o, res.signalmap
+	end
+	obest = zero(eltype(X))
+	for i in 1:length(signalmapbest)
+		obest += X[i, signalmapbest[i]]
+	end
+	!quiet && @info("Recovered signal map via fallback: $(signalmapbest)")
+	return obest, signalmapbest
 end
 
 function finduniquesignalsbest(X::AbstractMatrix)
-	o, signalmap = finduniquesignals(X)
+	# Important: use the greedy-only result as the baseline. If we call
+	# `finduniquesignals(X)` with fallback enabled, we can recurse back into this
+	# function when greedy fails.
+	o, signalmap = finduniquesignals(X; quiet=true, fallback=false)
 	k = size(X, 1)
 	obest = o
 	signalmapbest = signalmap
 	for i = 1:k
+		# If the greedy solution failed to assign this row, we cannot "remove" an assigned element for that row.
+		signalmap[i] == 0 && continue
 		Xc = copy(X)
 		Xc[i, signalmap[i]] = 0.
-		o, signalmap = finduniquesignals(Xc; quiet=true)
+		o, signalmap = finduniquesignals(Xc; quiet=true, fallback=false)
 		if o > obest
 			obest = o
 			signalmapbest = signalmap

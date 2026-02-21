@@ -545,11 +545,11 @@ function _resolve_postprocess_settings(; krange,
 			Wcolors,
 			Hcolors,
 			map_kw,
-			plotmaps=false,
+			plotmaps=true,
 			biplotlabel,
 			hover,
-			Wnames_label=string.(Wnames),
-			Hnames_label=string.(Hnames))
+			Wnames_label=eltype(Wnames) <: AbstractString ? Wnames : string.(Wnames),
+			Hnames_label=eltype(Hnames) <: AbstractString ? Hnames : string.(Hnames))
 	end
 	@assert length(Wnames) > 0
 	@assert length(Hnames) > 0
@@ -557,10 +557,10 @@ function _resolve_postprocess_settings(; krange,
 	@assert length(Hnames) == length(Horder)
 	@assert length(Wtimeseries_xaxis) == length(Wnames)
 	@assert length(Htimeseries_xaxis) == length(Hnames)
-	@assert any(Worder .=== nothing) == false
-	@assert any(Horder .=== nothing) == false
+	@assert !any(isnothing, Worder)
+	@assert !any(isnothing, Horder)
 
-	if map_kw == Dict()
+	if isempty(map_kw)
 		if plotmap_scope == :well
 			map_kw = Dict(:showland => false, :size => 5, :scale => 2)
 		end
@@ -591,40 +591,60 @@ function _resolve_postprocess_settings(; krange,
 
 	# Generate signal orderings based on the specified method (importance, cluster, or original).
 	if length(Htypes) > 0
-		if Hcolors == NMFk.colors
+		if Hcolors === NMFk.colors || Hcolors == NMFk.colors
+			# Avoid repeated `Htypes .== t` masks and avoid allocating `unique(Htypes)`.
+			type_to_color = Dict{eltype(Htypes), String}()
+			next_color_index = 1
 			Hcolors = Vector{String}(undef, length(Htypes))
-			for (j, t) in enumerate(unique(Htypes))
-				Hcolors[Htypes .== t] .= NMFk.colors[j]
+			@inbounds for i in eachindex(Htypes)
+				t = Htypes[i]
+				c = get(type_to_color, t, "")
+				if c == ""
+					c = NMFk.colors[next_color_index]
+					type_to_color[t] = c
+					next_color_index += 1
+				end
+				Hcolors[i] = c
 			end
 		end
-		Hnametypes = (Hnames .* " " .* String.(Htypes))[Horder]
+		Hnametypes = [string(Hnames[i], " ", Htypes[i]) for i in Horder]
 	else
-		Hnametypes = Hnames[Horder]
+		# Keep Hnametypes as label strings; avoid repeated `string.(...)` later.
+		Hnametypes = eltype(Hnames) <: AbstractString ? Hnames[Horder] : string.(Hnames[Horder])
 	end
 	if eltype(Hnames) <: AbstractString
-		Hnamesmaxlength = max(length.(Hnames)...)
+		Hnamesmaxlength = maximum(length, Hnames)
 	elseif eltype(Hnames) <: Dates.AbstractDateTime
-		Hnamesmaxlength = max(length.(string.(Hnames))...)
+		Hnamesmaxlength = maximum(x -> length(string(x)), Hnames)
 	else
 		Hnamesmaxlength = 0
 	end
 
 	# Adjust Wnametypes and Wcolors based on Wtypes, ensuring that colors are assigned according to unique types and that names are concatenated with types for labeling.
 	if length(Wtypes) > 0
-		if Wcolors == NMFk.colors
+		if Wcolors === NMFk.colors || Wcolors == NMFk.colors
+			type_to_color = Dict{eltype(Wtypes), String}()
+			next_color_index = 1
 			Wcolors = Vector{String}(undef, length(Wtypes))
-			for (j, t) in enumerate(unique(Wtypes))
-				Wcolors[Wtypes .== t] .= NMFk.colors[j]
+			@inbounds for i in eachindex(Wtypes)
+				t = Wtypes[i]
+				c = get(type_to_color, t, "")
+				if c == ""
+					c = NMFk.colors[next_color_index]
+					type_to_color[t] = c
+					next_color_index += 1
+				end
+				Wcolors[i] = c
 			end
 		end
-		Wnametypes = (Wnames .* " " .* String.(Wtypes))[Worder]
+		Wnametypes = [string(Wnames[i], " ", Wtypes[i]) for i in Worder]
 	else
-		Wnametypes = Wnames[Worder]
+		Wnametypes = eltype(Wnames) <: AbstractString ? Wnames[Worder] : string.(Wnames[Worder])
 	end
 	if eltype(Wnames) <: AbstractString
-		Wnamesmaxlength = max(length.(Wnames)...)
+		Wnamesmaxlength = maximum(length, Wnames)
 	elseif eltype(Wnames) <: Dates.AbstractDateTime
-		Wnamesmaxlength = max(length.(string.(Wnames))...)
+		Wnamesmaxlength = maximum(x -> length(string(x)), Wnames)
 	else
 		Wnamesmaxlength = 0
 	end
@@ -632,8 +652,8 @@ function _resolve_postprocess_settings(; krange,
 	# Reorder Wnames and Hnames according to Worder and Horder.
 	Wnames = Wnames[Worder]
 	Hnames = Hnames[Horder]
-	Wnames_label = string.(Wnames)
-	Hnames_label = string.(Hnames)
+	Wnames_label = eltype(Wnames) <: AbstractString ? Wnames : string.(Wnames)
+	Hnames_label = eltype(Hnames) <: AbstractString ? Hnames : string.(Hnames)
 
 	# Validate the lengths of lon and lat coordinates.
 	if plotmaps && !isnothing(lon) && !isnothing(lat)
@@ -712,9 +732,10 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		repeats::Integer=1000, Wrepeats::Integer=repeats, Hrepeats::Integer=repeats, movies::Bool=true,
 		quiet::Bool=false, veryquiet::Bool=true)
 	if length(krange) == 0
-		@warn("No optimal solutions")
+		@warn("Provided k range is empty $(krange). No optimal solutions to postprocess.")
 		return
 	end
+	@info("Resolving postprocessing settings ...")
 	resolved = _resolve_postprocess_settings(; krange=krange,
 		Wnames=Wnames,
 		Hnames=Hnames,
@@ -914,24 +935,21 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 
 		# Signal importance order based on H clustering
 		if clusterH
-			reduced = false
+			Hrepeats_old = Hrepeats
 			if size(Ha, 1) > 100_000 && Hrepeats > 1
 				Hrepeats = 1
-				reduced = true
 			elseif size(Ha, 1) > 10_000 && Hrepeats > 10
 				Hrepeats = 10
-				reduced = true
 			elseif size(Ha, 1) > 1_000 && Hrepeats > 100
 				Hrepeats = 100
-				reduced = true
 			end
-			reduced && @warn("Number of repeats $(Hrepeats) is too high for the matrix size $(size(Ha))! The number of repeats reduced to $(Hrepeats).")
+			Hrepeats_old != Hrepeats && @warn("Number of repeats $(Hrepeats_old) is too high for the matrix size $(size(Ha))! The number of repeats reduced to $(Hrepeats).")
 			if count(Hmask_nan_cols) > 0
 				@info("Masking NaN cols in H matrix for clustering with average row values...")
 				v = NMFk.meannan(Ha[:, .!Hmask_nan_cols]; dims=2)
 				Ha[:, Hmask_nan_cols] .= repeat(v, inner=(count(Hmask_nan_cols), 1))
 			end
-			robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, compute_silhouettes_flag=size(Ha, 1) <= 1000)
+			robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, compute_silhouettes_flag=false)
 			H_labels = NMFk.labelassignements(robustkmeans_results.assignments)
 			@info("Cluster labels: $(H_labels)")
 			if count(Hmask_nan_cols) > 0
@@ -961,7 +979,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 				v = NMFk.meannan(Wa[.!Wmask_nan_rows, :]; dims=1)
 				Wa[Wmask_nan_rows, :] .= repeat(v, inner=(sum(Wmask_nan_rows), 1))
 			end
-			robustkmeans_results = NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, compute_silhouettes_flag=size(Wa, 1) <= 1000)
+			robustkmeans_results = NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, compute_silhouettes_flag=false)
 			W_labels = NMFk.labelassignements(robustkmeans_results.assignments)
 			if count(Wmask_nan_rows) > 0
 				Wa[Wmask_nan_rows, :] .= NaN
@@ -1271,7 +1289,8 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 			if !isnothing(lon) && (length(lon) != length(W_labels_new)) && (length(lon) != length(W_labels_new))
 				@warn("Length of lat/lon coordinates ($(length(lon))) does not match the number of either W matrix rows ($(length(W_labels_new))) or H matrix columns ($(length(W_labels_new)))!")
 			end
-			yticks = string.(Wnames) .* " " .* string.(W_labels_new)
+			Wnames_str = eltype(Wnames) <: AbstractString ? Wnames : string.(Wnames)
+			yticks = Wnames_str .* " " .* string.(W_labels_new)
 			if (createdendrogramsonly || createplots || creatematrixplotsall)
 				if length(Wranking) > plot_important_size
 					@warn("W ($(Wcasefilename)) matrix has too many rows to plot; selecting $(plot_important_size) rows (ensuring one per cluster label) ...")
@@ -1457,6 +1476,7 @@ function _postprocess_one_k!(Sorder::AbstractVector,
 		Wrepeats::Integer,
 		Hrepeats::Integer,
 		hover)
+	@info("Postprocessing k=$k ...")
 	(; Wnames, Hnames,
 		Wnametypes, Hnametypes,
 		Wnamesmaxlength, Hnamesmaxlength,
@@ -1633,7 +1653,8 @@ function _postprocess_one_k!(Sorder::AbstractVector,
 			v = NMFk.meannan(Ha[:, .!Hmask_nan_cols]; dims=2)
 			Ha[:, Hmask_nan_cols] .= repeat(v, inner=(count(Hmask_nan_cols), 1))
 		end
-		robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=loadassignements, save=true, compute_silhouettes_flag=size(Ha, 1) <= 1000)
+		@info("Clustering $(Hcasefilename) matrix with k=$k and repeats=$Hrepeats ...")
+		robustkmeans_results = NMFk.robustkmeans(Ha, k, Hrepeats; resultdir=resultdir, casefilename="Hmatrix", load=false, save=true, compute_silhouettes_flag=false)
 		H_labels = NMFk.labelassignements(robustkmeans_results.assignments)
 		@info("Cluster labels: $(H_labels)")
 		if count(Hmask_nan_cols) > 0
@@ -1646,24 +1667,21 @@ function _postprocess_one_k!(Sorder::AbstractVector,
 
 	# Signal importance order based on W clustering
 	if clusterW
-		reduced = false
+		Wrepeats_old = Wrepeats
 		if size(Wa, 1) > 100_000 && Wrepeats > 1
 			Wrepeats = 1
-			reduced = true
 		elseif size(Wa, 1) > 10_000 && Wrepeats > 10
 			Wrepeats = 10
-			reduced = true
 		elseif size(Wa, 1) > 1_000 && Wrepeats > 100
 			Wrepeats = 100
-			reduced = true
 		end
-		reduced && @warn("Number of repeats $(Wrepeats) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
+		Wrepeats_old != Wrepeats && @warn("Number of repeats $(Wrepeats_old) is too high for the matrix size $(size(Wa))! The number of repeats reduced to $(Wrepeats).")
 		if count(Wmask_nan_rows) > 0
 			@info("Masking NaN rows in W matrix for clustering with average col values ...")
 			v = NMFk.meannan(Wa[.!Wmask_nan_rows, :]; dims=1)
 			Wa[Wmask_nan_rows, :] .= repeat(v, inner=(sum(Wmask_nan_rows), 1))
 		end
-		robustkmeans_results = NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, compute_silhouettes_flag=size(Wa, 1) <= 1000)
+		robustkmeans_results = NMFk.robustkmeans(permutedims(Wa), k, Wrepeats; resultdir=resultdir, casefilename="Wmatrix", load=loadassignements, save=true, compute_silhouettes_flag=false)
 		W_labels = NMFk.labelassignements(robustkmeans_results.assignments)
 		if count(Wmask_nan_rows) > 0
 			Wa[Wmask_nan_rows, :] .= NaN
@@ -1740,7 +1758,7 @@ function _postprocess_one_k!(Sorder::AbstractVector,
 		@assert signalmap == sortperm(clustermap)
 		@assert clustermap[signalmap] == clusterlabels
 		dumpcsv = true
-		if plotmaps && length(lon) == length(W_labels_new)
+		if plotmaps && length(lon) == length(H_labels)
 			if isnothing(hover)
 				hover = Hnames
 			end
@@ -1749,9 +1767,9 @@ function _postprocess_one_k!(Sorder::AbstractVector,
 				hover = []
 			end
 			if plotmap_scope == :well
-				NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, W_labels_new; figuredir=figuredir, hover=hover, title="Signals: $k")
+				NMFk.plot_wells("$(Hcasefilename)-$(k)-map.$(map_format)", lon, lat, H_labels; figuredir=figuredir, hover=hover, title="Signals: $k")
 			elseif plotmap_scope == :mapbox || plotmap_scope == :mapbox_contour
-				NMFk.mapbox(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
+				NMFk.mapbox(lon, lat, H_labels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, title="Signals: $k", map_kw...)
 				NMFk.mapbox(lon, lat, Hm[:, signalmap], clusterlabels; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), text=hover, showlabels=true, map_kw...)
 				if plotmap_scope == :mapbox_contour
 					for (i, c) in enumerate(clusterlabels)
@@ -1775,15 +1793,16 @@ function _postprocess_one_k!(Sorder::AbstractVector,
 					end
 				end
 			end
-		else
-			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Hnames lon lat Hm[:, signalmap] W_labels_new], ',')
+			@info("Not plotting map; saving H matrix with cluster labels to CSV file ...")
+			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Hnames lon lat Hm[:, signalmap] H_labels], ',')
 			dumpcsv = false
-			NMFk.plotmaps(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Hcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
 		end
 		if dumpcsv
-		DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Hnames Hm[:, signalmap] W_labels_new], ',')
+			@info("Saving H matrix with cluster labels to CSV file ...")
+			DelimitedFiles.writedlm("$resultdir/$(Hcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Hnames Hm[:, signalmap] H_labels], ',')
 		end
-		yticks = string.(Hnames) .* " " .* string.(W_labels_new)
+		Hnames_str = eltype(Hnames) <: AbstractString ? Hnames : string.(Hnames)
+		yticks = Hnames_str .* " " .* string.(W_labels_new)
 		if (createdendrogramsonly || createplots || creatematrixplotsall)
 		if length(Hranking) > plot_important_size
 			@warn("H ($(Hcasefilename)) matrix has too many columns to plot; only plotting top $(plot_important_size) columns!")
@@ -1961,10 +1980,12 @@ function _postprocess_one_k!(Sorder::AbstractVector,
 			else
 				NMFk.plotmaps(lon, lat, W_labels_new; filename=joinpath(figuredir, "$(Wcasefilename)-$(k)-map.$(map_format)"), title="Signals: $k", scope=string(plotmap_scope), map_kw...)
 			end
+			@info("Saving W matrix with cluster labels and coordinates to CSV file ...")
 			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" "X" "Y" permutedims(clusterlabels) "Signal"]; Wnames lon lat Wm[:, signalmap] W_labels_new], ',')
 			dumpcsv = false
 		end
 		if dumpcsv
+			@info("Saving W matrix with cluster labels to CSV file ...")
 			DelimitedFiles.writedlm("$resultdir/$(Wcasefilename)-$(k).csv", [["Name" permutedims(clusterlabels) "Signal"]; Wnames Wm[:, signalmap] W_labels_new], ',')
 		end
 		if !isnothing(lon) && (length(lon) != length(W_labels_new)) && (length(lon) != length(W_labels_new))
