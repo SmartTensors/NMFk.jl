@@ -426,6 +426,17 @@ function mapbox(
 ) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
+	if count(isinf, color) == length(color)
+		@warn("All color values are non-finite! Something may be wrong with the color data or its parsing.")
+	elseif count(isnan, color) == length(color)
+		@warn("All color values are NaN's! Something may be wrong with the color data or its parsing.")
+	elseif count(ismissing, color) == length(color)
+		@warn("All color values are missing! Something may be wrong with the color data or its parsing.")
+	elseif count(ismissing, color) + count(isnan, color) + count(isinf, color) == length(color)
+		@warn("Color vector contains non-valid entries! Something may be wrong with the color data or its parsing.")
+	elseif length(unique(color)) == 1
+		@warn("Only one unique color value found! Something may be wrong with the color data or its parsing (unique value = $(unique(color)))")
+	end
 	if length(text) > 0
 		@assert length(lon) == length(text)
 	else
@@ -521,6 +532,9 @@ function mapbox(
 ) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
+	if length(unique(color)) == 1
+		@warn("Only one unique color value found! Something may be wrong with the color data or its parsing (unique value = $(unique(color)))")
+	end
 	if length(text) > 0
 		@assert length(lon) == length(text)
 	else
