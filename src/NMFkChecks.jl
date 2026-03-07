@@ -142,7 +142,7 @@ checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 function maskvector(x::AbstractVector)
 	ism = .!ismissing.(x) .& .!isnothing.(x)
 	xt = identity.(x[ism])
-	if eltype(xt) <: AbstractFloat
+	if eltype(xt) <: Real
 		isn = .!isnan.(xt)
 		xt = xt[isn]
 		ism[ism .== 1] .= isn

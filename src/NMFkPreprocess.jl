@@ -4,7 +4,7 @@ import Statistics
 import StatsBase
 import Mads
 
-function log10s(x::AbstractFloat; min::Number=log10(eps(typeof(x))))
+function log10s(x::Real; min::Number=log10(eps(typeof(x))))
 	return x ≈ 0 ? min : log10(x)
 end
 
@@ -225,7 +225,7 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 	end
 	# Choose the value used to represent "NaN" placeholders ("", nanstring) when targeting floats.
 	# NOTE: Under current defaults, `missing` and `nothing` are converted to `missing` (not NaN).
-	nan_value = (type <: AbstractFloat) && enforce_nan ? type(NaN) : missing
+	nan_value = (type <: Real) && enforce_nan ? type(NaN) : missing
 
 	# If input is a concrete string array but we're going to write non-strings
 	# (NaN/missing), widen to an Any container.
@@ -264,7 +264,7 @@ function processdata!(M::AbstractArray, type::DataType=Float32; nanstring::Abstr
 			isn = isnothing.(v)
 			if sum(isn) > 0
 				if !string_ok
-					if (type <: AbstractFloat) && enforce_nan
+					if (type <: Real) && enforce_nan
 						v[isn] .= type(NaN)
 					else
 						v_any = convert(Vector{Any}, v)
@@ -382,7 +382,7 @@ end
 
 function remap(v::AbstractVector{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Vector{T}(undef, length(mapping))
-	if T <: AbstractFloat
+	if T <: Real
 		o .= T(NaN)
 	else
 		o .= zero(T)
@@ -394,7 +394,7 @@ end
 
 function remap(v::AbstractMatrix{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Matrix{T}(undef, length(mapping), size(v, 2))
-	if T <: AbstractFloat
+	if T <: Real
 		o .= T(NaN)
 	else
 		o .= zero(T)

@@ -333,11 +333,11 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
 	end
 	if all(histall.weights .== 0) # Fix for StatsBase bug
-		s = typeof(histall.edges[1].step) <: AbstractFloat ? histall.edges[1].step : histall.edges[1].step.hi
+		s = typeof(histall.edges[1].step) <: Real ? histall.edges[1].step : histall.edges[1].step.hi
 		edges = histall.edges[1] .- s
 		histall = StatsBase.fit(StatsBase.Histogram, data, edges; closed=closed)
 	end
-	# if typeof(histall.edges[1].step) <: Integer || typeof(histall.edges[1].step) <: AbstractFloat
+	# if typeof(histall.edges[1].step) <: Integer || typeof(histall.edges[1].step) <: Real
 	# 	newedges = histall.edges[1][1]:histall.edges[1].step/refine:histall.edges[1][end]
 	# else
 	# 	newedges = histall.edges[1][1]:histall.edges[1].step.hi/refine:histall.edges[1][end]

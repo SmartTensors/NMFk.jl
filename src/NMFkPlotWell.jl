@@ -10,7 +10,7 @@ function plot_dots(x::AbstractVector, y::AbstractVector, z::AbstractVector; hove
 	@assert length(x) == length(y)
 	@assert length(x) == length(z)
 	l = isnothing(label) ? Dict(:mode=>"markers") : Dict(:mode=>"markers+text", :text=>label, :textposition=>"left center")
-	if eltype(z) <: AbstractFloat
+	if eltype(z) <: Real
 		h = isnothing(hover) ? Dict() : Dict(:hovertext=>hover, :hoverinfo=>"text")
 		p = PlotlyJS.scatter(; x=x, y=y, z=z, l..., marker=PlotlyJS.attr(; size=pointsize, color=z, colorscale=colorscale(:turbo), colorbar=PlotlyJS.attr(; thickness=20)), h...)
 	else

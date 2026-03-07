@@ -183,7 +183,7 @@ function plotmap(df::DataFrames.DataFrame; namesmap::AbstractVector=names(df), f
 end
 
 # Plot a scatter geo map (continuous color scale)
-function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=5, marker_size_fig::Number=10, font_size::Number=14, font_size_fig::Number=46, width::Int=2800, height::Int=1400, scale::Real=1, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=5, marker_size_fig::Number=10, font_size::Number=14, font_size_fig::Number=46, width::Int=2800, height::Int=1400, scale::Real=1, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Real}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
@@ -229,7 +229,7 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 end
 
 # Plot a scatter geo map (categorical)
-function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=10, showland::Bool=true, kw...) where {T1 <: AbstractFloat, T2 <: Union{Integer, AbstractString, AbstractChar}}
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=10, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Union{Integer, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)

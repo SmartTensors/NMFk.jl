@@ -336,7 +336,7 @@ function mapbox(df::DataFrames.DataFrame; namesmap=names(df), column::Union{Symb
 end
 
 # Mapbox for a matrix with multiple columns
-function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i in axes(M, 2)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, quiet::Bool=false, kw...) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+function mapbox(lon::AbstractVector{T1}, lat::AbstractVector{T1}, M::AbstractMatrix{T2}, names::AbstractVector=["Column $i" for i in axes(M, 2)]; filename::AbstractString="", title::AbstractString="", title_colorbar::AbstractString=title, title_length::Number=0, quiet::Bool=false, kw...) where {T1 <: Real, T2 <: Real}
 	fileroot, fileext = splitext(filename)
 	for i in eachindex(names)
 		println("Plotting '$(names[i])' ...")
@@ -360,14 +360,14 @@ end
 function mapbox(
 	lon::AbstractVector{T1},
 	lat::AbstractVector{T1},
-	color::AbstractVector{T2};
+	color::AbstractVector{T2}=zeros(length(lon));
 	zmin::Number=minimumnan(color),
 	zmax::Number=maximumnan(color),
 	title::AbstractString="",
 	title_colorbar::AbstractString=title,
 	title_length::Number=0,
 	text::AbstractVector=[],
-	lon_center::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
+	lon_center::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
@@ -384,7 +384,7 @@ function mapbox(
 	marker_color::AbstractString="purple",
 	marker_size::Number=0,
 	marker_size_fig::Number=marker_size * 2,
-	lat_center::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
+	lat_center::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	zoom_fig::Number=zoom,
 	dot_size::Number=compute_dot_size(lon, lat, zoom),
@@ -423,7 +423,7 @@ function mapbox(
 	show_count::Bool=true, # dummy
 	show_locations::Bool=false, # dummy
 	preset::Symbol=:none, # dummy
-) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+) where {T1 <: Real, T2 <: Real}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	if count(isinf, color) == length(color)
@@ -483,7 +483,7 @@ function mapbox(
 	title_colorbar::AbstractString="",
 	title_length::Number=0,
 	text::AbstractVector=[],
-	lon_center::AbstractFloat=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
+	lon_center::Real=minimumnan(lon) + (maximumnan(lon) - minimumnan(lon)) / 2,
 	font_size::Number=14,
 	font_size_fig::Number=font_size * 2,
 	font_color::AbstractString="black",
@@ -500,7 +500,7 @@ function mapbox(
 	marker_color::AbstractString="purple",
 	marker_size::Number=0,
 	marker_size_fig::Number=marker_size * 2,
-	lat_center::AbstractFloat=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
+	lat_center::Real=minimumnan(lat) + (maximumnan(lat) - minimumnan(lat)) / 2,
 	zoom::Number=compute_zoom(lon, lat),
 	zoom_fig::Number=zoom,
 	dot_size::Number=compute_dot_size(lon, lat, zoom),
@@ -529,7 +529,7 @@ function mapbox(
 	quiet::Bool=false,
 	paper_bgcolor::AbstractString="white",
 	show_count::Bool=true
-) where {T1 <: AbstractFloat, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
+) where {T1 <: Real, T2 <: Union{Number, Symbol, AbstractString, AbstractChar}}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	if length(unique(color)) == 1
@@ -627,7 +627,7 @@ function mapbox(
 	return p
 end
 
-function mapbox(lon::AbstractFloat=-105.9378, lat::AbstractFloat=35.6870; color::AbstractString="purple", text::AbstractString="EnviTrace LLC", dot_size::Number=12, kw...)
+function mapbox(lon::Real=-105.9378, lat::Real=35.6870; color::AbstractString="purple", text::AbstractString="EnviTrace LLC", dot_size::Number=12, kw...)
 	return mapbox([lon], [lat], [color]; text=[text], dot_size=dot_size, legend=false, kw...)
 end
 
@@ -1612,7 +1612,7 @@ function mapbox_contour(
 	progress_every::Int=100,
 	frame_insufficient_data::Bool=false,
 	kw...
-) where {T1 <: AbstractFloat, T2 <: AbstractFloat}
+) where {T1 <: Real, T2 <: Real}
 	start_ns = time_ns()
 	last_ns = start_ns
 	function _logstep(msg; kwargs...)
