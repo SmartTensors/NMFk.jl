@@ -353,10 +353,10 @@ function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector
 	for (i, c) in enumerate(eachcol(x))
 		count_nonmissing[i] = sum(mask_nonmissing(c))
 	end
-	@info("Count of non-missing values: max=$(maximum(count_nonmissing)) min=$(minimum(count_nonmissing))")
+	!quiet && @info("Count of non-missing values: max=$(maximum(count_nonmissing)) min=$(minimum(count_nonmissing))")
 	if sort_by_count
 		indices = sortperm(count_nonmissing; rev=true)
-		@info("Sorting by count of non-missing values!$(count_nonmissing[indices]) ...")
+		!quiet && @info("Sorting by count of non-missing values!$(count_nonmissing[indices]) ...")
 	else
 		indices = collect(axes(x, dim))
 	end
