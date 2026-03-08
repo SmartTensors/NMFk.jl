@@ -1,5 +1,7 @@
 import NMFk
 import Test
+import DataFrames
+import Dates
 
 Test.@testset "checks utilities" begin
 	Test.@testset "maskvector" begin
@@ -29,6 +31,20 @@ Test.@testset "checks utilities" begin
 		result = NMFk.checkmatrix(X; names=["a", "b"], quiet=true, correlation_test=true)
 		Test.@test result.same == Bool[0, 1]
 		Test.@test result.remove == Bool[0, 1]
+	end
+
+	Test.@testset "checkmatrix(DataFrame) flags non-numeric columns" begin
+		df = DataFrames.DataFrame(
+			;x1=[NaN, 45.67, 50.0],
+			x2=[55.23, NaN, 52.0],
+			x3=[missing, "hi", "bye"],
+			x4=[Dates.Date(2019, 1, 1), Dates.Date(2019, 1, 1), Dates.Date(2019, 1, 2)],
+		)
+		result = NMFk.checkmatrix(df; quiet=true, correlation_test=false)
+		Test.@test result.remove == Bool[0, 0, 1, 1]
+		Test.@test result.string == Bool[0, 0, 1, 0]
+		Test.@test result.dates == Bool[0, 0, 0, 1]
+		Test.@test result.any == Bool[0, 0, 0, 0]
 	end
 
 	Test.@testset "checkmatrix_robust + recoupmatrix_rows" begin
