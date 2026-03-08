@@ -58,7 +58,7 @@ function plotmap(W::AbstractMatrix, H::AbstractMatrix, fips::AbstractVector, dim
 end
 
 # Plot a county based (FIPS) heatmap
-function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signalorderassignments::AbstractVector=axes(X, dim); signalid::AbstractVector=axes(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::AbstractString="", figuredir::AbstractString=".", title::Bool=false, datetext::AbstractString="", titletext::AbstractString="", frame_padding_digits::Integer=1 + convert(Int64, ceil(log10(length(signalorderassignments)))), scheme::AbstractString="redyellowgreen", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, cleanup::Bool=true, vspeed::Number=1.0)
+function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signalorderassignments::AbstractVector=axes(X, dim); signalid::AbstractVector=axes(X, dim), us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), dates=nothing, casefilename::AbstractString="", figuredir::AbstractString=".", title::Bool=false, datetext::AbstractString="", titletext::AbstractString="", frame_padding_digits::Integer=1 + convert(Int64, ceil(log10(length(signalorderassignments)))), scheme::AbstractString="turbo", zmin::Number=0, zmax::Number=1, zformat="f", quiet::Bool=false, movie::Bool=false, cleanup::Bool=true, vspeed::Number=1.0)
 	odim = dim == 1 ? 2 : 1
 	@assert size(X, odim) == length(fips[goodcounties])
 	@assert length(signalorderassignments) == length(signalid)
@@ -119,7 +119,7 @@ function plotmap(X::AbstractMatrix, fips::AbstractVector, dim::Integer=1, signal
 end
 
 # Plot a county based (FIPS) heatmap
-function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), casefilename::AbstractString="", figuredir::AbstractString=".", title::AbstractString="", quiet::Bool=false, scheme::AbstractString="category10", zmin::Number=0, zmax::Number=1)
+function plotmap(X::AbstractVector, fips::AbstractVector; us10m=VegaDatasets.dataset("us-10m"), goodcounties::AbstractVector=trues(length(fips)), casefilename::AbstractString="", figuredir::AbstractString=".", title::AbstractString="", quiet::Bool=false, scheme::AbstractString="turbo", zmin::Number=0, zmax::Number=1)
 	recursivemkdir(figuredir; filename=false)
 	@assert length(X) == length(fips)
 	nc = length(unique(sort(X))) + 1
@@ -183,10 +183,15 @@ function plotmap(df::DataFrames.DataFrame; namesmap::AbstractVector=names(df), f
 end
 
 # Plot a scatter geo map (continuous color scale)
-function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=5, marker_size_fig::Number=10, font_size::Number=14, font_size_fig::Number=46, width::Int=2800, height::Int=1400, scale::Real=1, showland::Bool=true, kw...) where {T1 <: Real, T2 <: Real}
+function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::AbstractVector{T2}; figuredir::AbstractString=".", filename::AbstractString="", format::AbstractString=splitext(filename)[end][2:end], title::AbstractString="", text::AbstractVector=repeat([""], length(lon)), scope::AbstractString="usa", projection_type::AbstractString="albers usa", marker_size::Number=5, marker_size_fig::Number=10, font_size::Number=14, font_size_fig::Number=46, width::Int=2800, height::Int=1400, scale::Real=1, showland::Bool=true, cmin::Union{Nothing, Real}=nothing, cmax::Union{Nothing, Real}=nothing, kw...) where {T1 <: Real, T2 <: Real}
 	@assert length(lon) == length(lat)
 	@assert length(lon) == length(color)
 	@assert length(lon) == length(text)
+	isort = sortpermnan(color)
+	color = color[isort]
+	lon = lon[isort]
+	lat = lat[isort]
+	text = text[isort]
 	geo = PlotlyJS.attr(;
 		scope=scope,
 		projection_type=projection_type,
@@ -210,13 +215,24 @@ function plotmap(lon::AbstractVector{T1}, lat::AbstractVector{T1}, color::Abstra
 		return layout
 	end
 	function trace_fig(marker_size::Number, font_size::Number)
+		use_range = !(isnothing(cmin) && isnothing(cmax))
+		local cmin_use
+		local cmax_use
+		if use_range
+			finite_color = color[.!isnan.(color)]
+			isempty(finite_color) && throw(ArgumentError("All color values are NaN; cannot set colorbar range."))
+			cmin_use = isnothing(cmin) ? minimum(finite_color) : cmin
+			cmax_use = isnothing(cmax) ? maximum(finite_color) : cmax
+		end
 		trace = PlotlyJS.scattergeo(;
 			locationmode="USA-states",
 			lon=lon,
 			lat=lat,
 			hoverinfo="text",
 			text=text,
-			marker=PlotlyJS.attr(; size=marker_size, color=color, colorscale=NMFk.colorscale(:turbo), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, tickfont_size=font_size), line_width=0, line_color="black"))
+			marker=use_range ?
+				PlotlyJS.attr(; size=marker_size, color=color, colorscale=NMFk.colorscale(:turbo), cauto=false, cmin=cmin_use, cmax=cmax_use, colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, tickfont_size=font_size), line_width=0, line_color="black") :
+				PlotlyJS.attr(; size=marker_size, color=color, colorscale=NMFk.colorscale(:turbo), colorbar=PlotlyJS.attr(; thickness=20, len=0.5, width=100, tickfont_size=font_size), line_width=0, line_color="black"))
 		return trace
 	end
 	if filename != ""
