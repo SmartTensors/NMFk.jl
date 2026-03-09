@@ -114,7 +114,7 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 					if last(splitdir(casefilename)) == ""
 						filename = casefilename * "histogram-$(n)-logtest.png"
 					else
-						filename = casefilename * "-$(n).png"
+						filename = casefilename * "-$(n)-logtest.png"
 					end
 				end
 			else
