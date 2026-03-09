@@ -1,6 +1,6 @@
 name = "NMFk"
 uuid = "e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8"
-version = "1.4.20"
+version = "1.4.21"
 authors = ["Velimir V Vesselinov (monty) <velimir.vesselinov@gmail.com>"]
 
 [deps]
