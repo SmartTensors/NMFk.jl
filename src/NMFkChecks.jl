@@ -8,15 +8,15 @@ function checkarray(D::DataFrames.DataFrame; kw...)
 	return checkarray(Matrix(D); kw...)
 end
 
-function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i -> i > 0, funcfirst::Function=func, funclast::Function=func) where {T <: Number, N}
+function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i -> i > 0, funcfirst::Function=func, funclast::Function=func, quiet::Bool=true) where {T <: Number, N}
 	rangeentry = Vector{AbstractUnitRange{Int64}}(undef, N)
 	# min_firstentry = Vector{Int64}(undef, N)
 	# max_lastentry = Vector{Int64}(undef, N)
 	max_record_length = Vector{Int64}(undef, N)
 	for d = 1:N
-		@info("Dimension $(d) ...")
+		!quiet && @info("Dimension $(d) ...")
 		dd = size(X, d)
-		println("Dimension $(d): size: $(dd)")
+		!quiet && println("Dimension $(d): size: $(dd)")
 		first_entries = Vector{Int64}(undef, dd)
 		last_entries = Vector{Int64}(undef, dd)
 		record_length = Vector{Int64}(undef, dd)
@@ -25,7 +25,7 @@ function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i 
 			nt = ntuple(k -> (k == d ? i : Colon()), N)
 			ix = X[nt...]
 			if i == 1
-				println("Dimension $(d): slice: $(size(ix))")
+				!quiet && println("Dimension $(d): slice: $(size(ix))")
 			end
 			firstentry = Base.findfirst(funcfirst.(ix))
 			# @show nt
@@ -50,24 +50,28 @@ function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i 
 				push!(bad_indices, i)
 			end
 		end
-		if length(bad_indices) > 0
-			println("Dimension $(d): Bad indices: $bad_indices")
-		else
-			println("Dimension $(d): No bad indices!")
-		end
-		ir = sortperm(record_length)
-		if length(record_length[ir]) > 50
-			println("Dimension $(d): Worst 15 entry counts: $(record_length[ir][1:15])")
-			println("Dimension $(d): Best 15 entry counts: $(record_length[ir][end-15:end])")
-		else
-			println("Dimension $(d): Entry counts: $(record_length)")
+		if !quiet
+			if length(bad_indices) > 0
+				println("Dimension $(d): Bad indices: $bad_indices")
+			else
+				println("Dimension $(d): No bad indices!")
+			end
+			ir = sortperm(record_length)
+			if length(record_length[ir]) > 50
+				println("Dimension $(d): Worst 15 entry counts: $(record_length[ir][1:15])")
+				println("Dimension $(d): Best 15 entry counts: $(record_length[ir][end-15:end])")
+			else
+				println("Dimension $(d): Entry counts: $(record_length)")
+			end
 		end
 		mfe = minimum(first_entries)
 		mle = maximum(last_entries)
 		mrl = maximum(record_length)
-		println("Dimension $(d): Maximum entry counts: $(mrl)")
-		println("Dimension $(d): Minimum first  entry: $(mfe)")
-		println("Dimension $(d): Maximum last   entry: $(mle)")
+		if !quiet
+			println("Dimension $(d): Maximum entry counts: $(mrl)")
+			println("Dimension $(d): Minimum first  entry: $(mfe)")
+			println("Dimension $(d): Maximum last   entry: $(mle)")
+		end
 		# @info("Dimension $(d): First entry: $(first_entries)")
 		# @info("Dimension $(d): Last  entry: $(last_entries)")
 		# md[d] = length(bad_indices) > 0 ? bad_indices[1] : 0
@@ -78,19 +82,55 @@ function checkarray(D::AbstractArray{T, N}, cutoff::Integer=0; func::Function=i 
 end
 
 checkarray_nans(X::AbstractArray; kw...) = checkarrayentries(X; kw...)
+checkarrayentries_nans_robust(X::AbstractArray; kw...) = checkarrayentries_robust(X; kw...)
 checkarray_zeros(X::AbstractArray; kw...) = checkarrayentries(X, i -> i > 0; kw...)
 checkarray_count(X::AbstractArray; kw...) = checkarrayentries(X; ecount=true, kw...)
 
 checkarray_nans(D::DataFrames.DataFrame; kw...) = checkarrayentries(Matrix(D); kw...)
+checkarrayentries_nans_robust(D::DataFrames.DataFrame; kw...) = checkarrayentries_robust(Matrix(D); kw...)
 checkarray_zeros(D::DataFrames.DataFrame; kw...) = checkarrayentries(Matrix(D), i -> i > 0; kw...)
 checkarray_count(D::DataFrames.DataFrame; kw...) = checkarrayentries(Matrix(D); ecount=true, kw...)
+
+function checkarrayentries_robust(X::AbstractArray{T, N}, ar...; kw...) where {T <: Number, N}
+	X_work = X
+	row_indices = collect(axes(X_work, 1))
+	col_indices = collect(axes(X_work, 2))
+	row_map = copy(row_indices)
+	col_map = copy(col_indices)
+	row_mask = falses(length(row_indices))
+	col_mask = falses(length(col_indices))
+	while true
+		@info("Checking matrix of size $(size(X_work)) ...")
+		result_mask = checkarrayentries(X_work, ar...; kw..., mask=true)
+		row_mask[row_map[result_mask[1]]] .= true
+		col_mask[col_map[result_mask[2]]] .= true
+		keep_rows = .!result_mask[1]
+		keep_cols = .!result_mask[2]
+		X_work = X_work[keep_rows, keep_cols]
+		row_map = row_map[keep_rows]
+		col_map = col_map[keep_cols]
+		if !(any(result_mask[1]) || any(result_mask[2]))
+			@info("No more rows or columns to remove ...")
+			break
+		end
+		if isempty(row_map) && isempty(col_map)
+			@info("No more rows or columns to check!")
+			break
+		end
+	end
+	@info("Final matrix size: $(size(X_work))")
+	return row_mask, col_mask
+end
 
 function checkarrayentries(D::DataFrames.DataFrame, aw...; kw...)
 	return checkarrayentries(Matrix(D), aw...; kw...)
 end
 
-function checkarrayentries(X::AbstractArray{T, N}, func::Function=.!isnan; quiet::Bool=false, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
+function checkarrayentries(X::AbstractArray{T, N}, func::Function=.!isnan; quiet::Bool=true, mask::Bool=true, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
 	local flag = true
+	if mask
+		ecount = false
+	end
 	return_indices = Vector{Vector{Int64}}(undef, N)
 	for d = 1:N
 		!quiet && @info("Dimension $(d) ...")
@@ -133,7 +173,17 @@ function checkarrayentries(X::AbstractArray{T, N}, func::Function=.!isnan; quiet
 			end
 		end
 	end
-	return return_indices
+	if mask
+		return_mask = Vector{BitVector}(undef, N)
+		for d in 1:N
+			mask_vector = falses(size(X, d))
+			mask_vector[return_indices[d]] .= true
+			return_mask[d] = mask_vector
+		end
+		return return_mask
+	else
+		return return_indices
+	end
 end
 
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
@@ -191,6 +241,10 @@ function checkvector(v::AbstractVector, name::AbstractString=""; cutoff::Integer
 	return result_tuple
 end
 
+function checkmatrix_robust(df::DataFrames.DataFrame; kw...)
+	return checkmatrix_robust(Matrix(df), names(df); kw...)
+end
+
 function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector=["C$i" for i in 1:size(x, 2)]; kw...)
 	@assert length(names) == size(x, 2)
 	x_work = x
@@ -204,7 +258,7 @@ function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector=["C$i" for 
 	local result
 	while true
 		@info("Checking matrix of size $(size(x_work)) ...")
-		result = checkmatrix(x_work; names=names_work, masks=true, quiet=true, kw...)
+		result = checkmatrix(x_work; kw..., names=names_work, masks=true, quiet=true)
 		if any(result.nan_rows)
 			row_mask[row_map[result.nan_rows]] .= true
 		end
@@ -216,7 +270,7 @@ function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector=["C$i" for 
 		x_work = x_work[keep_rows, keep_cols]
 		row_map = row_map[keep_rows]
 		col_map = col_map[keep_cols]
-		names_work = names_work[keep_cols]
+		names_work = copy(names_work[keep_cols])
 		if !(any(result.nan_rows) || any(result.remove))
 			@info("No more rows or columns to remove ...")
 			break
@@ -314,13 +368,14 @@ function _resolve_recoup_fillvalue(T::Type, fillvalue)
 	end
 end
 
-function checkmatrix(df::DataFrames.DataFrame; names::AbstractVector=names(df), kw...)
-	@assert length(names) == DataFrames.ncol(df)
-	return checkmatrix(Matrix(df), 2; names=names, kw...)
+function checkmatrix(df::DataFrames.DataFrame; kw...)
+	return checkmatrix(Matrix(df), 2; names=names(df), kw...)
 end
 
 function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector{<:AbstractString}=String[], quiet::Bool=true, sort_by_count::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
 	number_of_attributes = size(x, dim)
+	@show number_of_attributes
+	@show names
 	@assert length(names) == number_of_attributes
 	mnan_rows = [all(check_ismissing, r) for r in eachrow(x)]
 	cnan_rows = count(mnan_rows)
