@@ -270,7 +270,7 @@ function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector=["C$i" for 
 		x_work = x_work[keep_rows, keep_cols]
 		row_map = row_map[keep_rows]
 		col_map = col_map[keep_cols]
-		names_work = copy(names_work[keep_cols])
+		names_work = copynames_work[keep_cols]
 		if !(any(result.nan_rows) || any(result.remove))
 			@info("No more rows or columns to remove ...")
 			break
@@ -374,8 +374,6 @@ end
 
 function checkmatrix(x::AbstractMatrix, dim::Integer=2; priority::AbstractVector{<:AbstractString}=String[], quiet::Bool=true, sort_by_count::Bool=false, correlation_test::Bool=true, correlation_cutoff::Number=0.99, norm_cutoff::Number=0.01, skewness_cutoff::Number=1., count_cutoff::Integer=0, name::AbstractString=dim == 2 ? "Column" : "Row", names::AbstractVector=["$name $i" for i in axes(x, dim)], masks::Bool=true)
 	number_of_attributes = size(x, dim)
-	@show number_of_attributes
-	@show names
 	@assert length(names) == number_of_attributes
 	mnan_rows = [all(check_ismissing, r) for r in eachrow(x)]
 	cnan_rows = count(mnan_rows)
