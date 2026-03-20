@@ -136,7 +136,7 @@ The code returns the estimated optimal number of signals `kopt`, which in this c
 The code returns the `fitquality` and `robustness`; they can applied to represent how the solutions change with the increase of `k`:
 
 ```julia
-NMFk.plot_signal_selecton(2:5, fitquality, robustness)
+NMFk.plot_signal_selection(2:5, fitquality, robustness)
 ```
 
 <div style="text-align: left">

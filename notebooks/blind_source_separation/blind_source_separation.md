@@ -271,7 +271,7 @@ The optimal number of signals is estimated the following graph showing the quali
 
 
 ```julia
-NMFk.plot_feature_selecton(2:5, fitquality, robustness)
+NMFk.plot_feature_selection(2:5, fitquality, robustness)
 ```
 
 **NMFk** also returns estimates of matrices `W` and `H`.

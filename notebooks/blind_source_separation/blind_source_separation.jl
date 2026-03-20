@@ -24,7 +24,7 @@ Mads.plotseries(X; name="Sensors")
 
 We, He, fitquality, robustness, aic, kopt = NMFk.execute(X, 2:5; save=false, method=:simple);
 
-NMFk.plot_feature_selecton(2:5, fitquality, robustness)
+NMFk.plot_feature_selection(2:5, fitquality, robustness)
 
 We[kopt]
 

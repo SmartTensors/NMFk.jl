@@ -190,7 +190,7 @@ These function names from `src/` *do* appear in `test/` by token match (some may
 - `plot_dots`
 - `plot_heel_toe`
 - `plot_heel_toe_bad`
-- `plot_signal_selecton`
+- `plot_signal_selection`
 - `plot_wells`
 - `plot2dmatrixcomponents`
 - `plotbars`

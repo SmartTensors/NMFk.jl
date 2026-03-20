@@ -301,7 +301,7 @@ A plot of the fit and the robustness is shown below:
 
 
 ```julia
-NMFk.plot_feature_selecton(nkrange, fitquality, robustness)
+NMFk.plot_feature_selection(nkrange, fitquality, robustness)
 ```
 
 
