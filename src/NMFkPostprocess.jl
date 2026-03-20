@@ -670,6 +670,7 @@ function _resolve_postprocess_settings(; krange,
 			throw(ErrorException("Lat/Lon vector lengths do not match!"))
 		end
 	else
+		@warn("Lon/Lat coordinates not provided or incomplete; skipping map plotting.")
 		plotmaps = false
 	end
 
@@ -699,7 +700,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		Wsize::Integer=0, Hsize::Integer=0,
 		Wmap::Union{AbstractVector,AbstractMatrix}=[], Hmap::Union{AbstractVector,AbstractMatrix}=[],
 		Worder::AbstractVector=collect(eachindex(Wnames)), Horder::AbstractVector=collect(eachindex(Hnames)),
-		lon=nothing, lat=nothing, hover=nothing,
+		lon::Union{AbstractVector,Nothing}=nothing, lat::Union{AbstractVector,Nothing}=nothing, hover::Union{AbstractVector,Nothing}=nothing,
 		resultdir::AbstractString=".", figuredir::AbstractString=resultdir,
 		Wcasefilename::AbstractString="locations", Hcasefilename::AbstractString="attributes",
 		Wtypes::AbstractVector=[], Htypes::AbstractVector=[],
@@ -709,7 +710,7 @@ function postprocess(krange::Union{AbstractUnitRange{Int},AbstractVector{Int64},
 		createdendrogramsonly::Bool=false, createplots::Bool=!createdendrogramsonly, creatematrixplotsall::Bool=false, createbiplots::Bool=createplots, createbiplotsall::Bool=false,
 		Wbiplotlabel::Bool=!(length(Wnames) > 20), Hbiplotlabel::Bool=!(length(Hnames) > 20),
 		adjustbiplotlabel::Bool=false, biplotlabel::Symbol=:WH, biplotcolor::Symbol=:WH,
-		plottimeseries::Symbol=:none, plotmaps::Bool=false, plotmap_scope::Symbol=:mapbox_contour, map_format::AbstractString="png",
+		plottimeseries::Symbol=:none, plotmaps::Bool=true, plotmap_scope::Symbol=:mapbox_contour, map_format::AbstractString="png",
 		map_kw::Union{Base.Pairs,NamedTuple,AbstractDict}=Dict(),
 		cutoff::Number=0, # cutoff::Number = 0.9 recommended
  		cutoff_s::Number=0, # cutoff_s::Number = 0.95 recommended
