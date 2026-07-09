@@ -126,62 +126,132 @@ function datanalytics(a::AbstractMatrix{T}, names::AbstractVector; dims::Integer
 	return min, max, std, skewness, count
 end
 
-function indicize(v::AbstractVector; rev::Bool=false, nbins::Integer=length(v), minvalue::Number=minimum(v), maxvalue::Number=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)
-	if !isnothing(stepvalue)
-		if !quiet
-			@info("Initial: $minvalue $maxvalue")
+function _indicize_datebins(v::AbstractVector, minvalue, maxvalue, stepvalue, nbins::Integer)
+	iv = Vector{Int64}(undef, length(v))
+	for i in eachindex(v)
+		value = v[i]
+		if value < minvalue
+			iv[i] = 0
+		elseif value > maxvalue
+			iv[i] = nbins + 1
+		else
+			bin = 1
+			range_max = minvalue + stepvalue
+			while value > range_max
+				bin += 1
+				range_max += stepvalue
+			end
+			iv[i] = bin
 		end
-		if typeof(minvalue) <: Dates.DateTime
+	end
+	return iv
+end
+
+function indicize(v::AbstractVector; rev::Bool=false, nbins=nothing, minvalue=minimum(v), maxvalue=maximum(v), stepvalue=nothing, granulate::Bool=true, quiet::Bool=false)
+	if !quiet
+		@info("Initial: min = $minvalue max = $maxvalue nbins = $nbins stepvalue = $stepvalue")
+	end
+	datebins = false
+	if !isnothing(stepvalue)
+		if typeof(minvalue) <: Dates.Date || typeof(minvalue) <: Dates.DateTime
+			datebins = true
 			if granulate
 				maxvalue = ceil(maxvalue, stepvalue)
 				minvalue = floor(minvalue, stepvalue)
 			end
-			nbins = convert(Int, (maxvalue - minvalue) / convert(Dates.Millisecond, stepvalue))
-		elseif typeof(minvalue) <: Dates.Date
-			if granulate
-				maxvalue = ceil(maxvalue, stepvalue)
-				minvalue = floor(minvalue, stepvalue)
+			nextdate = minvalue + stepvalue
+			@assert nextdate > minvalue "NMFk.jl indicize: stepvalue must advance date bins"
+			if maxvalue == minvalue
+				maxvalue = nextdate
 			end
-			nbins = -1
+			nbins = 0
 			date = minvalue
-			while date <= maxvalue
-				date += stepvalue
+			while date < maxvalue
+				nextdate = date + stepvalue
+				@assert nextdate > date "NMFk.jl indicize: stepvalue must advance date bins"
+				date = nextdate
 				nbins += 1
 			end
 		else
 			if granulate
+				original_maxvalue = maxvalue
+				original_minvalue = minvalue
 				maxvalue = ceil(maxvalue / stepvalue) * stepvalue
 				minvalue = floor(minvalue / stepvalue) * stepvalue
+				maxvalue = max(maxvalue, original_maxvalue)
+				minvalue = min(minvalue, original_minvalue)
 			end
 			nbins = convert(Int, ceil((maxvalue - minvalue) / float(stepvalue)))
 		end
-		if granulate && !quiet
-			@info("Granulated: $minvalue $maxvalue")
+		if !quiet
+			if granulate
+				@info("Granulated: min = $minvalue max = $maxvalue nbins = $nbins stepvalue = $stepvalue")
+			else
+				@info("Calculated nbins = $nbins based on stepvalue = $stepvalue")
+			end
+		end
+		if datebins
+			iv = _indicize_datebins(v, minvalue, maxvalue, stepvalue, nbins)
+		else
+			iv = convert(Vector{Int64}, ceil.((v .- minvalue) ./ (maxvalue - minvalue) .* nbins))
+		end
+	elseif !isnothing(nbins) && !isnothing(stepvalue)
+		nbins = length(unique(v))
+		if !quiet
+			@info("Calculated nbins = $nbins based on unique values")
+		end
+		iv = convert(Vector{Int64}, ceil.((v .- minvalue) ./ (maxvalue - minvalue) .* nbins))
+	else
+		stepvalue = (maxvalue - minvalue) / nbins
+		if granulate
+			original_maxvalue = maxvalue
+			original_minvalue = minvalue
+			maxvalue = ceil(maxvalue / stepvalue) * stepvalue
+			minvalue = floor(minvalue / stepvalue) * stepvalue
+			maxvalue = max(maxvalue, original_maxvalue)
+			minvalue = min(minvalue, original_minvalue)
+			stepvalue = (maxvalue - minvalue) / nbins
+		end
+		iv = convert(Vector{Int64}, ceil.((v .- minvalue) ./ (maxvalue - minvalue) .* nbins))
+		if !quiet
+			@info("Calculated stepvalue = $stepvalue and granulated: min = $minvalue max = $maxvalue nbins = $nbins")
 		end
 	end
-	iv = convert(Vector{Int64}, ceil.((v .- minvalue) ./ (maxvalue - minvalue) .* nbins))
-	i0 = iv .== 0
-	if sum(i0) == 1
-		iv[i0] .= 1
-	elseif sum(i0) > 1
-		iv .+= 1
+	if !datebins
+		i0 = iv .== 0
+		if any(i0)
+			iv[i0] .= 1
+		end
 	end
 	if !quiet
 		us = unique(sort(iv))
 		nb = collect(1:nbins)
-		emptybins = false
+		emptybins = 0
+		range_min = minvalue
+		range_max = minvalue + stepvalue
 		for k in unique(sort([us; nb]))
 			m = iv .== k
 			s = sum(m)
 			if s == 0
-				emptybins = true
-				@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " "))")
+				emptybins += 1
+				@info("Bin $(lpad("$k", 3, " ")) range $(range_min) $(range_max): count $(lpad("$(s)", 6, " "))")
+				if k == 1
+					error("First bin 1 should not be empty!")
+				elseif k == nbins
+					error("Last bin $nbins should not be empty!")
+				end
 			else
-				@info("Bin $(lpad("$k", 3, " ")): count $(lpad("$(s)", 6, " ")) range $(minimum(v[m])) $(maximum(v[m]))")
+				mn = minimum(v[m])
+				mx = maximum(v[m])
+				@info("Bin $(lpad("$k", 3, " ")) range $(range_min) $(range_max): count $(lpad("$(s)", 6, " ")) range $(mn) $(mx)")
+				@assert mn >= range_min "Indicize error: Bin $k has minimum value $mn below expected range minimum $range_min"
+				@assert mx <= range_max "Indicize error: Bin $k has maximum value $mx above expected range maximum $range_max"
 			end
+			range_min += stepvalue
+			range_max += stepvalue
 		end
-		if emptybins
-			@warn("There are empty bins ...")
+		if emptybins > 0
+			@info("There are $(emptybins) empty bins ...")
 		end
 	end
 	if rev == true

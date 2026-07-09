@@ -1,5 +1,6 @@
 import NMFk
 import Test
+import Dates
 
 Test.@testset "preprocess utilities" begin
 	Test.@testset "log10s/log10s!" begin
@@ -36,6 +37,27 @@ Test.@testset "preprocess utilities" begin
 		iv2, nbins2, _, _ = NMFk.indicize(v; nbins=4, minvalue=1.0, maxvalue=5.0, granulate=false, quiet=true)
 		Test.@test nbins2 == 5
 		Test.@test iv2 == [1, 1, 2, 3, 4]
+
+		depths = Float64[0, 0, 0.001, 10.308, 10.4, 216.546]
+		idepths, ndepthbins, _, _ = NMFk.indicize(depths; nbins=21, minvalue=0.0, maxvalue=216.546, quiet=false)
+		Test.@test ndepthbins == 21
+		Test.@test idepths == [1, 1, 1, 1, 2, 21]
+
+		dts = [
+			Dates.DateTime(2009, 6, 14, 21, 31, 9),
+			Dates.DateTime(2009, 7, 1, 17, 14, 48),
+		]
+		idts, ndtbins, dtmin, dtmax = NMFk.indicize(
+			dts;
+			minvalue=Dates.DateTime(2009, 1, 28, 11, 19, 9),
+			maxvalue=Dates.DateTime(2018, 11, 8, 21, 1, 16),
+			stepvalue=Dates.Month(1),
+			quiet=true,
+		)
+		Test.@test idts == [6, 7]
+		Test.@test ndtbins == 119
+		Test.@test dtmin == Dates.DateTime(2009, 1, 1)
+		Test.@test dtmax == Dates.DateTime(2018, 12, 1)
 	end
 
 	Test.@testset "processdata/processdata!" begin
