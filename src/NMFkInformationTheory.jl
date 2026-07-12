@@ -79,7 +79,7 @@ function tensor_information(tensor::AbstractArray{T}; valid_mask::AbstractArray{
 	)
 end
 
-function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps::AbstractVector, filename::AbstractString=""; xaxis::Symbol=:steps)::Gadfly.Plot
+function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps::AbstractVector, filename::AbstractString=""; xaxis::Symbol=:steps, title_extra::AbstractString="")::Gadfly.Plot
 	if isempty(information_steps)
 		throw(ArgumentError("Information steps must not be empty!"))
 	end
@@ -90,8 +90,14 @@ function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps
 		throw(ArgumentError("The xaxis option must be :steps or :cells!"))
 	end
 
+	title = "Information utilization by binning resolution"
+	if title_extra != ""
+		title *= "$(title_extra)"
+	end
 	plotted_keys::Vector{Symbol} = [:normalized_entropy, :effective_fraction, :occupancy, :resolution_score]
 	attribute_colors::Vector{String} = String.(NMFk.colors[1:length(plotted_keys)])
+	attribute_labels::Vector{String} = titlecase.(replace.(String.(plotted_keys), "_" => " "))
+	attribute_label_by_key::Dict{Symbol, String} = Dict(zip(plotted_keys, attribute_labels))
 	if !all(k -> all(haskey(info, k) for info in information_steps), plotted_keys)
 		throw(ArgumentError("Each information entry must contain $(join(plotted_keys, ", ")). Recompute entries with tensor_information."))
 	end
@@ -117,7 +123,7 @@ function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps
 			push!(xvals, cell_count)
 			push!(step_xvals, step_labels[length(cell_counts)])
 			push!(yvals, Float64(getfield(info, k)))
-			push!(metrics, String(k))
+			push!(metrics, attribute_label_by_key[k])
 		end
 	end
 
@@ -138,10 +144,11 @@ function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps
 			plot_theme,
 			Gadfly.Scale.x_discrete,
 			Gadfly.Scale.color_discrete_manual(attribute_colors...),
+			Gadfly.Guide.colorkey(title="", labels=attribute_labels),
 			Gadfly.Coord.cartesian(ymin=0.0, ymax=1.0),
-			Gadfly.Guide.xlabel("Resolution step"),
+			Gadfly.Guide.xlabel("Resolution size"),
 			Gadfly.Guide.ylabel("Intrinsic normalized metric"),
-			Gadfly.Guide.title("Information utilization by binning resolution")
+			Gadfly.Guide.title(title)
 		)
 	else
 		metric_layers = Gadfly.layer(
@@ -158,17 +165,19 @@ function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps
 			y=resolution_scores,
 			label=step_labels
 		)
-		format_log_tick(exponent::Real)::String = isinteger(exponent) ? "10^$(Int(round(exponent)))" : "10^$(round(exponent; digits=2))"
+		# format_log_tick(exponent::Real)::String = isinteger(exponent) ? "10^$(Int(round(exponent)))" : "10^$(round(exponent; digits=2))"
 		Gadfly.plot(
 			metric_layers...,
 			label_layers...,
 			plot_theme,
-			Gadfly.Scale.x_log10(labels=format_log_tick),
+			Gadfly.Scale.x_log10(),
+			# Gadfly.Scale.x_log10(labels=format_log_tick),
 			Gadfly.Scale.color_discrete_manual(attribute_colors...),
+			Gadfly.Guide.colorkey(title="", labels=attribute_labels),
 			Gadfly.Coord.cartesian(ymin=0.0, ymax=1.0),
 			Gadfly.Guide.xlabel("Number of valid cells (log scale)"),
 			Gadfly.Guide.ylabel("Intrinsic normalized metric"),
-			Gadfly.Guide.title("Information utilization by binning resolution; labels mark resolution score")
+			Gadfly.Guide.title(title)
 		)
 	end
 	if filename != ""
