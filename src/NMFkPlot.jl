@@ -6,6 +6,7 @@ import DataFrames
 import StatsBase
 import Measures
 import Mads
+import Dates
 
 function set_typecolors(types::AbstractVector, colors::AbstractVector=NMFk.colors)
 	unique_types = sort(unique(types))
@@ -314,8 +315,101 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes
 end
 
 function histogram(datain::AbstractVector; kw...)
-	data = datain[.!isnan.(datain)]
+	if eltype(datain) <: AbstractFloat
+		data = datain[.!isnan.(datain)]
+	else
+		data = datain
+	end
 	return histogram(data, ones(Int8, length(data)); kw..., joined=false)
+end
+
+const HistogramTimeType = Union{Dates.Date, Dates.DateTime, Dates.Time}
+
+function histogram_time_value(time::HistogramTimeType)::Float64
+	return Float64(Dates.value(time))
+end
+
+function histogram_time_from_value(::Type{Dates.Date}, value::Real)::Dates.Date
+	return Dates.Date(Dates.UTD(round(Int64, value)))
+end
+
+function histogram_time_from_value(::Type{Dates.DateTime}, value::Real)::Dates.DateTime
+	return Dates.DateTime(Dates.UTM(round(Int64, value)))
+end
+
+function histogram_time_from_value(::Type{Dates.Time}, value::Real)::Dates.Time
+	return Dates.Time(Dates.Nanosecond(round(Int64, value)))
+end
+
+function histogram_time_edges(edges, ::Type{T})::Union{Nothing, Vector{Float64}} where {T<:HistogramTimeType}
+	if isnothing(edges)
+		return nothing
+	end
+	values::Vector{T} = collect(T, edges)
+	return histogram_time_value.(values)
+end
+
+function histogram_time_limit(limit, ::Type{T})::Union{Nothing, Float64} where {T<:HistogramTimeType}
+	return isnothing(limit) ? nothing : histogram_time_value(convert(T, limit))
+end
+
+function histogram(
+	datain::AbstractVector{T};
+	edges=nothing,
+	xmin=nothing,
+	xmax=nothing,
+	xlabelmap=nothing,
+	kw...,
+) where {T<:HistogramTimeType}
+	data::Vector{Float64} = histogram_time_value.(datain)
+	classes::Vector{Int8} = ones(Int8, length(data))
+	numeric_edges::Union{Nothing, Vector{Float64}} = histogram_time_edges(edges, T)
+	numeric_xmin::Union{Nothing, Float64} = histogram_time_limit(xmin, T)
+	numeric_xmax::Union{Nothing, Float64} = histogram_time_limit(xmax, T)
+	label_function::Function = if isnothing(xlabelmap)
+		value::Real -> string(histogram_time_from_value(T, value))
+	else
+		value::Real -> xlabelmap(histogram_time_from_value(T, value))
+	end
+	return histogram(
+		data,
+		classes;
+		edges=numeric_edges,
+		xmin=numeric_xmin,
+		xmax=numeric_xmax,
+		xlabelmap=label_function,
+		kw...,
+		joined=false,
+	)
+end
+
+function histogram(
+	data::AbstractVector{T},
+	classes::AbstractVector;
+	edges=nothing,
+	xmin=nothing,
+	xmax=nothing,
+	xlabelmap=nothing,
+	kw...,
+) where {T<:HistogramTimeType}
+	numeric_data::Vector{Float64} = histogram_time_value.(data)
+	numeric_edges::Union{Nothing, Vector{Float64}} = histogram_time_edges(edges, T)
+	numeric_xmin::Union{Nothing, Float64} = histogram_time_limit(xmin, T)
+	numeric_xmax::Union{Nothing, Float64} = histogram_time_limit(xmax, T)
+	label_function::Function = if isnothing(xlabelmap)
+		value::Real -> string(histogram_time_from_value(T, value))
+	else
+		value::Real -> xlabelmap(histogram_time_from_value(T, value))
+	end
+	return histogram(
+		numeric_data,
+		classes;
+		edges=numeric_edges,
+		xmin=numeric_xmin,
+		xmax=numeric_xmax,
+		xlabelmap=label_function,
+		kw...,
+	)
 end
 
 function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=true, separate::Bool=false, proportion::Bool=false, closed::Symbol=:left, hsize::Measures.AbsoluteLength=6Gadfly.inch, vsize::Measures.AbsoluteLength=4Gadfly.inch, quiet::Bool=false, debug::Bool=false, figuredir::AbstractString=".", filename_plot::AbstractString="", filename_data::AbstractString="", title::AbstractString="", xtitle::AbstractString="", ytitle::AbstractString="", ymin=nothing, ymax=nothing, xmin=nothing, xmax=nothing, gm=[], opacity::Number=joined ? 0.4 : 0.6, dpi=imagedpi, xmap=i -> i, xlabelmap=nothing, edges=nothing, refine::Number=1, return_data::Bool=false)
@@ -325,8 +419,14 @@ function histogram(data::AbstractVector, classes::AbstractVector; joined::Bool=t
 		return
 	end
 	@assert ndata == length(classes)
-	mind = minimumnan(data)
-	maxd = maximumnan(data)
+	if eltype(data) <: AbstractFloat
+		mind = minimumnan(data)
+		maxd = maximumnan(data)
+	else
+		mind = minimum(data)
+		maxd = maximum(data)
+	end
+
 	if isnothing(edges)
 		histall = StatsBase.fit(StatsBase.Histogram, data; closed=closed)
 	else

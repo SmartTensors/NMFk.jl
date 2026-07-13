@@ -101,7 +101,7 @@ function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps
 	plotted_keys::Vector{Symbol} = normalize == :range ? required_keys : [:normalized_entropy, :occupancy]
 	attribute_colors::Vector{String} = String.(NMFk.colors[1:length(plotted_keys)])
 	attribute_labels::Vector{String} = normalize == :range ?
-		["Entropy Bits (Range Normalized)", "Effective Cells (Range Normalized)", "Normalized Entropy", "Occupancy"] :
+		["Entropy Bits (Normalized)", "Effective Cells (Normalized)", "Normalized Entropy", "Occupancy"] :
 		["Normalized Entropy", "Occupancy"]
 	attribute_label_by_key::Dict{Symbol, String} = Dict(zip(plotted_keys, attribute_labels))
 	if !all(k -> all(haskey(info, k) for info in information_steps), required_keys)

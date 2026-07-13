@@ -8,3 +8,4 @@ texput.log
 config/*
 .theme
 *.sha256
+Manifest*.toml
