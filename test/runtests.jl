@@ -27,6 +27,9 @@ Test.@testset "NMFk" begin
 
 		# Input/matrix checking utilities
 		include("test_checks.jl")
+
+		# Spatial, temporal, and spectral tensor information metrics
+		include("test_information_theory.jl")
 	end
 
 	Test.@testset "Execute" begin
