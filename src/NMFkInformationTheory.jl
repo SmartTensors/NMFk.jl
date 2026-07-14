@@ -148,7 +148,7 @@ function _spectral_axis_information(tensor::AbstractArray{T}, valid_mask::Abstra
 end
 
 """
-	structure_information(tensor; valid_mask=trues(size(tensor)), bins=16, temporal_dim=ndims(tensor), residual_coding=:shannon)
+	structure_information(tensor; valid_mask=trues(size(tensor)), bins=16, temporal_dim=ndims(tensor), residual_coding=:shannon, compute_spectral=true)
 
 Measure information that depends on tensor structure rather than only on flattened
 cell weights. Values are quantized globally before neighboring cells are compared.
@@ -161,8 +161,9 @@ axis uses the same inter-frame residual principle as lossless movie compression.
 `residual_coding` selects fixed-width residuals (`:none`), the ideal Shannon limit
 (`:shannon`), or a realizable binary Huffman code (`:huffman`). Coding results are
 reported as `residual_coding` within each entry of `axis_information`.
+Set `compute_spectral=false` for tensors whose unfoldings are too large for SVD.
 """
-function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArray{Bool}=trues(size(tensor)), bins::Integer=16, temporal_dim::Union{Nothing, Integer}=ndims(tensor), residual_coding::Symbol=:shannon)::NamedTuple where {T <: Real}
+function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArray{Bool}=trues(size(tensor)), bins::Integer=16, temporal_dim::Union{Nothing, Integer}=ndims(tensor), residual_coding::Symbol=:shannon, compute_spectral::Bool=true)::NamedTuple where {T <: Real}
     bin_count::Int = Int(bins)
     if temporal_dim !== nothing && !(1 <= temporal_dim <= ndims(tensor))
         throw(ArgumentError("The temporal dimension must identify a tensor dimension or be nothing!"))
@@ -180,7 +181,9 @@ function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArr
     for axis::Int = 1:ndims(tensor)
         role::Symbol = temporal_dim === axis ? :temporal : :spatial
         push!(axis_information, _axis_information(quantized, finite_mask, axis, role, bin_count, residual_coding))
-        push!(spectral_information, _spectral_axis_information(tensor, finite_mask, axis))
+        if compute_spectral
+            push!(spectral_information, _spectral_axis_information(tensor, finite_mask, axis))
+        end
     end
     spatial_metrics::Vector{NamedTuple} = filter(metric::NamedTuple -> metric.role == :spatial && metric.pair_count > 0, axis_information)
     temporal_metrics::Vector{NamedTuple} = filter(metric::NamedTuple -> metric.role == :temporal && metric.pair_count > 0, axis_information)
@@ -199,6 +202,7 @@ function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArr
         spectral_information=spectral_information,
         bins=bin_count,
         residual_coding=residual_coding,
+        spectral_computed=compute_spectral,
         valid_cell_count=count(finite_mask)
     )
 end
@@ -437,7 +441,7 @@ end
 
 function _spectral_compactness(information::NamedTuple)::Float64
     spectral_metrics::Vector{NamedTuple} = information.spectral_information
-    isempty(spectral_metrics) && return 0.0
+    isempty(spectral_metrics) && return NaN
     normalized_entropy::Float64 = Statistics.mean(metric.normalized_spectral_entropy for metric::NamedTuple in spectral_metrics)
     return clamp(1.0 - normalized_entropy, 0.0, 1.0)
 end
@@ -458,15 +462,19 @@ function plot_structure_information(information_steps::AbstractVector{<:NamedTup
     if !(xaxis in (:steps, :cells))
         throw(ArgumentError("The xaxis option must be :steps or :cells!"))
     end
+    include_spectral::Bool = all(!isempty(information.spectral_information) for information::NamedTuple in information_steps)
     metric_labels::Vector{String} = [
         "Value entropy",
         "Spatial dependence",
         "Spatial coherence",
         "Temporal coherence",
-        "Spectral compactness",
         "Residual coding savings"
     ]
-    metric_colors::Vector{String} = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#17becf"]
+    metric_colors::Vector{String} = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#17becf"]
+    if include_spectral
+        insert!(metric_labels, 5, "Spectral compactness")
+        insert!(metric_colors, 5, "#9467bd")
+    end
     step_labels::Vector{String} = string.(steps)
     x_step_values::Vector{String} = String[]
     x_cell_values::Vector{Float64} = Float64[]
@@ -481,9 +489,11 @@ function plot_structure_information(information_steps::AbstractVector{<:NamedTup
             clamp(Float64(information.spatial_dependence), 0.0, 1.0),
             clamp(1.0 - Float64(information.spatial_variation), 0.0, 1.0),
             clamp(1.0 - Float64(information.temporal_variation), 0.0, 1.0),
-            _spectral_compactness(information),
             coding_summary.coding_savings
         ]
+        if include_spectral
+            insert!(metric_values, 5, _spectral_compactness(information))
+        end
         for metric_index::Int in eachindex(metric_labels)
             push!(x_step_values, step_labels[step_index])
             push!(x_cell_values, cell_count)

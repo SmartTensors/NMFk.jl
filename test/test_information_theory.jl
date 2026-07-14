@@ -34,10 +34,15 @@ Test.@testset "structure-aware tensor information" begin
     Test.@test huffman_temporal.encoded_bits >= shannon_temporal.encoded_bits
     Test.@test huffman_temporal.compression_ratio >= 1.0
     Test.@test huffman_temporal.coding_efficiency <= 1.0 + eps(Float64)
+    no_spectral_info::NamedTuple = NMFk.structure_information(randomized; bins=8, temporal_dim=3, residual_coding=:huffman, compute_spectral=false)
+    Test.@test isempty(no_spectral_info.spectral_information)
+    Test.@test !no_spectral_info.spectral_computed
 
     structure_plot::Gadfly.Plot = NMFk.plot_structure_information([structured_info, randomized_info], ["structured", "randomized"])
+    structure_plot_without_spectral::Gadfly.Plot = NMFk.plot_structure_information([no_spectral_info, no_spectral_info], ["fine", "coarse"])
     coding_plot::Gadfly.Plot = NMFk.plot_residual_coding([huffman_info, huffman_info], ["fine", "coarse"])
     Test.@test structure_plot isa Gadfly.Plot
+    Test.@test structure_plot_without_spectral isa Gadfly.Plot
     Test.@test coding_plot isa Gadfly.Plot
 end
 
