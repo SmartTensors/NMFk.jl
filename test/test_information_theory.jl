@@ -1,5 +1,6 @@
 import Test
 import Random
+import Gadfly
 
 Test.@testset "structure-aware tensor information" begin
     random_generator::Random.MersenneTwister = Random.MersenneTwister(41)
@@ -22,6 +23,22 @@ Test.@testset "structure-aware tensor information" begin
     Test.@test structured_info.temporal_predictive_gain_bits > randomized_info.temporal_predictive_gain_bits
     Test.@test structured_info.spectral_information[1].effective_rank < randomized_info.spectral_information[1].effective_rank
     Test.@test structured_info.valid_cell_count == length(structured)
+
+    uncoded_info::NamedTuple = NMFk.structure_information(randomized; bins=8, temporal_dim=3, residual_coding=:none)
+    shannon_info::NamedTuple = NMFk.structure_information(randomized; bins=8, temporal_dim=3, residual_coding=:shannon)
+    huffman_info::NamedTuple = NMFk.structure_information(randomized; bins=8, temporal_dim=3, residual_coding=:huffman)
+    uncoded_temporal::NamedTuple = uncoded_info.axis_information[3].residual_coding
+    shannon_temporal::NamedTuple = shannon_info.axis_information[3].residual_coding
+    huffman_temporal::NamedTuple = huffman_info.axis_information[3].residual_coding
+    Test.@test uncoded_temporal.encoded_bits >= huffman_temporal.encoded_bits
+    Test.@test huffman_temporal.encoded_bits >= shannon_temporal.encoded_bits
+    Test.@test huffman_temporal.compression_ratio >= 1.0
+    Test.@test huffman_temporal.coding_efficiency <= 1.0 + eps(Float64)
+
+    structure_plot::Gadfly.Plot = NMFk.plot_structure_information([structured_info, randomized_info], ["structured", "randomized"])
+    coding_plot::Gadfly.Plot = NMFk.plot_residual_coding([huffman_info, huffman_info], ["fine", "coarse"])
+    Test.@test structure_plot isa Gadfly.Plot
+    Test.@test coding_plot isa Gadfly.Plot
 end
 
 Test.@testset "structure information validation and masking" begin
@@ -34,4 +51,5 @@ Test.@testset "structure information validation and masking" begin
     Test.@test_throws DimensionMismatch NMFk.structure_information(tensor; valid_mask=trues(2, 2))
     Test.@test_throws ArgumentError NMFk.structure_information(tensor; bins=1)
     Test.@test_throws ArgumentError NMFk.structure_information(tensor; temporal_dim=4)
+    Test.@test_throws ArgumentError NMFk.structure_information(tensor; residual_coding=:arithmetic)
 end

@@ -14,6 +14,52 @@ function _discrete_entropy(symbols::AbstractVector{<:Integer})::Float64
     return -sum(probabilities .* log2.(probabilities))
 end
 
+function _huffman_encoded_bits(symbols::AbstractVector{<:Integer})::Int
+    isempty(symbols) && return 0
+    counts::Dict{Int, Int} = Dict{Int, Int}()
+    for symbol::Integer in symbols
+        symbol_value::Int = Int(symbol)
+        counts[symbol_value] = get(counts, symbol_value, 0) + 1
+    end
+    weights::Vector{Int} = collect(values(counts))
+    length(weights) == 1 && return 0
+    encoded_bits::Int = 0
+    while length(weights) > 1
+        sort!(weights; rev=true)
+        first_weight::Int = pop!(weights)
+        second_weight::Int = pop!(weights)
+        combined_weight::Int = first_weight + second_weight
+        encoded_bits += combined_weight
+        push!(weights, combined_weight)
+    end
+    return encoded_bits
+end
+
+function _residual_coding_information(residual_symbols::Vector{Int}, bin_count::Int, residual_coding::Symbol)::NamedTuple
+    pair_count::Int = length(residual_symbols)
+    fixed_bits_per_symbol::Int = ceil(Int, log2(Float64(2 * bin_count - 1)))
+    fixed_width_bits::Int = pair_count * fixed_bits_per_symbol
+    residual_entropy::Float64 = _discrete_entropy(residual_symbols)
+    encoded_bits::Float64 = if residual_coding == :none
+        Float64(fixed_width_bits)
+    elseif residual_coding == :shannon
+        pair_count * residual_entropy
+    else
+        Float64(_huffman_encoded_bits(residual_symbols))
+    end
+    bits_per_symbol::Float64 = pair_count > 0 ? encoded_bits / pair_count : 0.0
+    compression_ratio::Float64 = encoded_bits > 0.0 ? fixed_width_bits / encoded_bits : (fixed_width_bits > 0 ? Inf : 1.0)
+    coding_efficiency::Float64 = bits_per_symbol > 0.0 ? residual_entropy / bits_per_symbol : (residual_entropy == 0.0 ? 1.0 : 0.0)
+    return (
+        method=residual_coding,
+        encoded_bits=encoded_bits,
+        bits_per_symbol=bits_per_symbol,
+        fixed_width_bits=fixed_width_bits,
+        compression_ratio=compression_ratio,
+        coding_efficiency=coding_efficiency
+    )
+end
+
 function _quantize_tensor(tensor::AbstractArray{T}, valid_mask::AbstractArray{Bool}, bin_count::Int)::Tuple{Array{Int}, BitArray} where {T <: Real}
     if size(valid_mask) != size(tensor)
         throw(DimensionMismatch("The valid mask and tensor must have the same size!"))
@@ -37,7 +83,7 @@ function _quantize_tensor(tensor::AbstractArray{T}, valid_mask::AbstractArray{Bo
     return quantized, finite_mask
 end
 
-function _axis_information(quantized::Array{Int}, valid_mask::BitArray, axis::Int, role::Symbol, bin_count::Int)::NamedTuple
+function _axis_information(quantized::Array{Int}, valid_mask::BitArray, axis::Int, role::Symbol, bin_count::Int, residual_coding::Symbol)::NamedTuple
     left_symbols::Vector{Int} = Int[]
     right_symbols::Vector{Int} = Int[]
     residual_symbols::Vector{Int} = Int[]
@@ -62,6 +108,7 @@ function _axis_information(quantized::Array{Int}, valid_mask::BitArray, axis::In
     mutual_information::Float64 = max(0.0, left_entropy + right_entropy - joint_entropy)
     conditional_entropy::Float64 = max(0.0, joint_entropy - left_entropy)
     residual_entropy::Float64 = _discrete_entropy(residual_symbols)
+    coding_information::NamedTuple = _residual_coding_information(residual_symbols, bin_count, residual_coding)
     normalizer::Float64 = max(left_entropy, right_entropy)
     normalized_mutual_information::Float64 = normalizer > 0.0 ? mutual_information / normalizer : 0.0
     mean_normalized_difference::Float64 = pair_count > 0 ? abs_difference_total / (pair_count * (bin_count - 1)) : 0.0
@@ -75,7 +122,8 @@ function _axis_information(quantized::Array{Int}, valid_mask::BitArray, axis::In
         conditional_entropy_bits=conditional_entropy,
         residual_entropy_bits=residual_entropy,
         predictive_gain_bits=predictive_gain_bits,
-        mean_normalized_difference=mean_normalized_difference
+        mean_normalized_difference=mean_normalized_difference,
+        residual_coding=coding_information
     )
 end
 
@@ -100,7 +148,7 @@ function _spectral_axis_information(tensor::AbstractArray{T}, valid_mask::Abstra
 end
 
 """
-structure_information(tensor; valid_mask=trues(size(tensor)), bins=16, temporal_dim=ndims(tensor))
+	structure_information(tensor; valid_mask=trues(size(tensor)), bins=16, temporal_dim=ndims(tensor), residual_coding=:shannon)
 
 Measure information that depends on tensor structure rather than only on flattened
 cell weights. Values are quantized globally before neighboring cells are compared.
@@ -109,11 +157,18 @@ The returned `axis_information` reports mutual information, conditional entropy,
 normalized variation, and predictive-residual entropy along every axis. The temporal
 axis uses the same inter-frame residual principle as lossless movie compression.
 `spectral_information` reports entropy and effective rank of every tensor unfolding.
+
+`residual_coding` selects fixed-width residuals (`:none`), the ideal Shannon limit
+(`:shannon`), or a realizable binary Huffman code (`:huffman`). Coding results are
+reported as `residual_coding` within each entry of `axis_information`.
 """
-function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArray{Bool}=trues(size(tensor)), bins::Integer=16, temporal_dim::Union{Nothing, Integer}=ndims(tensor))::NamedTuple where {T <: Real}
+function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArray{Bool}=trues(size(tensor)), bins::Integer=16, temporal_dim::Union{Nothing, Integer}=ndims(tensor), residual_coding::Symbol=:shannon)::NamedTuple where {T <: Real}
     bin_count::Int = Int(bins)
     if temporal_dim !== nothing && !(1 <= temporal_dim <= ndims(tensor))
         throw(ArgumentError("The temporal dimension must identify a tensor dimension or be nothing!"))
+    end
+    if !(residual_coding in (:none, :shannon, :huffman))
+        throw(ArgumentError("Residual coding must be :none, :shannon, or :huffman!"))
     end
     quantized::Array{Int}, finite_mask::BitArray = _quantize_tensor(tensor, valid_mask, bin_count)
     valid_symbols::Vector{Int} = vec(quantized[finite_mask])
@@ -124,7 +179,7 @@ function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArr
     spectral_information::Vector{NamedTuple} = NamedTuple[]
     for axis::Int = 1:ndims(tensor)
         role::Symbol = temporal_dim === axis ? :temporal : :spatial
-        push!(axis_information, _axis_information(quantized, finite_mask, axis, role, bin_count))
+        push!(axis_information, _axis_information(quantized, finite_mask, axis, role, bin_count, residual_coding))
         push!(spectral_information, _spectral_axis_information(tensor, finite_mask, axis))
     end
     spatial_metrics::Vector{NamedTuple} = filter(metric::NamedTuple -> metric.role == :spatial && metric.pair_count > 0, axis_information)
@@ -143,6 +198,7 @@ function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArr
         axis_information=axis_information,
         spectral_information=spectral_information,
         bins=bin_count,
+        residual_coding=residual_coding,
         valid_cell_count=count(finite_mask)
     )
 end
@@ -358,4 +414,168 @@ function plot_information(information_steps::AbstractVector{<:NamedTuple}, steps
         Mads.plotfileformat(information_plot, filename, 8Gadfly.inch, 4Gadfly.inch)
     end
     return information_plot
+end
+
+function _temporal_coding_summary(information::NamedTuple)::NamedTuple
+    temporal_metrics::Vector{NamedTuple} = filter(metric::NamedTuple -> metric.role == :temporal, information.axis_information)
+    pair_count::Int = sum(metric.pair_count for metric::NamedTuple in temporal_metrics; init=0)
+    fixed_width_bits::Int = sum(metric.residual_coding.fixed_width_bits for metric::NamedTuple in temporal_metrics; init=0)
+    encoded_bits::Float64 = sum(metric.residual_coding.encoded_bits for metric::NamedTuple in temporal_metrics; init=0.0)
+    shannon_bits::Float64 = sum(metric.pair_count * metric.residual_entropy_bits for metric::NamedTuple in temporal_metrics; init=0.0)
+    fixed_bits_per_symbol::Float64 = pair_count > 0 ? fixed_width_bits / pair_count : 0.0
+    encoded_bits_per_symbol::Float64 = pair_count > 0 ? encoded_bits / pair_count : 0.0
+    shannon_bits_per_symbol::Float64 = pair_count > 0 ? shannon_bits / pair_count : 0.0
+    coding_savings::Float64 = fixed_width_bits > 0 ? clamp(1.0 - encoded_bits / fixed_width_bits, 0.0, 1.0) : 0.0
+    return (
+        pair_count=pair_count,
+        fixed_bits_per_symbol=fixed_bits_per_symbol,
+        shannon_bits_per_symbol=shannon_bits_per_symbol,
+        encoded_bits_per_symbol=encoded_bits_per_symbol,
+        coding_savings=coding_savings
+    )
+end
+
+function _spectral_compactness(information::NamedTuple)::Float64
+    spectral_metrics::Vector{NamedTuple} = information.spectral_information
+    isempty(spectral_metrics) && return 0.0
+    normalized_entropy::Float64 = Statistics.mean(metric.normalized_spectral_entropy for metric::NamedTuple in spectral_metrics)
+    return clamp(1.0 - normalized_entropy, 0.0, 1.0)
+end
+
+"""
+    plot_structure_information(information_steps, steps, filename=""; xaxis=:steps, title_extra="")
+
+Compare normalized structural-information metrics across tensor discretizations.
+All displayed metrics use a higher-is-more-informative-or-structured orientation.
+"""
+function plot_structure_information(information_steps::AbstractVector{<:NamedTuple}, steps::AbstractVector, filename::AbstractString=""; xaxis::Symbol=:steps, title_extra::AbstractString="")::Gadfly.Plot
+    if isempty(information_steps)
+        throw(ArgumentError("Information steps must not be empty!"))
+    end
+    if length(information_steps) != length(steps)
+        throw(DimensionMismatch("Information steps and resolution labels must have the same length!"))
+    end
+    if !(xaxis in (:steps, :cells))
+        throw(ArgumentError("The xaxis option must be :steps or :cells!"))
+    end
+    metric_labels::Vector{String} = [
+        "Value entropy",
+        "Spatial dependence",
+        "Spatial coherence",
+        "Temporal coherence",
+        "Spectral compactness",
+        "Residual coding savings"
+    ]
+    metric_colors::Vector{String} = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#17becf"]
+    step_labels::Vector{String} = string.(steps)
+    x_step_values::Vector{String} = String[]
+    x_cell_values::Vector{Float64} = Float64[]
+    y_values::Vector{Float64} = Float64[]
+    labels::Vector{String} = String[]
+    for (step_index::Int, information::NamedTuple) in enumerate(information_steps)
+        coding_summary::NamedTuple = _temporal_coding_summary(information)
+        cell_count::Float64 = Float64(information.valid_cell_count)
+        cell_count > 0.0 || throw(ArgumentError("Valid cell counts must be positive!"))
+        metric_values::Vector{Float64} = [
+            clamp(Float64(information.normalized_value_entropy), 0.0, 1.0),
+            clamp(Float64(information.spatial_dependence), 0.0, 1.0),
+            clamp(1.0 - Float64(information.spatial_variation), 0.0, 1.0),
+            clamp(1.0 - Float64(information.temporal_variation), 0.0, 1.0),
+            _spectral_compactness(information),
+            coding_summary.coding_savings
+        ]
+        for metric_index::Int in eachindex(metric_labels)
+            push!(x_step_values, step_labels[step_index])
+            push!(x_cell_values, cell_count)
+            push!(y_values, metric_values[metric_index])
+            push!(labels, metric_labels[metric_index])
+        end
+    end
+    title::String = "Structure-aware information by binning resolution$(title_extra)"
+    structure_plot::Gadfly.Plot = if xaxis == :steps
+        Gadfly.plot(
+            Gadfly.layer(Gadfly.Geom.line, Gadfly.Geom.point; x=x_step_values, y=y_values, color=labels),
+            Gadfly.Scale.x_discrete,
+            Gadfly.Scale.color_discrete_manual(metric_colors...),
+            Gadfly.Coord.cartesian(; ymin=0.0, ymax=1.0),
+            Gadfly.Guide.xlabel("Resolution size"),
+            Gadfly.Guide.ylabel("Normalized metric"),
+            Gadfly.Guide.title(title)
+        )
+    else
+        Gadfly.plot(
+            Gadfly.layer(Gadfly.Geom.line, Gadfly.Geom.point; x=x_cell_values, y=y_values, color=labels),
+            Gadfly.Scale.x_log10(),
+            Gadfly.Scale.color_discrete_manual(metric_colors...),
+            Gadfly.Coord.cartesian(; ymin=0.0, ymax=1.0),
+            Gadfly.Guide.xlabel("Number of valid cells (log scale)"),
+            Gadfly.Guide.ylabel("Normalized metric"),
+            Gadfly.Guide.title(title)
+        )
+    end
+    if filename != ""
+        Mads.plotfileformat(structure_plot, filename, 9Gadfly.inch, 5Gadfly.inch)
+    end
+    return structure_plot
+end
+
+"""
+    plot_residual_coding(information_steps, steps, filename=""; xaxis=:steps, title_extra="")
+
+Compare fixed-width residual storage, the Shannon limit, and the selected residual
+coding method across temporal discretizations. Values are bits per prediction residual.
+"""
+function plot_residual_coding(information_steps::AbstractVector{<:NamedTuple}, steps::AbstractVector, filename::AbstractString=""; xaxis::Symbol=:steps, title_extra::AbstractString="")::Gadfly.Plot
+    if isempty(information_steps)
+        throw(ArgumentError("Information steps must not be empty!"))
+    end
+    if length(information_steps) != length(steps)
+        throw(DimensionMismatch("Information steps and resolution labels must have the same length!"))
+    end
+    if !(xaxis in (:steps, :cells))
+        throw(ArgumentError("The xaxis option must be :steps or :cells!"))
+    end
+    coding_method::String = string(information_steps[1].residual_coding)
+    metric_labels::Vector{String} = ["Fixed width", "Shannon limit", "Selected coding ($(coding_method))"]
+    metric_colors::Vector{String} = ["#7f7f7f", "#1f77b4", "#d62728"]
+    step_labels::Vector{String} = string.(steps)
+    x_step_values::Vector{String} = String[]
+    x_cell_values::Vector{Float64} = Float64[]
+    y_values::Vector{Float64} = Float64[]
+    labels::Vector{String} = String[]
+    for (step_index::Int, information::NamedTuple) in enumerate(information_steps)
+        coding_summary::NamedTuple = _temporal_coding_summary(information)
+        cell_count::Float64 = Float64(information.valid_cell_count)
+        metric_values::Vector{Float64} = [coding_summary.fixed_bits_per_symbol, coding_summary.shannon_bits_per_symbol, coding_summary.encoded_bits_per_symbol]
+        for metric_index::Int in eachindex(metric_labels)
+            push!(x_step_values, step_labels[step_index])
+            push!(x_cell_values, cell_count)
+            push!(y_values, metric_values[metric_index])
+            push!(labels, metric_labels[metric_index])
+        end
+    end
+    title::String = "Temporal prediction-residual coding by binning resolution$(title_extra)"
+    coding_plot::Gadfly.Plot = if xaxis == :steps
+        Gadfly.plot(
+            Gadfly.layer(Gadfly.Geom.line, Gadfly.Geom.point; x=x_step_values, y=y_values, color=labels),
+            Gadfly.Scale.x_discrete,
+            Gadfly.Scale.color_discrete_manual(metric_colors...),
+            Gadfly.Guide.xlabel("Resolution size"),
+            Gadfly.Guide.ylabel("Bits per temporal residual"),
+            Gadfly.Guide.title(title)
+        )
+    else
+        Gadfly.plot(
+            Gadfly.layer(Gadfly.Geom.line, Gadfly.Geom.point; x=x_cell_values, y=y_values, color=labels),
+            Gadfly.Scale.x_log10(),
+            Gadfly.Scale.color_discrete_manual(metric_colors...),
+            Gadfly.Guide.xlabel("Number of valid cells (log scale)"),
+            Gadfly.Guide.ylabel("Bits per temporal residual"),
+            Gadfly.Guide.title(title)
+        )
+    end
+    if filename != ""
+        Mads.plotfileformat(coding_plot, filename, 9Gadfly.inch, 5Gadfly.inch)
+    end
+    return coding_plot
 end
