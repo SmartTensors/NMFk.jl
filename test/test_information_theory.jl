@@ -20,6 +20,7 @@ Test.@testset "structure-aware tensor information" begin
     Test.@test structured_info.spatial_dependence > randomized_info.spatial_dependence
     Test.@test structured_info.spatial_variation < randomized_info.spatial_variation
     Test.@test structured_info.temporal_variation == 0.0
+    Test.@test structured_info.temporal_dependence == 1.0
     Test.@test structured_info.temporal_predictive_gain_bits > randomized_info.temporal_predictive_gain_bits
     Test.@test structured_info.spectral_information[1].effective_rank < randomized_info.spectral_information[1].effective_rank
     Test.@test structured_info.valid_cell_count == length(structured)
@@ -39,11 +40,17 @@ Test.@testset "structure-aware tensor information" begin
     Test.@test !no_spectral_info.spectral_computed
 
     structure_plot::Gadfly.Plot = NMFk.plot_structure_information([structured_info, randomized_info], ["structured", "randomized"])
+    structure_range_plot::Gadfly.Plot = NMFk.plot_structure_information([structured_info, randomized_info], ["structured", "randomized"]; normalize=:range)
     structure_plot_without_spectral::Gadfly.Plot = NMFk.plot_structure_information([no_spectral_info, no_spectral_info], ["fine", "coarse"])
     coding_plot::Gadfly.Plot = NMFk.plot_residual_coding([huffman_info, huffman_info], ["fine", "coarse"])
+    coding_fixed_plot::Gadfly.Plot = NMFk.plot_residual_coding([huffman_info, randomized_info], ["fine", "coarse"]; normalize=:fixed)
+    coding_range_plot::Gadfly.Plot = NMFk.plot_residual_coding([huffman_info, randomized_info], ["fine", "coarse"]; normalize=:range)
     Test.@test structure_plot isa Gadfly.Plot
+    Test.@test structure_range_plot isa Gadfly.Plot
     Test.@test structure_plot_without_spectral isa Gadfly.Plot
     Test.@test coding_plot isa Gadfly.Plot
+    Test.@test coding_fixed_plot isa Gadfly.Plot
+    Test.@test coding_range_plot isa Gadfly.Plot
 end
 
 Test.@testset "structure information validation and masking" begin
@@ -57,4 +64,7 @@ Test.@testset "structure information validation and masking" begin
     Test.@test_throws ArgumentError NMFk.structure_information(tensor; bins=1)
     Test.@test_throws ArgumentError NMFk.structure_information(tensor; temporal_dim=4)
     Test.@test_throws ArgumentError NMFk.structure_information(tensor; residual_coding=:arithmetic)
+    valid_information::NamedTuple = NMFk.structure_information(tensor; bins=4)
+    Test.@test_throws ArgumentError NMFk.plot_structure_information([valid_information], ["one"]; normalize=:invalid)
+    Test.@test_throws ArgumentError NMFk.plot_residual_coding([valid_information], ["one"]; normalize=:invalid)
 end
