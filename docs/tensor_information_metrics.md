@@ -12,7 +12,7 @@ tensor value $x$, the implementation computes
 
 $$
 Q(x)=
-\operatorname{clamp}\left(
+\mathrm{clamp}\left(
 1+\left\lfloor
 B\frac{x-x_{\min}}{x_{\max}-x_{\min}}
 \right\rfloor,
@@ -62,16 +62,14 @@ sequence.
 There are $2B-1$ possible residual symbols. Fixed-width coding therefore uses
 
 $$
-b_{\mathrm{fixed}}
-=
+b_{\mathrm{fixed}} =
 \left\lceil\log_2(2B-1)\right\rceil
 $$
 
 bits per residual, with total length
 
 $$
-L_{\mathrm{fixed}}
-=
+L_{\mathrm{fixed}} =
 N_t\left\lceil\log_2(2B-1)\right\rceil.
 $$
 
@@ -80,10 +78,7 @@ $$
 The ideal entropy-coding limit is
 
 $$
-b_{\mathrm{Shannon}}
-=
-H(R)
-=
+b_{\mathrm{Shannon}} = H(R) =
 -\sum_r p_R(r)\log_2p_R(r).
 $$
 
@@ -95,10 +90,8 @@ If $n_r$ is the observed frequency of residual $r$ and $\ell_r$ is its binary
 Huffman codeword length, then
 
 $$
-b_{\mathrm{Huffman}}
-=
-\frac{1}{N_t}\sum_r n_r\ell_r
-=
+b_{\mathrm{Huffman}} =
+\frac{1}{N_t}\sum_r n_r\ell_r =
 \sum_r p_R(r)\ell_r.
 $$
 
@@ -133,7 +126,7 @@ $$
 D_d=
 \begin{cases}
 \dfrac{I_d(X;Y)}{\max\!\left(H(X),H(Y)\right)},
-& \max\!\left(H(X),H(Y)\right)>0,\\[8pt]
+& \max\!\left(H(X),H(Y)\right)>0,\\
 0, & \text{otherwise}.
 \end{cases}
 $$
@@ -142,8 +135,7 @@ Let $\mathcal S$ denote the set of axes classified as spatial. Reported spatial
 dependence is
 
 $$
-D_{\mathrm{spatial}}
-=
+D_{\mathrm{spatial}} =
 \frac{1}{|\mathcal S|}
 \sum_{d\in\mathcal S}D_d.
 $$
@@ -163,8 +155,7 @@ checkerboard can have high spatial dependence.
 For spatial axis $d$, normalized mean adjacent variation is
 
 $$
-V_d
-=
+V_d =
 \frac{1}{N_d(B-1)}
 \sum_{k=1}^{N_d}|Y_k-X_k|,
 $$
@@ -174,8 +165,7 @@ where $N_d$ is the number of valid adjacent pairs along that axis.
 Mean spatial variation is
 
 $$
-V_{\mathrm{spatial}}
-=
+V_{\mathrm{spatial}} =
 \frac{1}{|\mathcal S|}
 \sum_{d\in\mathcal S}V_d.
 $$
@@ -200,15 +190,14 @@ Temporal dependence applies the normalized mutual-information definition to
 adjacent time bins:
 
 $$
-D_{\mathrm{temporal}}
-=
+D_{\mathrm{temporal}} =
 \begin{cases}
 \dfrac{
 H(Q_t)+H(Q_{t+1})-H(Q_t,Q_{t+1})
 }{
 \max\!\left(H(Q_t),H(Q_{t+1})\right)
 },
-& \max\!\left(H(Q_t),H(Q_{t+1})\right)>0,\\[10pt]
+& \max\!\left(H(Q_t),H(Q_{t+1})\right)>0,\\
 0, & \text{otherwise}.
 \end{cases}
 $$
@@ -228,8 +217,7 @@ The current structure summary figure plots **temporal coherence**, not temporal
 dependence. Temporal coherence is
 
 $$
-C_{\mathrm{temporal}}
-=
+C_{\mathrm{temporal}} =
 1-
 \frac{1}{N_t(B-1)}
 \sum_{k=1}^{N_t}|Q_{t+1,k}-Q_{t,k}|.
@@ -244,8 +232,7 @@ alternating pattern can have high temporal dependence but lower temporal coheren
 Let
 
 $$
-L_{\mathrm{fixed}}
-=
+L_{\mathrm{fixed}} =
 N_t\left\lceil\log_2(2B-1)\right\rceil
 $$
 
@@ -254,9 +241,8 @@ length produced by the selected Shannon or Huffman model. Residual coding saving
 is
 
 $$
-S_{\mathrm{coding}}
-=
-\operatorname{clamp}\left(
+S_{\mathrm{coding}} =
+\mathrm{clamp}\left(
 1-\frac{L_{\mathrm{coded}}}{L_{\mathrm{fixed}}},
 0,1
 \right).
@@ -265,8 +251,7 @@ $$
 Before clamping, this is equivalently
 
 $$
-S_{\mathrm{coding}}
-=
+S_{\mathrm{coding}} =
 \frac{L_{\mathrm{fixed}}-L_{\mathrm{coded}}}
 {L_{\mathrm{fixed}}}.
 $$
