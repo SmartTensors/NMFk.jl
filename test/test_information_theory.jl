@@ -391,6 +391,10 @@ Test.@testset "raw-data versus grid information" begin
         guide::Gadfly.GuideElement for guide::Gadfly.GuideElement in raw_grid_record_heatmap.guides
         if guide isa Gadfly.Guide.Title
     )
+    heatmap_x_ticks::Gadfly.Guide.XTicks = only(
+        guide::Gadfly.GuideElement for guide::Gadfly.GuideElement in raw_grid_heatmap.guides
+        if guide isa Gadfly.Guide.XTicks
+    )
     Test.@test raw_grid_plot isa Gadfly.Plot
     Test.@test raw_grid_bits_plot isa Gadfly.Plot
     Test.@test raw_grid_heatmap isa Gadfly.Plot
@@ -399,6 +403,7 @@ Test.@testset "raw-data versus grid information" begin
     Test.@test raw_grid_record_heatmap isa Gadfly.Plot
     Test.@test record_color_key.title == "H(R | G) / H(R)"
     Test.@test occursin("H(R)=", record_title.label)
+    Test.@test heatmap_x_ticks.orientation == :horizontal
     Test.@test raw_grid_plot.layers[1].geom isa Gadfly.Geom.LabelGeometry
     Test.@test raw_grid_plot.layers[2].geom isa Gadfly.Geom.LineGeometry
     Test.@test raw_grid_plot.layers[3].geom isa Gadfly.Geom.BarGeometry

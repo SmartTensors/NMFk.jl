@@ -1445,6 +1445,7 @@ function plot_rawdata_grid_heatmap(
             colormap=color_map,
         ),
         Gadfly.Guide.colorkey(; title=color_key_title),
+        Gadfly.Guide.xticks(; orientation=:horizontal),
         Gadfly.Guide.xlabel(x_label),
         Gadfly.Guide.ylabel(y_label),
         Gadfly.Guide.title(title),
