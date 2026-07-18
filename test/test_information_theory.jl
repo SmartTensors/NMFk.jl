@@ -368,10 +368,37 @@ Test.@testset "raw-data versus grid information" begin
         ["short", "long"];
         quantity=:lost,
     )
+    raw_grid_comparison_heatmap::Gadfly.Plot = NMFk.plot_rawdata_grid_heatmap(
+        comparison_matrix,
+        ["fine", "coarse"],
+        ["short", "long"];
+        quantity=:lost,
+        annotation=:comparison,
+    )
+    raw_grid_record_heatmap::Gadfly.Plot = NMFk.plot_rawdata_grid_heatmap(
+        comparison_matrix,
+        ["fine", "coarse"],
+        ["short", "long"];
+        baseline=:records,
+        quantity=:lost,
+        annotation=:comparison,
+    )
+    record_color_key::Gadfly.Guide.ColorKey = only(
+        guide::Gadfly.GuideElement for guide::Gadfly.GuideElement in raw_grid_record_heatmap.guides
+        if guide isa Gadfly.Guide.ColorKey
+    )
+    record_title::Gadfly.Guide.Title = only(
+        guide::Gadfly.GuideElement for guide::Gadfly.GuideElement in raw_grid_record_heatmap.guides
+        if guide isa Gadfly.Guide.Title
+    )
     Test.@test raw_grid_plot isa Gadfly.Plot
     Test.@test raw_grid_bits_plot isa Gadfly.Plot
     Test.@test raw_grid_heatmap isa Gadfly.Plot
     Test.@test raw_grid_loss_heatmap isa Gadfly.Plot
+    Test.@test raw_grid_comparison_heatmap isa Gadfly.Plot
+    Test.@test raw_grid_record_heatmap isa Gadfly.Plot
+    Test.@test record_color_key.title == "H(R | G) / H(R)"
+    Test.@test occursin("H(R)=", record_title.label)
     Test.@test raw_grid_plot.layers[1].geom isa Gadfly.Geom.LabelGeometry
     Test.@test raw_grid_plot.layers[2].geom isa Gadfly.Geom.LineGeometry
     Test.@test raw_grid_plot.layers[3].geom isa Gadfly.Geom.BarGeometry
@@ -389,6 +416,12 @@ Test.@testset "raw-data versus grid information" begin
         ["fine", "coarse"],
         ["short", "long"];
         quantity=:range,
+    )
+    Test.@test_throws ArgumentError NMFk.plot_rawdata_grid_heatmap(
+        comparison_matrix,
+        ["fine", "coarse"],
+        ["short", "long"];
+        annotation=:invalid,
     )
     Test.@test_throws DimensionMismatch NMFk.plot_rawdata_grid_heatmap(
         comparison_matrix,

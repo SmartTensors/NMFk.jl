@@ -539,6 +539,7 @@ loss_heatmap::Gadfly.Plot = NMFk.plot_rawdata_grid_heatmap(
     "rawdata_information_loss_heatmap.png";
     baseline=:states,
     quantity=:lost,
+    annotation=:comparison,
     x_label="Spatial resolution",
     y_label="Temporal resolution",
 )
@@ -550,8 +551,12 @@ annotated with retained percentage, merging-loss bits per observation, and
 effective ambiguity.
 The two-dimensional heatmap uses an absolute zero-to-one color scale. With
 `quantity=:lost`, green means little observed-state distinguishability is merged
-and red means severe merging; the printed cell values are empirical raw-baseline
-merging-loss percentages.
+and red means severe merging. The compact default `annotation=:percent` prints
+the empirical raw-baseline merging-loss percentage. The more explicit
+`annotation=:comparison` prints three quantities in every cell: the percentage
+lost, `H(X | G)` bits out of the common raw `H(X)` baseline, and the effective
+ambiguity `2^H(X | G)`. This is often the clearest single figure for comparing a
+two-dimensional family of grids with the raw observations.
 
 ## Oklahoma result persistence and reuse
 
@@ -564,6 +569,27 @@ checkpoint from being resumed against changed measurement values. Every grid
 result stores `count_mass`, `rawdata_comparison`, and `grid_shape` alongside the
 existing maximum-magnitude and structure summaries.
 
+After including `oklahoma_structure_information_common.jl`, the persisted
+raw/grid values can be inspected directly without rebuilding any tensor:
+
+```julia
+analysis::NamedTuple = load_oklahoma_information_results(results_path)
+raw_information::NamedTuple = analysis.rawdata_information
+time_label::String = first(keys(analysis.spatial_results))
+resolution_index::Int = 1
+comparison::NamedTuple =
+    analysis.spatial_results[time_label][resolution_index].rawdata_comparison
+
+raw_entropy_bits::Float64 = comparison.raw_entropy_bits              # H(X)
+grid_entropy_bits::Float64 = comparison.grid_entropy_bits            # H(G)
+retained_bits::Float64 = comparison.retained_distinguishability_bits # I(X; G)
+merging_loss_bits::Float64 = comparison.merging_loss_bits            # H(X | G)
+```
+
+`analysis.rawdata_information` contains the common raw-state definition and
+baseline metadata. Each `rawdata_comparison` contains the paired empirical
+comparison for one grid configuration.
+
 The Oklahoma retained/lost baseline deliberately uses longitude, latitude, and
 time. It therefore measures event-localization information lost by spatial and
 temporal binning. Magnitude is still analyzed as a raw feature and in the
@@ -572,20 +598,29 @@ aggregation loss. A maximum is a nonadditive summary, so that question requires
 an explicitly chosen reconstruction or distortion model rather than an entropy
 ratio that would look precise but be misleading.
 
-`run_oklahoma_structure_analysis(...; resume=true)` is the default. It validates
-the dataset fingerprint and configuration, skips completed configurations, and
-reuses each computed grid for both spatial and temporal figure families. Version-1
-checkpoints lack a complete historical input fingerprint and therefore are not
-trusted automatically. If, and only if, the current inputs are exactly those used
-for that checkpoint, pass `trust_version1_checkpoint=true`; the file is then
-backed up with a `.v1.backup` suffix and upgraded by adding sparse raw/grid
-comparisons without recomputing its expensive tensor metrics.
+`run_oklahoma_structure_analysis(...; resume=true)` is the default. It first
+checks the deterministic result path for a version-2 JLD2 analysis and validates
+the selected-input fingerprint and complete configuration. A complete matching
+analysis is returned before raw metrics, grid indices, or tensor metrics are
+recomputed. A partial matching analysis resumes at its first missing grid
+configuration, and each computed grid is reused for both spatial and temporal
+figure families. Set `save_figures=false` when only the precomputed `NamedTuple`
+is needed; the default remains `true` so normal script runs still create or
+refresh the figures.
+
+Version-1 checkpoints lack a complete historical input fingerprint and therefore
+are not trusted automatically. If, and only if, the current inputs are exactly
+those used for that checkpoint, pass `trust_version1_checkpoint=true`; the file
+is then backed up with a `.v1.backup` suffix and upgraded by adding sparse
+raw/grid comparisons without recomputing its expensive tensor metrics.
 
 The recreated figure set includes
 `<dataset>_rawdata_information_loss_heatmap.png`, which places spatial resolution
 on one axis, temporal resolution on the other, and directly displays the
 percentage of observed raw-state distinguishability lost through grid collisions
-for every configuration.
+for every configuration. It also includes
+`<dataset>_raw_vs_gridded_information.png`, whose detailed cell annotations make
+the common raw baseline, loss bits, and effective ambiguity explicit.
 
 Figures can be recreated from the checkpoint alone:
 

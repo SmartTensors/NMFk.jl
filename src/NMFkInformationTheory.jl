@@ -1303,12 +1303,14 @@ end
 """
 plot_rawdata_grid_heatmap(comparisons, x_steps, y_steps, filename="";
     baseline=:states, quantity=:retained, x_label="Grid resolution 1",
-    y_label="Grid resolution 2", title_extra="")
+    y_label="Grid resolution 2", annotation=:percent, title_extra="")
 
 Plot the fraction of empirical raw-state distinguishability retained or merged
 across a two-dimensional resolution sweep. Matrix rows correspond to `y_steps`
 and columns correspond to `x_steps`. `quantity=:lost` uses green for low merging
-loss and red for high merging loss.
+loss and red for high merging loss. `annotation=:comparison` makes the raw/grid
+comparison explicit in every cell by showing the selected percentage, its bits
+out of the raw baseline, and the effective ambiguity caused by merging.
 """
 function plot_rawdata_grid_heatmap(
     comparisons::AbstractMatrix{<:NamedTuple},
@@ -1319,6 +1321,7 @@ function plot_rawdata_grid_heatmap(
     quantity::Symbol=:retained,
     x_label::AbstractString="Grid resolution 1",
     y_label::AbstractString="Grid resolution 2",
+    annotation::Symbol=:percent,
     title_extra::AbstractString="",
 )::Gadfly.Plot
     size(comparisons, 2) == length(x_steps) ||
@@ -1328,6 +1331,8 @@ function plot_rawdata_grid_heatmap(
     isempty(comparisons) && throw(ArgumentError("Raw-data grid heatmap comparisons must not be empty!"))
     quantity in (:retained, :lost) ||
         throw(ArgumentError("Raw-data heatmap quantity must be :retained or :lost!"))
+    annotation in (:percent, :comparison) ||
+        throw(ArgumentError("Raw-data heatmap annotation must be :percent or :comparison!"))
     flattened_comparisons::Vector{NamedTuple} =
         NamedTuple[comparison for comparison::NamedTuple in vec(comparisons)]
     validation_steps::Vector{Int} = collect(eachindex(flattened_comparisons))
@@ -1357,28 +1362,66 @@ function plot_rawdata_grid_heatmap(
                 Float64(comparison.record_retention_fraction)
             lost_fraction::Float64 = baseline == :states ?
                 Float64(comparison.loss_fraction) : Float64(comparison.record_loss_fraction)
+            raw_bits::Float64 = baseline == :states ?
+                Float64(comparison.raw_entropy_bits) : Float64(comparison.record_entropy_bits)
+            retained_bits::Float64 = baseline == :states ?
+                Float64(comparison.retained_information_bits) :
+                Float64(comparison.record_retained_information_bits)
+            lost_bits::Float64 = baseline == :states ?
+                Float64(comparison.lost_information_bits) :
+                Float64(comparison.record_lost_information_bits)
+            effective_ambiguity::Float64 = baseline == :states ?
+                Float64(comparison.effective_ambiguity) :
+                Float64(comparison.effective_record_ambiguity)
             plotted_fraction::Float64 = quantity == :retained ? retained_fraction : lost_fraction
+            plotted_bits::Float64 = quantity == :retained ? retained_bits : lost_bits
             mapping_is_deterministic::Bool = Bool(comparison.mapping_is_deterministic)
             mapping_warning_present = mapping_warning_present || !mapping_is_deterministic
             mapping_suffix::String = mapping_is_deterministic ? "" : "*"
+            percentage_label::String =
+                "$(round(100.0 * plotted_fraction; digits=1))%$(mapping_suffix)"
+            ambiguity_label::String = effective_ambiguity < 1000.0 ?
+                string(round(effective_ambiguity; digits=2)) :
+                string(round(effective_ambiguity; sigdigits=3))
+            comparison_label::String = quantity == :lost ?
+                "$(percentage_label) lost\n$(round(plotted_bits; digits=2)) of $(round(raw_bits; digits=2)) bits\n$(ambiguity_label)x ambiguity" :
+                "$(percentage_label) retained\n$(round(plotted_bits; digits=2)) of $(round(raw_bits; digits=2)) bits\n$(ambiguity_label)x ambiguity"
             push!(x_values, x_labels[x_index])
             push!(y_values, y_labels[y_index])
             push!(fraction_values, plotted_fraction)
-            push!(fraction_labels, "$(round(100.0 * plotted_fraction; digits=1))%$(mapping_suffix)")
+            push!(
+                fraction_labels,
+                annotation == :comparison ? comparison_label : percentage_label,
+            )
         end
     end
     baseline_description::String = baseline == :states ? "raw states" : "raw records"
+    baseline_symbol::String = baseline == :states ? "X" : "R"
+    distinguishability_description::String = baseline == :states ? "raw-state" : "record"
     quantity_description::String = quantity == :retained ?
         "retained by grid labels" : "lost by grid merging"
     color_key_title::String = quantity == :retained ?
-        "Retained fraction" : "Merging-loss fraction"
+        "I($(baseline_symbol); G) / H($(baseline_symbol))" :
+        "H($(baseline_symbol) | G) / H($(baseline_symbol))"
     color_map::Function = quantity == :retained ?
         Gadfly.Scale.lab_gradient("#e74c3c", "#f1c40f", "#16a085") :
         Gadfly.Scale.lab_gradient("#16a085", "#f1c40f", "#e74c3c")
     mapping_warning::String = mapping_warning_present ?
         " (* observed-state mapping conflict)" : ""
     title::String =
-        "Observed raw-state distinguishability $(quantity_description): $(baseline_description)$(mapping_warning)$(title_extra)"
+        "Observed $(distinguishability_description) distinguishability $(quantity_description): " *
+        "$(baseline_description)$(mapping_warning)$(title_extra)"
+    if annotation == :comparison
+        reference_comparison::NamedTuple = first(flattened_comparisons)
+        raw_baseline_bits::Float64 = baseline == :states ?
+            Float64(reference_comparison.raw_entropy_bits) :
+            Float64(reference_comparison.record_entropy_bits)
+        draw_description::String = Bool(reference_comparison.weighted) ?
+            "weighted draw" : "observation"
+        title *=
+            "\nRaw baseline H($(baseline_symbol))=$(round(raw_baseline_bits; digits=2)) bits per $(draw_description); " *
+            "each cell compares the grid with that same baseline"
+    end
     rawdata_heatmap::Gadfly.Plot = Gadfly.plot(
         Gadfly.layer(
             Gadfly.Geom.label(; position=:centered, hide_overlaps=false),
@@ -1405,11 +1448,15 @@ function plot_rawdata_grid_heatmap(
         Gadfly.Guide.xlabel(x_label),
         Gadfly.Guide.ylabel(y_label),
         Gadfly.Guide.title(title),
-        Gadfly.Theme(; key_position=:right),
+        Gadfly.Theme(; key_position=:right, background_color="white"),
     )
     if filename != ""
         @info("Saving raw-data grid-information heatmap to file: $filename")
-        Mads.plotfileformat(rawdata_heatmap, filename, 10Gadfly.inch, 6Gadfly.inch)
+        if annotation == :comparison
+            Mads.plotfileformat(rawdata_heatmap, filename, 12Gadfly.inch, 7Gadfly.inch)
+        else
+            Mads.plotfileformat(rawdata_heatmap, filename, 10Gadfly.inch, 6Gadfly.inch)
+        end
     end
     return rawdata_heatmap
 end
