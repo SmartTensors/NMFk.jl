@@ -22,6 +22,30 @@ $$
 
 If all valid values are identical, they are assigned symbol $1$.
 
+For sparse nonnegative count or mass fields,
+`quantization=:zero_preserving` reserves symbol $1$ for exact zero and assigns
+positive values to symbols $2,\ldots,B$. Let $x_+$ and $x^+$ be the minimum and
+maximum positive values. When $x_+<x^+$,
+
+$$
+Q_0(x)=
+\begin{cases}
+1, & x=0,\\
+\mathrm{clamp}\left(
+2+\left\lfloor
+(B-1)\dfrac{x-x_+}{x^+-x_+}
+\right\rfloor,
+2,B
+\right), & x>0.
+\end{cases}
+$$
+
+If all positive values are identical, they receive symbol $2$. An all-zero
+field uses only symbol $1$. Negative valid values are rejected in this mode;
+the default `:linear` mode remains available for signed tensors. Reserving zero
+prevents a common one-event cell from sharing the empty-cell symbol merely
+because a rare cell has a much larger event count.
+
 For tensor axis $d$, let $(X_k,Y_k)$ denote a pair of valid adjacent quantized
 cells:
 
@@ -38,6 +62,107 @@ R_k=Y_k-X_k,
 \qquad
 R_k\in\{-(B-1),\ldots,B-1\}.
 $$
+
+## Multidimensional lag vectors
+
+Axis-adjacent pairs are the special case of a general integer lag vector
+
+$$
+\boldsymbol{\delta}=(\delta_1,\ldots,\delta_D)\in\mathbb Z^D,
+\qquad
+\boldsymbol{\delta}\ne\mathbf 0.
+$$
+
+For each grid index $\mathbf i_k$ for which both endpoints are in bounds and
+valid, the lagged pair and prediction residual are
+
+$$
+X_k=Q(\mathbf i_k),
+\qquad
+Y_k=Q(\mathbf i_k+\boldsymbol{\delta}),
+\qquad
+R_k=Y_k-X_k.
+$$
+
+This definition includes axial, diagonal, and mixed space-time relationships.
+For a tensor ordered as latitude, longitude, time, for example,
+$(1,1,0)$ is a spatial diagonal and $(1,-1,2)$ is a directional
+space-time lag. For a future latitude, longitude, depth, time tensor, the same
+definition extends directly to $(\delta_{\rm lat},\delta_{\rm lon},
+\delta_{\rm depth},\delta_t)$.
+
+For that 4-D case, pass
+`dimension_roles=(:horizontal, :horizontal, :depth, :temporal)`. Pure depth
+lags are then reported with `role=:depth`, horizontal-depth diagonals with
+`role=:spatial_depth`, and mixed time lags with `role=:spatiotemporal`.
+`depth_dependence` and `depth_variation` remain separate from the horizontal
+`spatial_dependence` and `spatial_variation` summaries.
+
+The lag API is dimension-generic, but `structure_information` still receives a
+dense tensor. A fine 4-D event grid can therefore run out of memory before lag
+histograms are evaluated. The Oklahoma workflow should not add a depth axis to
+its present dense tensors without first moving cell aggregation to a truly
+sparse occupied-cell representation or deliberately coarsening the grid.
+
+The number of geometrically possible pairs before masking is
+
+$$
+N_{\rm candidate}(\boldsymbol{\delta})=
+\prod_{d=1}^{D}\max\left(n_d-|\delta_d|,0\right),
+$$
+
+where $n_d$ is the size of tensor dimension $d$. The reported pair count can be
+smaller because a pair is used only when both endpoints are valid.
+This endpoint rule is stored as `lag_pair_scope=:both_endpoints_valid`. With the
+default all-valid mask, numerical zeros are valid cells and zero-zero pairs are
+included. For a sparse event-count field this describes full-field occupancy
+persistence, including quiet background; it is not the same as conditioning on
+two occupied event cells.
+
+Lag components remain separate in stored results and plots. A single Euclidean
+norm should not combine longitude/latitude degrees, depth units, and elapsed
+time. If radial spatial pooling is desired, it must first use an explicitly
+chosen compatible coordinate metric; time should remain a separate lag.
+The returned `grid_index_norm` is only the dimensionless norm of integer cell
+offsets and is not presented as a physical distance.
+
+For a latitude, longitude, time tensor, a compact direction-resolved analysis
+can be run as follows:
+
+```julia
+import Dates
+import Gadfly
+import NMFk
+
+lag_offsets::Vector{Tuple{Int,Int,Int}} = [
+    (1, 0, 0), (0, 1, 0),
+    (1, 1, 0), (1, -1, 0),
+    (2, 0, 0), (0, 2, 0),
+    (0, 0, 1), (0, 0, 7),
+    (1, 1, 1), (1, -1, 1),
+    (-1, 1, 1), (-1, -1, 1),
+]
+
+information::NamedTuple = NMFk.structure_information(
+    flattened_T;
+    temporal_dim=3,
+    lag_offsets=lag_offsets,
+    dimension_names=(:latitude, :longitude, :time),
+    dimension_steps=(latitude_cell_degrees, longitude_cell_degrees, Dates.Day(1)),
+    dimension_units=("deg", "deg", ""),
+    dimension_roles=(:horizontal, :horizontal, :temporal),
+    compute_spectral=false,
+)
+
+lag_plot::Gadfly.Plot = NMFk.plot_lag_information(information)
+```
+
+The default `lag_sign=:canonical` treats opposite spatial offsets as the same
+unordered pair and makes nonzero temporal lags point forward. It still keeps
+opposite forward-time propagation directions such as `(1,1,1)` and
+`(-1,-1,1)` separate. Use
+`lag_sign=:directed` when forward and reverse conditional entropies must be
+reported as distinct requested directions.
 
 For an empirical discrete variable $X$, entropy in bits is
 
@@ -483,6 +608,147 @@ must not be labeled as raw information retained. Such tensors remain useful
 descriptive summaries, but their aggregation loss requires a reconstruction,
 distortion, prediction, or explicit coding model.
 
+### Magnitude-mark aggregation
+
+Three related questions should remain separate:
+
+1. **Event-merging loss** is the localization uncertainty $H(X\mid G)$ described
+   above. It asks which raw event state produced an event assigned to grid cell
+   $G$.
+2. **Count or occurrence structure** is measured from the gridded count tensor,
+   including its multidimensional lag dependence and residual coding.
+3. **Magnitude aggregation loss** concerns variation among event marks inside a
+   cell. It requires an explicit magnitude quantizer and reconstruction model.
+
+For a fixed magnitude precision $\Delta_M>0$ and origin $M_0$, define the
+origin-anchored magnitude symbol
+
+$$
+Q_i=\left\lfloor\frac{M_i-M_0}{\Delta_M}\right\rfloor.
+$$
+
+The empirical within-cell magnitude heterogeneity is
+
+$$
+H(Q\mid G)
+=\sum_g\frac{n_g}{N}H(Q\mid G=g)
+=H(Q,G)-H(G).
+$$
+
+The implementation uses the event-weighted sparse-cell sum as the authoritative
+value. The joint-entropy subtraction is retained as a scale-tolerant diagnostic,
+because subtracting two large empirical entropies can lose floating-point
+precision on high-cardinality grids.
+
+`magnitude_aggregation_information` returns this quantity as
+`magnitude_conditional_entropy_bits` and retains the nonzero per-cell symbol
+counts in compressed-sparse-row form. It also reports
+
+$$
+I(Q;G)=H(Q)-H(Q\mid G),
+$$
+
+together with the normalized heterogeneity $H(Q\mid G)/H(Q)$ and magnitude
+location-dependence fraction $I(Q;G)/H(Q)$. The latter is returned as
+`magnitude_location_dependence_fraction`. The older
+`magnitude_retention_fraction` field is an exact compatibility alias; it does
+not measure retention by a maximum, mean, or median cell reconstruction. Both
+fractions are undefined and returned as `NaN` when $H(Q)=0$. Here
+$H(Q\mid G)$ is a quantized mark-heterogeneity measure and ideal conditional
+mark-coding bound. It should not be interpreted as all physical information
+lost from an earthquake catalog.
+
+`magnitude_aggregation_loss_fraction` is an alias of the normalized quantized
+heterogeneity $H(Q\mid G)/H(Q)$. It is conditional quantized-mark uncertainty,
+not physical distortion or total catalog loss, and it does not depend on whether
+the later reconstruction diagnostics use the maximum, mean, or median.
+
+These are empirical plug-in estimates. Sparse, singleton-heavy grids can make
+the apparent location dependence optimistic because a singleton grid label
+memorizes its one observed mark. Report the returned singleton cell and event
+fractions beside this statistic, and compare resolutions on a common event
+cohort.
+
+Magnitude heterogeneity is monotone under coarsening only when the grids form
+genuinely nested deterministic partitions. Arbitrary bin-count sequences can
+shift cell boundaries and need not be nested, so small nonmonotone changes across
+such a sweep are not automatically implementation errors.
+
+For a cell estimator $s\in\{\text{maximum},\text{mean},\text{median}\}$, let
+$\widehat M_g^{(s)}$ be its physical reconstruction. The reported physical
+errors are
+
+$$
+e_i^{(s)}=M_i-\widehat M_{G_i}^{(s)},
+$$
+
+$$
+\mathrm{MAE}_s=\frac1N\sum_i\lvert e_i^{(s)}\rvert,
+\qquad
+\mathrm{RMSE}_s=\sqrt{\frac1N\sum_i\left(e_i^{(s)}\right)^2},
+\qquad
+\mathrm{bias}_s=\frac1N\sum_i e_i^{(s)}.
+$$
+
+The mean minimizes within-cell squared error, the median minimizes within-cell
+absolute error, and the maximum preserves the largest observed cell mark rather
+than minimizing either error. Earthquake magnitude is normally logarithmic, so
+these errors remain in supplied magnitude units and are not linear energy-error
+measures.
+
+Coding uses a distinct, exactly invertible integer residual. The physical
+predictor is mapped to its nearest lattice coordinate $\widehat Q_g^{(s)}$
+(ties to even), and
+
+$$
+R_i^{(s)}=Q_i-\widehat Q_{G_i}^{(s)},
+\qquad
+Q_i=\widehat Q_{G_i}^{(s)}+R_i^{(s)}.
+$$
+
+Consequently, subtracting a cell-specific predictor is a conditional shift and
+
+$$
+H(R^{(s)}\mid G)=H(Q\mid G).
+$$
+
+The implementation verifies this identity. Pooled residual entropy
+$H(R^{(s)})$ can be larger because residual distributions from different cells
+are mixed. Both ideal Shannon bits and binary-Huffman bits are reported. The
+common fixed-width reference uses the bit width of the global observed
+magnitude-symbol span, making residual coding savings comparable across grids
+and estimators. A second diagnostic uses the observed pooled residual range.
+
+All coding sizes exclude predictor tables, grid labels, codebooks, headers, and
+container overhead. In particular, a singleton cell can have zero conditional
+residual payload only because its mark has moved into the uncounted cell
+predictor. Singleton cell and observation fractions are therefore reported
+explicitly.
+
+The stored sparse histograms preserve the quantized magnitude multiset in each
+cell, but not its pairing with event identity, subcell position, time, or input
+order. Reconstructing an ordered catalog losslessly would additionally require
+the event-aligned residual stream, every event's grid assignment, the predictor
+table, and the coding metadata; those payloads are intentionally not retained by
+this summary metric.
+
+```julia
+import NMFk
+
+magnitude_information::NamedTuple = NMFk.magnitude_aggregation_information(
+    magnitudes,
+    (
+        latitude=latitude_indices,
+        longitude=longitude_indices,
+        time=time_indices,
+    );
+    magnitude_precision=0.1,
+    magnitude_origin=0.0,
+    reconstructions=(:maximum, :mean, :median),
+    residual_coding=:huffman,
+)
+```
+
 ### Julia example
 
 ```julia
@@ -560,14 +826,20 @@ two-dimensional family of grids with the raw observations.
 
 ## Oklahoma result persistence and reuse
 
-The Oklahoma structure-analysis workflow writes a version-2 JLD2 checkpoint
+The Oklahoma structure-analysis workflow writes a version-4 JLD2 checkpoint
 before tensor work and after every completed grid configuration. The top-level
 `analysis.rawdata_information` stores the raw baseline, precision/origin metadata,
 state fingerprint, and feature residual summaries. A separate exact fingerprint
 of all selected dates, coordinates, magnitudes, and their ordering prevents a
 checkpoint from being resumed against changed measurement values. Every grid
 result stores `count_mass`, `rawdata_comparison`, and `grid_shape` alongside the
-existing maximum-magnitude and structure summaries.
+existing maximum-magnitude and structure summaries. Version 4 also stores
+`energy_rawdata_information`, the complete energy-proxy relation metadata, and
+per-grid `energy_mass` and `energy_rawdata_comparison` results without storing a
+dense energy tensor. Its `magnitude_aggregation` result retains compressed sparse
+per-cell magnitude histograms and max/mean/median reconstruction summaries;
+top-level configuration and scope metadata record exactly what is and is not
+retained.
 
 After including `oklahoma_structure_information_common.jl`, the persisted
 raw/grid values can be inspected directly without rebuilding any tensor:
@@ -579,11 +851,15 @@ time_label::String = first(keys(analysis.spatial_results))
 resolution_index::Int = 1
 comparison::NamedTuple =
     analysis.spatial_results[time_label][resolution_index].rawdata_comparison
+magnitude_aggregation::NamedTuple =
+    analysis.spatial_results[time_label][resolution_index].magnitude_aggregation
 
 raw_entropy_bits::Float64 = comparison.raw_entropy_bits              # H(X)
 grid_entropy_bits::Float64 = comparison.grid_entropy_bits            # H(G)
 retained_bits::Float64 = comparison.retained_distinguishability_bits # I(X; G)
 merging_loss_bits::Float64 = comparison.merging_loss_bits            # H(X | G)
+magnitude_heterogeneity_bits::Float64 =
+    magnitude_aggregation.magnitude_conditional_entropy_bits          # H(M | G)
 ```
 
 `analysis.rawdata_information` contains the common raw-state definition and
@@ -592,14 +868,142 @@ comparison for one grid configuration.
 
 The Oklahoma retained/lost baseline deliberately uses longitude, latitude, and
 time. It therefore measures event-localization information lost by spatial and
-temporal binning. Magnitude is still analyzed as a raw feature and in the
-maximum-magnitude tensor, but the heatmap does not claim to measure magnitude
-aggregation loss. A maximum is a nonadditive summary, so that question requires
-an explicitly chosen reconstruction or distortion model rather than an entropy
-ratio that would look precise but be misleading.
+temporal binning. Magnitude is analyzed separately: the magnitude-heterogeneity
+heatmap displays empirical $H(M\mid G)/H(M)$, while companion figures compare
+max/mean/median physical reconstruction errors and residual coding. This avoids
+mislabeling entropy of the nonadditive maximum-magnitude tensor as raw
+information retained.
+
+### Additive event-energy proxy
+
+When only earthquake magnitudes are available, an additive energy-like mark can
+be defined explicitly as a proxy:
+
+$$
+E_i^{\rm proxy}=10^{aM_i+b},
+\qquad
+E_g^{\rm proxy}=\sum_{i:G_i=g}E_i^{\rm proxy}.
+$$
+
+The sum is performed in linear energy space. Magnitudes and logarithmic energies
+must not be added. If the magnitude scale is unknown or mixed, the result is
+called an energy proxy rather than physical radiated energy.
+
+The Oklahoma workflow therefore defaults to $a=1.5$, $b=0$, and a unitless
+relative-energy label. Two alternative calibrated configurations are provided.
+The historical `GUTENBERG_RICHTER_ENERGY_CONFIGURATION` uses
+$a=1.5$, $b=4.8$ in joules and is labeled as a generic energy-magnitude
+relation rather than as moment-magnitude-specific. The
+`USGS_MOMENT_MAGNITUDE_ENERGY_CONFIGURATION` preset uses $a=1.44$, $b=5.24$
+in joules and should be selected only after confirming homogeneous moment
+magnitudes. These relations are documented by the USGS in its
+[historical generic magnitude-energy table](https://pubs.usgs.gov/of/1998/ofr-98-0767/)
+and its current
+[moment-magnitude energy overview](https://www.usgs.gov/programs/earthquake-hazards/earthquake-magnitude-energy-release-and-shaking-intensity).
+
+Because entropy uses normalized weights, a constant intercept $b$ and the
+reported energy unit do not change the weighted localization fractions. They do
+change the stored total-energy scale. The coefficient $a$ changes relative event
+weights and therefore can change the information results.
+
+To ask where energetic events become indistinguishable after gridding, define
+
+$$
+q_i=\frac{E_i^{\rm proxy}}{\sum_jE_j^{\rm proxy}},
+\qquad
+q_x=\sum_{i:X_i=x}q_i,
+\qquad
+q_g=\sum_{i:G_i=g}q_i.
+$$
+
+The energy-weighted raw and gridded localization entropies are
+
+$$
+H_E(X)=-\sum_x q_x\log_2 q_x,
+\qquad
+H_E(G)=-\sum_g q_g\log_2 q_g,
+$$
+
+and, for deterministic grid assignment,
+
+$$
+H_E(X\mid G)=H_E(X)-H_E(G).
+$$
+
+Gridding conserves $\sum_g E_g^{\rm proxy}$; $H_E(X\mid G)$ measures the lost
+ability to localize that energy among raw event states. This is complementary to
+the unweighted event-localization loss, which gives every event equal weight.
+When every event has a unique raw state, $q_x=q_i$ and the raw-state entropy
+reduces to the event-index form $-\sum_iq_i\log_2q_i$.
+The per-feature raw sequence residual summaries remain explicitly labeled
+`weighting=:unweighted_sequence`; the energy weights apply to state/grid
+localization entropy, not to those transition-residual histograms.
+
+Consequently, `energy_mass` and `energy_rawdata_comparison` answer where and
+when the energy proxy is localized, and how much of that localization is merged
+by gridding. They are not entropy of energy-amplitude symbols, do not quantify
+the within-cell distribution of event magnitudes, and do not yet describe lagged
+structure of a summed-energy tensor. A few large events can dominate this
+weighted view, so it is shown beside, rather than instead of, the unweighted
+event-localization result.
+
+### Oklahoma multidimensional lag analysis
+
+The Oklahoma workflow keeps the plotted coordinates in longitude/latitude and
+stores each spatial lag component in degrees, using the actual cell widths
+returned by `NMFk.indicize`. It does not collapse longitude, latitude, and time
+into one mixed-unit distance. Enabled lag runs use zero-preserving count
+quantization, so an empty cell cannot share a symbol with a low positive count.
+Legacy runs with `lag_offsets=nothing` retain linear quantization and their
+existing cache behavior. Enable the recommended axial, diagonal, temporal, and
+mixed space-time directions with:
+
+```julia
+analysis::NamedTuple = run_oklahoma_structure_analysis(
+    dates,
+    longitudes,
+    latitudes,
+    magnitudes,
+    selection_mask,
+    longitude_steps,
+    latitude_steps,
+    date_steps,
+    DATASET_LABEL,
+    OUTPUT_DIRECTORY;
+    lag_offsets=RECOMMENDED_OKLAHOMA_LAG_OFFSETS,
+)
+```
+
+Custom offsets can retain the intuitive public coordinate order:
+
+```julia
+custom_lags::Vector{NTuple{3,Int}} = [
+    oklahoma_lag_offset(longitude=1),
+    oklahoma_lag_offset(latitude=1, longitude=1),
+    oklahoma_lag_offset(latitude=1, longitude=-1),
+    oklahoma_lag_offset(latitude=1, longitude=1, time=1),
+]
+```
+
+The helper converts those named components to the tensor's internal
+`(latitude, longitude, time)` order. The default `lag_sign=:canonical` removes
+only reverse duplicates while preserving distinct forward-time propagation
+directions. Because a positive time component fixes the arrow of time, the
+recommended set includes positive and negative axial propagation and all four
+signed spatial diagonals at a one-bin temporal lag. With the default result
+filename, an enabled run is automatically
+stored as `<dataset>_lag_information_theory_results.jld2`. Its exact requested
+offsets, quantization, and coordinate metadata are validated before a version-3
+or version-4 checkpoint is reused;
+older checkpoints are never silently treated as enabled lag analyses.
+
+These Oklahoma lag metrics currently analyze the complete zero-filled event-count
+field. Thus quiet-background pairs, including zero-zero pairs, are part of the
+reported dependence and coherence. This is useful for occupancy persistence but
+is distinct from an event-conditioned marked-point analysis.
 
 `run_oklahoma_structure_analysis(...; resume=true)` is the default. It first
-checks the deterministic result path for a version-2 JLD2 analysis and validates
+checks the deterministic result path for a version-4 JLD2 analysis and validates
 the selected-input fingerprint and complete configuration. A complete matching
 analysis is returned before raw metrics, grid indices, or tensor metrics are
 recomputed. A partial matching analysis resumes at its first missing grid
@@ -608,11 +1012,18 @@ figure families. Set `save_figures=false` when only the precomputed `NamedTuple`
 is needed; the default remains `true` so normal script runs still create or
 refresh the figures.
 
+A matching version-3 checkpoint is backed up with a `.v3.backup` suffix and
+upgraded by adding the sparse magnitude comparisons. A matching version-2
+checkpoint is backed up with a `.v2.backup` suffix and upgraded by adding both
+energy-weighted and magnitude comparisons. These upgrades reuse the stored
+tensor metrics and do not rebuild the dense count or maximum-magnitude tensors.
+
 Version-1 checkpoints lack a complete historical input fingerprint and therefore
 are not trusted automatically. If, and only if, the current inputs are exactly
 those used for that checkpoint, pass `trust_version1_checkpoint=true`; the file
 is then backed up with a `.v1.backup` suffix and upgraded by adding sparse
-raw/grid comparisons without recomputing its expensive tensor metrics.
+raw/grid, energy-weighted, and magnitude comparisons without recomputing its
+expensive tensor metrics.
 
 The recreated figure set includes
 `<dataset>_rawdata_information_loss_heatmap.png`, which places spatial resolution
@@ -621,6 +1032,16 @@ percentage of observed raw-state distinguishability lost through grid collisions
 for every configuration. It also includes
 `<dataset>_raw_vs_gridded_information.png`, whose detailed cell annotations make
 the common raw baseline, loss bits, and effective ambiguity explicit.
+The analogous
+`<dataset>_energy_weighted_information_loss_heatmap.png` and
+`<dataset>_energy_weighted_raw_vs_gridded_information.png` files answer the same
+localization question after weighting every raw event by its additive energy
+proxy. The eye-catching
+`<dataset>_magnitude_heterogeneity_heatmap.png` adds normalized quantized
+magnitude heterogeneity, $H(M\mid G)$ bits, singleton-event fraction, max versus
+mean RMSE, and median MAE for every spatial/temporal configuration. Sweep figures
+also compare the raw $H(M)$ baseline, ideal conditional $H(M\mid G)$ baseline,
+pooled residual coding, physical reconstruction errors, and coding savings.
 
 Figures can be recreated from the checkpoint alone:
 

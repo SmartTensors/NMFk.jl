@@ -23,6 +23,57 @@ function _discrete_entropy(symbols::AbstractVector{<:Integer})::Float64
     return -sum(probabilities .* log2.(probabilities))
 end
 
+# Increment a histogram entry while keeping zero-count entries out of the
+# dictionary. Negative increments are used by the sparse baseline-pair path.
+function _increment_information_count!(counts::Dict{K,Int}, symbol::K, increment::Int=1)::Nothing where {K}
+    updated_count::Int = get(counts, symbol, 0) + increment
+    updated_count >= 0 || throw(ArgumentError("Information histogram counts cannot be negative!"))
+    if updated_count == 0
+        delete!(counts, symbol)
+    else
+        counts[symbol] = updated_count
+    end
+    return nothing
+end
+
+# Compute empirical entropy directly from a histogram. This avoids materializing
+# one symbol vector per lag, which is prohibitive for large tensors.
+function _discrete_entropy_from_counts(counts::AbstractDict, observation_count::Int)::Float64
+    observation_count == 0 && return 0.0
+    entropy_bits::Float64 = 0.0
+    counted_observations::Int = 0
+    for count_value_any::Any in values(counts)
+        count_value::Int = Int(count_value_any)
+        count_value > 0 || continue
+        probability::Float64 = count_value / observation_count
+        entropy_bits -= probability * log2(probability)
+        counted_observations = Base.checked_add(counted_observations, count_value)
+    end
+    counted_observations == observation_count || throw(ArgumentError("Information histogram counts do not match the observation count!"))
+    return entropy_bits
+end
+
+# Compute the encoded size of a Huffman code directly from symbol counts.
+function _huffman_encoded_bits_from_counts(counts::AbstractDict)::Int
+    weights::Vector{Int} = Int[]
+    for count_value_any::Any in values(counts)
+        count_value::Int = Int(count_value_any)
+        count_value > 0 && push!(weights, count_value)
+    end
+    isempty(weights) && return 0
+    length(weights) == 1 && return 0
+    encoded_bits::Int = 0
+    while length(weights) > 1
+        sort!(weights; rev=true)
+        first_weight::Int = pop!(weights)
+        second_weight::Int = pop!(weights)
+        combined_weight::Int = Base.checked_add(first_weight, second_weight)
+        encoded_bits = Base.checked_add(encoded_bits, combined_weight)
+        push!(weights, combined_weight)
+    end
+    return encoded_bits
+end
+
 # Compute the number of bits required to encode a vector of integer symbols using Huffman coding.
 function _huffman_encoded_bits(symbols::AbstractVector{<:Integer})::Int
     isempty(symbols) && return 0
@@ -31,18 +82,7 @@ function _huffman_encoded_bits(symbols::AbstractVector{<:Integer})::Int
         symbol_value::Int = Int(symbol)
         counts[symbol_value] = get(counts, symbol_value, 0) + 1
     end
-    weights::Vector{Int} = collect(values(counts))
-    length(weights) == 1 && return 0
-    encoded_bits::Int = 0
-    while length(weights) > 1
-        sort!(weights; rev=true)
-        first_weight::Int = pop!(weights)
-        second_weight::Int = pop!(weights)
-        combined_weight::Int = first_weight + second_weight
-        encoded_bits += combined_weight
-        push!(weights, combined_weight)
-    end
-    return encoded_bits
+    return _huffman_encoded_bits_from_counts(counts)
 end
 
 # Compute empirical entropy when observations carry nonnegative weights.
@@ -100,6 +140,23 @@ function _raw_period_milliseconds(precision::Union{Dates.Microsecond,Dates.Nanos
     throw(ArgumentError("Date and DateTime values have millisecond resolution; use Millisecond or a coarser fixed period!"))
 end
 
+function _raw_scaled_coordinate_tolerance(
+    value::Float64,
+    precision::Float64,
+    origin::Float64,
+    scaled_value::Float64,
+)::Float64
+    absolute_precision::Float64 = abs(precision)
+    input_resolution_component::Float64 =
+        (0.5 * eps(abs(value)) + 0.5 * eps(abs(origin))) / absolute_precision
+    precision_resolution_component::Float64 =
+        abs(scaled_value) * 0.5 * eps(absolute_precision) / absolute_precision
+    division_resolution_component::Float64 = 0.5 * eps(abs(scaled_value))
+    return input_resolution_component +
+        precision_resolution_component +
+        division_resolution_component
+end
+
 function _raw_floor_symbol(value::Float64, precision::Float64, origin::Float64)::Int
     scaled_value::Float64 = (value - origin) / precision
     isfinite(scaled_value) || throw(ArgumentError("Raw-data value cannot be represented at the requested precision!"))
@@ -108,7 +165,12 @@ function _raw_floor_symbol(value::Float64, precision::Float64, origin::Float64):
         throw(ArgumentError("Requested raw-data precision is finer than the numerical resolution of the input value!"))
     end
     nearest_integer::Float64 = round(scaled_value)
-    rounding_tolerance::Float64 = 8.0 * eps(abs(scaled_value))
+    rounding_tolerance::Float64 = _raw_scaled_coordinate_tolerance(
+        value,
+        precision,
+        origin,
+        scaled_value,
+    )
     stable_scaled_value::Float64 =
         rounding_tolerance <= 1.0e-9 &&
         abs(scaled_value - nearest_integer) <= rounding_tolerance ?
@@ -297,16 +359,25 @@ end
 
 # Compute the residual coding information for a vector of residual symbols given the number of bins and the coding method.
 function _residual_coding_information(residual_symbols::Vector{Int}, bin_count::Int, residual_coding::Symbol)::NamedTuple
-    pair_count::Int = length(residual_symbols)
+    residual_counts::Dict{Int,Int} = Dict{Int,Int}()
+    for residual_symbol::Int in residual_symbols
+        _increment_information_count!(residual_counts, residual_symbol)
+    end
+    return _residual_coding_information(residual_counts, length(residual_symbols), bin_count, residual_coding)
+end
+
+# Compute residual-coding measures from a histogram rather than a materialized
+# residual stream.
+function _residual_coding_information(residual_counts::Dict{Int,Int}, pair_count::Int, bin_count::Int, residual_coding::Symbol)::NamedTuple
     fixed_bits_per_symbol::Int = ceil(Int, log2(Float64(2 * bin_count - 1)))
-    fixed_width_bits::Int = pair_count * fixed_bits_per_symbol
-    residual_entropy::Float64 = _discrete_entropy(residual_symbols)
+    fixed_width_bits::Int = Base.checked_mul(pair_count, fixed_bits_per_symbol)
+    residual_entropy::Float64 = _discrete_entropy_from_counts(residual_counts, pair_count)
     encoded_bits::Float64 = if residual_coding == :none
         Float64(fixed_width_bits)
     elseif residual_coding == :shannon
         pair_count * residual_entropy
     else
-        Float64(_huffman_encoded_bits(residual_symbols))
+        Float64(_huffman_encoded_bits_from_counts(residual_counts))
     end
     bits_per_symbol::Float64 = pair_count > 0 ? encoded_bits / pair_count : 0.0
     compression_ratio::Float64 = encoded_bits > 0.0 ? fixed_width_bits / encoded_bits : (fixed_width_bits > 0 ? Inf : 1.0)
@@ -322,71 +393,348 @@ function _residual_coding_information(residual_symbols::Vector{Int}, bin_count::
 end
 
 # Quantize the values in a tensor into discrete bins, returning the quantized tensor and a mask of valid entries.
-function _quantize_tensor(tensor::AbstractArray{T}, valid_mask::AbstractArray{Bool}, bin_count::Int)::Tuple{Array{Int}, BitArray} where {T <: Real}
+function _quantize_tensor(
+    tensor::AbstractArray{T},
+    valid_mask::AbstractArray{Bool},
+    bin_count::Int,
+    quantization::Symbol=:linear,
+)::Tuple{Array{Int}, BitArray} where {T <: Real}
     if size(valid_mask) != size(tensor)
         throw(DimensionMismatch("The valid mask and tensor must have the same size!"))
     end
     if bin_count < 2
         throw(ArgumentError("The number of quantization bins must be at least 2!"))
     end
-    finite_mask::BitArray = BitArray(valid_mask .& isfinite.(tensor))
-    values::Vector{Float64} = Float64.(vec(tensor[finite_mask]))
+    quantization in (:linear, :zero_preserving) || throw(ArgumentError(
+        "Tensor quantization must be :linear or :zero_preserving!",
+    ))
+    finite_mask::BitArray = falses(size(tensor))
     quantized::Array{Int} = zeros(Int, size(tensor))
-    isempty(values) && return quantized, finite_mask
-    minimum_value::Float64 = minimum(values)
-    maximum_value::Float64 = maximum(values)
+    minimum_value::Float64 = Inf
+    maximum_value::Float64 = -Inf
+    minimum_nonzero_value::Float64 = Inf
+    maximum_nonzero_value::Float64 = -Inf
+    valid_cell_count::Int = 0
+    valid_nonzero_cell_count::Int = 0
+    for index::CartesianIndex in CartesianIndices(tensor)
+        value::T = tensor[index]
+        cell_is_valid::Bool = valid_mask[index] && isfinite(value)
+        finite_mask[index] = cell_is_valid
+        cell_is_valid || continue
+        value_float::Float64 = Float64(value)
+        minimum_value = min(minimum_value, value_float)
+        maximum_value = max(maximum_value, value_float)
+        valid_cell_count = Base.checked_add(valid_cell_count, 1)
+        if !iszero(value_float)
+            minimum_nonzero_value = min(minimum_nonzero_value, value_float)
+            maximum_nonzero_value = max(maximum_nonzero_value, value_float)
+            valid_nonzero_cell_count = Base.checked_add(valid_nonzero_cell_count, 1)
+        end
+    end
+    valid_cell_count == 0 && return quantized, finite_mask
+    if quantization == :zero_preserving
+        minimum_value >= 0.0 || throw(ArgumentError(
+            "Zero-preserving quantization requires nonnegative valid tensor values!",
+        ))
+        if valid_nonzero_cell_count == 0
+            quantized[finite_mask] .= 1
+            return quantized, finite_mask
+        end
+        if maximum_nonzero_value == minimum_nonzero_value
+            for index::CartesianIndex in CartesianIndices(tensor)
+                finite_mask[index] || continue
+                quantized[index] = iszero(Float64(tensor[index])) ? 1 : 2
+            end
+            return quantized, finite_mask
+        end
+        nonzero_scale::Float64 =
+            (bin_count - 1) / (maximum_nonzero_value - minimum_nonzero_value)
+        for index::CartesianIndex in CartesianIndices(tensor)
+            finite_mask[index] || continue
+            value_float::Float64 = Float64(tensor[index])
+            quantized[index] = if iszero(value_float)
+                1
+            else
+                clamp(
+                    floor(Int, (value_float - minimum_nonzero_value) * nonzero_scale) + 2,
+                    2,
+                    bin_count,
+                )
+            end
+        end
+        return quantized, finite_mask
+    end
     if maximum_value == minimum_value
         quantized[finite_mask] .= 1
         return quantized, finite_mask
     end
     scale::Float64 = bin_count / (maximum_value - minimum_value)
-    quantized_values::Vector{Int} = clamp.(floor.(Int, (values .- minimum_value) .* scale) .+ 1, 1, bin_count)
-    quantized[finite_mask] .= quantized_values
+    for index::CartesianIndex in CartesianIndices(tensor)
+        finite_mask[index] || continue
+        value_float::Float64 = Float64(tensor[index])
+        quantized[index] = clamp(floor(Int, (value_float - minimum_value) * scale) + 1, 1, bin_count)
+    end
     return quantized, finite_mask
 end
 
-# Compute the information-theoretic measures for a specific axis of a quantized tensor, including residual coding information.
-function _axis_information(quantized::Array{Int}, valid_mask::BitArray, axis::Int, role::Symbol, bin_count::Int, residual_coding::Symbol)::NamedTuple
-    left_symbols::Vector{Int} = Int[]
-    right_symbols::Vector{Int} = Int[]
-    residual_symbols::Vector{Int} = Int[]
+function _lag_candidate_ranges(tensor_size::NTuple{N,Int}, offset::NTuple{N,Int})::NTuple{N,UnitRange{Int}} where {N}
+    return ntuple(
+        dimension::Int -> begin
+            dimension_size::Int = tensor_size[dimension]
+            if abs(offset[dimension]) >= dimension_size
+                return 1:0
+            end
+            first_index::Int = 1 + max(0, -offset[dimension])
+            last_index::Int = dimension_size - max(0, offset[dimension])
+            first_index:last_index
+        end,
+        N,
+    )
+end
+
+function _lag_candidate_count(tensor_size::NTuple{N,Int}, offset::NTuple{N,Int})::Int where {N}
+    candidate_count::Int = 1
+    for dimension::Int = 1:N
+        dimension_count::Int = max(tensor_size[dimension] - abs(offset[dimension]), 0)
+        candidate_count = Base.checked_mul(candidate_count, dimension_count)
+    end
+    return candidate_count
+end
+
+function _lag_origin_in_ranges(index::CartesianIndex{N}, ranges::NTuple{N,UnitRange{Int}})::Bool where {N}
+    for dimension::Int = 1:N
+        index[dimension] in ranges[dimension] || return false
+    end
+    return true
+end
+
+function _dense_lag_histograms(
+    quantized::Array{Int,N},
+    valid_mask::BitArray{N},
+    offset::NTuple{N,Int},
+    ranges::NTuple{N,UnitRange{Int}},
+)::NamedTuple where {N}
+    left_counts::Dict{Int,Int} = Dict{Int,Int}()
+    right_counts::Dict{Int,Int} = Dict{Int,Int}()
+    joint_counts::Dict{Tuple{Int,Int},Int} = Dict{Tuple{Int,Int},Int}()
+    residual_counts::Dict{Int,Int} = Dict{Int,Int}()
+    pair_count::Int = 0
     abs_difference_total::Float64 = 0.0
-    axis_offset::CartesianIndex = CartesianIndex(ntuple(dimension::Int -> dimension == axis ? 1 : 0, ndims(quantized)))
-    for index::CartesianIndex in CartesianIndices(quantized)
-        index[axis] == size(quantized, axis) && continue
-        neighbor_index::CartesianIndex = index + axis_offset
+    lag_index::CartesianIndex{N} = CartesianIndex(offset)
+    for index::CartesianIndex{N} in CartesianIndices(ranges)
+        neighbor_index::CartesianIndex{N} = index + lag_index
         (valid_mask[index] && valid_mask[neighbor_index]) || continue
         left_symbol::Int = quantized[index]
         right_symbol::Int = quantized[neighbor_index]
-        push!(left_symbols, left_symbol)
-        push!(right_symbols, right_symbol)
-        push!(residual_symbols, right_symbol - left_symbol)
-        abs_difference_total += abs(right_symbol - left_symbol)
+        residual_symbol::Int = right_symbol - left_symbol
+        _increment_information_count!(left_counts, left_symbol)
+        _increment_information_count!(right_counts, right_symbol)
+        _increment_information_count!(joint_counts, (left_symbol, right_symbol))
+        _increment_information_count!(residual_counts, residual_symbol)
+        pair_count = Base.checked_add(pair_count, 1)
+        abs_difference_total += abs(residual_symbol)
     end
-    pair_count::Int = length(left_symbols)
-    left_entropy::Float64 = _discrete_entropy(left_symbols)
-    right_entropy::Float64 = _discrete_entropy(right_symbols)
-    joint_symbols::Vector{Int} = (left_symbols .- 1) .* bin_count .+ right_symbols
-    joint_entropy::Float64 = _discrete_entropy(joint_symbols)
+    return (
+        left_counts=left_counts,
+        right_counts=right_counts,
+        joint_counts=joint_counts,
+        residual_counts=residual_counts,
+        pair_count=pair_count,
+        abs_difference_total=abs_difference_total,
+        method=:dense,
+    )
+end
+
+# When every tensor cell is valid and one symbol dominates, all candidate pairs
+# can initially be counted as baseline-baseline. Only origins touching a
+# nonbaseline cell need dictionary lookups, making sparse count grids exact in
+# O(number of nonbaseline cells) work per lag.
+function _sparse_baseline_lag_histograms(
+    quantized::Array{Int,N},
+    offset::NTuple{N,Int},
+    ranges::NTuple{N,UnitRange{Int}},
+    candidate_pair_count::Int,
+    baseline_symbol::Int,
+    nonbaseline_indices::Vector{CartesianIndex{N}},
+)::NamedTuple where {N}
+    left_counts::Dict{Int,Int} = Dict{Int,Int}()
+    right_counts::Dict{Int,Int} = Dict{Int,Int}()
+    joint_counts::Dict{Tuple{Int,Int},Int} = Dict{Tuple{Int,Int},Int}()
+    residual_counts::Dict{Int,Int} = Dict{Int,Int}()
+    if candidate_pair_count > 0
+        left_counts[baseline_symbol] = candidate_pair_count
+        right_counts[baseline_symbol] = candidate_pair_count
+        joint_counts[(baseline_symbol, baseline_symbol)] = candidate_pair_count
+        residual_counts[0] = candidate_pair_count
+    end
+    lag_index::CartesianIndex{N} = CartesianIndex(offset)
+    impacted_origins::Set{CartesianIndex{N}} = Set{CartesianIndex{N}}()
+    for nonbaseline_index::CartesianIndex{N} in nonbaseline_indices
+        if _lag_origin_in_ranges(nonbaseline_index, ranges)
+            push!(impacted_origins, nonbaseline_index)
+        end
+        preceding_index::CartesianIndex{N} = nonbaseline_index - lag_index
+        if _lag_origin_in_ranges(preceding_index, ranges)
+            push!(impacted_origins, preceding_index)
+        end
+    end
+    abs_difference_total::Float64 = 0.0
+    for index::CartesianIndex{N} in impacted_origins
+        neighbor_index::CartesianIndex{N} = index + lag_index
+        left_symbol::Int = quantized[index]
+        right_symbol::Int = quantized[neighbor_index]
+        residual_symbol::Int = right_symbol - left_symbol
+        _increment_information_count!(left_counts, baseline_symbol, -1)
+        _increment_information_count!(right_counts, baseline_symbol, -1)
+        _increment_information_count!(joint_counts, (baseline_symbol, baseline_symbol), -1)
+        _increment_information_count!(residual_counts, 0, -1)
+        _increment_information_count!(left_counts, left_symbol)
+        _increment_information_count!(right_counts, right_symbol)
+        _increment_information_count!(joint_counts, (left_symbol, right_symbol))
+        _increment_information_count!(residual_counts, residual_symbol)
+        abs_difference_total += abs(residual_symbol)
+    end
+    return (
+        left_counts=left_counts,
+        right_counts=right_counts,
+        joint_counts=joint_counts,
+        residual_counts=residual_counts,
+        pair_count=candidate_pair_count,
+        abs_difference_total=abs_difference_total,
+        method=:sparse_baseline,
+    )
+end
+
+function _lag_scaled_step(step::Real, offset::Int)::Real
+    return step * offset
+end
+
+function _lag_scaled_step(step::Dates.Period, offset::Int)::Dates.Period
+    return step * offset
+end
+
+function _lag_display_label(
+    offset::NTuple{N,Int},
+    dimension_names::NTuple{N,Symbol},
+    coordinate_offset::Tuple,
+    dimension_units::NTuple{N,String},
+)::String where {N}
+    component_labels::Vector{String} = String[]
+    for dimension::Int = 1:N
+        offset[dimension] == 0 && continue
+        coordinate_value::Any = coordinate_offset[dimension]
+        coordinate_label::String = string(coordinate_value)
+        unit_label::String = dimension_units[dimension]
+        suffix::String = coordinate_value isa Dates.Period || isempty(unit_label) ? "" : " $(unit_label)"
+        push!(component_labels, "$(dimension_names[dimension])=$(coordinate_label)$(suffix)")
+    end
+    return join(component_labels, ", ")
+end
+
+# Compute information-theoretic measures for an arbitrary N-dimensional lag.
+function _lag_information(
+    quantized::Array{Int,N},
+    valid_mask::BitArray{N},
+    offset::NTuple{N,Int},
+    role::Symbol,
+    bin_count::Int,
+    residual_coding::Symbol,
+    dimension_names::NTuple{N,Symbol},
+    dimension_steps::Tuple,
+    dimension_units::NTuple{N,String},
+    dimension_roles::NTuple{N,Symbol},
+    baseline_symbol::Union{Nothing,Int},
+    nonbaseline_indices::Union{Nothing,Vector{CartesianIndex{N}}},
+)::NamedTuple where {N}
+    tensor_size::NTuple{N,Int} = size(quantized)
+    ranges::NTuple{N,UnitRange{Int}} = _lag_candidate_ranges(tensor_size, offset)
+    candidate_pair_count::Int = _lag_candidate_count(tensor_size, offset)
+    histograms::NamedTuple = if baseline_symbol !== nothing && nonbaseline_indices !== nothing
+        _sparse_baseline_lag_histograms(
+            quantized,
+            offset,
+            ranges,
+            candidate_pair_count,
+            baseline_symbol,
+            nonbaseline_indices,
+        )
+    else
+        _dense_lag_histograms(quantized, valid_mask, offset, ranges)
+    end
+    pair_count::Int = histograms.pair_count
+    left_entropy::Float64 = _discrete_entropy_from_counts(histograms.left_counts, pair_count)
+    right_entropy::Float64 = _discrete_entropy_from_counts(histograms.right_counts, pair_count)
+    joint_entropy::Float64 = _discrete_entropy_from_counts(histograms.joint_counts, pair_count)
     mutual_information::Float64 = max(0.0, left_entropy + right_entropy - joint_entropy)
     conditional_entropy::Float64 = max(0.0, joint_entropy - left_entropy)
-    residual_entropy::Float64 = _discrete_entropy(residual_symbols)
-    coding_information::NamedTuple = _residual_coding_information(residual_symbols, bin_count, residual_coding)
+    reverse_conditional_entropy::Float64 = max(0.0, joint_entropy - right_entropy)
+    residual_entropy::Float64 = _discrete_entropy_from_counts(histograms.residual_counts, pair_count)
+    coding_information::NamedTuple = _residual_coding_information(histograms.residual_counts, pair_count, bin_count, residual_coding)
     normalizer::Float64 = max(left_entropy, right_entropy)
     normalized_mutual_information::Float64 = normalizer > 0.0 ? mutual_information / normalizer : 0.0
-    mean_normalized_difference::Float64 = pair_count > 0 ? abs_difference_total / (pair_count * (bin_count - 1)) : 0.0
-    predictive_gain_bits::Float64 = right_entropy - residual_entropy
+    mean_absolute_difference_bins::Float64 = pair_count > 0 ? histograms.abs_difference_total / pair_count : 0.0
+    mean_normalized_difference::Float64 = mean_absolute_difference_bins / (bin_count - 1)
+    active_dimensions::Tuple{Vararg{Int}} = Tuple(findall(!iszero, offset))
+    active_dimension_roles::Tuple = Tuple(dimension_roles[dimension] for dimension::Int in active_dimensions)
+    axis::Union{Nothing,Int} = length(active_dimensions) == 1 ? first(active_dimensions) : nothing
+    coordinate_offset::Tuple = ntuple(
+        dimension::Int -> _lag_scaled_step(dimension_steps[dimension], offset[dimension]),
+        N,
+    )
+    grid_index_norm::Float64 = sqrt(sum(Float64(component)^2 for component::Int in offset))
+    display_label::String = _lag_display_label(offset, dimension_names, coordinate_offset, dimension_units)
+    valid_pair_fraction::Float64 = candidate_pair_count > 0 ? pair_count / candidate_pair_count : 0.0
     return (
+        offset=offset,
         axis=axis,
         role=role,
+        active_dimensions=active_dimensions,
+        active_dimension_roles=active_dimension_roles,
+        pair_scope=:both_endpoints_valid,
+        applicable=pair_count > 0,
+        candidate_pair_count=candidate_pair_count,
         pair_count=pair_count,
+        valid_pair_fraction=valid_pair_fraction,
+        left_entropy_bits=left_entropy,
+        right_entropy_bits=right_entropy,
+        joint_entropy_bits=joint_entropy,
         mutual_information_bits=mutual_information,
         normalized_mutual_information=normalized_mutual_information,
         conditional_entropy_bits=conditional_entropy,
+        reverse_conditional_entropy_bits=reverse_conditional_entropy,
         residual_entropy_bits=residual_entropy,
-        predictive_gain_bits=predictive_gain_bits,
+        predictive_gain_bits=right_entropy - residual_entropy,
+        reverse_predictive_gain_bits=left_entropy - residual_entropy,
+        mean_absolute_difference_bins=mean_absolute_difference_bins,
         mean_normalized_difference=mean_normalized_difference,
-        residual_coding=coding_information
+        residual_coding=coding_information,
+        coordinate_offset=coordinate_offset,
+        grid_index_norm=grid_index_norm,
+        display_label=display_label,
+        histogram_method=histograms.method,
+    )
+end
+
+# Preserve the original internal unit-axis entry point.
+function _axis_information(quantized::Array{Int,N}, valid_mask::BitArray{N}, axis::Int, role::Symbol, bin_count::Int, residual_coding::Symbol)::NamedTuple where {N}
+    offset::NTuple{N,Int} = ntuple(dimension::Int -> dimension == axis ? 1 : 0, N)
+    dimension_names::NTuple{N,Symbol} = ntuple(dimension::Int -> Symbol("dim$(dimension)"), N)
+    dimension_steps::NTuple{N,Int} = ntuple(dimension::Int -> 1, N)
+    dimension_units::NTuple{N,String} = ntuple(dimension::Int -> "bins", N)
+    dimension_roles::NTuple{N,Symbol} = ntuple(dimension::Int -> role, N)
+    return _lag_information(
+        quantized,
+        valid_mask,
+        offset,
+        role,
+        bin_count,
+        residual_coding,
+        dimension_names,
+        dimension_steps,
+        dimension_units,
+        dimension_roles,
+        nothing,
+        nothing,
     )
 end
 
@@ -411,13 +759,227 @@ function _spectral_axis_information(tensor::AbstractArray{T}, valid_mask::Abstra
     return (axis=axis, spectral_entropy_bits=spectral_entropy, normalized_spectral_entropy=normalized_entropy, effective_rank=exp2(spectral_entropy), maximum_rank=maximum_rank)
 end
 
+function _lag_role(offset::NTuple{N,Int}, dimension_roles::NTuple{N,Symbol})::Symbol where {N}
+    active_roles::Vector{Symbol} = unique(Symbol[
+        dimension_roles[dimension]
+        for dimension::Int = 1:N
+        if offset[dimension] != 0
+    ])
+    temporal_component_present::Bool = :temporal in active_roles
+    if temporal_component_present
+        return length(active_roles) == 1 ? :temporal : :spatiotemporal
+    end
+    depth_component_present::Bool = :depth in active_roles
+    horizontal_component_present::Bool = any(
+        role::Symbol -> role in (:horizontal, :spatial),
+        active_roles,
+    )
+    if depth_component_present && horizontal_component_present
+        return :spatial_depth
+    end
+    return depth_component_present ? :depth : :spatial
+end
+
+function _canonical_lag_offset(offset::NTuple{N,Int}, temporal_dim::Union{Nothing,Int})::NTuple{N,Int} where {N}
+    sign_dimension::Int = if temporal_dim !== nothing && offset[temporal_dim] != 0
+        temporal_dim
+    else
+        first(findall(!iszero, offset))
+    end
+    multiplier::Int = offset[sign_dimension] > 0 ? 1 : -1
+    return ntuple(dimension::Int -> Base.checked_mul(multiplier, offset[dimension]), N)
+end
+
+function _normalize_lag_offset(offset_value::Any, dimension_count::Int)::Tuple
+    raw_offset::Tuple = if offset_value isa CartesianIndex
+        Tuple(offset_value)
+    elseif offset_value isa Tuple
+        offset_value
+    else
+        throw(ArgumentError("Every lag offset must be a Tuple or CartesianIndex!"))
+    end
+    length(raw_offset) == dimension_count || throw(DimensionMismatch("Every lag offset must have one component per tensor dimension!"))
+    normalized_offset::Tuple = ntuple(
+        dimension::Int -> begin
+            component::Any = raw_offset[dimension]
+            component isa Integer || throw(ArgumentError("Lag-offset components must be integers!"))
+            component_big::BigInt = BigInt(component)
+            if component_big < typemin(Int) || component_big > typemax(Int)
+                throw(ArgumentError("A lag-offset component exceeds the supported Int range!"))
+            end
+            component_int::Int = Int(component)
+            component_int == typemin(Int) && throw(ArgumentError("A lag-offset component is too negative to canonicalize safely!"))
+            component_int
+        end,
+        dimension_count,
+    )
+    any(!iszero, normalized_offset) || throw(ArgumentError("The all-zero lag offset is not a valid cell pair!"))
+    return normalized_offset
+end
+
+function _normalize_lag_offsets(
+    lag_offsets::Union{Nothing,AbstractVector},
+    dimension_count::Int,
+    temporal_dim::Union{Nothing,Int},
+    lag_sign::Symbol,
+)::Vector{<:Tuple}
+    lag_sign in (:canonical, :directed) || throw(ArgumentError("The lag_sign option must be :canonical or :directed!"))
+    default_offsets::Vector{Tuple} = Tuple[
+        ntuple(candidate_dimension::Int -> candidate_dimension == dimension ? 1 : 0, dimension_count)
+        for dimension::Int = 1:dimension_count
+    ]
+    raw_offsets::AbstractVector = lag_offsets === nothing ? default_offsets : lag_offsets
+    isempty(raw_offsets) && throw(ArgumentError("Lag offsets must not be empty!"))
+    normalized_offsets::Vector{Tuple} = Tuple[]
+    observed_offsets::Set{Tuple} = Set{Tuple}()
+    for offset_value::Any in raw_offsets
+        offset::Tuple = _normalize_lag_offset(offset_value, dimension_count)
+        normalized_offset::Tuple = lag_sign == :canonical ?
+            _canonical_lag_offset(offset, temporal_dim) : offset
+        if normalized_offset in observed_offsets
+            duplicate_message::String = lag_sign == :canonical ?
+                "Lag offsets contain duplicate directions after canonicalization; remove one direction or use lag_sign=:directed!" :
+                "Lag offsets must not contain exact duplicates!"
+            throw(ArgumentError(duplicate_message))
+        end
+        push!(observed_offsets, normalized_offset)
+        push!(normalized_offsets, normalized_offset)
+    end
+    return normalized_offsets
+end
+
+function _normalize_dimension_metadata(
+    dimension_count::Int,
+    temporal_dim::Union{Nothing,Int},
+    dimension_names::Union{Nothing,Tuple},
+    dimension_steps::Union{Nothing,Tuple},
+    dimension_units::Union{Nothing,Tuple},
+    dimension_roles::Union{Nothing,Tuple},
+)::NamedTuple
+    dimension_names !== nothing && length(dimension_names) != dimension_count &&
+        throw(DimensionMismatch("Dimension names must match the number of tensor dimensions!"))
+    dimension_steps !== nothing && length(dimension_steps) != dimension_count &&
+        throw(DimensionMismatch("Dimension steps must match the number of tensor dimensions!"))
+    dimension_units !== nothing && length(dimension_units) != dimension_count &&
+        throw(DimensionMismatch("Dimension units must match the number of tensor dimensions!"))
+    dimension_roles !== nothing && length(dimension_roles) != dimension_count &&
+        throw(DimensionMismatch("Dimension roles must match the number of tensor dimensions!"))
+    names::Tuple = ntuple(
+        dimension::Int -> begin
+            if dimension_names === nothing
+                Symbol("dim$(dimension)")
+            else
+                name_value::Any = dimension_names[dimension]
+                name_value isa Symbol || throw(ArgumentError("Dimension names must be Symbols!"))
+                name_value
+            end
+        end,
+        dimension_count,
+    )
+    steps::Tuple = ntuple(
+        dimension::Int -> begin
+            step_value::Any = dimension_steps === nothing ? 1 : dimension_steps[dimension]
+            if step_value isa Real
+                isfinite(step_value) && step_value > 0 || throw(ArgumentError("Numeric dimension steps must be finite and positive!"))
+            elseif step_value isa Dates.Period
+                Dates.value(step_value) > 0 || throw(ArgumentError("Date/time dimension steps must be positive!"))
+            else
+                throw(ArgumentError("Dimension steps must be real numbers or Dates.Period values!"))
+            end
+            step_value
+        end,
+        dimension_count,
+    )
+    units::Tuple = ntuple(
+        dimension::Int -> begin
+            unit_value::Any = dimension_units === nothing ? "bins" : dimension_units[dimension]
+            (unit_value isa AbstractString || unit_value isa Symbol) ||
+                throw(ArgumentError("Dimension units must be strings or Symbols!"))
+            string(unit_value)
+        end,
+        dimension_count,
+    )
+    roles::Tuple = ntuple(
+        dimension::Int -> begin
+            role_value::Any = dimension_roles === nothing ?
+                (temporal_dim === dimension ? :temporal : :spatial) :
+                dimension_roles[dimension]
+            role_value isa Symbol || throw(ArgumentError("Dimension roles must be Symbols!"))
+            role::Symbol = role_value
+            role in (:horizontal, :depth, :spatial, :temporal) || throw(ArgumentError(
+                "Dimension roles must be :horizontal, :depth, :spatial, or :temporal!",
+            ))
+            role
+        end,
+        dimension_count,
+    )
+    if temporal_dim === nothing
+        :temporal in roles && throw(ArgumentError(
+            "A :temporal dimension role requires temporal_dim to identify that dimension!",
+        ))
+    else
+        roles[temporal_dim] == :temporal || throw(ArgumentError(
+            "The dimension identified by temporal_dim must have the :temporal role!",
+        ))
+        count(==(:temporal), roles) == 1 || throw(ArgumentError(
+            "Exactly one dimension can have the :temporal role!",
+        ))
+    end
+    return (names=names, steps=steps, units=units, roles=roles)
+end
+
+function _tensor_symbol_counts(quantized::Array{Int,N}, valid_mask::BitArray{N})::Dict{Int,Int} where {N}
+    symbol_counts::Dict{Int,Int} = Dict{Int,Int}()
+    for index::CartesianIndex{N} in CartesianIndices(quantized)
+        valid_mask[index] || continue
+        _increment_information_count!(symbol_counts, quantized[index])
+    end
+    return symbol_counts
+end
+
+function _sparse_baseline_information(
+    quantized::Array{Int,N},
+    valid_cell_count::Int,
+    symbol_counts::Dict{Int,Int},
+)::NamedTuple where {N}
+    if valid_cell_count != length(quantized) || isempty(symbol_counts)
+        return (symbol=nothing, indices=nothing)
+    end
+    baseline_symbol::Int = first(keys(symbol_counts))
+    baseline_count::Int = symbol_counts[baseline_symbol]
+    for (symbol::Int, symbol_count::Int) in symbol_counts
+        if symbol_count > baseline_count || (symbol_count == baseline_count && symbol < baseline_symbol)
+            baseline_symbol = symbol
+            baseline_count = symbol_count
+        end
+    end
+    nonbaseline_count::Int = valid_cell_count - baseline_count
+    if nonbaseline_count > div(valid_cell_count, 4)
+        return (symbol=nothing, indices=nothing)
+    end
+    nonbaseline_indices::Vector{CartesianIndex{N}} = findall(
+        symbol::Int -> symbol != baseline_symbol,
+        quantized,
+    )
+    return (symbol=baseline_symbol, indices=nonbaseline_indices)
+end
+
 """
-structure_information(tensor; valid_mask=trues(size(tensor)), bins=16, temporal_dim=ndims(tensor), residual_coding=:shannon, compute_spectral=true)
+structure_information(tensor; valid_mask=trues(size(tensor)), bins=16, temporal_dim=ndims(tensor), residual_coding=:shannon, compute_spectral=true, quantization=:linear, lag_offsets=nothing, lag_sign=:canonical, dimension_names=nothing, dimension_steps=nothing, dimension_units=nothing, dimension_roles=nothing)
 
 Measure information that depends on tensor structure rather than only on flattened
 cell weights.
 
-Values are quantized globally before neighboring cells are compared.
+Values are quantized globally before cells at the requested integer `lag_offsets`
+are compared. `nothing` preserves the original positive unit-axis comparisons.
+In canonical mode, opposite purely spatial directions are equivalent and every
+temporal offset points forward. Use `lag_sign=:directed` to retain input signs.
+
+The default `quantization=:linear` preserves the original global linear bins.
+Use `quantization=:zero_preserving` for nonnegative sparse count or mass fields
+when exact zeros must remain distinct from every positive cell; the remaining
+bins are assigned linearly across the positive values. Negative valid values are
+rejected in this mode so symbol order and prediction residuals remain monotone.
 
 The returned `axis_information` reports mutual information, conditional entropy, normalized variation, and predictive-residual entropy along every axis. The temporal axis uses the same inter-frame residual principle as lossless movie compression.
 
@@ -427,35 +989,133 @@ The returned `axis_information` reports mutual information, conditional entropy,
 
 Coding results are reported as `residual_coding` within each entry of `axis_information`.
 
+`lag_information` reports arbitrary axis-aligned, diagonal, or mixed
+space-time offsets. Existing `axis_information` and top-level summaries always
+remain based on positive unit-axis offsets for backward compatibility.
+
+Use explicit `dimension_roles`, such as
+`(:horizontal, :horizontal, :depth, :temporal)`, to prevent a depth axis from
+being averaged into the legacy horizontal spatial summary.
+
 Set `compute_spectral=false` for tensors whose unfoldings are too large for SVD.
 """
-function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArray{Bool}=trues(size(tensor)), bins::Integer=16, temporal_dim::Union{Nothing, Integer}=ndims(tensor), residual_coding::Symbol=:shannon, compute_spectral::Bool=true)::NamedTuple where {T <: Real}
+function structure_information(
+    tensor::AbstractArray{T};
+    valid_mask::AbstractArray{Bool}=trues(size(tensor)),
+    bins::Integer=16,
+    temporal_dim::Union{Nothing,Integer}=ndims(tensor),
+    residual_coding::Symbol=:shannon,
+    compute_spectral::Bool=true,
+    quantization::Symbol=:linear,
+    lag_offsets::Union{Nothing,AbstractVector}=nothing,
+    lag_sign::Symbol=:canonical,
+    dimension_names::Union{Nothing,Tuple}=nothing,
+    dimension_steps::Union{Nothing,Tuple}=nothing,
+    dimension_units::Union{Nothing,Tuple}=nothing,
+    dimension_roles::Union{Nothing,Tuple}=nothing,
+)::NamedTuple where {T <: Real}
     bin_count::Int = Int(bins)
     if temporal_dim !== nothing && !(1 <= temporal_dim <= ndims(tensor))
         throw(ArgumentError("The temporal dimension must identify a tensor dimension or be nothing!"))
     end
+    normalized_temporal_dim::Union{Nothing,Int} =
+        temporal_dim === nothing ? nothing : Int(temporal_dim)
     if !(residual_coding in (:none, :shannon, :huffman))
         throw(ArgumentError("Residual coding must be :none, :shannon, or :huffman!"))
     end
+    quantization in (:linear, :zero_preserving) || throw(ArgumentError(
+        "Tensor quantization must be :linear or :zero_preserving!",
+    ))
+    dimension_count::Int = ndims(tensor)
+    metadata::NamedTuple = _normalize_dimension_metadata(
+        dimension_count,
+        normalized_temporal_dim,
+        dimension_names,
+        dimension_steps,
+        dimension_units,
+        dimension_roles,
+    )
+    normalized_lag_offsets_untyped::Vector{<:Tuple} = _normalize_lag_offsets(
+        lag_offsets,
+        dimension_count,
+        normalized_temporal_dim,
+        lag_sign,
+    )
+    normalized_lag_offsets::Vector{NTuple{dimension_count,Int}} =
+        NTuple{dimension_count,Int}[offset for offset::Tuple in normalized_lag_offsets_untyped]
     # Quantize the tensor and determine the finite mask for valid entries.
-    quantized::Array{Int}, finite_mask::BitArray = _quantize_tensor(tensor, valid_mask, bin_count)
-    valid_symbols::Vector{Int} = vec(quantized[finite_mask])
-    value_entropy::Float64 = _discrete_entropy(valid_symbols)
+    quantized::Array{Int}, finite_mask::BitArray =
+        _quantize_tensor(tensor, valid_mask, bin_count, quantization)
+    valid_cell_count::Int = count(finite_mask)
+    symbol_counts::Dict{Int,Int} = _tensor_symbol_counts(quantized, finite_mask)
+    value_entropy::Float64 = _discrete_entropy_from_counts(symbol_counts, valid_cell_count)
     maximum_value_entropy::Float64 = log2(Float64(bin_count))
     normalized_value_entropy::Float64 = maximum_value_entropy > 0.0 ? value_entropy / maximum_value_entropy : 0.0
+    baseline_information::NamedTuple = _sparse_baseline_information(
+        quantized,
+        valid_cell_count,
+        symbol_counts,
+    )
+    baseline_symbol::Union{Nothing,Int} = baseline_information.symbol
+    nonbaseline_indices::Union{Nothing,Vector{CartesianIndex{dimension_count}}} = baseline_information.indices
+    axis_offsets::Vector{NTuple{dimension_count,Int}} = NTuple{dimension_count,Int}[
+        ntuple(candidate_dimension::Int -> candidate_dimension == axis ? 1 : 0, dimension_count)
+        for axis::Int = 1:dimension_count
+    ]
+    information_cache::Dict{NTuple{dimension_count,Int},NamedTuple} = Dict{NTuple{dimension_count,Int},NamedTuple}()
     axis_information::Vector{NamedTuple} = NamedTuple[]
     spectral_information::Vector{NamedTuple} = NamedTuple[]
-    for axis::Int = 1:ndims(tensor)
-        role::Symbol = temporal_dim === axis ? :temporal : :spatial
-        push!(axis_information, _axis_information(quantized, finite_mask, axis, role, bin_count, residual_coding))
+    for axis::Int = 1:dimension_count
+        offset::NTuple{dimension_count,Int} = axis_offsets[axis]
+        role::Symbol = _lag_role(offset, metadata.roles)
+        metric::NamedTuple = _lag_information(
+            quantized,
+            finite_mask,
+            offset,
+            role,
+            bin_count,
+            residual_coding,
+            metadata.names,
+            metadata.steps,
+            metadata.units,
+            metadata.roles,
+            baseline_symbol,
+            nonbaseline_indices,
+        )
+        information_cache[offset] = metric
+        push!(axis_information, metric)
         if compute_spectral
             push!(spectral_information, _spectral_axis_information(tensor, finite_mask, axis))
         end
     end
+    lag_information::Vector{NamedTuple} = NamedTuple[]
+    for offset::NTuple{dimension_count,Int} in normalized_lag_offsets
+        if !haskey(information_cache, offset)
+            role::Symbol = _lag_role(offset, metadata.roles)
+            information_cache[offset] = _lag_information(
+                quantized,
+                finite_mask,
+                offset,
+                role,
+                bin_count,
+                residual_coding,
+                metadata.names,
+                metadata.steps,
+                metadata.units,
+                metadata.roles,
+                baseline_symbol,
+                nonbaseline_indices,
+            )
+        end
+        push!(lag_information, information_cache[offset])
+    end
     spatial_metrics::Vector{NamedTuple} = filter(metric::NamedTuple -> metric.role == :spatial && metric.pair_count > 0, axis_information)
+    depth_metrics::Vector{NamedTuple} = filter(metric::NamedTuple -> metric.role == :depth && metric.pair_count > 0, axis_information)
     temporal_metrics::Vector{NamedTuple} = filter(metric::NamedTuple -> metric.role == :temporal && metric.pair_count > 0, axis_information)
     spatial_dependence::Float64 = isempty(spatial_metrics) ? 0.0 : Statistics.mean(metric.normalized_mutual_information for metric::NamedTuple in spatial_metrics)
     spatial_variation::Float64 = isempty(spatial_metrics) ? 0.0 : Statistics.mean(metric.mean_normalized_difference for metric::NamedTuple in spatial_metrics)
+    depth_dependence::Float64 = isempty(depth_metrics) ? 0.0 : Statistics.mean(metric.normalized_mutual_information for metric::NamedTuple in depth_metrics)
+    depth_variation::Float64 = isempty(depth_metrics) ? 0.0 : Statistics.mean(metric.mean_normalized_difference for metric::NamedTuple in depth_metrics)
     temporal_dependence::Float64 = isempty(temporal_metrics) ? 0.0 : Statistics.mean(metric.normalized_mutual_information for metric::NamedTuple in temporal_metrics)
     temporal_predictive_gain::Float64 = isempty(temporal_metrics) ? 0.0 : Statistics.mean(metric.predictive_gain_bits for metric::NamedTuple in temporal_metrics)
     temporal_variation::Float64 = isempty(temporal_metrics) ? 0.0 : Statistics.mean(metric.mean_normalized_difference for metric::NamedTuple in temporal_metrics)
@@ -464,16 +1124,151 @@ function structure_information(tensor::AbstractArray{T}; valid_mask::AbstractArr
         normalized_value_entropy=normalized_value_entropy,
         spatial_dependence=spatial_dependence,
         spatial_variation=spatial_variation,
+        depth_dependence=depth_dependence,
+        depth_variation=depth_variation,
         temporal_dependence=temporal_dependence,
         temporal_predictive_gain_bits=temporal_predictive_gain,
         temporal_variation=temporal_variation,
         axis_information=axis_information,
+        lag_information=lag_information,
         spectral_information=spectral_information,
         bins=bin_count,
+        quantization=quantization,
         residual_coding=residual_coding,
+        lag_offsets=normalized_lag_offsets,
+        lag_sign=lag_sign,
+        lag_pair_scope=:both_endpoints_valid,
+        dimension_metadata=metadata,
         spectral_computed=compute_spectral,
-        valid_cell_count=count(finite_mask)
+        valid_cell_count=valid_cell_count,
     )
+end
+
+"""
+plot_lag_information(information, filename=""; normalize=:intrinsic, title_extra="")
+
+Plot direction-resolved dependence, coherence, and residual-coding savings for
+the explicit lag vectors returned by `structure_information`. Lag vectors are
+kept separate; the plot does not average axial and diagonal directions or mix
+space, depth, and time into one physical distance.
+"""
+function plot_lag_information(
+    information::NamedTuple,
+    filename::AbstractString="";
+    normalize::Symbol=:intrinsic,
+    title_extra::AbstractString="",
+)::Gadfly.Plot
+    haskey(information, :lag_information) || throw(ArgumentError(
+        "The input must be produced by structure_information with lag support!",
+    ))
+    normalize in (:intrinsic, :range) || throw(ArgumentError(
+        "The lag-plot normalization must be :intrinsic or :range!",
+    ))
+    requested_lag_count::Int = length(information.lag_information)
+    lag_metrics::Vector{NamedTuple} = filter(
+        metric::NamedTuple -> Bool(metric.applicable),
+        information.lag_information,
+    )
+    isempty(lag_metrics) && throw(ArgumentError("No requested lag has a valid cell pair!"))
+    omitted_lag_count::Int = requested_lag_count - length(lag_metrics)
+    if omitted_lag_count > 0
+        @warn(
+            "Omitting requested lags with no valid cell pairs from the lag plot",
+            omitted_lag_count=omitted_lag_count,
+            requested_lag_count=requested_lag_count,
+        )
+    end
+    if normalize == :range && length(lag_metrics) < 2
+        throw(ArgumentError("Range normalization requires at least two applicable lag vectors!"))
+    end
+    metric_labels::Vector{String} = [
+        "Normalized mutual information",
+        "Symbol coherence",
+        "Residual coding savings",
+    ]
+    metric_colors::Vector{String} = ["#1f77b4", "#2ca02c", "#d62728"]
+    lag_labels::Vector{String} = String[]
+    pair_labels::Vector{String} = String[]
+    label_y_values::Vector{Float64} = Float64[]
+    x_values::Vector{String} = String[]
+    y_values::Vector{Float64} = Float64[]
+    series_labels::Vector{String} = String[]
+    for lag_metric::NamedTuple in lag_metrics
+        coordinate_label::String = replace(
+            String(lag_metric.display_label),
+            ", " => "\n",
+            "latitude" => "lat",
+            "longitude" => "lon",
+            "depth" => "z",
+            "time" => "t",
+            " deg" => "°",
+        )
+        lag_label::String = coordinate_label
+        push!(lag_labels, lag_label)
+        fixed_width_bits::Int = Int(lag_metric.residual_coding.fixed_width_bits)
+        encoded_bits::Float64 = Float64(lag_metric.residual_coding.encoded_bits)
+        coding_savings::Float64 = fixed_width_bits > 0 ?
+            clamp(1.0 - encoded_bits / fixed_width_bits, 0.0, 1.0) : 0.0
+        metric_values::Vector{Float64} = [
+            clamp(Float64(lag_metric.normalized_mutual_information), 0.0, 1.0),
+            clamp(1.0 - Float64(lag_metric.mean_normalized_difference), 0.0, 1.0),
+            coding_savings,
+        ]
+        for metric_index::Int in eachindex(metric_labels)
+            push!(x_values, lag_label)
+            push!(y_values, metric_values[metric_index])
+            push!(series_labels, metric_labels[metric_index])
+        end
+        push!(pair_labels, "n=$(lag_metric.pair_count)")
+        push!(label_y_values, min(maximum(metric_values) + 0.04, 0.98))
+    end
+    if normalize == :range
+        _range_normalize_plot_values!(y_values, series_labels, metric_labels)
+        empty!(label_y_values)
+        metric_count::Int = length(metric_labels)
+        for lag_index::Int in eachindex(lag_metrics)
+            first_index::Int = (lag_index - 1) * metric_count + 1
+            last_index::Int = first_index + metric_count - 1
+            push!(label_y_values, min(maximum(y_values[first_index:last_index]) + 0.04, 0.98))
+        end
+    end
+    normalization_text::String = normalize == :range ? " (range normalized)" : ""
+    y_label::String = normalize == :range ?
+        "Within-metric normalized range" : "Intrinsic normalized metric"
+    title::String = "Lag-resolved structure information$(normalization_text)$(title_extra)"
+    lag_plot::Gadfly.Plot = Gadfly.plot(
+        Gadfly.layer(Gadfly.Geom.point; x=x_values, y=y_values, color=series_labels),
+        Gadfly.layer(
+            Gadfly.Geom.label(; position=:dynamic, hide_overlaps=false);
+            x=lag_labels,
+            y=label_y_values,
+            label=pair_labels,
+        ),
+        Gadfly.Scale.x_discrete,
+        Gadfly.Scale.color_discrete_manual(metric_colors...),
+        Gadfly.Guide.colorkey(; title="", labels=metric_labels),
+        Gadfly.Coord.cartesian(; ymin=0.0, ymax=1.0),
+        Gadfly.Guide.xticks(; orientation=:horizontal),
+        Gadfly.Guide.xlabel("Lag vector (coordinate offsets; wrapped by dimension)"),
+        Gadfly.Guide.ylabel(y_label),
+        Gadfly.Guide.title(title),
+        Gadfly.Theme(;
+            key_position=:right,
+            background_color="white",
+            minor_label_font_size=8Gadfly.pt,
+        ),
+    )
+    if filename != ""
+        @info("Saving lag-information plot to file: $filename")
+        plot_width_inches::Float64 = clamp(0.9 * length(lag_metrics), 15.0, 30.0)
+        Mads.plotfileformat(
+            lag_plot,
+            filename,
+            plot_width_inches * Gadfly.inch,
+            6Gadfly.inch,
+        )
+    end
+    return lag_plot
 end
 
 function _raw_observation_count(data::NamedTuple)::Int
@@ -612,6 +1407,606 @@ function _raw_mapping_conflict_information(
         conflicting_raw_state_count=length(conflicting_raw_states),
         conflict_observation_count=conflict_observation_count,
         conflict_weight_fraction=total_weight > 0.0 ? conflict_weight / total_weight : 0.0,
+    )
+end
+
+function _magnitude_grid_label_is_valid(label::Tuple)::Bool
+    for component::Any in label
+        _magnitude_grid_label_is_valid(component) || return false
+    end
+    return true
+end
+
+function _magnitude_grid_label_is_valid(label::NamedTuple)::Bool
+    for component::Any in values(label)
+        _magnitude_grid_label_is_valid(component) || return false
+    end
+    return true
+end
+
+function _magnitude_grid_label_is_valid(label::Any)::Bool
+    return _raw_value_is_valid(label)
+end
+
+function _magnitude_grid_label_data(
+    grid_labels::AbstractVector,
+    observation_count::Int,
+)::NamedTuple
+    length(grid_labels) == observation_count ||
+        throw(DimensionMismatch("Grid labels and magnitudes must have the same length!"))
+    labels::Vector{Any} = Any[grid_labels[index] for index::Int in eachindex(grid_labels)]
+    label_valid_mask::BitVector = BitVector(
+        _magnitude_grid_label_is_valid(label) for label::Any in labels
+    )
+    return (
+        labels=labels,
+        valid_mask=label_valid_mask,
+        feature_names=(:grid_label,),
+        representation=:supplied_labels,
+    )
+end
+
+function _magnitude_grid_label_data(
+    grid_assignments::NamedTuple,
+    observation_count::Int,
+)::NamedTuple
+    feature_names::Tuple = Tuple(keys(grid_assignments))
+    isempty(feature_names) && throw(ArgumentError("At least one grid-assignment feature is required!"))
+    columns::Vector{AbstractVector} = AbstractVector[]
+    for feature_name::Symbol in feature_names
+        column::Any = getfield(grid_assignments, feature_name)
+        column isa AbstractVector ||
+            throw(ArgumentError("Every grid-assignment feature must be a vector!"))
+        length(column) == observation_count ||
+            throw(DimensionMismatch("Every grid-assignment feature must match the number of magnitudes!"))
+        push!(columns, column)
+    end
+    labels::Vector{Any} = Vector{Any}(undef, observation_count)
+    label_valid_mask::BitVector = trues(observation_count)
+    for observation_index::Int = 1:observation_count
+        components::Tuple = Tuple(
+            column[observation_index] for column::AbstractVector in columns
+        )
+        label::NamedTuple = NamedTuple{feature_names}(components)
+        labels[observation_index] = label
+        label_valid_mask[observation_index] = _magnitude_grid_label_is_valid(label)
+    end
+    return (
+        labels=labels,
+        valid_mask=label_valid_mask,
+        feature_names=feature_names,
+        representation=:joint_feature_labels,
+    )
+end
+
+function _magnitude_predictor_symbol(
+    prediction::Float64,
+    precision::Float64,
+    origin::Float64,
+)::Int
+    coordinate::Float64 = (prediction - origin) / precision
+    isfinite(coordinate) ||
+        throw(ArgumentError("A magnitude predictor cannot be represented at the requested precision!"))
+    doubled_coordinate::Float64 = 2.0 * coordinate
+    nearest_half_integer::Float64 = round(doubled_coordinate)
+    nearest_half_coordinate::Float64 = nearest_half_integer / 2.0
+    half_integer_tolerance::Float64 = _raw_scaled_coordinate_tolerance(
+        prediction,
+        precision,
+        origin,
+        coordinate,
+    )
+    stable_coordinate::Float64 =
+        half_integer_tolerance <= 1.0e-9 &&
+        abs(coordinate - nearest_half_coordinate) <= half_integer_tolerance ?
+        nearest_half_coordinate : coordinate
+    rounded_coordinate::Float64 = round(stable_coordinate)
+    if rounded_coordinate < typemin(Int) || rounded_coordinate > typemax(Int)
+        throw(ArgumentError("A magnitude predictor symbol exceeds the supported Int range!"))
+    end
+    return Int(rounded_coordinate)
+end
+
+function _magnitude_reconstruction_value(values::Vector{Float64}, method::Symbol)::Float64
+    if method == :maximum
+        return maximum(values)
+    elseif method == :mean
+        return Statistics.mean(values)
+    end
+    return Statistics.median(values)
+end
+
+function _magnitude_reconstruction_information(
+    magnitude_values::Vector{Float64},
+    magnitude_symbols::Vector{Int},
+    grid_symbols::Vector{Int},
+    cell_values::Dict{Int,Vector{Float64}},
+    method::Symbol,
+    residual_coding::Symbol,
+    magnitude_precision::Float64,
+    magnitude_origin::Float64,
+    source_fixed_bits_per_symbol::Int,
+    expected_conditional_entropy_bits::Float64,
+)::NamedTuple
+    predictor_values::Dict{Int,Float64} = Dict{Int,Float64}()
+    predictor_symbols::Dict{Int,Int} = Dict{Int,Int}()
+    ordered_cell_symbols::Vector{Int} = sort!(collect(keys(cell_values)))
+    ordered_predictor_values::Vector{Float64} = Float64[]
+    ordered_predictor_symbols::Vector{Int} = Int[]
+    for grid_symbol::Int in ordered_cell_symbols
+        prediction::Float64 = _magnitude_reconstruction_value(cell_values[grid_symbol], method)
+        predictor_symbol::Int = _magnitude_predictor_symbol(
+            prediction,
+            magnitude_precision,
+            magnitude_origin,
+        )
+        predictor_values[grid_symbol] = prediction
+        predictor_symbols[grid_symbol] = predictor_symbol
+        push!(ordered_predictor_values, prediction)
+        push!(ordered_predictor_symbols, predictor_symbol)
+    end
+
+    observation_count::Int = length(magnitude_values)
+    residual_counts::Dict{Int,Int} = Dict{Int,Int}()
+    joint_residual_grid_counts::Dict{Tuple{Int,Int},Int} = Dict{Tuple{Int,Int},Int}()
+    reconstruction_grid_counts::Dict{Int,Int} = Dict{Int,Int}()
+    cell_residual_counts::Dict{Int,Dict{Int,Int}} = Dict{Int,Dict{Int,Int}}()
+    physical_residuals::Vector{Float64} = Vector{Float64}(undef, observation_count)
+    minimum_residual_symbol::Int = typemax(Int)
+    maximum_residual_symbol::Int = typemin(Int)
+    for observation_position::Int = 1:observation_count
+        grid_symbol::Int = grid_symbols[observation_position]
+        residual_symbol_big::BigInt =
+            BigInt(magnitude_symbols[observation_position]) - BigInt(predictor_symbols[grid_symbol])
+        if residual_symbol_big < typemin(Int) || residual_symbol_big > typemax(Int)
+            throw(ArgumentError("A quantized magnitude residual exceeds the supported Int range!"))
+        end
+        residual_symbol::Int = Int(residual_symbol_big)
+        _increment_information_count!(residual_counts, residual_symbol)
+        _increment_information_count!(joint_residual_grid_counts, (residual_symbol, grid_symbol))
+        _increment_information_count!(reconstruction_grid_counts, grid_symbol)
+        if !haskey(cell_residual_counts, grid_symbol)
+            cell_residual_counts[grid_symbol] = Dict{Int,Int}()
+        end
+        _increment_information_count!(cell_residual_counts[grid_symbol], residual_symbol)
+        minimum_residual_symbol = min(minimum_residual_symbol, residual_symbol)
+        maximum_residual_symbol = max(maximum_residual_symbol, residual_symbol)
+        physical_residuals[observation_position] =
+            magnitude_values[observation_position] - predictor_values[grid_symbol]
+    end
+
+    residual_entropy_bits::Float64 =
+        _discrete_entropy_from_counts(residual_counts, observation_count)
+    residual_grid_joint_entropy_bits::Float64 =
+        _discrete_entropy_from_counts(joint_residual_grid_counts, observation_count)
+    reconstruction_grid_entropy_bits::Float64 =
+        _discrete_entropy_from_counts(reconstruction_grid_counts, observation_count)
+    joint_difference_conditional_residual_entropy_bits::Float64 = clamp(
+        residual_grid_joint_entropy_bits - reconstruction_grid_entropy_bits,
+        0.0,
+        residual_entropy_bits,
+    )
+    conditional_residual_entropy_bits::Float64 = 0.0
+    for grid_symbol::Int in sort!(collect(keys(cell_residual_counts)))
+        cell_counts::Dict{Int,Int} = cell_residual_counts[grid_symbol]
+        cell_observation_count::Int = sum(values(cell_counts))
+        cell_entropy_bits::Float64 =
+            _discrete_entropy_from_counts(cell_counts, cell_observation_count)
+        conditional_residual_entropy_bits +=
+            (cell_observation_count / observation_count) * cell_entropy_bits
+    end
+    conditional_residual_entropy_bits = clamp(
+        conditional_residual_entropy_bits,
+        0.0,
+        residual_entropy_bits,
+    )
+    entropy_identity_tolerance::Float64 = max(
+        1.0e-12,
+        16.0 * observation_count * eps(max(
+            expected_conditional_entropy_bits,
+            conditional_residual_entropy_bits,
+            1.0,
+        )),
+    )
+    conditional_entropy_matches_magnitude::Bool = isapprox(
+        conditional_residual_entropy_bits,
+        expected_conditional_entropy_bits;
+        atol=entropy_identity_tolerance,
+        rtol=16.0 * eps(Float64),
+    )
+    conditional_entropy_matches_magnitude || throw(ArgumentError(
+        "Cell-conditioned residual entropy must equal quantized magnitude heterogeneity!",
+    ))
+    shannon_encoded_bits::Float64 = observation_count * residual_entropy_bits
+    huffman_encoded_bits::Int = _huffman_encoded_bits_from_counts(residual_counts)
+    conditional_shannon_encoded_bits::Float64 =
+        observation_count * conditional_residual_entropy_bits
+    conditional_huffman_encoded_bits::Int = sum(
+        _huffman_encoded_bits_from_counts(counts)
+        for counts::Dict{Int,Int} in values(cell_residual_counts);
+        init=0,
+    )
+    residual_support_span::BigInt = observation_count == 0 ? BigInt(0) :
+        BigInt(maximum_residual_symbol) - BigInt(minimum_residual_symbol) + 1
+    residual_range_fixed_bits_per_symbol::Int = residual_support_span > 1 ?
+        ndigits(residual_support_span - 1; base=2) : 0
+    residual_range_fixed_width_bits::Int =
+        Base.checked_mul(observation_count, residual_range_fixed_bits_per_symbol)
+    fixed_width_bits::Int =
+        Base.checked_mul(observation_count, source_fixed_bits_per_symbol)
+    encoded_bits::Float64 = residual_coding == :shannon ?
+        shannon_encoded_bits : Float64(huffman_encoded_bits)
+    coding_savings::Float64 = fixed_width_bits > 0 ?
+        1.0 - encoded_bits / fixed_width_bits : NaN
+    residual_range_coding_savings::Float64 = residual_range_fixed_width_bits > 0 ?
+        1.0 - encoded_bits / residual_range_fixed_width_bits : NaN
+    mae::Float64 = Statistics.mean(abs.(physical_residuals))
+    rmse::Float64 = sqrt(Statistics.mean(abs2.(physical_residuals)))
+    bias::Float64 = Statistics.mean(physical_residuals)
+    ordered_residual_symbols::Vector{Int} = sort!(collect(keys(residual_counts)))
+    ordered_residual_counts::Vector{Int} =
+        Int[residual_counts[symbol] for symbol::Int in ordered_residual_symbols]
+    return (
+        method=method,
+        estimator_optimality=method == :mean ? :minimum_squared_error_within_cell :
+            (method == :median ? :minimum_absolute_error_within_cell :
+             :preserves_cell_peak_not_error_optimal),
+        observation_count=observation_count,
+        predictor_symbol_rule=:nearest_lattice_coordinate_ties_to_even,
+        residual_definition=:magnitude_symbol_minus_cell_predictor_symbol,
+        residual_transform_exact=true,
+        ordered_residual_stream_retained=false,
+        residual_symbols=ordered_residual_symbols,
+        residual_counts=ordered_residual_counts,
+        residual_symbol_count=length(residual_counts),
+        residual_symbol_minimum=minimum_residual_symbol,
+        residual_symbol_maximum=maximum_residual_symbol,
+        residual_entropy_bits=residual_entropy_bits,
+        pooled_residual_entropy_bits=residual_entropy_bits,
+        conditional_residual_entropy_bits=conditional_residual_entropy_bits,
+        joint_difference_conditional_residual_entropy_bits=
+            joint_difference_conditional_residual_entropy_bits,
+        conditional_residual_entropy_diagnostic_difference_bits=
+            joint_difference_conditional_residual_entropy_bits -
+            conditional_residual_entropy_bits,
+        entropy_identity_tolerance=entropy_identity_tolerance,
+        conditional_entropy_matches_magnitude_heterogeneity=
+            conditional_entropy_matches_magnitude,
+        residual_entropy_excess_bits=
+            max(0.0, residual_entropy_bits - conditional_residual_entropy_bits),
+        shannon_encoded_bits=shannon_encoded_bits,
+        huffman_encoded_bits=huffman_encoded_bits,
+        conditional_shannon_encoded_bits=conditional_shannon_encoded_bits,
+        conditional_huffman_encoded_bits=conditional_huffman_encoded_bits,
+        selected_coding=residual_coding,
+        encoded_bits=encoded_bits,
+        bits_per_residual=observation_count > 0 ? encoded_bits / observation_count : 0.0,
+        fixed_width_bits=fixed_width_bits,
+        fixed_bits_per_residual=Float64(source_fixed_bits_per_symbol),
+        fixed_width_reference=:global_observed_magnitude_symbol_span,
+        coding_savings=coding_savings,
+        residual_range_fixed_width_bits=residual_range_fixed_width_bits,
+        residual_range_fixed_bits_per_residual=
+            Float64(residual_range_fixed_bits_per_symbol),
+        residual_range_fixed_width_reference=
+            :observed_integer_residual_range_without_side_information,
+        residual_range_coding_savings=residual_range_coding_savings,
+        predictor_overhead_included=false,
+        grid_label_overhead_included=false,
+        codebook_overhead_included=false,
+        singleton_payload_caveat=
+            :zero_residual_payload_can_move_a_singleton_mark_into_its_cell_predictor,
+        physical_residual_definition=:magnitude_minus_cell_prediction,
+        mae=mae,
+        rmse=rmse,
+        bias=bias,
+        cell_predictors=(
+            grid_symbols=ordered_cell_symbols,
+            predictions=ordered_predictor_values,
+            predictor_symbols=ordered_predictor_symbols,
+        ),
+    )
+end
+
+"""
+    magnitude_aggregation_information(magnitudes, grid_assignments;
+        magnitude_precision, magnitude_origin=0.0,
+        valid_mask=trues(length(magnitudes)),
+        reconstructions=(:maximum, :mean, :median),
+        residual_coding=:huffman)
+
+Measure information lost when continuous magnitude marks are aggregated into
+deterministic grid cells. Magnitudes are quantized on an explicit
+origin-anchored floor lattice before computing
+`magnitude_conditional_entropy_bits = H(M | G)`. The returned
+`cell_histograms` retains only occupied cells and nonzero symbol counts in a
+compact compressed-sparse-row representation. For cell `j`, its histogram is
+stored at `offsets[j]:(offsets[j + 1] - 1)`.
+
+For each requested cell reconstruction, physical residuals `M - Mhat_G`
+produce MAE, RMSE, and bias. Coding residuals are instead the exactly
+reconstructable integers `q - qhat_G`, where `q` is the floor-lattice magnitude
+symbol and `qhat_G` is the nearest lattice coordinate to the physical cell
+predictor (ties to even). Shannon and binary-Huffman sizes exclude predictor,
+grid-label, codebook, and container overhead. The common fixed-width reference
+uses the global observed magnitude-symbol span, so coding savings are comparable
+across grids and reconstructors. A second adaptive reference uses the smallest
+integer width covering the observed pooled residual range. Neither reference
+includes its range as side information.
+
+The pooled residual entropy `H(R)` can exceed the cell-conditioned entropy
+`H(R | G)`. Because subtracting one predictor symbol per cell is bijective,
+`H(R | G) = H(M | G)`; this identity is checked explicitly. A zero payload for
+a singleton cell only moves its magnitude mark into the uncounted predictor.
+
+`magnitude_location_dependence_fraction = I(M;G) / H(M)` measures the fraction
+of quantized magnitude entropy statistically associated with the grid labels.
+The compatibility field `magnitude_retention_fraction` is an exact alias; it is
+not retention by the maximum, mean, or median cell reconstruction. All entropy
+values are empirical plug-in estimates and can be optimistic on sparse,
+singleton-heavy grids.
+
+`grid_assignments` may be one vector of arbitrary deterministic labels or a
+named tuple of equal-length coordinate-label vectors.
+"""
+function magnitude_aggregation_information(
+    magnitudes::AbstractVector,
+    grid_assignments::Union{AbstractVector,NamedTuple};
+    magnitude_precision::Real,
+    magnitude_origin::Real=0.0,
+    valid_mask::AbstractVector{Bool}=trues(length(magnitudes)),
+    reconstructions::Union{Tuple{Vararg{Symbol}},AbstractVector{Symbol}}=
+        (:maximum, :mean, :median),
+    residual_coding::Symbol=:huffman,
+)::NamedTuple
+    observation_count::Int = length(magnitudes)
+    length(valid_mask) == observation_count ||
+        throw(DimensionMismatch("The magnitude valid mask must match the observation count!"))
+    precision_value::Float64 = Float64(magnitude_precision)
+    origin_value::Float64 = Float64(magnitude_origin)
+    isfinite(precision_value) && precision_value > 0.0 ||
+        throw(ArgumentError("Magnitude precision must be finite and positive!"))
+    isfinite(origin_value) || throw(ArgumentError("Magnitude origin must be finite!"))
+    residual_coding in (:shannon, :huffman) ||
+        throw(ArgumentError("Magnitude residual coding must be :shannon or :huffman!"))
+    reconstruction_methods::Vector{Symbol} = collect(reconstructions)
+    isempty(reconstruction_methods) &&
+        throw(ArgumentError("At least one magnitude reconstruction method is required!"))
+    length(unique(reconstruction_methods)) == length(reconstruction_methods) ||
+        throw(ArgumentError("Magnitude reconstruction methods must be unique!"))
+    all(method in (:maximum, :mean, :median) for method::Symbol in reconstruction_methods) ||
+        throw(ArgumentError("Magnitude reconstruction methods must be :maximum, :mean, or :median!"))
+
+    grid_label_data::NamedTuple =
+        _magnitude_grid_label_data(grid_assignments, observation_count)
+    valid_indices::Vector{Int} = Int[]
+    for observation_index::Int = 1:observation_count
+        magnitude::Any = magnitudes[observation_index]
+        magnitude_is_valid::Bool = magnitude isa Real && isfinite(magnitude)
+        if valid_mask[observation_index] && grid_label_data.valid_mask[observation_index] &&
+           magnitude_is_valid
+            push!(valid_indices, observation_index)
+        end
+    end
+    isempty(valid_indices) &&
+        throw(ArgumentError("At least one finite magnitude with a valid grid label is required!"))
+
+    magnitude_symbols::Vector{Int}, resolved_origin::Any, feature_kind::Symbol, ordered::Bool =
+        _raw_quantize_column(
+            magnitudes,
+            valid_indices,
+            magnitude_precision,
+            magnitude_origin,
+        )
+    label_symbols::Vector{Int}, label_origin::Any, label_kind::Symbol, label_ordered::Bool =
+        _raw_quantize_column(
+            grid_label_data.labels,
+            valid_indices,
+            nothing,
+            nothing,
+        )
+    magnitude_values::Vector{Float64} = Float64[magnitudes[index] for index::Int in valid_indices]
+    valid_observation_count::Int = length(valid_indices)
+    magnitude_counts::Dict{Int,Int} = Dict{Int,Int}()
+    grid_counts::Dict{Int,Int} = Dict{Int,Int}()
+    joint_counts::Dict{Tuple{Int,Int},Int} = Dict{Tuple{Int,Int},Int}()
+    cell_magnitude_counts::Dict{Int,Dict{Int,Int}} = Dict{Int,Dict{Int,Int}}()
+    cell_values::Dict{Int,Vector{Float64}} = Dict{Int,Vector{Float64}}()
+    cell_labels::Dict{Int,Any} = Dict{Int,Any}()
+    for observation_position::Int = 1:valid_observation_count
+        magnitude_symbol::Int = magnitude_symbols[observation_position]
+        grid_symbol::Int = label_symbols[observation_position]
+        _increment_information_count!(magnitude_counts, magnitude_symbol)
+        _increment_information_count!(grid_counts, grid_symbol)
+        _increment_information_count!(joint_counts, (magnitude_symbol, grid_symbol))
+        if !haskey(cell_magnitude_counts, grid_symbol)
+            cell_magnitude_counts[grid_symbol] = Dict{Int,Int}()
+            cell_values[grid_symbol] = Float64[]
+            cell_labels[grid_symbol] = grid_label_data.labels[valid_indices[observation_position]]
+        end
+        _increment_information_count!(
+            cell_magnitude_counts[grid_symbol],
+            magnitude_symbol,
+        )
+        push!(cell_values[grid_symbol], magnitude_values[observation_position])
+    end
+
+    magnitude_entropy_bits::Float64 =
+        _discrete_entropy_from_counts(magnitude_counts, valid_observation_count)
+    grid_entropy_bits::Float64 =
+        _discrete_entropy_from_counts(grid_counts, valid_observation_count)
+    joint_entropy_bits::Float64 =
+        _discrete_entropy_from_counts(joint_counts, valid_observation_count)
+    joint_difference_magnitude_conditional_entropy_bits::Float64 = clamp(
+        joint_entropy_bits - grid_entropy_bits,
+        0.0,
+        magnitude_entropy_bits,
+    )
+
+    histogram_grid_symbols::Vector{Int} = Int[]
+    histogram_grid_labels::Vector{Any} = Any[]
+    histogram_observation_counts::Vector{Int} = Int[]
+    histogram_entropy_bits::Vector{Float64} = Float64[]
+    histogram_offsets::Vector{Int} = Int[1]
+    histogram_magnitude_symbols::Vector{Int} = Int[]
+    histogram_counts::Vector{Int} = Int[]
+    for grid_symbol::Int in sort!(collect(keys(cell_magnitude_counts)))
+        symbol_counts::Dict{Int,Int} = cell_magnitude_counts[grid_symbol]
+        symbols::Vector{Int} = sort!(collect(keys(symbol_counts)))
+        counts::Vector{Int} = Int[symbol_counts[symbol] for symbol::Int in symbols]
+        cell_observation_count::Int = sum(counts)
+        append!(histogram_magnitude_symbols, symbols)
+        append!(histogram_counts, counts)
+        push!(histogram_grid_symbols, grid_symbol)
+        push!(histogram_grid_labels, cell_labels[grid_symbol])
+        push!(histogram_observation_counts, cell_observation_count)
+        push!(
+            histogram_entropy_bits,
+            _discrete_entropy_from_counts(symbol_counts, cell_observation_count),
+        )
+        push!(histogram_offsets, length(histogram_magnitude_symbols) + 1)
+    end
+    cell_histograms::NamedTuple = (
+        storage=:compressed_sparse_rows,
+        offset_convention=:one_based_half_open,
+        grid_symbols=histogram_grid_symbols,
+        grid_labels=histogram_grid_labels,
+        observation_counts=histogram_observation_counts,
+        entropy_bits=histogram_entropy_bits,
+        offsets=histogram_offsets,
+        magnitude_symbols=histogram_magnitude_symbols,
+        counts=histogram_counts,
+    )
+    cell_weighted_conditional_entropy_bits::Float64 = sum(
+        histogram_observation_counts[cell_index] * histogram_entropy_bits[cell_index]
+        for cell_index::Int in eachindex(histogram_grid_symbols)
+    ) / valid_observation_count
+    magnitude_conditional_entropy_bits::Float64 = clamp(
+        cell_weighted_conditional_entropy_bits,
+        0.0,
+        magnitude_entropy_bits,
+    )
+    entropy_identity_tolerance::Float64 = max(
+        1.0e-12,
+        16.0 * valid_observation_count * eps(max(
+            magnitude_entropy_bits,
+            grid_entropy_bits,
+            joint_entropy_bits,
+            1.0,
+        )),
+    )
+    cell_entropy_matches_joint_definition::Bool = isapprox(
+        magnitude_conditional_entropy_bits,
+        joint_difference_magnitude_conditional_entropy_bits;
+        atol=entropy_identity_tolerance,
+        rtol=16.0 * eps(Float64),
+    )
+    cell_entropy_matches_joint_definition || throw(ArgumentError(
+        "Sparse cell histograms do not reproduce magnitude conditional entropy!",
+    ))
+    mutual_information_bits::Float64 = clamp(
+        magnitude_entropy_bits - magnitude_conditional_entropy_bits,
+        0.0,
+        min(magnitude_entropy_bits, grid_entropy_bits),
+    )
+    normalized_magnitude_heterogeneity::Float64 = magnitude_entropy_bits > 0.0 ?
+        clamp(magnitude_conditional_entropy_bits / magnitude_entropy_bits, 0.0, 1.0) : NaN
+    magnitude_retention_fraction::Float64 = magnitude_entropy_bits > 0.0 ?
+        clamp(mutual_information_bits / magnitude_entropy_bits, 0.0, 1.0) : NaN
+    minimum_magnitude_symbol::Int = minimum(keys(magnitude_counts))
+    maximum_magnitude_symbol::Int = maximum(keys(magnitude_counts))
+    magnitude_symbol_span::BigInt =
+        BigInt(maximum_magnitude_symbol) - BigInt(minimum_magnitude_symbol) + 1
+    source_fixed_bits_per_symbol::Int = magnitude_symbol_span > 1 ?
+        ndigits(magnitude_symbol_span - 1; base=2) : 0
+
+    reconstruction_information::Vector{NamedTuple} = NamedTuple[]
+    for method::Symbol in reconstruction_methods
+        push!(
+            reconstruction_information,
+            _magnitude_reconstruction_information(
+                magnitude_values,
+                magnitude_symbols,
+                label_symbols,
+                cell_values,
+                method,
+                residual_coding,
+                precision_value,
+                origin_value,
+                source_fixed_bits_per_symbol,
+                magnitude_conditional_entropy_bits,
+            ),
+        )
+    end
+    occupied_grid_cell_count::Int = length(grid_counts)
+    singleton_grid_cell_count::Int = count(==(1), values(grid_counts))
+    return (
+        estimator=:empirical_plugin,
+        interpretation=:magnitude_mark_aggregation,
+        observation_count=observation_count,
+        valid_observation_count=valid_observation_count,
+        excluded_observation_count=observation_count - valid_observation_count,
+        occupied_grid_cell_count=occupied_grid_cell_count,
+        grid_state_count=occupied_grid_cell_count,
+        singleton_grid_cell_count=singleton_grid_cell_count,
+        singleton_grid_cell_fraction=singleton_grid_cell_count / occupied_grid_cell_count,
+        singleton_observation_count=singleton_grid_cell_count,
+        singleton_observation_fraction=singleton_grid_cell_count / valid_observation_count,
+        grid_feature_names=grid_label_data.feature_names,
+        grid_label_representation=grid_label_data.representation,
+        magnitude_precision=precision_value,
+        magnitude_origin=origin_value,
+        reconstructions=Tuple(reconstruction_methods),
+        residual_coding=residual_coding,
+        magnitude_quantization=(
+            method=:origin_anchored_floor_lattice,
+            precision=precision_value,
+            origin=origin_value,
+            interval_convention=:left_closed_right_open,
+        ),
+        magnitude_symbol_count=length(magnitude_counts),
+        magnitude_symbol_minimum=minimum_magnitude_symbol,
+        magnitude_symbol_maximum=maximum_magnitude_symbol,
+        magnitude_symbol_span=magnitude_symbol_span,
+        fixed_bits_per_magnitude_symbol=source_fixed_bits_per_symbol,
+        magnitude_entropy_bits=magnitude_entropy_bits,
+        grid_entropy_bits=grid_entropy_bits,
+        joint_entropy_bits=joint_entropy_bits,
+        mutual_information_bits=mutual_information_bits,
+        magnitude_conditional_entropy_bits=magnitude_conditional_entropy_bits,
+        joint_difference_magnitude_conditional_entropy_bits=
+            joint_difference_magnitude_conditional_entropy_bits,
+        conditional_entropy_diagnostic_difference_bits=
+            joint_difference_magnitude_conditional_entropy_bits -
+            magnitude_conditional_entropy_bits,
+        entropy_identity_tolerance=entropy_identity_tolerance,
+        magnitude_heterogeneity_bits=magnitude_conditional_entropy_bits,
+        ideal_conditional_mark_coding_bits=
+            valid_observation_count * magnitude_conditional_entropy_bits,
+        cell_weighted_conditional_entropy_bits=
+            cell_weighted_conditional_entropy_bits,
+        cell_entropy_matches_joint_definition=cell_entropy_matches_joint_definition,
+        normalized_magnitude_heterogeneity=normalized_magnitude_heterogeneity,
+        magnitude_location_dependence_fraction=magnitude_retention_fraction,
+        magnitude_retention_fraction=magnitude_retention_fraction,
+        magnitude_aggregation_loss_fraction=normalized_magnitude_heterogeneity,
+        effective_magnitude_states=exp2(magnitude_entropy_bits),
+        effective_magnitudes_per_grid_cell=exp2(magnitude_conditional_entropy_bits),
+        fraction_undefined_when_constant_magnitude=iszero(magnitude_entropy_bits),
+        magnitude_scale_note=
+            :physical_residuals_use_supplied_magnitude_units_which_may_be_logarithmic,
+        magnitude_location_dependence_interpretation=
+            :fraction_of_quantized_magnitude_entropy_associated_with_grid_labels,
+        magnitude_retention_fraction_interpretation=
+            :compatibility_alias_not_reconstruction_retention,
+        magnitude_aggregation_loss_fraction_interpretation=
+            :normalized_quantized_heterogeneity_not_physical_or_total_catalog_loss,
+        magnitude_aggregation_loss_reconstruction_independent=true,
+        empirical_estimator_caveat=
+            :plugin_entropy_can_be_optimistic_for_sparse_singleton_heavy_samples,
+        conditional_mark_coding_overhead_included=false,
+        cell_histograms=cell_histograms,
+        reconstruction_information=reconstruction_information,
     )
 end
 
@@ -1745,6 +3140,11 @@ function plot_structure_information(information_steps::AbstractVector{<:NamedTup
         throw(ArgumentError("The normalize option must be :intrinsic or :range!"))
     end
     include_spectral::Bool = all(!isempty(information.spectral_information) for information::NamedTuple in information_steps)
+    include_depth::Bool = all(
+        haskey(information, :dimension_metadata) &&
+        :depth in information.dimension_metadata.roles
+        for information::NamedTuple in information_steps
+    )
     metric_labels::Vector{String} = [
         "Value entropy",
         "Spatial dependence",
@@ -1754,9 +3154,16 @@ function plot_structure_information(information_steps::AbstractVector{<:NamedTup
         "Residual coding savings"
     ]
     metric_colors::Vector{String} = ["#1f77b4", "#ff7f0e", "#2ca02c", "#8c564b", "#d62728", "#17becf"]
+    if include_depth
+        insert!(metric_labels, 4, "Depth dependence")
+        insert!(metric_labels, 5, "Depth coherence")
+        insert!(metric_colors, 4, "#bcbd22")
+        insert!(metric_colors, 5, "#7f7f7f")
+    end
     if include_spectral
-        insert!(metric_labels, 6, "Spectral compactness")
-        insert!(metric_colors, 6, "#9467bd")
+        spectral_index::Int = include_depth ? 8 : 6
+        insert!(metric_labels, spectral_index, "Spectral compactness")
+        insert!(metric_colors, spectral_index, "#9467bd")
     end
     step_labels::Vector{String} = string.(steps)
     x_step_values::Vector{String} = String[]
@@ -1777,8 +3184,13 @@ function plot_structure_information(information_steps::AbstractVector{<:NamedTup
             clamp(1.0 - Float64(information.temporal_variation), 0.0, 1.0),
             coding_summary.coding_savings
         ]
+        if include_depth
+            insert!(metric_values, 4, clamp(Float64(information.depth_dependence), 0.0, 1.0))
+            insert!(metric_values, 5, clamp(1.0 - Float64(information.depth_variation), 0.0, 1.0))
+        end
         if include_spectral
-            insert!(metric_values, 6, _spectral_compactness(information))
+            current_spectral_index::Int = include_depth ? 8 : 6
+            insert!(metric_values, current_spectral_index, _spectral_compactness(information))
         end
         for metric_index::Int in eachindex(metric_labels)
             push!(x_step_values, step_labels[step_index])
