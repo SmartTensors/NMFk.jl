@@ -157,6 +157,101 @@ information::NamedTuple = NMFk.structure_information(
 lag_plot::Gadfly.Plot = NMFk.plot_lag_information(information)
 ```
 
+Floating-point coordinate offsets in lag-plot labels use four significant
+digits by default, while the exact values remain stored in
+`lag_information.coordinate_offset`. Use
+`coordinate_sigdigits=3` for an even more compact display. This formatting is
+applied when the plot is rendered, so plots recreated from older checkpoints
+also receive the shorter labels.
+
+Use `horizontal_lag_labels=:cells` to display horizontal dimensions as grid-cell
+counts, for example `lat=1` and `lon=-2`. Time and depth remain in their physical
+coordinate units. This changes only plot labels; stored coordinate offsets and
+all information metrics remain unchanged.
+
+When at least one requested lag is applicable, every unavailable lag is displayed
+as `NA`, not as zero. For a tensor dimension of length $n_d$, lag component
+$\delta_d$ has
+
+$$
+N_{\mathrm{candidate}}(\boldsymbol{\delta})
+=\prod_d \max(n_d-|\delta_d|,0)
+$$
+
+candidate pairs before masking. Thus a latitude lag of four cells is undefined
+for a grid containing exactly four latitude cells, whereas a longitude lag of
+four remains possible when the longitude dimension contains at least five cells.
+
+## Direction-balanced lag aggregation
+
+`aggregate_lag_information` groups sign-equivalent directions into shells that
+keep horizontal, depth, and time grid distances separate. A family is the exact
+active-role signature (horizontal, depth, temporal, or a particular mixture),
+so depth-time and horizontal-time coupling are not merged in a 4-D tensor. For
+metric $m$, directions are averaged equally within shell $s$ and shells are
+averaged equally within family $f$:
+
+$$
+A_{s,m}=\frac{1}{|L_s|}\sum_{\ell\in L_s}m_\ell,
+\qquad
+A_{f,m}=\frac{1}{|S_f|}\sum_{s\in S_f}A_{s,m}.
+$$
+
+By default, a shell is used only when every requested direction in that shell is
+applicable. Thus a grid with `lon=4` support but no `lat=4` support reports both
+directions as excluded from its balanced aggregate; the available `lon=4` value
+remains visible in the direction-resolved plot.
+
+The three reported bounded lag metrics are dependence
+$D_\ell=I_\ell/\max(H_{\ell,L},H_{\ell,R})$, coherence
+$C_\ell=1-V_\ell$, and direction-balanced residual-coding savings. Exact pooled
+coding savings are also reported from bit totals:
+
+$$
+S_{\mathrm{code}}=1-\frac{\sum_\ell E_\ell}{\sum_\ell F_\ell},
+\qquad
+b_{\mathrm{residual}}=\frac{\sum_\ell E_\ell}{\sum_\ell n_\ell}.
+$$
+
+Because the lag residual streams overlap, these pooled values compare the
+hypothetical lag predictors on their combined residual samples; they are not an
+estimate of the size of a single encoded tensor file.
+
+For comparisons across binning schemes, `compare_lag_information` uses common
+complete shells by default. If one direction in a shell is unavailable in any
+scheme, the entire shell is removed from every scheme. This prevents a lone
+longitude direction from representing a nominally direction-balanced spatial
+distance.
+
+```julia
+comparison::NamedTuple = NMFk.compare_lag_information(structure_results)
+heatmap::Gadfly.Plot = NMFk.plot_lag_information_aggregate_heatmap(
+    structure_matrix,
+    spatial_labels,
+    temporal_labels,
+)
+```
+
+These aggregates describe cell-relative regularity and compressibility. They
+are not fractions of raw information preserved: one cell represents different
+physical distances in different grids, sparse zero-filled tensors can appear
+highly coherent, and independently fitted quantizers need not share thresholds.
+The primary event-merging preservation measure remains
+
+$$
+R_{\mathrm{event}}=\frac{I(X;G)}{H(X)}
+=1-\frac{H(X\mid G)}{H(X)}.
+$$
+
+`plot_information_retention_tradeoff` therefore plots $R_{\mathrm{event}}$
+against the declared possible grid-cell count and uses aggregate lag dependence
+only as point color. Pareto labels identify schemes for which retention cannot
+be improved without increasing tensor size.
+
+The raw/grid comparisons supplied to this plot must have been computed with an
+explicit `grid_cell_count`; an occupied-cell count inferred from the observations
+is not a dense storage or computation cost and is rejected.
+
 The default `lag_sign=:canonical` treats opposite spatial offsets as the same
 unordered pair and makes nonzero temporal lags point forward. It still keeps
 opposite forward-time propagation directions such as `(1,1,1)` and
@@ -1042,6 +1137,160 @@ magnitude heterogeneity, $H(M\mid G)$ bits, singleton-event fraction, max versus
 mean RMSE, and median MAE for every spatial/temporal configuration. Sweep figures
 also compare the raw $H(M)$ baseline, ideal conditional $H(M\mid G)$ baseline,
 pooled residual coding, physical reconstruction errors, and coding savings.
+
+### Selecting a binning scheme
+
+There is no data-independent single optimum: the finest candidate normally
+retains the most empirical information, while the coarsest candidate costs the
+least. `optimize_binning_information` therefore exposes the trade-off and keeps
+the selection policy explicit.
+
+For scheme $s$, define its possible-grid cost as
+
+$$
+C_s=\prod_{d=1}^{D} n_{s,d},
+$$
+
+where $n_{s,d}$ is the number of bins on dimension $d$. Let $R_{s,k}\in[0,1]$
+be an information-retention metric, such as event, energy-weighted, longitude,
+latitude, time, or magnitude retention. The relative retention within the
+supplied candidate set has an explicit all-zero case:
+
+$$
+\widetilde R_{s,k}=
+\begin{cases}
+\dfrac{R_{s,k}}{\max_j R_{j,k}}, & \max_j R_{j,k}>0,\\
+1, & \max_j R_{j,k}=0.
+\end{cases}
+$$
+
+If a metric is zero for every candidate, the implementation records it in
+`degenerate_metrics` and treats it as a neutral value of one in the balanced
+summary.
+
+A zero-entropy raw baseline is different: its retention fraction is undefined,
+not 100%. Omit that metric from the optimization (or choose a scientifically
+meaningful raw precision that yields nonzero entropy). The generic optimizer
+rejects `NaN` and other nonfinite retention values rather than coercing them to
+one.
+
+The balanced retention is the worst retained metric,
+
+$$
+B_s=\min_{k\in K}\widetilde R_{s,k},
+$$
+
+where $K$ is the explicitly selected set of constraint metrics. The plotted
+bottleneck label identifies the metric attaining this minimum. Relative values
+measure performance against the best *observed candidate*; they are not a claim
+of perfect retention.
+
+A scheme is on the balanced cost-retention Pareto frontier when no other scheme
+has both $C_j\le C_s$ and $B_j\ge B_s$, with at least one strict inequality. The
+full multiobjective frontier applies the same definition to every
+$\widetilde R_{s,k}$ separately.
+
+The most interpretable unique selector is an epsilon constraint. Given declared
+absolute minimum retentions $\rho_k$,
+
+$$
+C_{s^*}=\min_{s:\ R_{s,k}\ge\rho_k\ \text{for every constrained }k} C_s.
+$$
+
+The near-best policy is useful before defensible absolute thresholds are known.
+For a requested fraction $q$ it selects
+
+$$
+C_{s_q^*}=\min_{s:\ \widetilde R_{s,k}\ge q\ \text{for every }k\in K} C_s.
+$$
+
+Thus the 90%, 95%, and 99% recommendations mean the least expensive supplied
+schemes reaching that fraction of every metric's best observed value. They do
+not mean 90%, 95%, or 99% of a theoretical continuum-limit truth.
+
+Absolute `retention_targets` are a separate primary-metric-only policy. Each
+target recommendation records `metric` and
+`criterion=:minimum_cost_meeting_primary_metric_target` so it cannot be
+mistaken for a constraint across every metric. Under a declared possible-cell
+budget, the budget policy instead maximizes $B_s$ over feasible schemes and
+records `criterion=:maximum_balanced_relative_retention`. Ties prefer the less
+expensive scheme and then the earlier supplied candidate.
+
+The exploratory knee normalizes $\log_{10}C_s$ and $B_s$ to $x_s,y_s\in[0,1]$
+on the balanced Pareto frontier, then selects the interior point maximizing
+
+$$
+d_s=\frac{y_s-x_s}{\sqrt{2}}.
+$$
+
+It is reported as `applicable=false` for fewer than three usable Pareto points.
+By default, the optimizer calls the elbow pronounced only when $d_s\ge0.05$; change
+this explicit threshold with `knee_minimum_score`. A knee depends on the
+supplied resolutions and must not be reported as a universal physical optimum.
+
+```julia
+import NMFk
+
+grid_cell_counts::Vector{Int} = Int[1_000, 10_000, 100_000]
+retention_metrics::NamedTuple = (
+    event=Float64[0.70, 0.90, 0.96],
+    energy=Float64[0.78, 0.93, 0.98],
+)
+labels::Vector{String} = String["coarse", "medium", "fine"]
+
+optimization::NamedTuple = NMFk.optimize_binning_information(
+    grid_cell_counts,
+    retention_metrics,
+    labels;
+    primary_metric=:event,
+    minimum_retentions=(event=0.90, energy=0.90),
+    near_best_fractions=Float64[0.90, 0.95, 0.99],
+    knee_minimum_score=0.05,
+)
+```
+
+The raw-comparison overload records `rawdata_baseline=:states` or `:records`
+and a corresponding `retention_semantics` field, so a saved optimization result
+does not lose the meaning of its single `event` retention vector.
+
+Directional lag metrics remain structure diagnostics rather than hidden terms
+in this optimizer. A one-cell lag represents different physical distances and
+durations in different grids, and coarse zero-filled tensors can appear more
+coherent simply through smoothing. If lag structure is later made a selection
+constraint, compare all candidates on common physical longitude/latitude/time
+lag shells against a declared reference and verify that adding shells no longer
+changes the ranking.
+
+Finally, raw precision is part of the scientific definition of the baseline.
+Very fine longitude, latitude, and time precision can make $H(X)$ nearly equal
+to event-record identity. Optimization results should therefore store the raw
+precision and origin, display them in the summary, and be repeated at realistic
+measurement precisions and shifted grid origins before calling a scheme robust.
+
+The Oklahoma dense sweep is implemented separately from the tensor/lag run:
+
+```julia
+include(joinpath(@__DIR__, "oklahoma_binning_optimization_common.jl"))
+
+optimization_analysis::NamedTuple = run_oklahoma_binning_optimization(
+    dates,
+    longitudes,
+    latitudes,
+    magnitudes,
+    selection_mask,
+    dataset_label,
+    output_directory,
+)
+```
+
+It evaluates raw-to-grid comparisons without constructing dense tensors and
+writes `<dataset>_binning_optimization_results.jld2`,
+`<dataset>_binning_optimization.png`, and
+`<dataset>_binning_optimization_summary.md`. The version-1 optimization cache is
+independent of the version-4 structure/lag cache. Matching data, raw precision,
+energy settings, and candidate grids are reused by default; changing only a
+target, near-best fraction, or hard retention constraint recomputes the cheap
+selection layer from the cached retention vectors.
 
 Figures can be recreated from the checkpoint alone:
 

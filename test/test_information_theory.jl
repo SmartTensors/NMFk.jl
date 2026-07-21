@@ -226,6 +226,62 @@ Test.@testset "multidimensional lag information" begin
     Test.@test four_dimensional_information.lag_information[3].grid_index_norm ≈ sqrt(3.0)
     Test.@test occursin("latitude=0.1 deg", four_dimensional_information.lag_information[3].display_label)
     Test.@test four_dimensional_information.lag_information[2].display_label == "time=2 days"
+    Test.@test NMFk._lag_display_label(
+        (1, -1, 0),
+        (:latitude, :longitude, :time),
+        (0.0123456789, -0.987654321, Dates.Day(0)),
+        ("deg", "deg", "day"),
+    ) == "latitude=0.01235 deg, longitude=-0.9877 deg"
+    Test.@test NMFk._lag_display_label(
+        (1, -1, 0),
+        (:latitude, :longitude, :time),
+        (0.0123456789, -0.987654321, Dates.Day(0)),
+        ("deg", "deg", "day"),
+        3,
+    ) == "latitude=0.0123 deg, longitude=-0.988 deg"
+    Test.@test NMFk._lag_display_label(
+        (1,),
+        (:distance,),
+        (BigFloat("1.23456789"),),
+        ("m",),
+    ) == "distance=1.235 m"
+    Test.@test NMFk._lag_display_label(
+        (1, -1, 1, 1),
+        (:latitude, :longitude, :depth, :time),
+        (0.0123456789, -0.987654321, 2.5, Dates.Day(7)),
+        ("deg", "deg", "km", "day"),
+        ;
+        dimension_roles=(:horizontal, :horizontal, :depth, :temporal),
+        horizontal_lag_labels=:cells,
+    ) == "latitude=1, longitude=-1, depth=2.5 km, time=7 days"
+    Test.@test NMFk._lag_display_label(
+        (1,),
+        (:latitude,),
+        (0.125,),
+        ("deg",),
+        ;
+        dimension_roles=(:spatial,),
+        horizontal_lag_labels=:cells,
+    ) == "latitude=1"
+    horizontal_time_shell::NamedTuple = NMFk._lag_shell_key(
+        (1, 0, 0, 1),
+        (:horizontal, :horizontal, :depth, :temporal),
+    )
+    depth_time_shell::NamedTuple = NMFk._lag_shell_key(
+        (0, 0, 1, 1),
+        (:horizontal, :horizontal, :depth, :temporal),
+    )
+    horizontal_depth_time_shell::NamedTuple = NMFk._lag_shell_key(
+        (1, 0, 1, 1),
+        (:horizontal, :horizontal, :depth, :temporal),
+    )
+    Test.@test horizontal_time_shell.role == depth_time_shell.role ==
+        horizontal_depth_time_shell.role == :spatiotemporal
+    Test.@test length(Set{NamedTuple}([
+        horizontal_time_shell.family,
+        depth_time_shell.family,
+        horizontal_depth_time_shell.family,
+    ])) == 3
     Test.@test four_dimensional_information.dimension_metadata.roles ==
         (:horizontal, :horizontal, :depth, :temporal)
     Test.@test four_dimensional_information.depth_dependence ==
@@ -239,8 +295,13 @@ Test.@testset "multidimensional lag information" begin
         four_dimensional_information;
         normalize=:range,
     )
+    lag_cell_plot::Gadfly.Plot = NMFk.plot_lag_information(
+        four_dimensional_information;
+        horizontal_lag_labels=:cells,
+    )
     Test.@test lag_plot isa Gadfly.Plot
     Test.@test lag_range_plot isa Gadfly.Plot
+    Test.@test lag_cell_plot isa Gadfly.Plot
     depth_structure_plot::Gadfly.Plot = NMFk.plot_structure_information(
         [four_dimensional_information, four_dimensional_information],
         ["fine", "coarse"],
@@ -249,6 +310,434 @@ Test.@testset "multidimensional lag information" begin
     Test.@test_throws ArgumentError NMFk.plot_lag_information(
         four_dimensional_information;
         normalize=:invalid,
+    )
+    Test.@test_throws ArgumentError NMFk.plot_lag_information(
+        four_dimensional_information;
+        coordinate_sigdigits=0,
+    )
+    Test.@test_throws ArgumentError NMFk.plot_lag_information(
+        four_dimensional_information;
+        horizontal_lag_labels=:invalid,
+    )
+
+    comparison_offsets::Vector{NTuple{3,Int}} = [
+        (1, 0, 0),
+        (0, 1, 0),
+        (4, 0, 0),
+        (0, 4, 0),
+        (1, 1, 0),
+        (1, -1, 0),
+        (0, 0, 1),
+    ]
+    fine_comparison_tensor::Array{Float64,3} = reshape(
+        Float64.(mod.(collect(1:(6 * 7 * 8)), 5)),
+        6,
+        7,
+        8,
+    )
+    coarse_comparison_tensor::Array{Float64,3} = reshape(
+        Float64.(mod.(collect(1:(4 * 5 * 8)), 5)),
+        4,
+        5,
+        8,
+    )
+    fine_lag_information::NamedTuple = NMFk.structure_information(
+        fine_comparison_tensor;
+        bins=5,
+        temporal_dim=3,
+        lag_offsets=comparison_offsets,
+        dimension_names=(:latitude, :longitude, :time),
+        dimension_steps=(0.1, 0.1, Dates.Day(1)),
+        dimension_units=("deg", "deg", ""),
+        dimension_roles=(:horizontal, :horizontal, :temporal),
+        compute_spectral=false,
+    )
+    coarse_lag_information::NamedTuple = NMFk.structure_information(
+        coarse_comparison_tensor;
+        bins=5,
+        temporal_dim=3,
+        lag_offsets=comparison_offsets,
+        dimension_names=(:latitude, :longitude, :time),
+        dimension_steps=(0.2, 0.2, Dates.Day(1)),
+        dimension_units=("deg", "deg", ""),
+        dimension_roles=(:horizontal, :horizontal, :temporal),
+        compute_spectral=false,
+    )
+    coarse_lag_lookup::Dict{Tuple,NamedTuple} = NMFk._lag_metrics_by_offset(
+        coarse_lag_information,
+    )
+    Test.@test !coarse_lag_lookup[(4, 0, 0)].applicable
+    Test.@test coarse_lag_lookup[(4, 0, 0)].candidate_pair_count == 0
+    Test.@test coarse_lag_lookup[(0, 4, 0)].applicable
+    Test.@test coarse_lag_lookup[(0, 4, 0)].candidate_pair_count == 32
+    coarse_balanced_summary::NamedTuple = NMFk.aggregate_lag_information(
+        coarse_lag_information,
+    )
+    Test.@test coarse_balanced_summary.used_lag_count == 5
+    Test.@test (4, 0, 0) in coarse_balanced_summary.excluded_offsets
+    Test.@test (0, 4, 0) in coarse_balanced_summary.excluded_offsets
+    coarse_explicit_summary::NamedTuple = NMFk.aggregate_lag_information(
+        coarse_lag_information;
+        lag_offsets=comparison_offsets,
+    )
+    Test.@test coarse_explicit_summary.used_lag_count == 5
+    Test.@test (4, 0, 0) in coarse_explicit_summary.excluded_offsets
+    Test.@test (0, 4, 0) in coarse_explicit_summary.excluded_offsets
+    coarse_partial_summary::NamedTuple = NMFk.aggregate_lag_information(
+        coarse_lag_information;
+        require_complete_shells=false,
+    )
+    Test.@test coarse_partial_summary.used_lag_count == 6
+    Test.@test (0, 4, 0) in coarse_partial_summary.selected_offsets
+    lag_comparison::NamedTuple = NMFk.compare_lag_information(
+        [fine_lag_information, coarse_lag_information],
+    )
+    Test.@test lag_comparison.requested_lag_count == 7
+    Test.@test lag_comparison.common_lag_count == 6
+    Test.@test lag_comparison.included_lag_count == 5
+    Test.@test lag_comparison.requested_shell_count == 4
+    Test.@test lag_comparison.included_shell_count == 3
+    Test.@test (4, 0, 0) in lag_comparison.excluded_offsets
+    Test.@test (0, 4, 0) in lag_comparison.excluded_offsets
+    Test.@test all(
+        summary.used_lag_count == 5 && summary.used_shell_count == 3
+        for summary::NamedTuple in lag_comparison.summaries
+    )
+    partial_lag_comparison::NamedTuple = NMFk.compare_lag_information(
+        [fine_lag_information, coarse_lag_information];
+        require_complete_shells=false,
+    )
+    Test.@test partial_lag_comparison.included_lag_count == 6
+    Test.@test all(
+        !summary.aggregation.complete_shells_required
+        for summary::NamedTuple in partial_lag_comparison.summaries
+    )
+    fine_common_summary::NamedTuple = first(lag_comparison.summaries)
+    reversed_common_summary::NamedTuple = NMFk.aggregate_lag_information(
+        fine_lag_information;
+        lag_offsets=reverse(lag_comparison.included_offsets),
+    )
+    Test.@test fine_common_summary.equal_family_summary.dependence ≈
+        reversed_common_summary.equal_family_summary.dependence
+    Test.@test fine_common_summary.equal_family_summary.coherence ≈
+        reversed_common_summary.equal_family_summary.coherence
+    included_fine_metrics::Vector{NamedTuple} = [
+        NMFk._lag_metrics_by_offset(fine_lag_information)[offset]
+        for offset::Tuple in lag_comparison.included_offsets
+    ]
+    expected_fixed_bits::Int = sum(
+        Int(metric.residual_coding.fixed_width_bits)
+        for metric::NamedTuple in included_fine_metrics;
+        init=0,
+    )
+    expected_encoded_bits::Float64 = sum(
+        Float64(metric.residual_coding.encoded_bits)
+        for metric::NamedTuple in included_fine_metrics;
+        init=0.0,
+    )
+    expected_pooled_savings::Float64 =
+        1.0 - expected_encoded_bits / expected_fixed_bits
+    Test.@test fine_common_summary.pooled_summary.coding_savings ≈
+        expected_pooled_savings
+    Test.@test fine_common_summary.pooled_summary.fixed_width_bits == expected_fixed_bits
+    Test.@test fine_common_summary.pooled_summary.encoded_bits ≈ expected_encoded_bits
+
+    synthetic_lag_metrics::Vector{NamedTuple} = [
+        (
+            offset=(1, 0, 0),
+            applicable=true,
+            pair_count=1,
+            normalized_mutual_information=0.0,
+            mean_normalized_difference=1.0,
+            residual_coding=(fixed_width_bits=10, encoded_bits=10.0),
+        ),
+        (
+            offset=(0, 1, 0),
+            applicable=true,
+            pair_count=10,
+            normalized_mutual_information=1.0,
+            mean_normalized_difference=0.0,
+            residual_coding=(fixed_width_bits=100, encoded_bits=100.0),
+        ),
+        (
+            offset=(2, 0, 0),
+            applicable=true,
+            pair_count=2,
+            normalized_mutual_information=1.0,
+            mean_normalized_difference=0.0,
+            residual_coding=(fixed_width_bits=20, encoded_bits=0.0),
+        ),
+        (
+            offset=(0, 0, 1),
+            applicable=true,
+            pair_count=40,
+            normalized_mutual_information=0.0,
+            mean_normalized_difference=0.5,
+            residual_coding=(fixed_width_bits=400, encoded_bits=200.0),
+        ),
+    ]
+    synthetic_lag_information::NamedTuple = (
+        dimension_metadata=(roles=(:horizontal, :horizontal, :temporal),),
+        lag_information=synthetic_lag_metrics,
+    )
+    synthetic_lag_summary::NamedTuple = NMFk.aggregate_lag_information(
+        synthetic_lag_information,
+    )
+    Test.@test synthetic_lag_summary.equal_family_summary.dependence ≈ 0.375
+    Test.@test synthetic_lag_summary.equal_family_summary.dependence !=
+        Statistics.mean(Float64[0.0, 1.0, 1.0, 0.0])
+    Test.@test synthetic_lag_summary.equal_family_summary.direction_balanced_coding_savings ≈
+        0.5
+    Test.@test synthetic_lag_summary.pooled_summary.coding_savings ≈
+        1.0 - 310.0 / 530.0
+    Test.@test synthetic_lag_summary.pooled_summary.bits_per_residual ≈ 310.0 / 53.0
+    extreme_lag_metrics::Vector{NamedTuple} = [
+        (
+            offset=(1, 0),
+            applicable=true,
+            pair_count=1,
+            normalized_mutual_information=0.5,
+            mean_normalized_difference=0.5,
+            residual_coding=(fixed_width_bits=10, encoded_bits=5.0),
+        ),
+        (
+            offset=(typemax(Int), 0),
+            applicable=false,
+            pair_count=0,
+            normalized_mutual_information=0.0,
+            mean_normalized_difference=0.0,
+            residual_coding=(fixed_width_bits=0, encoded_bits=0.0),
+        ),
+    ]
+    extreme_lag_information::NamedTuple = (
+        dimension_metadata=(roles=(:spatial, :spatial),),
+        lag_information=extreme_lag_metrics,
+    )
+    extreme_lag_summary::NamedTuple = NMFk.aggregate_lag_information(
+        extreme_lag_information,
+    )
+    Test.@test extreme_lag_summary.used_lag_count == 1
+    Test.@test extreme_lag_summary.selected_offsets == Tuple[(1, 0)]
+    comparison_matrix::Matrix{NamedTuple} = reshape(
+        NamedTuple[fine_lag_information, coarse_lag_information],
+        1,
+        2,
+    )
+    aggregate_heatmap::Gadfly.Plot = NMFk.plot_lag_information_aggregate_heatmap(
+        comparison_matrix,
+        ["fine", "coarse"],
+        ["one day"],
+    )
+    Test.@test aggregate_heatmap isa Gadfly.Plot
+    Test.@test_throws ArgumentError NMFk.plot_lag_information_aggregate_heatmap(
+        comparison_matrix,
+        ["fine", "coarse"],
+        ["one day"];
+        metric=:invalid,
+    )
+    Test.@test NMFk._retention_cost_pareto_indices(
+        [10.0, 20.0, 30.0],
+        [0.5, 0.6, 0.55],
+    ) == [1, 2]
+    binning_optimization::NamedTuple = NMFk.optimize_binning_information(
+        Int[100, 1_000, 5_000, 10_000, 100_000],
+        (
+            event=Float64[0.2, 0.7, 0.6, 0.85, 0.9],
+            spatial=Float64[0.1, 0.65, 0.5, 0.8, 1.0],
+        ),
+        ["tiny", "knee", "dominated", "near", "maximum"];
+        primary_metric=:event,
+        minimum_retentions=(event=0.8, spatial=0.75),
+        retention_targets=Float64[0.8, 0.95],
+        near_best_fractions=Float64[0.8, 0.95],
+        cell_budgets=Int[6_000],
+    )
+    Test.@test binning_optimization.balanced_knee.applicable
+    Test.@test binning_optimization.balanced_knee.index == 2
+    Test.@test !(3 in binning_optimization.multiobjective_pareto_indices)
+    Test.@test binning_optimization.near_best_recommendations[1].index == 4
+    Test.@test binning_optimization.near_best_recommendations[2].index == 5
+    Test.@test binning_optimization.target_recommendations[1].index == 4
+    Test.@test binning_optimization.target_recommendations[1].metric == :event
+    Test.@test binning_optimization.target_recommendations[1].criterion ==
+        :minimum_cost_meeting_primary_metric_target
+    Test.@test !binning_optimization.target_recommendations[2].available
+    Test.@test binning_optimization.budget_recommendations[1].index == 2
+    Test.@test binning_optimization.budget_recommendations[1].criterion ==
+        :maximum_balanced_relative_retention
+    Test.@test binning_optimization.constraint_recommendation.index == 4
+    Test.@test binning_optimization.bottleneck_metrics[2] == :spatial
+    Test.@test binning_optimization.balanced_knee.minimum_score == 0.05
+    Test.@test binning_optimization.balanced_knee.pronounced
+    binning_optimization_plot::Gadfly.Plot = NMFk.plot_binning_optimization(
+        binning_optimization,
+    )
+    Test.@test binning_optimization_plot isa Gadfly.Plot
+
+    tie_binning_optimization::NamedTuple = NMFk.optimize_binning_information(
+        Int[100, 100],
+        (
+            event=Float64[0.8, 0.8],
+            spatial=Float64[0.7, 0.9],
+        ),
+        ["weaker", "stronger"];
+        near_best_fractions=Float64[0.7],
+    )
+    Test.@test tie_binning_optimization.near_best_recommendations[1].index == 2
+    Test.@test !tie_binning_optimization.balanced_knee.applicable
+    budget_balanced_optimization::NamedTuple = NMFk.optimize_binning_information(
+        Int[1, 2],
+        (
+            event=Float64[1.0, 0.9],
+            spatial=Float64[0.0, 1.0],
+        ),
+        ["event only", "balanced"];
+        cell_budgets=Int[2],
+    )
+    Test.@test budget_balanced_optimization.budget_recommendations[1].index == 2
+    Test.@test budget_balanced_optimization.balanced_relative_retention == [0.0, 0.9]
+    zero_metric_optimization::NamedTuple = NMFk.optimize_binning_information(
+        Int[10, 20],
+        (event=Float64[0.5, 0.6], zero=Float64[0.0, 0.0]),
+        ["a", "b"],
+    )
+    Test.@test :zero in zero_metric_optimization.degenerate_metrics
+    Test.@test zero_metric_optimization.relative_retention_metrics.zero == [1.0, 1.0]
+    unselected_zero_metric_optimization::NamedTuple = NMFk.optimize_binning_information(
+        Int[10, 20],
+        (event=Float64[0.5, 0.6], unused_zero=Float64[0.0, 0.0]),
+        ["a", "b"];
+        constraint_metrics=(:event,),
+    )
+    Test.@test :unused_zero in unselected_zero_metric_optimization.degenerate_metrics
+    high_knee_threshold_optimization::NamedTuple = NMFk.optimize_binning_information(
+        Int[100, 1_000, 10_000],
+        (event=Float64[0.2, 0.7, 0.9],),
+        ["low", "middle", "high"];
+        knee_minimum_score=1.0,
+    )
+    Test.@test high_knee_threshold_optimization.balanced_knee.applicable
+    Test.@test !high_knee_threshold_optimization.balanced_knee.pronounced
+    Test.@test high_knee_threshold_optimization.balanced_knee.minimum_score == 1.0
+
+    float32_highlight_optimization::NamedTuple = NMFk.optimize_binning_information(
+        Int[10, 20],
+        (event=Float64[0.9, 1.0],),
+        ["small", "large"];
+        near_best_fractions=Float32[0.95],
+    )
+    float32_default_highlight_plot::Gadfly.Plot = NMFk.plot_binning_optimization(
+        float32_highlight_optimization,
+    )
+    float32_keyword_highlight_plot::Gadfly.Plot = NMFk.plot_binning_optimization(
+        float32_highlight_optimization;
+        highlight_near_best_fraction=Float32(0.95),
+    )
+    float32_highlight_title::Gadfly.Guide.Title = only(
+        guide::Gadfly.GuideElement
+        for guide::Gadfly.GuideElement in float32_default_highlight_plot.guides
+        if guide isa Gadfly.Guide.Title
+    )
+    Test.@test float32_keyword_highlight_plot isa Gadfly.Plot
+    Test.@test occursin("gold=95.0% near-best", float32_highlight_title.label)
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[],
+        (event=Float64[],),
+        String[],
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[1],
+        NamedTuple(),
+        ["a"],
+    )
+    Test.@test_throws DimensionMismatch NMFk.optimize_binning_information(
+        Int[1, 2],
+        (event=Float64[0.5],),
+        ["a", "b"],
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[1],
+        (event=Float64[NaN],),
+        ["a"],
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[1],
+        (event=Float64[0.5],),
+        ["a"];
+        minimum_retentions=(unknown=0.5,),
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[1],
+        (event=Float64[0.5],),
+        ["a"];
+        near_best_fractions=Float64[0.0],
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[1],
+        (event=Float64[0.5],),
+        ["a"];
+        constraint_metrics=Symbol[],
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[1],
+        (event=Float64[0.5],),
+        ["a"];
+        constraint_metrics=(:event, :event),
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[0],
+        (event=Float64[0.5],),
+        ["a"],
+    )
+    overflow_grid_cell_count::BigInt = BigInt(typemax(Int)) + 1
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        BigInt[overflow_grid_cell_count],
+        (event=Float64[0.5],),
+        ["a"],
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        Int[1],
+        (event=Float64[0.5],),
+        ["a"];
+        knee_minimum_score=-0.1,
+    )
+    synthetic_raw_comparisons::Vector{NamedTuple} = NamedTuple[
+        (
+            retention_fraction=0.9,
+            record_retention_fraction=0.95,
+            grid_cell_count=336,
+            grid_cell_count_supplied=true,
+        ),
+        (
+            retention_fraction=0.7,
+            record_retention_fraction=0.8,
+            grid_cell_count=160,
+            grid_cell_count_supplied=true,
+        ),
+    ]
+    retention_tradeoff_plot::Gadfly.Plot = NMFk.plot_information_retention_tradeoff(
+        synthetic_raw_comparisons,
+        NamedTuple[fine_lag_information, coarse_lag_information],
+        ["fine", "coarse"],
+    )
+    Test.@test retention_tradeoff_plot isa Gadfly.Plot
+    record_retention_tradeoff_plot::Gadfly.Plot =
+        NMFk.plot_information_retention_tradeoff(
+            synthetic_raw_comparisons,
+            NamedTuple[fine_lag_information, coarse_lag_information],
+            ["fine", "coarse"];
+            baseline=:records,
+        )
+    Test.@test record_retention_tradeoff_plot isa Gadfly.Plot
+    inferred_grid_count_comparisons::Vector{NamedTuple} = copy(synthetic_raw_comparisons)
+    inferred_grid_count_comparisons[1] = merge(
+        inferred_grid_count_comparisons[1],
+        (grid_cell_count_supplied=false,),
+    )
+    Test.@test_throws ArgumentError NMFk.plot_information_retention_tradeoff(
+        inferred_grid_count_comparisons,
+        NamedTuple[fine_lag_information, coarse_lag_information],
+        ["fine", "coarse"],
     )
 
     masked_tensor::Matrix{Float64} = reshape(Float64.(1:12), 3, 4)
@@ -858,6 +1347,24 @@ Test.@testset "raw-data versus grid information" begin
     end
     Test.@test comparisons[2].lost_information_bits ≈ 1.0
     Test.@test comparisons[3].lost_information_bits ≈ 2.0
+    raw_state_binning_optimization::NamedTuple = NMFk.optimize_binning_information(
+        comparisons,
+        ["fine", "pairs", "halves", "one"];
+        baseline=:states,
+    )
+    raw_record_binning_optimization::NamedTuple = NMFk.optimize_binning_information(
+        comparisons,
+        ["fine", "pairs", "halves", "one"];
+        baseline=:records,
+    )
+    Test.@test raw_state_binning_optimization.rawdata_baseline == :states
+    Test.@test raw_state_binning_optimization.retention_semantics ==
+        :raw_state_information_retention
+    Test.@test raw_state_binning_optimization.retention_metrics.event ≈ expected_retention
+    Test.@test raw_record_binning_optimization.rawdata_baseline == :records
+    Test.@test raw_record_binning_optimization.retention_semantics ==
+        :raw_record_distinguishability_retention
+    Test.@test raw_record_binning_optimization.retention_metrics.event ≈ expected_retention
 
     count_information::NamedTuple = NMFk.tensor_information(Float64[2, 2, 2, 2])
     Test.@test comparisons[2].grid_entropy_bits ≈ count_information.entropy_bits
@@ -929,6 +1436,15 @@ Test.@testset "raw-data versus grid information" begin
     )
     Test.@test !inferred_cell_count_comparison.grid_cell_count_supplied
     Test.@test inferred_cell_count_comparison.grid_cell_count == 4
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        [inferred_cell_count_comparison],
+        ["inferred"],
+    )
+    Test.@test_throws ArgumentError NMFk.optimize_binning_information(
+        comparisons,
+        ["fine", "pairs", "halves", "one"];
+        baseline=:invalid,
+    )
     Test.@test_throws ArgumentError NMFk.compare_rawdata_grid(
         raw_information,
         grid_assignments[2];

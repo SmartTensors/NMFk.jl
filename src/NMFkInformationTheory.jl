@@ -613,18 +613,56 @@ function _lag_scaled_step(step::Dates.Period, offset::Int)::Dates.Period
     return step * offset
 end
 
+function _lag_coordinate_value_label(
+    coordinate_value::AbstractFloat,
+    coordinate_sigdigits::Int,
+)::String
+    rounded_value::AbstractFloat = round(
+        coordinate_value;
+        sigdigits=coordinate_sigdigits,
+    )
+    stable_value::AbstractFloat = iszero(rounded_value) ? zero(rounded_value) : rounded_value
+    return sprint(show, stable_value; context=:compact => true)
+end
+
+function _lag_coordinate_value_label(
+    coordinate_value::Any,
+    coordinate_sigdigits::Int,
+)::String
+    return string(coordinate_value)
+end
+
 function _lag_display_label(
     offset::NTuple{N,Int},
     dimension_names::NTuple{N,Symbol},
     coordinate_offset::Tuple,
     dimension_units::NTuple{N,String},
+    coordinate_sigdigits::Int=4,
+    ;
+    dimension_roles::Union{Nothing,NTuple{N,Symbol}}=nothing,
+    horizontal_lag_labels::Symbol=:coordinates,
 )::String where {N}
+    coordinate_sigdigits > 0 || throw(ArgumentError(
+        "Lag-coordinate significant digits must be positive!",
+    ))
+    horizontal_lag_labels in (:coordinates, :cells) || throw(ArgumentError(
+        "Horizontal lag labels must be :coordinates or :cells!",
+    ))
+    horizontal_lag_labels == :cells && dimension_roles === nothing && throw(ArgumentError(
+        "Dimension roles are required to label horizontal lags in grid cells!",
+    ))
     component_labels::Vector{String} = String[]
     for dimension::Int = 1:N
         offset[dimension] == 0 && continue
-        coordinate_value::Any = coordinate_offset[dimension]
-        coordinate_label::String = string(coordinate_value)
-        unit_label::String = dimension_units[dimension]
+        use_cell_count::Bool = horizontal_lag_labels == :cells &&
+            dimension_roles !== nothing &&
+            dimension_roles[dimension] in (:horizontal, :spatial)
+        coordinate_value::Any = use_cell_count ? offset[dimension] : coordinate_offset[dimension]
+        coordinate_label::String = _lag_coordinate_value_label(
+            coordinate_value,
+            coordinate_sigdigits,
+        )
+        unit_label::String = use_cell_count ? "" : dimension_units[dimension]
         suffix::String = coordinate_value isa Dates.Period || isempty(unit_label) ? "" : " $(unit_label)"
         push!(component_labels, "$(dimension_names[dimension])=$(coordinate_label)$(suffix)")
     end
@@ -1145,17 +1183,24 @@ function structure_information(
 end
 
 """
-plot_lag_information(information, filename=""; normalize=:intrinsic, title_extra="")
+plot_lag_information(information, filename=""; normalize=:intrinsic,
+    coordinate_sigdigits=4, horizontal_lag_labels=:coordinates, title_extra="")
 
 Plot direction-resolved dependence, coherence, and residual-coding savings for
 the explicit lag vectors returned by `structure_information`. Lag vectors are
 kept separate; the plot does not average axial and diagonal directions or mix
-space, depth, and time into one physical distance.
+space, depth, and time into one physical distance. Floating-point coordinate
+offsets are formatted with `coordinate_sigdigits` significant digits; the exact
+stored coordinate values are unchanged. Set `horizontal_lag_labels=:cells` to
+show horizontal-dimension offsets as integer grid-cell counts while retaining
+physical coordinates for time, depth, and other dimensions.
 """
 function plot_lag_information(
     information::NamedTuple,
     filename::AbstractString="";
     normalize::Symbol=:intrinsic,
+    coordinate_sigdigits::Int=4,
+    horizontal_lag_labels::Symbol=:coordinates,
     title_extra::AbstractString="",
 )::Gadfly.Plot
     haskey(information, :lag_information) || throw(ArgumentError(
@@ -1164,16 +1209,23 @@ function plot_lag_information(
     normalize in (:intrinsic, :range) || throw(ArgumentError(
         "The lag-plot normalization must be :intrinsic or :range!",
     ))
-    requested_lag_count::Int = length(information.lag_information)
+    coordinate_sigdigits > 0 || throw(ArgumentError(
+        "Lag-coordinate significant digits must be positive!",
+    ))
+    horizontal_lag_labels in (:coordinates, :cells) || throw(ArgumentError(
+        "Horizontal lag labels must be :coordinates or :cells!",
+    ))
+    requested_lag_metrics::Vector{NamedTuple} = information.lag_information
+    requested_lag_count::Int = length(requested_lag_metrics)
     lag_metrics::Vector{NamedTuple} = filter(
         metric::NamedTuple -> Bool(metric.applicable),
-        information.lag_information,
+        requested_lag_metrics,
     )
     isempty(lag_metrics) && throw(ArgumentError("No requested lag has a valid cell pair!"))
     omitted_lag_count::Int = requested_lag_count - length(lag_metrics)
     if omitted_lag_count > 0
         @warn(
-            "Omitting requested lags with no valid cell pairs from the lag plot",
+            "Marking requested lags with no valid cell pairs as unavailable in the lag plot",
             omitted_lag_count=omitted_lag_count,
             requested_lag_count=requested_lag_count,
         )
@@ -1181,6 +1233,15 @@ function plot_lag_information(
     if normalize == :range && length(lag_metrics) < 2
         throw(ArgumentError("Range normalization requires at least two applicable lag vectors!"))
     end
+    has_dimension_labels::Bool = haskey(information, :dimension_metadata) &&
+        information.dimension_metadata isa NamedTuple &&
+        haskey(information.dimension_metadata, :names) &&
+        haskey(information.dimension_metadata, :units)
+    has_dimension_roles::Bool = has_dimension_labels &&
+        haskey(information.dimension_metadata, :roles)
+    horizontal_lag_labels == :cells && !has_dimension_roles && throw(ArgumentError(
+        "Dimension-role metadata is required to label horizontal lags in grid cells!",
+    ))
     metric_labels::Vector{String} = [
         "Normalized mutual information",
         "Symbol coherence",
@@ -1193,9 +1254,35 @@ function plot_lag_information(
     x_values::Vector{String} = String[]
     y_values::Vector{Float64} = Float64[]
     series_labels::Vector{String} = String[]
-    for lag_metric::NamedTuple in lag_metrics
+    for lag_metric::NamedTuple in requested_lag_metrics
+        can_rebuild_label::Bool = has_dimension_labels &&
+            haskey(lag_metric, :offset) &&
+            haskey(lag_metric, :coordinate_offset)
+        horizontal_lag_labels == :cells && !can_rebuild_label && throw(ArgumentError(
+            "Lag offsets and coordinate metadata are required for grid-cell labels!",
+        ))
+        compact_display_label::String = if can_rebuild_label
+            dimension_roles::Union{Nothing,Tuple} = has_dimension_roles ?
+                information.dimension_metadata.roles : nothing
+            _lag_display_label(
+                lag_metric.offset,
+                information.dimension_metadata.names,
+                lag_metric.coordinate_offset,
+                information.dimension_metadata.units,
+                coordinate_sigdigits,
+                ;
+                dimension_roles=dimension_roles,
+                horizontal_lag_labels=horizontal_lag_labels,
+            )
+        elseif haskey(lag_metric, :display_label)
+            String(lag_metric.display_label)
+        else
+            throw(ArgumentError(
+                "Lag metrics must contain coordinate metadata or a display_label!",
+            ))
+        end
         coordinate_label::String = replace(
-            String(lag_metric.display_label),
+            compact_display_label,
             ", " => "\n",
             "latitude" => "lat",
             "longitude" => "lon",
@@ -1205,6 +1292,11 @@ function plot_lag_information(
         )
         lag_label::String = coordinate_label
         push!(lag_labels, lag_label)
+        if !Bool(lag_metric.applicable)
+            push!(pair_labels, "NA")
+            push!(label_y_values, 0.04)
+            continue
+        end
         fixed_width_bits::Int = Int(lag_metric.residual_coding.fixed_width_bits)
         encoded_bits::Float64 = Float64(lag_metric.residual_coding.encoded_bits)
         coding_savings::Float64 = fixed_width_bits > 0 ?
@@ -1226,16 +1318,28 @@ function plot_lag_information(
         _range_normalize_plot_values!(y_values, series_labels, metric_labels)
         empty!(label_y_values)
         metric_count::Int = length(metric_labels)
-        for lag_index::Int in eachindex(lag_metrics)
-            first_index::Int = (lag_index - 1) * metric_count + 1
-            last_index::Int = first_index + metric_count - 1
-            push!(label_y_values, min(maximum(y_values[first_index:last_index]) + 0.04, 0.98))
+        applicable_lag_index::Int = 0
+        for lag_metric::NamedTuple in requested_lag_metrics
+            if Bool(lag_metric.applicable)
+                applicable_lag_index += 1
+                first_index::Int = (applicable_lag_index - 1) * metric_count + 1
+                last_index::Int = first_index + metric_count - 1
+                push!(label_y_values, min(maximum(y_values[first_index:last_index]) + 0.04, 0.98))
+            else
+                push!(label_y_values, 0.04)
+            end
         end
     end
     normalization_text::String = normalize == :range ? " (range normalized)" : ""
     y_label::String = normalize == :range ?
         "Within-metric normalized range" : "Intrinsic normalized metric"
-    title::String = "Lag-resolved structure information$(normalization_text)$(title_extra)"
+    availability_text::String = omitted_lag_count > 0 ?
+        "\n$(length(lag_metrics))/$(requested_lag_count) lags applicable; NA means no overlapping cell pairs" : ""
+    title::String =
+        "Lag-resolved structure information$(normalization_text)$(title_extra)$(availability_text)"
+    x_label::String = horizontal_lag_labels == :cells ?
+        "Lag vector (horizontal offsets in grid cells; other dimensions in coordinates)" :
+        "Lag vector (coordinate offsets; wrapped by dimension)"
     lag_plot::Gadfly.Plot = Gadfly.plot(
         Gadfly.layer(Gadfly.Geom.point; x=x_values, y=y_values, color=series_labels),
         Gadfly.layer(
@@ -1244,12 +1348,12 @@ function plot_lag_information(
             y=label_y_values,
             label=pair_labels,
         ),
-        Gadfly.Scale.x_discrete,
+        Gadfly.Scale.x_discrete(; levels=lag_labels),
         Gadfly.Scale.color_discrete_manual(metric_colors...),
         Gadfly.Guide.colorkey(; title="", labels=metric_labels),
         Gadfly.Coord.cartesian(; ymin=0.0, ymax=1.0),
         Gadfly.Guide.xticks(; orientation=:horizontal),
-        Gadfly.Guide.xlabel("Lag vector (coordinate offsets; wrapped by dimension)"),
+        Gadfly.Guide.xlabel(x_label),
         Gadfly.Guide.ylabel(y_label),
         Gadfly.Guide.title(title),
         Gadfly.Theme(;
@@ -1260,7 +1364,7 @@ function plot_lag_information(
     )
     if filename != ""
         @info("Saving lag-information plot to file: $filename")
-        plot_width_inches::Float64 = clamp(0.9 * length(lag_metrics), 15.0, 30.0)
+        plot_width_inches::Float64 = clamp(0.9 * requested_lag_count, 15.0, 30.0)
         Mads.plotfileformat(
             lag_plot,
             filename,
@@ -1269,6 +1373,1790 @@ function plot_lag_information(
         )
     end
     return lag_plot
+end
+
+function _lag_coding_savings(lag_metric::NamedTuple)::Float64
+    fixed_width_bits::Int = Int(lag_metric.residual_coding.fixed_width_bits)
+    encoded_bits::Float64 = Float64(lag_metric.residual_coding.encoded_bits)
+    return fixed_width_bits > 0 ?
+        clamp(1.0 - encoded_bits / fixed_width_bits, 0.0, 1.0) : 0.0
+end
+
+function _lag_shell_key(
+    offset::NTuple{N,Int},
+    dimension_roles::NTuple{N,Symbol},
+)::NamedTuple where {N}
+    horizontal_squared_radius::BigInt = sum(
+        BigInt(offset[dimension])^2
+        for dimension::Int in 1:N
+        if dimension_roles[dimension] in (:horizontal, :spatial);
+        init=BigInt(0),
+    )
+    depth_squared_radius::BigInt = sum(
+        BigInt(offset[dimension])^2
+        for dimension::Int in 1:N
+        if dimension_roles[dimension] == :depth;
+        init=BigInt(0),
+    )
+    temporal_squared_lag::BigInt = sum(
+        BigInt(offset[dimension])^2
+        for dimension::Int in 1:N
+        if dimension_roles[dimension] == :temporal;
+        init=BigInt(0),
+    )
+    return (
+        role=_lag_role(offset, dimension_roles),
+        family=(
+            horizontal=horizontal_squared_radius > 0,
+            depth=depth_squared_radius > 0,
+            temporal=temporal_squared_lag > 0,
+        ),
+        horizontal_squared_radius=horizontal_squared_radius,
+        depth_squared_radius=depth_squared_radius,
+        temporal_squared_lag=temporal_squared_lag,
+    )
+end
+
+function _lag_value_summary(values::Vector{Float64})::NamedTuple
+    isempty(values) && throw(ArgumentError("Lag summary values must not be empty!"))
+    standard_deviation::Float64 = length(values) > 1 ?
+        Statistics.std(values; corrected=false) : 0.0
+    return (
+        mean=Statistics.mean(values),
+        minimum=minimum(values),
+        maximum=maximum(values),
+        standard_deviation=standard_deviation,
+    )
+end
+
+function _lag_metrics_by_offset(information::NamedTuple)::Dict{Tuple,NamedTuple}
+    haskey(information, :lag_information) || throw(ArgumentError(
+        "The input must be produced by structure_information with lag support!",
+    ))
+    metric_lookup::Dict{Tuple,NamedTuple} = Dict{Tuple,NamedTuple}()
+    for lag_metric::NamedTuple in information.lag_information
+        haskey(lag_metric, :offset) || throw(ArgumentError(
+            "Every lag metric must contain its integer offset!",
+        ))
+        offset::Tuple = lag_metric.offset
+        haskey(metric_lookup, offset) && throw(ArgumentError(
+            "Lag metrics must not contain duplicate offsets!",
+        ))
+        metric_lookup[offset] = lag_metric
+    end
+    return metric_lookup
+end
+
+function _lag_shell_summary(
+    shell_key::NamedTuple,
+    lag_metrics::Vector{NamedTuple},
+)::NamedTuple
+    isempty(lag_metrics) && throw(ArgumentError("A lag shell must contain at least one direction!"))
+    dependence_values::Vector{Float64} = [
+        clamp(Float64(metric.normalized_mutual_information), 0.0, 1.0)
+        for metric::NamedTuple in lag_metrics
+    ]
+    coherence_values::Vector{Float64} = [
+        clamp(1.0 - Float64(metric.mean_normalized_difference), 0.0, 1.0)
+        for metric::NamedTuple in lag_metrics
+    ]
+    coding_savings_values::Vector{Float64} = [
+        _lag_coding_savings(metric)
+        for metric::NamedTuple in lag_metrics
+    ]
+    pair_count::Int = 0
+    fixed_width_bits::Int = 0
+    for metric::NamedTuple in lag_metrics
+        pair_count = Base.checked_add(pair_count, Int(metric.pair_count))
+        fixed_width_bits = Base.checked_add(
+            fixed_width_bits,
+            Int(metric.residual_coding.fixed_width_bits),
+        )
+    end
+    encoded_bits::Float64 = sum(
+        Float64(metric.residual_coding.encoded_bits)
+        for metric::NamedTuple in lag_metrics;
+        init=0.0,
+    )
+    pooled_coding_savings::Float64 = fixed_width_bits > 0 ?
+        clamp(1.0 - encoded_bits / fixed_width_bits, 0.0, 1.0) : 0.0
+    return (
+        shell=shell_key,
+        role=shell_key.role,
+        family=shell_key.family,
+        direction_count=length(lag_metrics),
+        offsets=Tuple(metric.offset for metric::NamedTuple in lag_metrics),
+        pair_count=pair_count,
+        fixed_width_bits=fixed_width_bits,
+        encoded_bits=encoded_bits,
+        bits_per_residual=pair_count > 0 ? encoded_bits / pair_count : 0.0,
+        dependence=_lag_value_summary(dependence_values),
+        coherence=_lag_value_summary(coherence_values),
+        direction_balanced_coding_savings=_lag_value_summary(coding_savings_values),
+        pooled_coding_savings=pooled_coding_savings,
+    )
+end
+
+"""
+aggregate_lag_information(information; lag_offsets=nothing, minimum_pair_count=1,
+    require_complete_shells=true)
+
+Summarize arbitrary directional lags without letting the number of sampled
+directions determine the result. Directions are averaged equally within
+sign-invariant grid-distance shells, shells are averaged equally within each
+spatial, temporal, depth, or mixed family, and families are reported separately.
+
+`lag_offsets` can restrict the summary to an explicitly comparable support.
+With `require_complete_shells=true`, the default, an entire requested shell is
+excluded if any of its directions lacks the minimum pair support. Unavailable
+lags are never treated as zero. Residual coding also reports the exact pooled
+savings obtained from summed encoded and fixed-width bit counts. These values
+describe cell-relative structure and compressibility, not the fraction of raw
+information preserved by gridding.
+"""
+function aggregate_lag_information(
+    information::NamedTuple;
+    lag_offsets::Union{Nothing,AbstractVector}=nothing,
+    minimum_pair_count::Int=1,
+    require_complete_shells::Bool=true,
+)::NamedTuple
+    minimum_pair_count > 0 || throw(ArgumentError(
+        "The minimum lag-pair count must be positive!",
+    ))
+    haskey(information, :dimension_metadata) &&
+        information.dimension_metadata isa NamedTuple &&
+        haskey(information.dimension_metadata, :roles) || throw(ArgumentError(
+        "Lag aggregation requires tensor dimension-role metadata!",
+    ))
+    dimension_roles::Tuple = information.dimension_metadata.roles
+    dimension_count::Int = length(dimension_roles)
+    metric_lookup::Dict{Tuple,NamedTuple} = _lag_metrics_by_offset(information)
+    requested_metrics::Vector{NamedTuple} = information.lag_information
+    aggregation_request_metrics::Vector{NamedTuple} = lag_offsets === nothing ?
+        copy(requested_metrics) : NamedTuple[]
+    selected_metrics::Vector{NamedTuple} = NamedTuple[]
+    selected_offsets::Vector{Tuple} = Tuple[]
+    if lag_offsets === nothing
+        for lag_metric::NamedTuple in requested_metrics
+            if Bool(lag_metric.applicable) && Int(lag_metric.pair_count) >= minimum_pair_count
+                push!(selected_metrics, lag_metric)
+                push!(selected_offsets, lag_metric.offset)
+            end
+        end
+    else
+        observed_offsets::Set{Tuple} = Set{Tuple}()
+        for offset_value::Any in lag_offsets
+            offset::Tuple = _normalize_lag_offset(offset_value, dimension_count)
+            offset in observed_offsets && throw(ArgumentError(
+                "Selected lag offsets must not contain duplicates!",
+            ))
+            push!(observed_offsets, offset)
+            haskey(metric_lookup, offset) || throw(ArgumentError(
+                "Selected lag offset $(offset) was not computed for this tensor!",
+            ))
+            lag_metric::NamedTuple = metric_lookup[offset]
+            push!(aggregation_request_metrics, lag_metric)
+            if Bool(lag_metric.applicable) &&
+                Int(lag_metric.pair_count) >= minimum_pair_count
+                push!(selected_metrics, lag_metric)
+                push!(selected_offsets, offset)
+            end
+        end
+    end
+    requested_shell_keys::Vector{NamedTuple} = NamedTuple[]
+    requested_metrics_by_shell::Dict{NamedTuple,Vector{NamedTuple}} =
+        Dict{NamedTuple,Vector{NamedTuple}}()
+    for lag_metric::NamedTuple in aggregation_request_metrics
+        shell_key::NamedTuple = _lag_shell_key(lag_metric.offset, dimension_roles)
+        if !haskey(requested_metrics_by_shell, shell_key)
+            requested_metrics_by_shell[shell_key] = NamedTuple[]
+            push!(requested_shell_keys, shell_key)
+        end
+        push!(requested_metrics_by_shell[shell_key], lag_metric)
+    end
+    if require_complete_shells
+        selected_offset_set::Set{Tuple} = Set{Tuple}(selected_offsets)
+        complete_shell_keys::Set{NamedTuple} = Set{NamedTuple}()
+        for shell_key::NamedTuple in requested_shell_keys
+            all(
+                metric::NamedTuple -> metric.offset in selected_offset_set,
+                requested_metrics_by_shell[shell_key],
+            ) && push!(complete_shell_keys, shell_key)
+        end
+        selected_metrics = filter(
+            metric::NamedTuple ->
+                _lag_shell_key(metric.offset, dimension_roles) in complete_shell_keys,
+            selected_metrics,
+        )
+        selected_offsets = [
+            metric.offset for metric::NamedTuple in selected_metrics
+        ]
+    end
+    isempty(selected_metrics) && throw(ArgumentError(
+        "No lag direction meets the requested aggregation support!",
+    ))
+
+    shell_keys::Vector{NamedTuple} = NamedTuple[]
+    metrics_by_shell::Dict{NamedTuple,Vector{NamedTuple}} =
+        Dict{NamedTuple,Vector{NamedTuple}}()
+    for lag_metric::NamedTuple in selected_metrics
+        shell_key::NamedTuple = _lag_shell_key(lag_metric.offset, dimension_roles)
+        if !haskey(metrics_by_shell, shell_key)
+            metrics_by_shell[shell_key] = NamedTuple[]
+            push!(shell_keys, shell_key)
+        end
+        push!(metrics_by_shell[shell_key], lag_metric)
+    end
+    shell_summaries::Vector{NamedTuple} = [
+        _lag_shell_summary(shell_key, metrics_by_shell[shell_key])
+        for shell_key::NamedTuple in shell_keys
+    ]
+
+    family_keys::Vector{NamedTuple} = NamedTuple[]
+    for shell_summary::NamedTuple in shell_summaries
+        shell_summary.family in family_keys || push!(family_keys, shell_summary.family)
+    end
+    family_summaries::Vector{NamedTuple} = NamedTuple[]
+    for family_key::NamedTuple in family_keys
+        family_shells::Vector{NamedTuple} = filter(
+            shell_summary::NamedTuple -> shell_summary.family == family_key,
+            shell_summaries,
+        )
+        dependence_values::Vector{Float64} = [
+            Float64(shell_summary.dependence.mean)
+            for shell_summary::NamedTuple in family_shells
+        ]
+        coherence_values::Vector{Float64} = [
+            Float64(shell_summary.coherence.mean)
+            for shell_summary::NamedTuple in family_shells
+        ]
+        coding_values::Vector{Float64} = [
+            Float64(shell_summary.direction_balanced_coding_savings.mean)
+            for shell_summary::NamedTuple in family_shells
+        ]
+        family_pair_count::Int = 0
+        family_fixed_width_bits::Int = 0
+        for shell_summary::NamedTuple in family_shells
+            family_pair_count = Base.checked_add(
+                family_pair_count,
+                Int(shell_summary.pair_count),
+            )
+            family_fixed_width_bits = Base.checked_add(
+                family_fixed_width_bits,
+                Int(shell_summary.fixed_width_bits),
+            )
+        end
+        family_encoded_bits::Float64 = sum(
+            Float64(shell_summary.encoded_bits)
+            for shell_summary::NamedTuple in family_shells;
+            init=0.0,
+        )
+        family_pooled_savings::Float64 = family_fixed_width_bits > 0 ?
+            clamp(1.0 - family_encoded_bits / family_fixed_width_bits, 0.0, 1.0) : 0.0
+        push!(family_summaries, (
+            family=family_key,
+            role=first(family_shells).role,
+            shell_count=length(family_shells),
+            direction_count=sum(
+                Int(shell_summary.direction_count)
+                for shell_summary::NamedTuple in family_shells;
+                init=0,
+            ),
+            pair_count=family_pair_count,
+            dependence=Statistics.mean(dependence_values),
+            coherence=Statistics.mean(coherence_values),
+            direction_balanced_coding_savings=Statistics.mean(coding_values),
+            pooled_coding_savings=family_pooled_savings,
+            bits_per_residual=family_pair_count > 0 ?
+                family_encoded_bits / family_pair_count : 0.0,
+        ))
+    end
+    equal_family_dependence::Float64 = Statistics.mean(
+        Float64(summary.dependence) for summary::NamedTuple in family_summaries
+    )
+    equal_family_coherence::Float64 = Statistics.mean(
+        Float64(summary.coherence) for summary::NamedTuple in family_summaries
+    )
+    equal_family_coding_savings::Float64 = Statistics.mean(
+        Float64(summary.direction_balanced_coding_savings)
+        for summary::NamedTuple in family_summaries
+    )
+    total_pair_count::Int = 0
+    total_fixed_width_bits::Int = 0
+    for metric::NamedTuple in selected_metrics
+        total_pair_count = Base.checked_add(total_pair_count, Int(metric.pair_count))
+        total_fixed_width_bits = Base.checked_add(
+            total_fixed_width_bits,
+            Int(metric.residual_coding.fixed_width_bits),
+        )
+    end
+    total_encoded_bits::Float64 = sum(
+        Float64(metric.residual_coding.encoded_bits)
+        for metric::NamedTuple in selected_metrics;
+        init=0.0,
+    )
+    total_pooled_coding_savings::Float64 = total_fixed_width_bits > 0 ?
+        clamp(1.0 - total_encoded_bits / total_fixed_width_bits, 0.0, 1.0) : 0.0
+    applicable_lag_count::Int = count(
+        metric::NamedTuple -> Bool(metric.applicable) &&
+            Int(metric.pair_count) >= minimum_pair_count,
+        aggregation_request_metrics,
+    )
+    requested_lag_count::Int = length(aggregation_request_metrics)
+    requested_shell_count::Int = length(requested_shell_keys)
+    used_lag_count::Int = length(selected_metrics)
+    used_shell_count::Int = length(shell_summaries)
+    return (
+        aggregation=(
+            direction_weighting=:equal_within_shell,
+            shell_weighting=:equal_within_family,
+            family_weighting=:equal_for_equal_family_summary,
+            distance_basis=:separate_grid_index_squared_radii_by_dimension_role,
+            complete_shells_required=require_complete_shells,
+            interpretation=:cell_relative_structure_not_raw_information_retention,
+        ),
+        minimum_pair_count=minimum_pair_count,
+        requested_lag_count=requested_lag_count,
+        applicable_lag_count=applicable_lag_count,
+        used_lag_count=used_lag_count,
+        requested_shell_count=requested_shell_count,
+        used_shell_count=used_shell_count,
+        lag_coverage_fraction=used_lag_count / requested_lag_count,
+        shell_coverage_fraction=used_shell_count / requested_shell_count,
+        selected_offsets=selected_offsets,
+        excluded_offsets=[
+            metric.offset
+            for metric::NamedTuple in aggregation_request_metrics
+            if !(metric.offset in selected_offsets)
+        ],
+        excluded_shells=[
+            shell_key
+            for shell_key::NamedTuple in requested_shell_keys
+            if !haskey(metrics_by_shell, shell_key)
+        ],
+        shell_summaries=shell_summaries,
+        family_summaries=family_summaries,
+        equal_family_summary=(
+            dependence=equal_family_dependence,
+            coherence=equal_family_coherence,
+            direction_balanced_coding_savings=equal_family_coding_savings,
+        ),
+        pooled_summary=(
+            coding_savings=total_pooled_coding_savings,
+            pair_count=total_pair_count,
+            fixed_width_bits=total_fixed_width_bits,
+            encoded_bits=total_encoded_bits,
+            bits_per_residual=total_pair_count > 0 ?
+                total_encoded_bits / total_pair_count : 0.0,
+        ),
+    )
+end
+
+"""
+compare_lag_information(information_steps; minimum_pair_count=1,
+    require_complete_shells=true)
+
+Build comparable lag-structure profiles for several tensor discretizations.
+Only offsets applicable in every tensor are eligible. With
+`require_complete_shells=true`, the entire direction shell is removed whenever
+any intended direction in that shell is unavailable in any tensor. This is the
+recommended mode for comparing grids with different axis lengths.
+"""
+function compare_lag_information(
+    information_steps::AbstractVector{<:NamedTuple};
+    minimum_pair_count::Int=1,
+    require_complete_shells::Bool=true,
+)::NamedTuple
+    isempty(information_steps) && throw(ArgumentError(
+        "Lag-information comparisons must contain at least one tensor!",
+    ))
+    minimum_pair_count > 0 || throw(ArgumentError(
+        "The minimum lag-pair count must be positive!",
+    ))
+    reference_information::NamedTuple = first(information_steps)
+    haskey(reference_information, :dimension_metadata) &&
+        haskey(reference_information.dimension_metadata, :roles) || throw(ArgumentError(
+        "Lag comparisons require dimension-role metadata!",
+    ))
+    dimension_roles::Tuple = reference_information.dimension_metadata.roles
+    reference_offsets::Vector{Tuple} = [
+        metric.offset for metric::NamedTuple in reference_information.lag_information
+    ]
+    reference_offset_set::Set{Tuple} = Set{Tuple}(reference_offsets)
+    compatibility_fields::Tuple{Vararg{Symbol}} = (
+        :bins,
+        :quantization,
+        :residual_coding,
+        :lag_sign,
+        :lag_pair_scope,
+    )
+    metric_lookups::Vector{Dict{Tuple,NamedTuple}} = Dict{Tuple,NamedTuple}[]
+    unavailable_offsets_by_scheme::Vector{Vector{Tuple}} = Vector{Tuple}[]
+    for information::NamedTuple in information_steps
+        haskey(information, :dimension_metadata) &&
+            information.dimension_metadata isa NamedTuple || throw(ArgumentError(
+            "Every lag comparison entry requires dimension metadata!",
+        ))
+        for metadata_field::Symbol in (:names, :units, :roles)
+            haskey(information.dimension_metadata, metadata_field) || throw(ArgumentError(
+                "Every lag comparison entry requires dimension $(metadata_field) metadata!",
+            ))
+            isequal(
+                getfield(information.dimension_metadata, metadata_field),
+                getfield(reference_information.dimension_metadata, metadata_field),
+            ) || throw(ArgumentError(
+                "Lag comparisons require matching dimension $(metadata_field) metadata!",
+            ))
+        end
+        for compatibility_field::Symbol in compatibility_fields
+            haskey(information, compatibility_field) || throw(ArgumentError(
+                "Lag comparisons require the $(compatibility_field) configuration field!",
+            ))
+            isequal(
+                getfield(information, compatibility_field),
+                getfield(reference_information, compatibility_field),
+            ) || throw(ArgumentError(
+                "Lag comparisons require matching $(compatibility_field) configurations!",
+            ))
+        end
+        metric_lookup::Dict{Tuple,NamedTuple} = _lag_metrics_by_offset(information)
+        Set{Tuple}(keys(metric_lookup)) == reference_offset_set || throw(ArgumentError(
+            "Lag comparisons require the same requested integer offsets in every tensor!",
+        ))
+        push!(metric_lookups, metric_lookup)
+        unavailable_offsets::Vector{Tuple} = Tuple[]
+        for offset::Tuple in reference_offsets
+            lag_metric::NamedTuple = metric_lookup[offset]
+            if !Bool(lag_metric.applicable) || Int(lag_metric.pair_count) < minimum_pair_count
+                push!(unavailable_offsets, offset)
+            end
+        end
+        push!(unavailable_offsets_by_scheme, unavailable_offsets)
+    end
+
+    common_offsets::Vector{Tuple} = Tuple[]
+    for offset::Tuple in reference_offsets
+        if all(
+            Bool(metric_lookup[offset].applicable) &&
+            Int(metric_lookup[offset].pair_count) >= minimum_pair_count
+            for metric_lookup::Dict{Tuple,NamedTuple} in metric_lookups
+        )
+            push!(common_offsets, offset)
+        end
+    end
+    common_offset_set::Set{Tuple} = Set{Tuple}(common_offsets)
+    requested_shell_keys::Vector{NamedTuple} = NamedTuple[]
+    offsets_by_shell::Dict{NamedTuple,Vector{Tuple}} = Dict{NamedTuple,Vector{Tuple}}()
+    for offset::Tuple in reference_offsets
+        shell_key::NamedTuple = _lag_shell_key(offset, dimension_roles)
+        if !haskey(offsets_by_shell, shell_key)
+            offsets_by_shell[shell_key] = Tuple[]
+            push!(requested_shell_keys, shell_key)
+        end
+        push!(offsets_by_shell[shell_key], offset)
+    end
+    included_shell_keys::Vector{NamedTuple} = NamedTuple[]
+    for shell_key::NamedTuple in requested_shell_keys
+        shell_offsets::Vector{Tuple} = offsets_by_shell[shell_key]
+        shell_complete::Bool = all(
+            offset::Tuple -> offset in common_offset_set,
+            shell_offsets,
+        )
+        if shell_complete || !require_complete_shells
+            any(offset::Tuple -> offset in common_offset_set, shell_offsets) &&
+                push!(included_shell_keys, shell_key)
+        end
+    end
+    included_offsets::Vector{Tuple} = [
+        offset
+        for offset::Tuple in reference_offsets
+        if offset in common_offset_set &&
+            _lag_shell_key(offset, dimension_roles) in included_shell_keys
+    ]
+    isempty(included_offsets) && throw(ArgumentError(
+        "No lag shell has common support across all compared tensors!",
+    ))
+    summaries::Vector{NamedTuple} = [
+        aggregate_lag_information(
+            information;
+            lag_offsets=included_offsets,
+            minimum_pair_count=minimum_pair_count,
+            require_complete_shells=require_complete_shells,
+        )
+        for information::NamedTuple in information_steps
+    ]
+    return (
+        support=require_complete_shells ? :common_complete_shells : :common_offsets,
+        distance_basis=:cell_relative_grid_index,
+        minimum_pair_count=minimum_pair_count,
+        requested_lag_count=length(reference_offsets),
+        common_lag_count=length(common_offsets),
+        included_lag_count=length(included_offsets),
+        requested_shell_count=length(requested_shell_keys),
+        included_shell_count=length(included_shell_keys),
+        lag_coverage_fraction=length(included_offsets) / length(reference_offsets),
+        shell_coverage_fraction=length(included_shell_keys) / length(requested_shell_keys),
+        common_offsets=common_offsets,
+        included_offsets=included_offsets,
+        excluded_offsets=[
+            offset for offset::Tuple in reference_offsets if !(offset in included_offsets)
+        ],
+        excluded_shells=[
+            shell_key
+            for shell_key::NamedTuple in requested_shell_keys
+            if !(shell_key in included_shell_keys)
+        ],
+        unavailable_offsets_by_scheme=unavailable_offsets_by_scheme,
+        summaries=summaries,
+        quantization_comparability=:configuration_only_without_shared_thresholds,
+        interpretation=:cell_relative_structure_not_raw_information_retention,
+    )
+end
+
+function _lag_aggregate_metric(summary::NamedTuple, metric::Symbol)::Float64
+    metric in (:dependence, :coherence, :coding_savings) || throw(ArgumentError(
+        "Lag aggregate heatmaps support :dependence, :coherence, or :coding_savings!",
+    ))
+    equal_family_summary::NamedTuple = summary.equal_family_summary
+    if metric == :dependence
+        return Float64(equal_family_summary.dependence)
+    elseif metric == :coherence
+        return Float64(equal_family_summary.coherence)
+    end
+    return Float64(equal_family_summary.direction_balanced_coding_savings)
+end
+
+"""
+plot_lag_information_aggregate_heatmap(information_matrix, x_labels, y_labels,
+    filename=""; metric=:dependence, normalize=:intrinsic,
+    x_label="Binning scheme 1", y_label="Binning scheme 2", title_extra="")
+
+Compare binning schemes with a direction-, shell-, and family-balanced lag
+profile evaluated on common complete lag shells. Cell annotations retain all
+three aggregate components. The colored quantity is a structural diagnostic,
+not a raw-data information-retention fraction.
+"""
+function plot_lag_information_aggregate_heatmap(
+    information_matrix::AbstractMatrix{<:NamedTuple},
+    x_labels::AbstractVector,
+    y_labels::AbstractVector,
+    filename::AbstractString="";
+    metric::Symbol=:dependence,
+    normalize::Symbol=:intrinsic,
+    x_label::AbstractString="Binning scheme 1",
+    y_label::AbstractString="Binning scheme 2",
+    title_extra::AbstractString="",
+)::Gadfly.Plot
+    size(information_matrix, 2) == length(x_labels) || throw(DimensionMismatch(
+        "Lag heatmap columns and x-axis labels must have the same length!",
+    ))
+    size(information_matrix, 1) == length(y_labels) || throw(DimensionMismatch(
+        "Lag heatmap rows and y-axis labels must have the same length!",
+    ))
+    isempty(information_matrix) && throw(ArgumentError(
+        "Lag aggregate heatmaps must contain at least one tensor!",
+    ))
+    metric in (:dependence, :coherence, :coding_savings) || throw(ArgumentError(
+        "Lag aggregate heatmaps support :dependence, :coherence, or :coding_savings!",
+    ))
+    normalize in (:intrinsic, :range) || throw(ArgumentError(
+        "Lag aggregate heatmap normalization must be :intrinsic or :range!",
+    ))
+    information_steps::Vector{NamedTuple} = NamedTuple[
+        information for information::NamedTuple in vec(information_matrix)
+    ]
+    comparison::NamedTuple = compare_lag_information(information_steps)
+    x_values::Vector{String} = String[]
+    y_values::Vector{String} = String[]
+    color_values::Vector{Float64} = Float64[]
+    annotation_values::Vector{String} = String[]
+    for column_index::Int in axes(information_matrix, 2)
+        for row_index::Int in axes(information_matrix, 1)
+            linear_index::Int = LinearIndices(information_matrix)[row_index, column_index]
+            summary::NamedTuple = comparison.summaries[linear_index]
+            equal_family::NamedTuple = summary.equal_family_summary
+            push!(x_values, string(x_labels[column_index]))
+            push!(y_values, string(y_labels[row_index]))
+            push!(color_values, _lag_aggregate_metric(summary, metric))
+            push!(
+                annotation_values,
+                "D=$(round(Float64(equal_family.dependence); digits=3))\n" *
+                "C=$(round(Float64(equal_family.coherence); digits=3))\n" *
+                "S=$(round(Float64(equal_family.direction_balanced_coding_savings); digits=3))",
+            )
+        end
+    end
+    plotted_color_values::Vector{Float64} = copy(color_values)
+    if normalize == :range
+        minimum_color_value::Float64 = minimum(color_values)
+        maximum_color_value::Float64 = maximum(color_values)
+        if maximum_color_value > minimum_color_value
+            plotted_color_values .=
+                (color_values .- minimum_color_value) ./
+                (maximum_color_value - minimum_color_value)
+        else
+            plotted_color_values .= 0.5
+        end
+    end
+    metric_description::String = metric == :dependence ?
+        "dependence (normalized mutual information)" :
+        metric == :coherence ? "symbol coherence" : "residual coding savings"
+    normalization_description::String = normalize == :range ?
+        "range-normalized color across shown schemes; annotations remain intrinsic" :
+        "intrinsic 0-1 color"
+    metric_symbol::String = metric == :dependence ? "D" : metric == :coherence ? "C" : "S"
+    title::String =
+        "Common-support aggregate lag structure by binning scheme$(title_extra)\n" *
+        "color=$(metric_symbol): $(metric_description); $(normalization_description); annotations=D/C/S\n" *
+        "common balanced support=$(comparison.included_lag_count)/$(comparison.requested_lag_count) lags, " *
+        "$(comparison.included_shell_count)/$(comparison.requested_shell_count) shells; " *
+        "cell-relative structure, not raw-information retention"
+    aggregate_heatmap::Gadfly.Plot = Gadfly.plot(
+        Gadfly.layer(
+            Gadfly.Geom.label(; position=:centered, hide_overlaps=false),
+            Gadfly.Theme(; point_label_color="#1b1b1b");
+            x=x_values,
+            y=y_values,
+            label=annotation_values,
+        ),
+        Gadfly.layer(
+            Gadfly.Geom.rectbin;
+            x=x_values,
+            y=y_values,
+            color=plotted_color_values,
+        ),
+        Gadfly.Scale.x_discrete,
+        Gadfly.Scale.y_discrete,
+        Gadfly.Scale.color_continuous(
+            ;
+            minvalue=0.0,
+            maxvalue=1.0,
+            colormap=Gadfly.Scale.lab_gradient("#d73027", "#fee08b", "#1a9850"),
+        ),
+        Gadfly.Guide.colorkey(;
+            title=metric_symbol * (normalize == :range ? " (range)" : ""),
+        ),
+        Gadfly.Guide.xticks(; orientation=:horizontal),
+        Gadfly.Guide.xlabel(x_label),
+        Gadfly.Guide.ylabel(y_label),
+        Gadfly.Guide.title(title),
+        Gadfly.Theme(; key_position=:right, background_color="white"),
+    )
+    if filename != ""
+        @info("Saving aggregate lag-information heatmap to file: $filename")
+        Mads.plotfileformat(aggregate_heatmap, filename, 13Gadfly.inch, 8Gadfly.inch)
+    end
+    return aggregate_heatmap
+end
+
+function _retention_cost_pareto_indices(
+    cell_counts::AbstractVector{<:Real},
+    retention_fractions::AbstractVector{<:Real},
+)::Vector{Int}
+    length(cell_counts) == length(retention_fractions) || throw(DimensionMismatch(
+        "Pareto costs and retention values must have the same length!",
+    ))
+    pareto_indices::Vector{Int} = Int[]
+    for candidate_index::Int in eachindex(cell_counts)
+        dominated::Bool = false
+        for comparison_index::Int in eachindex(cell_counts)
+            comparison_index == candidate_index && continue
+            no_more_costly::Bool = cell_counts[comparison_index] <= cell_counts[candidate_index]
+            no_less_retention::Bool =
+                retention_fractions[comparison_index] >= retention_fractions[candidate_index]
+            strictly_better::Bool =
+                cell_counts[comparison_index] < cell_counts[candidate_index] ||
+                retention_fractions[comparison_index] > retention_fractions[candidate_index]
+            if no_more_costly && no_less_retention && strictly_better
+                dominated = true
+                break
+            end
+        end
+        dominated || push!(pareto_indices, candidate_index)
+    end
+    sort!(pareto_indices; by=index::Int -> cell_counts[index])
+    return pareto_indices
+end
+
+function _minimum_cost_binning_index(
+    candidate_indices::Vector{Int},
+    grid_cell_counts::Vector{Int},
+    primary_retention::Vector{Float64},
+)::Int
+    isempty(candidate_indices) && throw(ArgumentError(
+        "At least one candidate binning index is required!",
+    ))
+    selected_index::Int = first(candidate_indices)
+    for candidate_index::Int in candidate_indices[2:end]
+        lower_cost::Bool = grid_cell_counts[candidate_index] <
+            grid_cell_counts[selected_index]
+        equal_cost::Bool = grid_cell_counts[candidate_index] ==
+            grid_cell_counts[selected_index]
+        higher_retention::Bool = primary_retention[candidate_index] >
+            primary_retention[selected_index]
+        equal_retention::Bool = primary_retention[candidate_index] ==
+            primary_retention[selected_index]
+        if lower_cost ||
+            (equal_cost && higher_retention) ||
+            (equal_cost && equal_retention && candidate_index < selected_index)
+            selected_index = candidate_index
+        end
+    end
+    return selected_index
+end
+
+function _maximum_retention_binning_index(
+    candidate_indices::Vector{Int},
+    grid_cell_counts::Vector{Int},
+    primary_retention::Vector{Float64},
+)::Int
+    isempty(candidate_indices) && throw(ArgumentError(
+        "At least one candidate binning index is required!",
+    ))
+    selected_index::Int = first(candidate_indices)
+    for candidate_index::Int in candidate_indices[2:end]
+        higher_retention::Bool = primary_retention[candidate_index] >
+            primary_retention[selected_index]
+        equal_retention::Bool = primary_retention[candidate_index] ==
+            primary_retention[selected_index]
+        lower_cost::Bool = grid_cell_counts[candidate_index] <
+            grid_cell_counts[selected_index]
+        equal_cost::Bool = grid_cell_counts[candidate_index] ==
+            grid_cell_counts[selected_index]
+        if higher_retention ||
+            (equal_retention && lower_cost) ||
+            (equal_retention && equal_cost && candidate_index < selected_index)
+            selected_index = candidate_index
+        end
+    end
+    return selected_index
+end
+
+function _binning_choice(
+    scheme_index::Int,
+    labels::Vector{String},
+    grid_cell_counts::Vector{Int},
+    retention_metrics::NamedTuple,
+    relative_retention_metrics::NamedTuple,
+)::NamedTuple
+    metric_names::Tuple = keys(retention_metrics)
+    metric_values::NamedTuple = NamedTuple{metric_names}(Tuple(
+        Float64(getfield(retention_metrics, metric_name)[scheme_index])
+        for metric_name::Symbol in metric_names
+    ))
+    relative_metric_values::NamedTuple = NamedTuple{metric_names}(Tuple(
+        Float64(getfield(relative_retention_metrics, metric_name)[scheme_index])
+        for metric_name::Symbol in metric_names
+    ))
+    return (
+        index=scheme_index,
+        label=labels[scheme_index],
+        grid_cell_count=grid_cell_counts[scheme_index],
+        retention_metrics=metric_values,
+        relative_retention_metrics=relative_metric_values,
+    )
+end
+
+function _unavailable_binning_choice()::NamedTuple
+    return (
+        index=nothing,
+        label=nothing,
+        grid_cell_count=nothing,
+        retention_metrics=nothing,
+        relative_retention_metrics=nothing,
+    )
+end
+
+function _multiobjective_binning_pareto_indices(
+    grid_cell_counts::Vector{Int},
+    relative_retention_metrics::NamedTuple,
+    metric_names::Vector{Symbol},
+)::Vector{Int}
+    scheme_count::Int = length(grid_cell_counts)
+    pareto_indices::Vector{Int} = Int[]
+    for candidate_index::Int in 1:scheme_count
+        dominated::Bool = false
+        for comparison_index::Int in 1:scheme_count
+            comparison_index == candidate_index && continue
+            no_more_costly::Bool = grid_cell_counts[comparison_index] <=
+                grid_cell_counts[candidate_index]
+            no_less_retention::Bool = all(
+                Float64(getfield(relative_retention_metrics, metric_name)[comparison_index]) >=
+                    Float64(getfield(relative_retention_metrics, metric_name)[candidate_index])
+                for metric_name::Symbol in metric_names
+            )
+            strictly_better_retention::Bool = any(
+                Float64(getfield(relative_retention_metrics, metric_name)[comparison_index]) >
+                    Float64(getfield(relative_retention_metrics, metric_name)[candidate_index])
+                for metric_name::Symbol in metric_names
+            )
+            strictly_better::Bool = grid_cell_counts[comparison_index] <
+                grid_cell_counts[candidate_index] || strictly_better_retention
+            if no_more_costly && no_less_retention && strictly_better
+                dominated = true
+                break
+            end
+        end
+        dominated || push!(pareto_indices, candidate_index)
+    end
+    sort!(pareto_indices; by=scheme_index::Int -> grid_cell_counts[scheme_index])
+    return pareto_indices
+end
+
+function _binning_knee_choice(
+    pareto_indices::Vector{Int},
+    retention_values::Vector{Float64},
+    labels::Vector{String},
+    grid_cell_counts::Vector{Int},
+    retention_metrics::NamedTuple,
+    relative_retention_metrics::NamedTuple,
+    knee_minimum_score::Float64,
+)::NamedTuple
+    isempty(pareto_indices) && throw(ArgumentError(
+        "A binning knee requires at least one Pareto candidate!",
+    ))
+    pareto_log_costs::Vector{Float64} =
+        log10.(Float64.(grid_cell_counts[pareto_indices]))
+    pareto_retention::Vector{Float64} = retention_values[pareto_indices]
+    log_cost_span::Float64 = maximum(pareto_log_costs) - minimum(pareto_log_costs)
+    retention_span::Float64 = maximum(pareto_retention) - minimum(pareto_retention)
+    applicable::Bool = length(pareto_indices) > 2 &&
+        log_cost_span > 0.0 && retention_span > 0.0
+    selected_position::Int = 1
+    selected_score::Float64 = 0.0
+    if applicable
+        normalized_log_costs::Vector{Float64} =
+            (pareto_log_costs .- minimum(pareto_log_costs)) ./ log_cost_span
+        normalized_retention::Vector{Float64} =
+            (pareto_retention .- minimum(pareto_retention)) ./ retention_span
+        knee_scores::Vector{Float64} =
+            (normalized_retention .- normalized_log_costs) ./ sqrt(2.0)
+        candidate_positions::Vector{Int} = collect(2:(length(pareto_indices) - 1))
+        selected_position = first(candidate_positions)
+        for candidate_position::Int in candidate_positions[2:end]
+            higher_score::Bool = knee_scores[candidate_position] > knee_scores[selected_position]
+            equal_score::Bool = knee_scores[candidate_position] == knee_scores[selected_position]
+            candidate_index::Int = pareto_indices[candidate_position]
+            current_selected_index::Int = pareto_indices[selected_position]
+            lower_cost::Bool = grid_cell_counts[candidate_index] <
+                grid_cell_counts[current_selected_index]
+            if higher_score || (equal_score && lower_cost)
+                selected_position = candidate_position
+            end
+        end
+        selected_score = knee_scores[selected_position]
+    else
+        fallback_selected_index::Int = _maximum_retention_binning_index(
+            pareto_indices,
+            grid_cell_counts,
+            retention_values,
+        )
+        selected_position = Int(only(findall(==(fallback_selected_index), pareto_indices)))
+        selected_score = 0.0
+    end
+    knee_index::Int = pareto_indices[selected_position]
+    return merge(
+        _binning_choice(
+            knee_index,
+            labels,
+            grid_cell_counts,
+            retention_metrics,
+            relative_retention_metrics,
+        ),
+        (
+            applicable=applicable,
+            pareto_position=selected_position,
+            score=selected_score,
+            minimum_score=knee_minimum_score,
+            interior=applicable && 1 < selected_position < length(pareto_indices),
+            pronounced=applicable && selected_score >= knee_minimum_score,
+            rule=:maximum_distance_above_endpoint_chord_in_normalized_log_cost_retention_space,
+        ),
+    )
+end
+
+"""
+optimize_binning_information(grid_cell_counts, retention_metrics, labels;
+    primary_metric=first(keys(retention_metrics)),
+    minimum_retentions=NamedTuple(), retention_targets=[0.8, 0.9, 0.95],
+    near_best_fractions=[0.9, 0.95, 0.99], cell_budgets=Int[],
+    constraint_metrics=nothing, knee_minimum_score=0.05)
+
+Compare candidate binning schemes without hiding the preservation/cost trade-off
+inside an arbitrary weighted score. The primary result is the Pareto frontier.
+Optional epsilon constraints select the least expensive scheme meeting explicit
+retention requirements. Target, budget, near-best, maximum-retention, and
+normalized log-cost knee choices are returned as separately labeled policies.
+
+The knee is an exploratory candidate-set-dependent heuristic, not a unique
+physical optimum. `near_best_fractions` require every selected constraint metric
+to retain the requested fraction of that metric's best observed value. Targets
+apply only to `primary_metric`; cell budgets maximize balanced relative
+retention across `constraint_metrics`. `knee_minimum_score` is the minimum
+normalized perpendicular distance required to call a knee pronounced.
+"""
+function optimize_binning_information(
+    grid_cell_count_values::AbstractVector{<:Integer},
+    retention_metric_values::NamedTuple,
+    labels::AbstractVector;
+    primary_metric::Union{Nothing,Symbol}=nothing,
+    minimum_retentions::NamedTuple=NamedTuple(),
+    retention_targets::AbstractVector{<:Real}=Float64[0.8, 0.9, 0.95],
+    near_best_fractions::AbstractVector{<:Real}=Float64[0.9, 0.95, 0.99],
+    cell_budgets::AbstractVector{<:Integer}=Int[],
+    constraint_metrics::Union{Nothing,Tuple,AbstractVector{Symbol}}=nothing,
+    knee_minimum_score::Real=0.05,
+)::NamedTuple
+    scheme_count::Int = length(grid_cell_count_values)
+    scheme_count > 0 || throw(ArgumentError(
+        "Binning optimization requires at least one candidate scheme!",
+    ))
+    length(labels) == scheme_count || throw(DimensionMismatch(
+        "Binning costs and labels must have the same length!",
+    ))
+    metric_names::Tuple = keys(retention_metric_values)
+    isempty(metric_names) && throw(ArgumentError(
+        "Binning optimization requires at least one retention metric!",
+    ))
+    selected_primary_metric::Symbol = primary_metric === nothing ?
+        first(metric_names) : primary_metric
+    selected_primary_metric in metric_names || throw(ArgumentError(
+        "The primary retention metric must be present in retention_metrics!",
+    ))
+    normalized_knee_minimum_score::Float64 = Float64(knee_minimum_score)
+    isfinite(normalized_knee_minimum_score) && normalized_knee_minimum_score >= 0.0 ||
+        throw(ArgumentError(
+            "The knee minimum score must be a finite nonnegative value!",
+        ))
+
+    grid_cell_counts::Vector{Int} = Int[]
+    for grid_cell_count_value::Integer in grid_cell_count_values
+        grid_cell_count_big::BigInt = BigInt(grid_cell_count_value)
+        grid_cell_count_big > 0 || throw(ArgumentError(
+            "Every possible grid-cell count must be positive!",
+        ))
+        grid_cell_count_big <= typemax(Int) || throw(ArgumentError(
+            "A possible grid-cell count exceeds the supported Int range!",
+        ))
+        push!(grid_cell_counts, Int(grid_cell_count_value))
+    end
+    display_labels::Vector{String} = string.(labels)
+    metric_vectors::Vector{Vector{Float64}} = Vector{Float64}[]
+    metric_maximum_values::Vector{Float64} = Float64[]
+    relative_metric_vectors::Vector{Vector{Float64}} = Vector{Float64}[]
+    for metric_name::Symbol in metric_names
+        raw_metric_values::Any = getfield(retention_metric_values, metric_name)
+        raw_metric_values isa AbstractVector || throw(ArgumentError(
+            "Every retention metric must be an AbstractVector!",
+        ))
+        length(raw_metric_values) == scheme_count || throw(DimensionMismatch(
+            "Every retention metric must match the number of candidate schemes!",
+        ))
+        metric_vector::Vector{Float64} = Float64.(raw_metric_values)
+        all(
+            metric_value::Float64 -> isfinite(metric_value) &&
+                0.0 <= metric_value <= 1.0,
+            metric_vector,
+        ) || throw(ArgumentError(
+            "Retention metrics must be finite fractions between zero and one!",
+        ))
+        metric_maximum::Float64 = maximum(metric_vector)
+        relative_metric_vector::Vector{Float64} = metric_maximum > 0.0 ?
+            metric_vector ./ metric_maximum : ones(Float64, scheme_count)
+        push!(metric_vectors, metric_vector)
+        push!(metric_maximum_values, metric_maximum)
+        push!(relative_metric_vectors, relative_metric_vector)
+    end
+    retention_metrics::NamedTuple = NamedTuple{metric_names}(Tuple(metric_vectors))
+    metric_maxima::NamedTuple = NamedTuple{metric_names}(Tuple(metric_maximum_values))
+    relative_retention_metrics::NamedTuple =
+        NamedTuple{metric_names}(Tuple(relative_metric_vectors))
+    primary_retention::Vector{Float64} =
+        getfield(retention_metrics, selected_primary_metric)
+    all_indices::Vector{Int} = collect(1:scheme_count)
+    pareto_indices::Vector{Int} = _retention_cost_pareto_indices(
+        grid_cell_counts,
+        primary_retention,
+    )
+    pareto_choices::Vector{NamedTuple} = [
+        _binning_choice(
+            scheme_index,
+            display_labels,
+            grid_cell_counts,
+            retention_metrics,
+            relative_retention_metrics,
+        )
+        for scheme_index::Int in pareto_indices
+    ]
+
+    maximum_retention_index::Int = _maximum_retention_binning_index(
+        all_indices,
+        grid_cell_counts,
+        primary_retention,
+    )
+    maximum_retention_choice::NamedTuple = _binning_choice(
+        maximum_retention_index,
+        display_labels,
+        grid_cell_counts,
+        retention_metrics,
+        relative_retention_metrics,
+    )
+
+    knee_choice::NamedTuple = _binning_knee_choice(
+        pareto_indices,
+        primary_retention,
+        display_labels,
+        grid_cell_counts,
+        retention_metrics,
+        relative_retention_metrics,
+        normalized_knee_minimum_score,
+    )
+
+    target_recommendations::Vector{NamedTuple} = NamedTuple[]
+    for retention_target_value::Real in retention_targets
+        retention_target::Float64 = Float64(retention_target_value)
+        isfinite(retention_target) && 0.0 <= retention_target <= 1.0 ||
+            throw(ArgumentError("Retention targets must be finite fractions from zero to one!"))
+        target_feasible_indices::Vector{Int} = findall(
+            retention_value::Float64 -> retention_value >= retention_target,
+            primary_retention,
+        )
+        if isempty(target_feasible_indices)
+            push!(target_recommendations, merge(
+                (
+                    target=retention_target,
+                    metric=selected_primary_metric,
+                    criterion=:minimum_cost_meeting_primary_metric_target,
+                    available=false,
+                ),
+                _unavailable_binning_choice(),
+            ))
+        else
+            target_selected_index::Int = _minimum_cost_binning_index(
+                target_feasible_indices,
+                grid_cell_counts,
+                primary_retention,
+            )
+            push!(target_recommendations, merge(
+                (
+                    target=retention_target,
+                    metric=selected_primary_metric,
+                    criterion=:minimum_cost_meeting_primary_metric_target,
+                    available=true,
+                ),
+                _binning_choice(
+                    target_selected_index,
+                    display_labels,
+                    grid_cell_counts,
+                    retention_metrics,
+                    relative_retention_metrics,
+                ),
+            ))
+        end
+    end
+
+    selected_constraint_metrics::Vector{Symbol} = constraint_metrics === nothing ?
+        collect(metric_names) : Symbol.(collect(constraint_metrics))
+    isempty(selected_constraint_metrics) && throw(ArgumentError(
+        "At least one near-best constraint metric must be selected!",
+    ))
+    all(metric_name in metric_names for metric_name::Symbol in selected_constraint_metrics) ||
+        throw(ArgumentError(
+            "Every near-best constraint metric must be present in retention_metrics!",
+        ))
+    length(unique(selected_constraint_metrics)) == length(selected_constraint_metrics) ||
+        throw(ArgumentError("Near-best constraint metrics must be unique!"))
+    balanced_relative_retention::Vector{Float64} = Float64[]
+    bottleneck_metrics::Vector{Symbol} = Symbol[]
+    for scheme_index::Int in all_indices
+        bottleneck_metric::Symbol = first(selected_constraint_metrics)
+        bottleneck_value::Float64 = Float64(
+            getfield(relative_retention_metrics, bottleneck_metric)[scheme_index],
+        )
+        for metric_name::Symbol in selected_constraint_metrics[2:end]
+            metric_value::Float64 = Float64(
+                getfield(relative_retention_metrics, metric_name)[scheme_index],
+            )
+            if metric_value < bottleneck_value
+                bottleneck_metric = metric_name
+                bottleneck_value = metric_value
+            end
+        end
+        push!(balanced_relative_retention, bottleneck_value)
+        push!(bottleneck_metrics, bottleneck_metric)
+    end
+    balanced_pareto_indices::Vector{Int} = _retention_cost_pareto_indices(
+        grid_cell_counts,
+        balanced_relative_retention,
+    )
+    balanced_pareto_choices::Vector{NamedTuple} = [
+        merge(
+            _binning_choice(
+                scheme_index,
+                display_labels,
+                grid_cell_counts,
+                retention_metrics,
+                relative_retention_metrics,
+            ),
+            (
+                balanced_relative_retention=balanced_relative_retention[scheme_index],
+                bottleneck_metric=bottleneck_metrics[scheme_index],
+            ),
+        )
+        for scheme_index::Int in balanced_pareto_indices
+    ]
+    balanced_knee_base::NamedTuple = _binning_knee_choice(
+        balanced_pareto_indices,
+        balanced_relative_retention,
+        display_labels,
+        grid_cell_counts,
+        retention_metrics,
+        relative_retention_metrics,
+        normalized_knee_minimum_score,
+    )
+    balanced_knee::NamedTuple = merge(
+        balanced_knee_base,
+        (
+            balanced_relative_retention=
+                balanced_relative_retention[balanced_knee_base.index],
+            bottleneck_metric=bottleneck_metrics[balanced_knee_base.index],
+        ),
+    )
+    multiobjective_pareto_indices::Vector{Int} = _multiobjective_binning_pareto_indices(
+        grid_cell_counts,
+        relative_retention_metrics,
+        selected_constraint_metrics,
+    )
+    multiobjective_pareto_choices::Vector{NamedTuple} = [
+        merge(
+            _binning_choice(
+                scheme_index,
+                display_labels,
+                grid_cell_counts,
+                retention_metrics,
+                relative_retention_metrics,
+            ),
+            (
+                balanced_relative_retention=balanced_relative_retention[scheme_index],
+                bottleneck_metric=bottleneck_metrics[scheme_index],
+            ),
+        )
+        for scheme_index::Int in multiobjective_pareto_indices
+    ]
+    degenerate_metrics::Vector{Symbol} = [
+        metric_name
+        for metric_name::Symbol in metric_names
+        if Float64(getfield(metric_maxima, metric_name)) == 0.0
+    ]
+    near_best_recommendations::Vector{NamedTuple} = NamedTuple[]
+    for near_best_fraction_value::Real in near_best_fractions
+        near_best_fraction::Float64 = Float64(near_best_fraction_value)
+        isfinite(near_best_fraction) && 0.0 < near_best_fraction <= 1.0 ||
+            throw(ArgumentError("Near-best fractions must be finite values above zero and at most one!"))
+        near_best_feasible_indices::Vector{Int} = Int[]
+        for scheme_index::Int in all_indices
+            meets_all_metrics::Bool = all(
+                Float64(getfield(relative_retention_metrics, metric_name)[scheme_index]) >=
+                    near_best_fraction
+                for metric_name::Symbol in selected_constraint_metrics
+            )
+            meets_all_metrics && push!(near_best_feasible_indices, scheme_index)
+        end
+        if isempty(near_best_feasible_indices)
+            push!(near_best_recommendations, merge(
+                (
+                    fraction=near_best_fraction,
+                    constraint_metrics=Tuple(selected_constraint_metrics),
+                    available=false,
+                ),
+                _unavailable_binning_choice(),
+            ))
+        else
+            near_best_selected_index::Int = _minimum_cost_binning_index(
+                near_best_feasible_indices,
+                grid_cell_counts,
+                balanced_relative_retention,
+            )
+            push!(near_best_recommendations, merge(
+                (
+                    fraction=near_best_fraction,
+                    constraint_metrics=Tuple(selected_constraint_metrics),
+                    available=true,
+                ),
+                _binning_choice(
+                    near_best_selected_index,
+                    display_labels,
+                    grid_cell_counts,
+                    retention_metrics,
+                    relative_retention_metrics,
+                ),
+            ))
+        end
+    end
+
+    budget_recommendations::Vector{NamedTuple} = NamedTuple[]
+    for cell_budget_value::Integer in cell_budgets
+        cell_budget_big::BigInt = BigInt(cell_budget_value)
+        cell_budget_big > 0 && cell_budget_big <= typemax(Int) || throw(ArgumentError(
+            "Cell budgets must be positive and fit the supported Int range!",
+        ))
+        cell_budget::Int = Int(cell_budget_value)
+        budget_feasible_indices::Vector{Int} = findall(
+            grid_cell_count::Int -> grid_cell_count <= cell_budget,
+            grid_cell_counts,
+        )
+        if isempty(budget_feasible_indices)
+            push!(budget_recommendations, merge(
+                (
+                    cell_budget=cell_budget,
+                    criterion=:maximum_balanced_relative_retention,
+                    constraint_metrics=Tuple(selected_constraint_metrics),
+                    available=false,
+                ),
+                _unavailable_binning_choice(),
+            ))
+        else
+            budget_selected_index::Int = _maximum_retention_binning_index(
+                budget_feasible_indices,
+                grid_cell_counts,
+                balanced_relative_retention,
+            )
+            push!(budget_recommendations, merge(
+                (
+                    cell_budget=cell_budget,
+                    criterion=:maximum_balanced_relative_retention,
+                    constraint_metrics=Tuple(selected_constraint_metrics),
+                    available=true,
+                ),
+                _binning_choice(
+                    budget_selected_index,
+                    display_labels,
+                    grid_cell_counts,
+                    retention_metrics,
+                    relative_retention_metrics,
+                ),
+            ))
+        end
+    end
+
+    minimum_retention_names::Tuple = keys(minimum_retentions)
+    all(metric_name in metric_names for metric_name::Symbol in minimum_retention_names) ||
+        throw(ArgumentError(
+            "Every minimum-retention constraint must name an available metric!",
+        ))
+    minimum_retention_values::Vector{Float64} = Float64[]
+    for metric_name::Symbol in minimum_retention_names
+        minimum_retention::Float64 = Float64(getfield(minimum_retentions, metric_name))
+        isfinite(minimum_retention) && 0.0 <= minimum_retention <= 1.0 ||
+            throw(ArgumentError(
+                "Minimum-retention constraints must be finite fractions from zero to one!",
+            ))
+        push!(minimum_retention_values, minimum_retention)
+    end
+    normalized_minimum_retentions::NamedTuple =
+        NamedTuple{minimum_retention_names}(Tuple(minimum_retention_values))
+    constraint_recommendation::NamedTuple = merge(
+        (specified=false, available=false, minimum_retentions=NamedTuple()),
+        _unavailable_binning_choice(),
+    )
+    if isempty(minimum_retention_names)
+        constraint_recommendation = merge(
+            (specified=false, available=false, minimum_retentions=NamedTuple()),
+            _unavailable_binning_choice(),
+        )
+    else
+        constraint_feasible_indices::Vector{Int} = Int[]
+        for scheme_index::Int in all_indices
+            meets_all_constraints::Bool = all(
+                Float64(getfield(retention_metrics, metric_name)[scheme_index]) >=
+                    Float64(getfield(normalized_minimum_retentions, metric_name))
+                for metric_name::Symbol in minimum_retention_names
+            )
+            meets_all_constraints && push!(constraint_feasible_indices, scheme_index)
+        end
+        if isempty(constraint_feasible_indices)
+            constraint_recommendation = merge(
+                (
+                    specified=true,
+                    available=false,
+                    minimum_retentions=normalized_minimum_retentions,
+                ),
+                _unavailable_binning_choice(),
+            )
+        else
+            constraint_selected_index::Int = _minimum_cost_binning_index(
+                constraint_feasible_indices,
+                grid_cell_counts,
+                primary_retention,
+            )
+            constraint_recommendation = merge(
+                (
+                    specified=true,
+                    available=true,
+                    minimum_retentions=normalized_minimum_retentions,
+                ),
+                _binning_choice(
+                    constraint_selected_index,
+                    display_labels,
+                    grid_cell_counts,
+                    retention_metrics,
+                    relative_retention_metrics,
+                ),
+            )
+        end
+    end
+
+    return (
+        selection_method=:deterministic_from_supplied_retention_metrics,
+        primary_metric=selected_primary_metric,
+        cost_definition=:explicit_possible_grid_cell_count,
+        labels=display_labels,
+        grid_cell_counts=grid_cell_counts,
+        retention_metrics=retention_metrics,
+        relative_retention_metrics=relative_retention_metrics,
+        metric_maxima=metric_maxima,
+        constraint_metrics=Tuple(selected_constraint_metrics),
+        balanced_relative_retention=balanced_relative_retention,
+        bottleneck_metrics=bottleneck_metrics,
+        degenerate_metrics=degenerate_metrics,
+        pareto_indices=pareto_indices,
+        pareto_choices=pareto_choices,
+        balanced_pareto_indices=balanced_pareto_indices,
+        balanced_pareto_choices=balanced_pareto_choices,
+        multiobjective_pareto_indices=multiobjective_pareto_indices,
+        multiobjective_pareto_choices=multiobjective_pareto_choices,
+        maximum_retention=maximum_retention_choice,
+        knee=knee_choice,
+        balanced_knee=balanced_knee,
+        target_recommendations=target_recommendations,
+        near_best_recommendations=near_best_recommendations,
+        budget_recommendations=budget_recommendations,
+        constraint_recommendation=constraint_recommendation,
+        selection_interpretation=(
+            default=:pareto_frontier_has_no_unique_optimum,
+            epsilon_constraint=:least_cost_scheme_meeting_declared_retention_requirements,
+            target=:least_cost_scheme_meeting_primary_metric_absolute_retention,
+            near_best=:least_cost_scheme_retaining_a_fraction_of_each_metrics_best_observed_value,
+            budget=:maximum_balanced_relative_retention_within_possible_grid_cell_budget,
+            knee=:exploratory_candidate_set_dependent_log_cost_heuristic,
+        ),
+    )
+end
+
+function optimize_binning_information(
+    rawdata_comparisons::AbstractVector{<:NamedTuple},
+    labels::AbstractVector;
+    baseline::Symbol=:states,
+    minimum_retentions::NamedTuple=NamedTuple(),
+    retention_targets::AbstractVector{<:Real}=Float64[0.8, 0.9, 0.95],
+    near_best_fractions::AbstractVector{<:Real}=Float64[0.9, 0.95, 0.99],
+    cell_budgets::AbstractVector{<:Integer}=Int[],
+    knee_minimum_score::Real=0.05,
+)::NamedTuple
+    baseline in (:states, :records) || throw(ArgumentError(
+        "The binning-optimization baseline must be :states or :records!",
+    ))
+    _rawdata_grid_plot_values(
+        rawdata_comparisons,
+        labels;
+        xaxis=:cells,
+        normalize=:fraction,
+        baseline=baseline,
+    )
+    grid_cell_counts::Vector{Int} = Int[]
+    retention_fractions::Vector{Float64} = Float64[]
+    for rawdata_comparison::NamedTuple in rawdata_comparisons
+        haskey(rawdata_comparison, :grid_cell_count) || throw(ArgumentError(
+            "Every raw-data comparison must declare its possible grid-cell count!",
+        ))
+        haskey(rawdata_comparison, :grid_cell_count_supplied) &&
+            Bool(rawdata_comparison.grid_cell_count_supplied) || throw(ArgumentError(
+                "Binning optimization requires explicitly supplied possible grid-cell counts!",
+            ))
+        push!(grid_cell_counts, Int(rawdata_comparison.grid_cell_count))
+        retention_fraction::Float64 = baseline == :states ?
+            Float64(rawdata_comparison.retention_fraction) :
+            Float64(rawdata_comparison.record_retention_fraction)
+        push!(retention_fractions, retention_fraction)
+    end
+    optimization::NamedTuple = optimize_binning_information(
+        grid_cell_counts,
+        (event=retention_fractions,),
+        labels;
+        primary_metric=:event,
+        minimum_retentions=minimum_retentions,
+        retention_targets=retention_targets,
+        near_best_fractions=near_best_fractions,
+        cell_budgets=cell_budgets,
+        constraint_metrics=(:event,),
+        knee_minimum_score=knee_minimum_score,
+    )
+    retention_semantics::Symbol = baseline == :states ?
+        :raw_state_information_retention : :raw_record_distinguishability_retention
+    return merge(
+        optimization,
+        (
+            rawdata_baseline=baseline,
+            rawdata_retention_metric=:event,
+            retention_semantics=retention_semantics,
+        ),
+    )
+end
+
+"""
+plot_binning_optimization(optimization, filename="";
+    highlight_near_best_fraction=0.95, title_extra="")
+
+Plot possible grid-cell cost against the bottleneck relative retention
+`min_k R_k / max(R_k)` across the optimization's constraint metrics. Colors
+identify which metric limits each scheme. The black line is the balanced Pareto
+frontier; the gold point is the least-cost scheme meeting the highlighted
+near-best fraction for every metric. A cyan point is shown only when the
+candidate-set-dependent balanced knee is both applicable and pronounced.
+"""
+function plot_binning_optimization(
+    optimization::NamedTuple,
+    filename::AbstractString="";
+    highlight_near_best_fraction::Real=0.95,
+    title_extra::AbstractString="",
+)::Gadfly.Plot
+    required_fields::Tuple{Vararg{Symbol}} = (
+        :labels,
+        :grid_cell_counts,
+        :balanced_relative_retention,
+        :bottleneck_metrics,
+        :balanced_pareto_indices,
+        :balanced_knee,
+        :near_best_recommendations,
+        :constraint_metrics,
+    )
+    all(haskey(optimization, field) for field::Symbol in required_fields) ||
+        throw(ArgumentError(
+            "Binning-optimization plots require a complete optimization result!",
+        ))
+    normalized_highlight_fraction::Float64 = Float64(highlight_near_best_fraction)
+    isfinite(normalized_highlight_fraction) &&
+        0.0 < normalized_highlight_fraction <= 1.0 || throw(ArgumentError(
+            "The highlighted near-best fraction must be above zero and at most one!",
+        ))
+    scheme_count::Int = length(optimization.labels)
+    scheme_count > 0 || throw(ArgumentError(
+        "Binning-optimization plots require at least one scheme!",
+    ))
+    grid_cell_counts::Vector{Float64} = Float64.(optimization.grid_cell_counts)
+    balanced_retention::Vector{Float64} =
+        Float64.(optimization.balanced_relative_retention)
+    bottleneck_labels::Vector{String} = [
+        replace(String(metric_name), "_" => " ")
+        for metric_name::Symbol in optimization.bottleneck_metrics
+    ]
+    length(grid_cell_counts) == length(balanced_retention) ==
+        length(bottleneck_labels) == scheme_count || throw(DimensionMismatch(
+            "Binning-optimization plot vectors must have matching lengths!",
+        ))
+    pareto_indices::Vector{Int} = Int.(optimization.balanced_pareto_indices)
+    pareto_costs::Vector{Float64} = grid_cell_counts[pareto_indices]
+    pareto_retention::Vector{Float64} = balanced_retention[pareto_indices]
+
+    selection_labels_by_index::Dict{Int,Vector{String}} = Dict{Int,Vector{String}}()
+    highlighted_choice::Union{Nothing,NamedTuple} = nothing
+    highlight_policy_found::Bool = false
+    for recommendation::NamedTuple in optimization.near_best_recommendations
+        is_highlight_policy::Bool = isapprox(
+            Float64(recommendation.fraction),
+            normalized_highlight_fraction;
+            atol=sqrt(eps(Float64)),
+            rtol=sqrt(eps(Float64)),
+        )
+        is_highlight_policy && (highlight_policy_found = true)
+        if is_highlight_policy && Bool(recommendation.available)
+            highlighted_choice = recommendation
+        end
+        Bool(recommendation.available) || continue
+        recommendation_index::Int = Int(recommendation.index)
+        policy_label::String = "$(round(100.0 * Float64(recommendation.fraction); digits=1))% near-best"
+        if !haskey(selection_labels_by_index, recommendation_index)
+            selection_labels_by_index[recommendation_index] = String[]
+        end
+        push!(selection_labels_by_index[recommendation_index], policy_label)
+    end
+    knee_choice::NamedTuple = optimization.balanced_knee
+    knee_index::Int = Int(knee_choice.index)
+    meaningful_knee::Bool = Bool(knee_choice.applicable) && Bool(knee_choice.pronounced)
+    if meaningful_knee
+        if !haskey(selection_labels_by_index, knee_index)
+            selection_labels_by_index[knee_index] = String[]
+        end
+        push!(selection_labels_by_index[knee_index], "exploratory knee")
+    end
+
+    selection_indices::Vector{Int} = sort!(collect(keys(selection_labels_by_index)))
+    selection_costs::Vector{Float64} = grid_cell_counts[selection_indices]
+    selection_retention::Vector{Float64} = balanced_retention[selection_indices]
+    selection_labels::Vector{String} = [
+        "$(join(selection_labels_by_index[scheme_index], " / "))\n$(optimization.labels[scheme_index])"
+        for scheme_index::Int in selection_indices
+    ]
+    unique_bottleneck_labels::Vector{String} = unique(bottleneck_labels)
+    available_colors::Vector{String} = [
+        "#1f78b4",
+        "#33a02c",
+        "#e31a1c",
+        "#ff7f00",
+        "#6a3d9a",
+        "#b15928",
+        "#17becf",
+        "#7f7f7f",
+    ]
+    bottleneck_colors::Vector{String} = [
+        available_colors[mod1(color_index, length(available_colors))]
+        for color_index::Int in eachindex(unique_bottleneck_labels)
+    ]
+    constraint_label::String = join(
+        replace.(String.(collect(optimization.constraint_metrics)), "_" => " "),
+        ", ",
+    )
+    highlight_description::String = if highlighted_choice !== nothing
+        "gold=$(round(100.0 * normalized_highlight_fraction; digits=1))% near-best"
+    elseif highlight_policy_found
+        "gold=$(round(100.0 * normalized_highlight_fraction; digits=1))% near-best unavailable"
+    else
+        "gold near-best policy not requested"
+    end
+    knee_description::String = meaningful_knee ?
+        "cyan=pronounced exploratory log-cost knee (candidate-set dependent)" :
+        Bool(knee_choice.applicable) ?
+            "no pronounced log-cost knee in this candidate set" :
+            "log-cost knee unavailable for this candidate set"
+    title::String =
+        "Balanced information preservation versus possible-grid cost$(title_extra)\n" *
+        "y=min relative retention across: $(constraint_label); relative means % of best observed in supplied candidates\n" *
+        "black=balanced Pareto frontier; $(highlight_description); $(knee_description)"
+    plot_layers::Vector{Gadfly.Layer} = Gadfly.Layer[]
+    append!(
+        plot_layers,
+        Gadfly.layer(
+            Gadfly.Geom.point;
+            x=grid_cell_counts,
+            y=balanced_retention,
+            color=bottleneck_labels,
+        ),
+        Gadfly.layer(
+            Gadfly.Geom.line,
+            Gadfly.Geom.point,
+            Gadfly.Theme(
+                ;
+                default_color="#111111",
+                point_size=3.5Gadfly.pt,
+                line_width=1Gadfly.pt,
+            );
+            x=pareto_costs,
+            y=pareto_retention,
+        ),
+    )
+    if meaningful_knee
+        append!(
+            plot_layers,
+            Gadfly.layer(
+                Gadfly.Geom.point,
+                Gadfly.Theme(
+                    ;
+                    default_color="#00a6d6",
+                    point_size=8Gadfly.pt,
+                    highlight_width=1.5Gadfly.pt,
+                );
+                x=Float64[grid_cell_counts[knee_index]],
+                y=Float64[balanced_retention[knee_index]],
+            ),
+        )
+    end
+    if highlighted_choice !== nothing
+        highlighted_index::Int = Int(highlighted_choice.index)
+        append!(
+            plot_layers,
+            Gadfly.layer(
+                Gadfly.Geom.point,
+                Gadfly.Theme(
+                    ;
+                    default_color="#ffd92f",
+                    point_size=10Gadfly.pt,
+                    highlight_width=2Gadfly.pt,
+                );
+                x=Float64[grid_cell_counts[highlighted_index]],
+                y=Float64[balanced_retention[highlighted_index]],
+            ),
+        )
+    end
+    append!(
+        plot_layers,
+        Gadfly.layer(
+            Gadfly.Geom.label(; position=:dynamic, hide_overlaps=false);
+            x=selection_costs,
+            y=selection_retention,
+            label=selection_labels,
+        ),
+    )
+    optimization_plot::Gadfly.Plot = Gadfly.plot(
+        plot_layers...,
+        Gadfly.Scale.x_log10(),
+        Gadfly.Scale.color_discrete_manual(bottleneck_colors...),
+        Gadfly.Coord.cartesian(; ymin=0.0, ymax=1.0),
+        Gadfly.Guide.colorkey(; title="Bottleneck metric"),
+        Gadfly.Guide.xlabel("Possible grid cells (log scale; lower cost is better)"),
+        Gadfly.Guide.ylabel("Minimum retention / best observed retention"),
+        Gadfly.Guide.title(title),
+        Gadfly.Theme(; key_position=:right, background_color="white"),
+    )
+    if filename != ""
+        @info("Saving binning-optimization plot to file: $filename")
+        Mads.plotfileformat(optimization_plot, filename, 13Gadfly.inch, 8Gadfly.inch)
+    end
+    return optimization_plot
+end
+
+"""
+plot_information_retention_tradeoff(rawdata_comparisons,
+    structure_information, labels, filename=""; baseline=:states,
+    lag_color_normalize=:intrinsic, title_extra="")
+
+Plot empirical raw-information retention against possible grid-cell cost. Point
+color shows the common-support, equal-family lag-dependence diagnostic; labeled
+points form the two-objective Pareto frontier for maximizing retention while
+minimizing tensor size. Lag structure is intentionally not folded into an
+arbitrary scalar preservation score.
+"""
+function plot_information_retention_tradeoff(
+    rawdata_comparisons::AbstractVector{<:NamedTuple},
+    structure_information::AbstractVector{<:NamedTuple},
+    labels::AbstractVector,
+    filename::AbstractString="";
+    baseline::Symbol=:states,
+    lag_color_normalize::Symbol=:intrinsic,
+    title_extra::AbstractString="",
+)::Gadfly.Plot
+    isempty(rawdata_comparisons) && throw(ArgumentError(
+        "Retention trade-off plots must contain at least one binning scheme!",
+    ))
+    length(rawdata_comparisons) == length(structure_information) == length(labels) ||
+        throw(DimensionMismatch(
+            "Raw comparisons, structure information, and labels must have the same length!",
+        ))
+    baseline in (:states, :records) || throw(ArgumentError(
+        "The retention trade-off baseline must be :states or :records!",
+    ))
+    lag_color_normalize in (:intrinsic, :range) || throw(ArgumentError(
+        "Lag-dependence color normalization must be :intrinsic or :range!",
+    ))
+    lag_comparison::NamedTuple = compare_lag_information(structure_information)
+    cell_counts::Vector{Float64} = Float64[]
+    retention_fractions::Vector{Float64} = Float64[]
+    lag_dependence_values::Vector{Float64} = Float64[]
+    display_labels::Vector{String} = String[]
+    for scheme_index::Int in eachindex(rawdata_comparisons)
+        rawdata_comparison::NamedTuple = rawdata_comparisons[scheme_index]
+        haskey(rawdata_comparison, :grid_cell_count) || throw(ArgumentError(
+            "Every raw-data comparison must declare its possible grid-cell count!",
+        ))
+        haskey(rawdata_comparison, :grid_cell_count_supplied) &&
+            Bool(rawdata_comparison.grid_cell_count_supplied) || throw(ArgumentError(
+                "Retention-cost plots require an explicitly supplied possible grid-cell count!",
+            ))
+        cell_count::Float64 = Float64(rawdata_comparison.grid_cell_count)
+        cell_count > 0.0 || throw(ArgumentError(
+            "Retention trade-off tensor-cell counts must be positive!",
+        ))
+        retention_fraction::Float64 = baseline == :states ?
+            Float64(rawdata_comparison.retention_fraction) :
+            Float64(rawdata_comparison.record_retention_fraction)
+        isfinite(retention_fraction) || throw(ArgumentError(
+            "Retention trade-off fractions must be finite!",
+        ))
+        push!(cell_counts, cell_count)
+        push!(retention_fractions, clamp(retention_fraction, 0.0, 1.0))
+        push!(
+            lag_dependence_values,
+            Float64(lag_comparison.summaries[scheme_index].equal_family_summary.dependence),
+        )
+        push!(display_labels, string(labels[scheme_index]))
+    end
+    pareto_indices::Vector{Int} = _retention_cost_pareto_indices(
+        cell_counts,
+        retention_fractions,
+    )
+    pareto_cell_counts::Vector{Float64} = cell_counts[pareto_indices]
+    pareto_retention_fractions::Vector{Float64} = retention_fractions[pareto_indices]
+    pareto_labels::Vector{String} = display_labels[pareto_indices]
+    plotted_lag_dependence::Vector{Float64} = copy(lag_dependence_values)
+    if lag_color_normalize == :range
+        minimum_lag_dependence::Float64 = minimum(lag_dependence_values)
+        maximum_lag_dependence::Float64 = maximum(lag_dependence_values)
+        if maximum_lag_dependence > minimum_lag_dependence
+            plotted_lag_dependence .=
+                (lag_dependence_values .- minimum_lag_dependence) ./
+                (maximum_lag_dependence - minimum_lag_dependence)
+        else
+            plotted_lag_dependence .= 0.5
+        end
+    end
+    lag_color_description::String = lag_color_normalize == :range ?
+        "range-normalized cell-relative aggregate lag dependence" :
+        "intrinsic cell-relative aggregate lag dependence"
+    retention_title_subject::String = baseline == :states ?
+        "Raw-state information retention" :
+        "Raw-record distinguishability retention"
+    retention_axis_label::String = baseline == :states ?
+        "Raw-state information retained I(X;G) / H(X)" :
+        "Raw-record distinguishability retained H(G) / H(R)"
+    title::String =
+        "$(retention_title_subject) versus tensor cost$(title_extra)\n" *
+        "upper-left is better; labels=Pareto frontier; color=$(lag_color_description); " *
+        "$(lag_comparison.included_lag_count)/$(lag_comparison.requested_lag_count) common balanced lags"
+    tradeoff_plot::Gadfly.Plot = Gadfly.plot(
+        Gadfly.layer(
+            Gadfly.Geom.point;
+            x=cell_counts,
+            y=retention_fractions,
+            color=plotted_lag_dependence,
+        ),
+        Gadfly.layer(
+            Gadfly.Geom.line,
+            Gadfly.Geom.point,
+            Gadfly.Theme(
+                ;
+                default_color="#111111",
+                point_size=4Gadfly.pt,
+                line_width=1Gadfly.pt,
+            );
+            x=pareto_cell_counts,
+            y=pareto_retention_fractions,
+        ),
+        Gadfly.layer(
+            Gadfly.Geom.label(; position=:dynamic, hide_overlaps=false);
+            x=pareto_cell_counts,
+            y=pareto_retention_fractions,
+            label=pareto_labels,
+        ),
+        Gadfly.Scale.x_log10(),
+        Gadfly.Scale.color_continuous(
+            ;
+            minvalue=0.0,
+            maxvalue=1.0,
+            colormap=Gadfly.Scale.lab_gradient("#d73027", "#fee08b", "#1a9850"),
+        ),
+        Gadfly.Coord.cartesian(; ymin=0.0, ymax=1.0),
+        Gadfly.Guide.colorkey(;
+            title="Aggregate lag D$(lag_color_normalize == :range ? " (range)" : "")",
+        ),
+        Gadfly.Guide.xlabel("Possible grid cells (log scale; lower cost is better)"),
+        Gadfly.Guide.ylabel(retention_axis_label),
+        Gadfly.Guide.title(title),
+        Gadfly.Theme(; key_position=:right, background_color="white"),
+    )
+    if filename != ""
+        @info("Saving information-retention trade-off plot to file: $filename")
+        Mads.plotfileformat(tradeoff_plot, filename, 13Gadfly.inch, 8Gadfly.inch)
+    end
+    return tradeoff_plot
 end
 
 function _raw_observation_count(data::NamedTuple)::Int
