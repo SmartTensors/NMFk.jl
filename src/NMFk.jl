@@ -127,7 +127,6 @@ include("NMFkProgressive.jl")
 include("NMFkCompress.jl")
 include("NMFkGeo.jl")
 include("NMFkWells.jl")
-include("NMFkInformationTheory.jl")
 
 # NMFk.welcome()
 
