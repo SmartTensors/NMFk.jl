@@ -1,8 +1,21 @@
 import Test
 import NMFk
 import Random
+import Logging
 
 Test.@testset "Execute smoke tests" begin
+	Test.@testset "execute warns when the input matrix is not normalized" begin
+		mktempdir() do normalized_directory::String
+			normalized_matrix::Matrix{Float64} = [0.0 0.5 1.0; 0.25 0.75 NaN; 1.0 0.0 0.5]
+			Test.@test_logs min_level=Logging.Warn NMFk.execute(normalized_matrix, 2, 1; loadonly=true, load=true, save=false, casefilename="normalized", resultdir=normalized_directory, quiet=true)
+		end
+
+		mktempdir() do unnormalized_directory::String
+			unnormalized_matrix::Matrix{Float64} = [0.0 0.5 1.0; 0.25 2.0 NaN; 1.0 0.0 0.5]
+			Test.@test_logs (:warn, r"Input matrix is not normalized") min_level=Logging.Warn NMFk.execute(unnormalized_matrix, 2, 1; loadonly=true, load=true, save=false, casefilename="unnormalized", resultdir=unnormalized_directory, quiet=true)
+		end
+	end
+
 	Test.@testset "execute_singlerun (simple) returns sane shapes" begin
 		Random.seed!(123)
 		X = abs.(randn(5, 4))

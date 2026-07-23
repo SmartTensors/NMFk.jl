@@ -301,7 +301,15 @@ function histogram(data::AbstractMatrix, names::AbstractVector=["" for i in axes
 				filename_plot = "$(filename_prefix)_column_$(c).$(plot_type)"
 			end
 			filename_data = save_data ? "$(filename_prefix)_column_$(c)_data" : ""
-			vec_xmina[c], vec_xmaxa[c], vec_ya[c] = histogram(data[:, c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
+			try
+				vec_xmina[c], vec_xmaxa[c], vec_ya[c] = histogram(data[:, c]; figuredir=figuredir, kw..., filename_plot=filename_plot, filename_data=filename_data, quiet=quiet)
+			catch e
+				@warn("Failed to generate histogram for column $(c): $(e)")
+				@show unique(data[:, c])
+				vec_xmina[c] = Float64[]
+				vec_xmaxa[c] = Float64[]
+				vec_ya[c] = Float64[]
+			end
 		else
 			!quiet && @info("Histogram of attribute $(names[c]):")
 			if figuredir != "." || save

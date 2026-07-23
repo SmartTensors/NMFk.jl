@@ -92,8 +92,19 @@ function check_x_hash!(X, xfile::AbstractString)
 	return h
 end
 
+function _warn_if_matrix_not_normalized(X::AbstractMatrix{T})::Nothing where {T <: Number}
+	is_normalized::Bool = all(value::T -> isnan(value) || (isreal(value) && 0 <= real(value) <= 1), X)
+	if !is_normalized
+		@warn("Input matrix is not normalized: values outside [0, 1] were detected. Consider calling `NMFk.normalizematrix_col(X)` before `NMFk.execute`.")
+	end
+	return nothing
+end
+
 function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilename::AbstractString, mixture::Symbol, method::Symbol, algorithm::Symbol, clusterWmatrix::Bool) where {T <: Number, N}
 	global first_warning = true
+	if N == 2
+		_warn_if_matrix_not_normalized(X)
+	end
 	if load && casefilename == ""
 		@info("Loading of existing results is requested but \`casefilename\` is not specified; casefilename = \"nmfk\" will be used!")
 		casefilename = "nmfk"
