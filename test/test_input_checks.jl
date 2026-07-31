@@ -27,9 +27,9 @@ Test.@testset "Execute input_checks" begin
 	end
 
 	Test.@testset "mixture forces ipopt and clusterWmatrix" begin
-		X3 = ones(2, 2, 2)
+		X2::Matrix{Float64} = ones(2, 3)
 		load, save, casefilename, mixture, method, algorithm, clusterWmatrix =
-			NMFk.input_checks(X3, false, false, "case", :mixmatch, :simple, :multdiv, false)
+			NMFk.input_checks(X2, false, false, "case", :mixmatch, :simple, :multdiv, false)
 		Test.@test mixture == :mixmatch
 		Test.@test method == :ipopt
 		Test.@test clusterWmatrix == true

@@ -1,25 +1,38 @@
 import NMFk
 import Random
 
-nWells = 20
-nSources = 2
-nSpecies = 3
-Random.seed!(2015);
+nWells::Int = 20
+nSources::Int = 2
+Random.seed!(2015)
 
-W = rand(nWells, nSources)
-for i = 1:nWells
-	W[i, :] ./= sum(W[i, :])
+W::Matrix{Float64} = rand(nWells, nSources)
+for well_index::Int in axes(W, 1)
+    W[well_index, :] ./= sum(W[well_index, :])
 end
 display(W)
 
-H = [100 0 3; 5 10 20]
+H::Matrix{Float64} = Float64[100 0 3; 5 10 20]
 
-X = W * H
+X::Matrix{Float64} = W * H
 
 X[1, 1] = NaN
 display(X)
 
-We, He, fit, sil, aic, kopt = NMFk.execute(X, 2:5; save=false, mixture=:mixmatch);
+results::Tuple = NMFk.execute(
+    X,
+    2:3;
+    load=false,
+    save=false,
+    mixture=:mixmatch,
+    serial=true,
+    seed=2015
+)
+We::AbstractVector = results[1]
+He::AbstractVector = results[2]
+fit::AbstractVector = results[3]
+sil::AbstractVector = results[4]
+aic::AbstractVector = results[5]
+kopt::Union{Int, Nothing} = results[6]
 
 He[2]
 

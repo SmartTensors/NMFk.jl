@@ -30,11 +30,11 @@ In the example presented here, we assume that there are 20 wells (monitoring poi
 These types of unsupervised machine learning analyses are applicable in many other situations where the mixing of signals (volumes/mass) is constrained by volumetric or weight constraints.
 For example, these types of problems occur in the case of mass transport in fluids (e.g., atmosphere, oceans, watersheds, oil/gas/geothermal reservoirs, aquifers, etc.).
 
-If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk"); Pkg.add("Mads")`.
+If **NMFk** is not installed, first execute in the Julia REPL: `import Pkg; Pkg.add("NMFk")`.
 
-Let assume that there are 20 measument locations (wells), 2 contaminant sources, and 3 geochemical species:
+Assume that there are 20 measurement locations (wells), 2 contaminant sources, and 3 geochemical species:
 
-Due to volumetric constraints, mixing coefficients of the different sources (plumes) at each of well (observation point) have to add to 1.
+Due to volumetric constraints, the source-mixing coefficients at each well have to add to 1.
 
 The mixing matrix `W` is defined as:
 
@@ -50,7 +50,7 @@ Here, the first source (row 1) has elevated concentration for the first chemical
 
 The second source (row 2) has elevated concentrations for the second (10) and third (20) chemical species.
 
-Now for this synthetic problem, we can compute the synthetic observed concentrations at each the wells `X` as:
+For this synthetic problem, we can compute the observed concentrations at the wells as `X`:
 
 We can also make some of the observations ''missing'' by setting respective matrix entries equal to **NaN**:
 
@@ -65,9 +65,9 @@ The number of signals is equal to the number of columns in `W` and the number of
 **NMFk** execution produces:
 
 Above, **NMFk** provides estimates of `W` and `H` (`We` and `He`).
-These are vectors of matrices for a different number of sources. For example, `We[2]`, `We[3]`, ..., `He[2]`, `He[3]`, ... .
+These are vectors of matrices for the candidate numbers of sources, such as `We[2]`, `We[3]`, `He[2]`, and `He[3]`.
 
-The **NMFk** analyses are performed for the number of sources varying between 2 and 5 (`2:5`).
+The **NMFk** analyses compare two and three sources (`2:3`), because the dataset contains three measured species.
 
 **NMFk** also returns the reconstruction error (`fit`); here, `fit` is a Frobenius norm between the **known** `X` and estimated `Xe` where `Xe` is computed as, for example, `We[2] * He[2]`.
 
@@ -79,7 +79,7 @@ The automatically estimated number of features (plumes) `kopt` is returned as we
 
 In the example above, `kopt` is equal to 2, which matches the **true** **unknown** number of sources.
 
-The estimated concentrations of geochemical species for the 3 sources are:
+The estimated concentrations of geochemical species for the two-source solution are:
 
 The concentration estimates are very close to the actual values `H` (note that the matrix rows are not expected to be in the same order for estimated and true `H` matrices):
 
@@ -87,9 +87,9 @@ The estimated mixing coefficient at the 20 wells are:
 
 They are also very close to the actual values (note that the matrix columns are not expected to be in the same order for estimated and true `W` matrices):
 
-These matrices can be also easily ploted:
+These matrices can also be plotted:
 
-In conclusion, **NMFk** successful estimated the number of plumes, the original concentrations at the contaminant sources (before mixing in the aquifer), and the mixing coefficients at each well.
+In conclusion, **NMFk** successfully estimated the number of plumes, the original concentrations at the contaminant sources (before mixing in the aquifer), and the mixing coefficients at each well.
 
-The **NMFk** unsupervised ML analyses are unbiased and robust.
+Repeated NMFk runs provide a stability check for the recovered source signatures.
 

@@ -37,6 +37,12 @@ Test.@testset "Execute: cache hashing helpers" begin
 		end
 		h3 = NMFk.check_x_hash!(X, xfile)
 		Test.@test h3 == h
+
+		read_only_xfile::String = joinpath(tmp, "read_only_matrix.jld")
+		read_only_hash::String =
+			NMFk.check_x_hash!(X, read_only_xfile; write_missing=false)
+		Test.@test read_only_hash == h
+		Test.@test !isfile(read_only_xfile * ".sha256")
 	end
 
 end

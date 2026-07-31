@@ -64,17 +64,21 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer, opts::Execut
 		kw...)
 end
 
-function hash_sha256_hex(X)
-	io = IOBuffer()
+function hash_sha256_hex(X::Any)::String
+	io::IOBuffer = IOBuffer()
 	Serialization.serialize(io, X)
 	return bytes2hex(SHA.sha256(take!(io)))
 end
 
-function check_x_hash!(X, xfile::AbstractString)
-	h = hash_sha256_hex(X)
-	hashfile = xfile * ".sha256"
+function check_x_hash!(
+	X::Any,
+	xfile::AbstractString;
+	write_missing::Bool=true,
+)::String
+	h::String = hash_sha256_hex(X)
+	hashfile::String = xfile * ".sha256"
 	if isfile(hashfile)
-		stored = strip(read(hashfile, String))
+		stored::String = strip(read(hashfile, String))
 		if !isempty(stored) && stored != h
 			@info("Matrix hash: $(h)")
 			@info("Stored hash: $(stored)")
@@ -82,14 +86,27 @@ function check_x_hash!(X, xfile::AbstractString)
 		else
 			@info("Matrix hash DOES match the stored hash in '$(hashfile)'.")
 		end
-	else
-		open(hashfile, "w") do f
-			write(f, h)
-			write(f, "\n")
+	elseif write_missing
+		open(hashfile, "w") do hash_stream::IO
+			write(hash_stream, h)
+			write(hash_stream, "\n")
 		end
 		@info("Matrix hash saved in '$(hashfile)'.")
 	end
 	return h
+end
+
+function _execute_run_keywords(
+	keywords::Base.Pairs,
+)::Tuple{Dict{Symbol, Any}, Union{Int, Nothing}}
+	run_keywords::Dict{Symbol, Any} = Dict{Symbol, Any}(keywords)
+	seed_value::Any = pop!(run_keywords, :seed, nothing)
+	if seed_value === nothing
+		return run_keywords, nothing
+	end
+	(seed_value isa Integer && !(seed_value isa Bool)) ||
+		throw(ArgumentError("seed must be an integer"))
+	return run_keywords, Int(seed_value)
 end
 
 function _warn_if_matrix_not_normalized(X::AbstractMatrix{T})::Nothing where {T <: Number}
@@ -102,7 +119,7 @@ end
 
 function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilename::AbstractString, mixture::Symbol, method::Symbol, algorithm::Symbol, clusterWmatrix::Bool) where {T <: Number, N}
 	global first_warning = true
-	if N == 2
+	if N == 2 && mixture == :null
 		_warn_if_matrix_not_normalized(X)
 	end
 	if load && casefilename == ""
@@ -114,7 +131,6 @@ function input_checks(X::AbstractArray{T,N}, load::Bool, save::Bool, casefilenam
 		casefilename = "nmfk"
 	end
 	if mixture != :null
-		@assert N > 2
 		clusterWmatrix = true
 		method = :ipopt
 	elseif N > 2
@@ -202,7 +218,9 @@ function execute(X::AbstractArray{T,N}, nkrange::Union{Vector{Int},AbstractUnitR
 	if save
 		JLD.save(xfile, "X", X)
 	end
-	check_x_hash!(X, xfile)
+	if load || save
+		check_x_hash!(X, xfile; write_missing=save)
+	end
 	maxk = maximum(collect(nkrange))
 	W = Vector{Array{T, N}}(undef, maxk)
 	H = Vector{Matrix{T}}(undef, maxk)
@@ -269,7 +287,9 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 	else
 		xfile = joinpath(resultdir, "$(casefilename)_x_matrix_$(xs).jld")
 	end
-	check_x_hash!(X, xfile)
+	if load || save
+		check_x_hash!(X, xfile; write_missing=save)
+	end
 	print("$(Base.text_colors[:cyan])$(Base.text_colors[:bold])NMFk run with $(nk) signals: $(Base.text_colors[:normal])")
 	execute_ordersignals = true
 	if load
@@ -340,7 +360,7 @@ function execute(X::AbstractArray{T,N}, nk::Integer, nNMF::Integer=10; clusterWm
 end
 
 "Execute NMFk analysis for a given number of signals in serial or parallel"
-function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.global_quiet, veryquiet::Bool=true, best::Bool=true, serial::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, loadall::Bool=false, saveall::Bool=false, kw...) where {T <: Number, N}
+function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.global_quiet, veryquiet::Bool=true, best::Bool=true, serial::Bool=false, resultdir::AbstractString=".", casefilename::AbstractString="", loadonly::Bool=false, loadall::Bool=false, saveall::Bool=false, cancel_check::Union{Nothing,Function}=nothing, kw...) where {T <: Number, N}
 	# ipopt=true is equivalent to mixmatch = true && mixtures = false
 	!quiet && @info("Mixmatch geochemical analysis of $nNMF NMF runs assuming $nk signals (sources) ...")
 	if loadonly
@@ -361,14 +381,18 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		end
 	end
 	if runflag
+		keyword_configuration::Tuple{Dict{Symbol, Any}, Union{Int, Nothing}} =
+			_execute_run_keywords(kw)
+		run_keywords::Dict{Symbol, Any} = keyword_configuration[1]
+		base_seed::Union{Int, Nothing} = keyword_configuration[2]
 		if Distributed.nprocs() > 1 && !serial
+			cancel_check !== nothing && cancel_check()
 			!quiet && println("Parallel execution of $nNMF NMF runs ...")
-			if haskey(kw, :seed)
-				kwseed = kw[:seed]
-				delete!(kw, :seed)
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=kwseed+i, kw...)), 1:nNMF)
+			r::AbstractVector
+			if base_seed !== nothing
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=base_seed+i, run_keywords...)), 1:nNMF)
 			else
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, kw...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, run_keywords...)), 1:nNMF)
 			end
 			WBig = Vector{Array{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
@@ -382,21 +406,22 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 			WBig = Vector{Array{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
 			objvalue = Vector{T}(undef, nNMF)
-			if haskey(kw, :seed)
-				kwseed = kw[:seed]
-				delete!(kw, :seed)
+			if base_seed !== nothing
 				for i = 1:nNMF
+					cancel_check !== nothing && cancel_check()
 					!quiet && @info("NMF run #$(i)")
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, seed=kwseed+i, kw...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, seed=base_seed+i, run_keywords...)
 				end
 			else
 				for i = 1:nNMF
+					cancel_check !== nothing && cancel_check()
 					!quiet && @info("NMF run #$(i)")
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, kw...)
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; quiet=quiet, run_keywords...)
 				end
 			end
 		end
 	end
+	cancel_check !== nothing && cancel_check()
 	idxsort = sortperm(objvalue)
 	bestIdx = idxsort[1]
 	!quiet && println("Best  objective function = $(objvalue[bestIdx])")
@@ -491,7 +516,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 	!quiet && println("Objective function = ", phi_final, " Max error = ", maximumnan(E), " Min error = ", minimumnan(E))
 	return Wa, Ha, phi_final, minsilhouette, aic
 end
-function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.global_quiet, veryquiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), mixture::Symbol=:null, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, weight=1, kw...) where {T <: Number}
+function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::Bool=false, acceptratio::Number=1, acceptfactor::Number=Inf, quiet::Bool=NMFk.global_quiet, veryquiet::Bool=true, best::Bool=true, transpose::Bool=false, serial::Bool=false, deltas::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), ratios::AbstractMatrix{T}=Matrix{T}(undef, 0, 0), mixture::Symbol=:null, method::Symbol=:simple, algorithm::Symbol=:multdiv, resultdir::AbstractString=".", casefilename::AbstractString="", nanaction::Symbol=:zeroed, loadall::Bool=false, saveall::Bool=false, weight=1, cancel_check::Union{Nothing,Function}=nothing, kw...) where {T <: Number}
 	@assert typeof(weight) <: Number || length(weight) == size(X, 1) || size(weight, 2) == size(X, 2) || size(weight) == size(X)
 	quiet = veryquiet ? true : quiet
 	modifymatrices = true
@@ -519,14 +544,18 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		end
 	end
 	if runflag
+		keyword_configuration::Tuple{Dict{Symbol, Any}, Union{Int, Nothing}} =
+			_execute_run_keywords(kw)
+		run_keywords::Dict{Symbol, Any} = keyword_configuration[1]
+		base_seed::Union{Int, Nothing} = keyword_configuration[2]
 		if Distributed.nprocs() > 1 && !serial
+			cancel_check !== nothing && cancel_check()
 			!quiet && println("Parallel execution of $(nNMF) NMF runs ...")
-			if haskey(kw, :seed)
-				kwseed = kw[:seed]
-				delete!(kw, :seed)
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw...)), 1:nNMF)
+			r::AbstractVector
+			if base_seed !== nothing
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, weight=weight, seed=base_seed+i, run_keywords...)), 1:nNMF)
 			else
-				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)), 1:nNMF)
+				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, weight=weight, run_keywords...)), 1:nNMF)
 			end
 			WBig = Vector{Matrix{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
@@ -540,19 +569,20 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 			WBig = Vector{Matrix{T}}(undef, nNMF)
 			HBig = Vector{Matrix{T}}(undef, nNMF)
 			objvalue = Vector{T}(undef, nNMF)
-			if haskey(kw, :seed)
-				kwseed = kw[:seed]
-				delete!(kw, :seed)
+			if base_seed !== nothing
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, seed=kwseed+i, kw...)
+					cancel_check !== nothing && cancel_check()
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, weight=weight, seed=base_seed+i, run_keywords...)
 				end
 			else
 				for i = 1:nNMF
-					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, weight=weight, kw...)
+					cancel_check !== nothing && cancel_check()
+					WBig[i], HBig[i], objvalue[i] = NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=quiet, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, weight=weight, run_keywords...)
 				end
 			end
 		end
 	end
+	cancel_check !== nothing && cancel_check()
 	idxsort = sortperm(objvalue)
 	bestIdx = idxsort[1]
 	!quiet && println("Best  objective function = $(objvalue[bestIdx])")
