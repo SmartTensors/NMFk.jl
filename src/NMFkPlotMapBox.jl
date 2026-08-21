@@ -846,7 +846,7 @@ function compute_dot_size(x::AbstractVector, y::AbstractVector, zoom::Number)
 end
 
 # -- GeoJSON helpers ---------------------------------------------------------
-# Tile-building logic mirrors SmartBack's geomltools_service.jl grid masking
+# Tile-building logic mirrors EnviBack's geomltools_service.jl grid masking
 # so the interpolated field can be emitted as square GeoJSON features for Mapbox.
 function _grid_edges(vec::AbstractVector{T}) where {T <: Real}
 	n = length(vec)
