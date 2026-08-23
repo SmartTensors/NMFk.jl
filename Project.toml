@@ -1,6 +1,6 @@
 name = "NMFk"
 uuid = "e40cd9e2-a1df-5d90-a1fa-603fdc3dbdd8"
-version = "1.4.22"
+version = "1.5.0"
 authors = ["Velimir V Vesselinov (monty) <velimir.vesselinov@gmail.com>"]
 
 [deps]
@@ -78,7 +78,7 @@ JLD = "0.10, 0.11, 0.12, 0.13, 0.14, 1"
 JLD2 = "0.2, 0.3, 0.4, 0.5, 0.6, 1"
 JuMP = "0.21, 0.22, 0.23, 1"
 LinearAlgebra = "1"
-Mads = "1.6, 2"
+Mads = "~1.7.0"
 Measures = "0.3, 0.4"
 Missings = "1, 2"
 MultivariateStats = "0.8, 0.9, 0.10, 0.11"
