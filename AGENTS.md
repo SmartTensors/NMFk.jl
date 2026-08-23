@@ -128,3 +128,24 @@ After changes, run:
 git diff --check
 git status --short
 ```
+
+## Architecture and dependency boundaries
+
+`src/NMFk.jl` is the composition root for matrix and tensor factorization, clustering, constrained solvers, preprocessing, persistence, and plotting.
+Keep input validation and normalization in `NMFkChecks.jl` and `NMFkPreprocess.jl`, factorization and rank sweeps in `NMFkExecute.jl` and the matrix/tensor layers, and result ordering and selection in the cluster/finalize layers.
+`NMFkIO.jl`, `NMFkRestart.jl`, and the hash helpers in `NMFkExecute.jl` jointly own saved-run compatibility; analysis code must not invent alternate filenames or bypass input hashes.
+Preserve the orientation and meaning of `W`, `H`, fit, robustness, AIC, `kopt`, and the fields of `NMFkResult` and `NMFkSweepResult`.
+
+Mads is a direct coordinated dependency and supplies shared utilities used by downstream workflows.
+Do not copy Mads behavior into NMFk or replace a sibling development checkout with a registry package to resolve locally.
+Keep any NMFk/TensIT information-theory compatibility surface explicit and additive; moving or removing an established function requires a migration plan and tests in both consumers.
+
+## Test and artifact boundaries
+
+The root suite groups lightweight utilities, execute and hash behavior, I/O, preprocessing, and larger optimization workflows.
+Run the smallest corresponding file first, use fixed seeds, and reserve the full suite for changes that cross factorization, solver, persistence, or plotting boundaries.
+Do not treat an unavailable optimizer, plotting backend, or expensive integration section as evidence that the affected behavior passed.
+
+Saved `.jld` matrices and factors, `.sha256` sidecars, restart data, figures, movies, and notebook outputs are generated scientific artifacts.
+Never delete or silently regenerate them to make a test pass, and never accept a hash mismatch without tracing the input change.
+Keep the Julia 1.11 `Manifest.toml` and the separate Julia 1.12 manifest artifact distinct; dependency resolution must target the intended environment and its diff must be reviewed.
