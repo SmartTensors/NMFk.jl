@@ -404,7 +404,7 @@ The search paired 16 longitude counts with aspect-ratio-consistent latitude coun
 
 The Oklahoma analysis checkpoints raw, grid, magnitude, energy, and optional lag results to JLD2. The default $\mathrm{resume}=\mathrm{true}$ reuses a version-4 checkpoint only when the selected-input fingerprint and analysis configuration match. Completed checkpoints can regenerate figures without recomputing the analysis; incomplete compatible checkpoints resume at the first missing spatial configuration. Lag-enabled runs use a distinct filename so a non-lag cache cannot be mistaken for a lag analysis.
 
-The focused Julia 1.11 test suite currently passes 418 of 418 tests: 20 structure tests, 168 multidimensional-lag and optimizer tests, 102 magnitude-aggregation tests, 48 raw-data tests, 72 raw-grid tests, and 8 validation/masking tests. These establish software identities and synthetic edge-case behavior; they are not a substitute for statistical validation on independent observations.
+The recorded focused Julia 1.11 validation passed 418 of 418 tests: 20 structure tests, 168 multidimensional-lag and optimizer tests, 102 magnitude-aggregation tests, 48 raw-data tests, 72 raw-grid tests, and 8 validation/masking tests. This is historical evidence; the current package requires Julia 1.12 and must be revalidated there before release. These tests establish software identities and synthetic edge-case behavior; they are not a substitute for statistical validation on independent observations.
 
 ## 3. Results
 

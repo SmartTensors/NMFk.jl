@@ -5,7 +5,7 @@ import Fontconfig
 import Printf
 
 # Run with:
-# julia +1.11 --startup-file=no --project=C:\Users\monty\.julia\dev\NMFk docs\generate_tensor_information_research_summary_figures.jl
+# julia +1.12 --startup-file=no --project=C:\Users\monty\.julia\dev\NMFk docs\generate_tensor_information_research_summary_figures.jl
 #
 # The plotted policy values are the audited paper snapshot from the
 # 2005–2023 binning-optimization JLD2 checkpoint generated on 20 July 2026.

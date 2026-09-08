@@ -38,8 +38,8 @@ RUN apt-get update -y \
 	&& rm -rf ~/.cache/pip \
 	&& python3 -m pip install --user Julia \
 	&& python3 -m pip install --user matplotlib \
-	&& wget https://julialang-s3.julialang.org/bin/linux/x64/1.5/julia-1.5.3-linux-x86_64.tar.gz \
-	&& tar xvzf julia-1.5.3-linux-x86_64.tar.gz \
-	&& rm -f julia-1.5.3-linux-x86_64.tar.gz \
-	&& ln -sf /opt/src/julia-1.5.3/bin/julia /usr/bin \
+	&& wget https://julialang-s3.julialang.org/bin/linux/x64/1.12/julia-1.12.7-linux-x86_64.tar.gz \
+	&& tar xvzf julia-1.12.7-linux-x86_64.tar.gz \
+	&& rm -f julia-1.12.7-linux-x86_64.tar.gz \
+	&& ln -sf /opt/src/julia-1.12.7/bin/julia /usr/bin \
 	&& julia -e 'include("/opt/src/setup.jl")'

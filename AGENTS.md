@@ -19,12 +19,12 @@ Follow more specific instructions if a nested `AGENTS.md` is added later.
 
 ## Julia environment
 
-Use Julia 1.11 unless a task explicitly targets another version.
+Use Julia 1.12 unless a task explicitly targets another version.
 
 Run Julia without user startup-file customizations:
 
 ```powershell
-julia +1.11 --startup-file=no --project=.
+julia +1.12 --startup-file=no --project=.
 ```
 
 NMFk depends on Mads.
@@ -34,7 +34,7 @@ Respect the sibling Mads development checkout when it is active.
 Do not replace sibling development packages with registry versions merely to
 make dependency resolution easier.
 
-Preserve `Manifest-v1.12.toml` as a separate Julia 1.12 environment artifact.
+Preserve `Manifest-v1.12.toml` as a separate Julia 1.12 environment artifact until an explicit manifest-consolidation task removes it.
 
 ## Repository layout
 
@@ -64,13 +64,13 @@ Important focused test files include:
 For the complete NMFk test suite:
 
 ```powershell
-julia +1.11 --startup-file=no --project=. -e 'import NMFk; NMFk.test()'
+julia +1.12 --startup-file=no --project=. -e 'import NMFk; NMFk.test()'
 ```
 
 The standard package entry point is also valid:
 
 ```powershell
-julia +1.11 --startup-file=no --project=. -e 'import Pkg; Pkg.test()'
+julia +1.12 --startup-file=no --project=. -e 'import Pkg; Pkg.test()'
 ```
 
 Full imports, plotting backends, optimization solvers, and repeated NMF
@@ -148,4 +148,4 @@ Do not treat an unavailable optimizer, plotting backend, or expensive integratio
 
 Saved `.jld` matrices and factors, `.sha256` sidecars, restart data, figures, movies, and notebook outputs are generated scientific artifacts.
 Never delete or silently regenerate them to make a test pass, and never accept a hash mismatch without tracing the input change.
-Keep the Julia 1.11 `Manifest.toml` and the separate Julia 1.12 manifest artifact distinct; dependency resolution must target the intended environment and its diff must be reviewed.
+Keep the checked-in `Manifest.toml` and `Manifest-v1.12.toml` artifacts distinct until an explicit consolidation task; dependency resolution must use Julia 1.12 and its diff must be reviewed.

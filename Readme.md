@@ -57,6 +57,8 @@ These tools substantially facilitate the utilization of the package in various r
 
 ## Installation
 
+NMFk requires Julia 1.12 or later.
+
 After starting Julia, execute:
 
 ```julia
