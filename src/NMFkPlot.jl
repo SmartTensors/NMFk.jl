@@ -1,6 +1,5 @@
 import Gadfly
 import Compose
-import Images
 import Colors
 import DataFrames
 import StatsBase

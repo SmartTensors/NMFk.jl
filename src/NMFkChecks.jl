@@ -2,7 +2,6 @@ import Statistics
 import StatsBase
 import DataFrames
 import OrderedCollections
-import Missings
 
 function checkarray(D::DataFrames.DataFrame; kw...)
 	return checkarray(Matrix(D); kw...)

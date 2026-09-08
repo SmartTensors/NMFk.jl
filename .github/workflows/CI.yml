@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Julia 1.12 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v3
+        with:
+          version: "1.12"
+
+      - name: Cache Julia packages
+        uses: julia-actions/cache@v3
+        with:
+          delete-old-caches: false
+
+      - name: Resolve dependencies and run tests
+        shell: julia --startup-file=no --color=yes {0}
+        run: |
+          import Pkg
+
+          repository::String = pwd()
+          Pkg.activate(; temp=true)
+          Pkg.add(Pkg.PackageSpec(;
+              url="https://github.com/madsjulia/Mads.jl.git",
+              rev="c18d7d6af5d14cb49b2d8e89dd3358fabfb2d075",
+          ))
+          Pkg.develop(Pkg.PackageSpec(; path=repository))
+          Pkg.precompile()
+          Pkg.test("NMFk")
