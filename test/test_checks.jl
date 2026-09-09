@@ -5,6 +5,14 @@ import Dates
 
 Test.@testset "checks utilities" begin
 	Test.@testset "maskvector" begin
+		Test.@test NMFk.check_ismissing(missing)
+		Test.@test NMFk.check_ismissing(nothing)
+		Test.@test NMFk.check_ismissing("")
+		Test.@test NMFk.check_ismissing(NaN)
+		Test.@test !NMFk.check_ismissing(1.0)
+		Test.@test !NMFk.check_ismissing(Dates.Date(2019, 1, 1))
+		Test.@test !NMFk.check_ismissing(:value)
+
 		v = Any[missing, 1.0, NaN, nothing, 2.0]
 		m = NMFk.maskvector(v)
 		Test.@test m == Bool[0, 1, 0, 0, 1]
@@ -24,6 +32,11 @@ Test.@testset "checks utilities" begin
 		counts = NMFk.checkarrayentries(X, .!isnan; quiet=true, ecount=true)
 		Test.@test counts[1] == [1, 2]
 		Test.@test counts[2] == [2, 1]
+		Test.@test NMFk.checkarray_count(X; quiet=true) == counts
+
+		masks = NMFk.checkarrayentries(X, .!isnan; quiet=true, cutoff=1, mask=true)
+		Test.@test masks[1] == Bool[1, 0]
+		Test.@test masks[2] == Bool[0, 1]
 	end
 
 	Test.@testset "checkmatrix equivalence/correlation does not error" begin

@@ -96,9 +96,11 @@ Test.@testset "NMFk.griddata() Unit Tests" begin
 		x_nan = [1.0, NaN, 3.0, NaN, 5.0]
 		Test.@test_throws InexactError NMFk.indicize(x_nan; nbins=3)
 
-		# indicize is currently defined for numeric vectors; Date vectors are not supported here.
+		# Date vectors require an explicit calendar step.
 		dts = [Dates.Date(2020, 1, 1), Dates.Date(2020, 1, 15), Dates.Date(2020, 2, 1)]
-		Test.@test_throws MethodError NMFk.indicize(dts; nbins=2)
+		Test.@test_throws ArgumentError NMFk.indicize(dts; nbins=2)
+		datetimes = Dates.DateTime.(dts)
+		Test.@test_throws ArgumentError NMFk.indicize(datetimes; nbins=2)
 	end
 
 	Test.@testset "griddata(x, y): 2D grid coordinates" begin

@@ -151,6 +151,9 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins=nothing, minvalue=mi
 	if !quiet
 		@info("Initial: min = $minvalue max = $maxvalue nbins = $nbins stepvalue = $stepvalue")
 	end
+	if isnothing(stepvalue) && (minvalue isa Dates.Date || minvalue isa Dates.DateTime)
+		throw(ArgumentError("Date and DateTime binning requires an explicit stepvalue."))
+	end
 	datebins = false
 	if !isnothing(stepvalue)
 		if typeof(minvalue) <: Dates.Date || typeof(minvalue) <: Dates.DateTime
@@ -235,11 +238,6 @@ function indicize(v::AbstractVector; rev::Bool=false, nbins=nothing, minvalue=mi
 			if s == 0
 				emptybins += 1
 				@info("Bin $(lpad("$k", 3, " ")) range $(range_min) $(range_max): count $(lpad("$(s)", 6, " "))")
-				if k == 1
-					error("First bin 1 should not be empty!")
-				elseif k == nbins
-					error("Last bin $nbins should not be empty!")
-				end
 			else
 				mn = minimum(v[m])
 				mx = maximum(v[m])
@@ -452,7 +450,7 @@ end
 
 function remap(v::AbstractVector{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Vector{T}(undef, length(mapping))
-	if T <: Real
+	if T <: AbstractFloat
 		o .= T(NaN)
 	else
 		o .= zero(T)
@@ -464,7 +462,7 @@ end
 
 function remap(v::AbstractMatrix{T}, mapping::AbstractVector; func::Function=!isnothing) where {T <: Number}
 	o = Matrix{T}(undef, length(mapping), size(v, 2))
-	if T <: Real
+	if T <: AbstractFloat
 		o .= T(NaN)
 	else
 		o .= zero(T)

@@ -125,7 +125,7 @@ function checkarrayentries(D::DataFrames.DataFrame, aw...; kw...)
 	return checkarrayentries(Matrix(D), aw...; kw...)
 end
 
-function checkarrayentries(X::AbstractArray{T, N}, func::Function=.!isnan; quiet::Bool=true, mask::Bool=true, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
+function checkarrayentries(X::AbstractArray{T, N}, func::Function=.!isnan; quiet::Bool=true, mask::Bool=false, debug::Bool=false, good::Bool=false, ecount::Bool=false, cutoff::Integer=0) where {T <: Number, N}
 	local flag = true
 	if mask
 		ecount = false
@@ -188,8 +188,15 @@ end
 checkcols(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 2; kw...)
 checkrows(x::AbstractMatrix; kw...) = checkmatrix(x::AbstractMatrix, 1; kw...)
 
-function check_ismissing(x)
-	return ismissing(x) || isnothing(x) || isempty(x) || (!(x isa AbstractString) && isnan(x))
+function check_ismissing(x::Any)::Bool
+	if x === missing || x === nothing
+		return true
+	elseif x isa AbstractString
+		return isempty(x)
+	elseif x isa Number
+		return isnan(x)
+	end
+	return false
 end
 
 function mask_nonmissing(x::AbstractVector)
@@ -203,6 +210,8 @@ function mask_nonmissing(x::AbstractVector)
 	end
 	return ism
 end
+
+maskvector(x::AbstractVector)::BitVector = mask_nonmissing(x)
 
 function checkvector(df::DataFrames.DataFrame, name::AbstractString; kw...)
 	v = df[!, name]
@@ -269,7 +278,7 @@ function checkmatrix_robust(x::AbstractMatrix, names::AbstractVector=["C$i" for 
 		x_work = x_work[keep_rows, keep_cols]
 		row_map = row_map[keep_rows]
 		col_map = col_map[keep_cols]
-		names_work = copynames_work[keep_cols]
+		names_work = copy(names_work[keep_cols])
 		if !(any(result.nan_rows) || any(result.remove))
 			@info("No more rows or columns to remove ...")
 			break
