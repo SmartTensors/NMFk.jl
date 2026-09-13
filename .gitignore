@@ -9,3 +9,4 @@ config/*
 .theme
 *.sha256
 Manifest*.toml
+docs/build/

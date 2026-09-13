@@ -1,14 +1,17 @@
 # NMFk: Nonnegative Matrix Factorization + k-means clustering and physics constraints
 
-<div style="text-align: left;">
-    <img src="logo/nmfk-logo.jpg" alt="nmfk" width=50%  max-width=125px;/>
-</div>
+<p align="left">
+  <img src="logo/nmfk-logo.jpg" alt="NMFk logo" width="400">
+</p>
+
+[![Stable documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://smarttensors.github.io/NMFk.jl/stable/)
+[![Development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://smarttensors.github.io/NMFk.jl/dev/)
 
 **NMFk** is a module of the **SmartTensors** ML framework ([smarttensors.com](https://smarttensors.com)).
 
-<div style="text-align: left">
-    <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors" width=25%  max-width=125px;/>
-</div>
+<p align="left">
+  <img src="logo/SmartTensorsNewSmall.png" alt="SmartTensors logo" width="200">
+</p>
 
 **NMFk** is a novel unsupervised machine learning methodology that allows for the automatic identification of the optimal number of features (signals/signatures) present in the data.
 
@@ -51,9 +54,9 @@ These tools substantially facilitate the utilization of the package in various r
 * 2021 R&D100 Award: [Information Technologies (IT)](https://www.rdworldonline.com/2021-rd-100-award-winners-announced-in-analytical-test-and-it-electrical-categories)
 * 2021 R&D100 Bronze Medal: [Market Disruptor in Services](https://www.rdworldonline.com/2021-rd-100-special-recognition-winners-announced)
 
-<div style="text-align: left">
-    <img src="logo/RD100Awards-300x300.png" alt="R&D100" width=25%  max-width=125px;/>
-</div>
+<p align="left">
+  <img src="logo/RD100Awards-300x300.png" alt="R&D 100 Awards logo" width="200">
+</p>
 
 ## Installation
 
@@ -96,9 +99,12 @@ A simple problem demonstrating **NMFk** can be executed as follows.
 First, generate 3 random signals in a matrix `W`:
 
 ```julia
-a = rand(15)
-b = rand(15)
-c = rand(15)
+import Random
+
+Random.seed!(2026)
+a = Random.rand(15)
+b = Random.rand(15)
+c = Random.rand(15)
 W = [a b c]
 ```
 
@@ -135,15 +141,15 @@ Signals:  5 Fit: 2.598571e-05 Silhouette:   -0.6757581 AIC:    -915.6589
 
 The code returns the estimated optimal number of signals `kopt`, which in this case, as expected, is equal to 3.
 
-The code returns the `fitquality` and `robustness`; they can applied to represent how the solutions change with the increase of `k`:
+The code returns `fitquality` and `robustness`; they can be used to show how the solutions change as `k` increases:
 
 ```julia
 NMFk.plot_signal_selection(2:5, fitquality, robustness)
 ```
 
-<div style="text-align: left">
-    <img src="images/signal_selection.png" alt="signal_selection" width=75%  max-width=200px;/>
-</div>
+<p align="left">
+  <img src="images/signal_selection.png" alt="Fit quality and robustness across candidate ranks" width="600">
+</p>
 
 The code also returns estimates of matrices `W` and `H`.
 
@@ -162,26 +168,26 @@ Mads.plotseries([a b c])
 Mads.plotseries(We[kopt] ./ maximum(We[kopt]))
 ```
 
-<div style="text-align: left">
-    <img src="images/signals_original.png" alt="signals_original" width=75%  max-width=200px;/>
-</div>
+<p align="left">
+  <img src="images/signals_original.png" alt="Original source signals" width="600">
+</p>
 
-<div style="text-align: left">
-    <img src="images/signals_reconstructed.png" alt="signals_reconstructed" width=75%  max-width=200px;/>
-</div>
+<p align="left">
+  <img src="images/signals_reconstructed.png" alt="Source signals reconstructed by NMFk" width="600">
+</p>
 
 ```julia
 NMFk.plotmatrix(H)
 NMFk.plotmatrix(He[kopt] ./ maximum(He[kopt]))
 ```
 
-<div style="text-align: left">
-    <img src="images/blind_source_separation_24_0.svg" alt="signals_original" width=50%  max-width=200px;/>
-</div>
+<p align="left">
+  <img src="images/blind_source_separation_24_0.svg" alt="Original signal mixing coefficients" width="400">
+</p>
 
-<div style="text-align: left">
-    <img src="images/blind_source_separation_25_0.svg" alt="signals_reconstructed" width=50%  max-width=200px;/>
-</div>
+<p align="left">
+  <img src="images/blind_source_separation_25_0.svg" alt="Signal mixing coefficients reconstructed by NMFk" width="400">
+</p>
 
 More examples can be found in the `test`, `demo`, `examples`, and `notebooks` directories of the **NMFk** repository.
 
@@ -209,19 +215,19 @@ The analyzed datasets include model outputs, experimental laboratory data, and f
 
 - Progress of nonnegative matrix factorization process:
 
-<div style="text-align: left">
-    <img src="movies/m643.gif" alt="nmfk-example" width=75%  max-width=250px;/>
-</div>
+<p align="left">
+  <img src="movies/m643.gif" alt="Animated progress of a nonnegative matrix factorization" width="600">
+</p>
 
 More videos are available at [YouTube](https://www.youtube.com/playlist?list=PLpVcrIWNlP22LfyIu5MSZ7WHp7q0MNjsj)
 
 ## Notebooks:
 
 A series of Jupyter notebooks demonstrating **NMFk** have been developed:
-* [Blind Source Separation](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/blind_source_separation/blind_source_separation.ipynb)
-* [Feature Extraction)](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/feature_extraction/feature_extraction.ipynb)
-* [Blind Prediction](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/mapping_variables/mapping_variables.ipynb)
-* [Unmixing concentration data](https://github.com/TensorDecompositions/NMFk.jl/blob/master/notebooks/unmixing_groudwater/unmixing_groudwater.ipynb)
+* [Blind Source Separation](https://github.com/SmartTensors/NMFk.jl/blob/master/notebooks/blind_source_separation/blind_source_separation.ipynb)
+* [Feature Extraction](https://github.com/SmartTensors/NMFk.jl/blob/master/notebooks/feature_extraction/feature_extraction.ipynb)
+* [Blind Prediction](https://github.com/SmartTensors/NMFk.jl/blob/master/notebooks/mapping_variables/mapping_variables.ipynb)
+* [Unmixing concentration data](https://github.com/SmartTensors/NMFk.jl/blob/master/notebooks/unmixing_groundwater/unmixing_groundwater.ipynb)
 
 The notebooks can also be accessed using:
 
@@ -267,4 +273,4 @@ Presentations are also available at [slideshare.net](https://www.slideshare.net/
 
 ## Extra information
 
-For more information, visit [monty.gitlab.io](http://monty.gitlab.io), [http://smarttensors.com](http://smarttensors.com) [smarttensors.github.io],(https://smarttensors.github.io), and [tensors.lanl.gov](http://tensors.lanl.gov).
+For more information, visit [monty.gitlab.io](https://monty.gitlab.io), [smarttensors.com](https://smarttensors.com), [smarttensors.github.io](https://smarttensors.github.io), and [tensors.lanl.gov](https://tensors.lanl.gov).
