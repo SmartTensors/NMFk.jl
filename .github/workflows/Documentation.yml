@@ -36,12 +36,10 @@ jobs:
         with:
           delete-old-caches: false
 
+      - name: Install documentation dependencies
+        run: julia --startup-file=no --project=docs --color=yes -e 'import Pkg; Pkg.instantiate()'
+
       - name: Build and deploy documentation
-        shell: julia --startup-file=no --project=docs --color=yes {0}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          import Pkg
-
-          Pkg.instantiate()
-          include("docs/make.jl")
+        run: julia --startup-file=no --project=docs --color=yes docs/make.jl
