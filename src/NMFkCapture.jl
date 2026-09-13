@@ -1,5 +1,3 @@
-import DocumentFunction
-
 """
 Capture stdout of a block
 """
@@ -79,9 +77,24 @@ macro stdouterrcapture(block)
 end
 
 """
-Redirect stdout to a reader
+    stdoutcaptureon()
 
-$(DocumentFunction.documentfunction(stdoutcaptureon))
+Redirect `stdout` to an asynchronous in-memory reader.
+Call [`stdoutcaptureoff`](@ref) to restore the original stream and collect the
+captured text.
+
+# Returns
+
+The asynchronous `Task` that reads from the redirected stream.
+
+# Examples
+
+```julia
+NMFk.stdoutcaptureon()
+print("captured")
+text = NMFk.stdoutcaptureoff()
+@assert text == "captured"
+```
 """
 function stdoutcaptureon()
 	global outputoriginal = stdout;
@@ -92,13 +105,14 @@ function stdoutcaptureon()
 end
 
 """
-Restore stdout
+    stdoutcaptureoff()
 
-$(DocumentFunction.documentfunction(stdoutcaptureoff))
+Restore the `stdout` stream saved by [`stdoutcaptureon`](@ref), close the
+capture pipe, and return the captured text.
 
-Returns:
+# Returns
 
-- standered output
+The captured standard-output text as a `String`.
 """
 function stdoutcaptureoff()
 	redirect_stdout(outputoriginal);
@@ -109,9 +123,24 @@ function stdoutcaptureoff()
 end
 
 """
-Redirect stderr to a reader
+    stderrcaptureon()
 
-$(DocumentFunction.documentfunction(stderrcaptureon))
+Redirect `stderr` to an asynchronous in-memory reader.
+Call [`stderrcaptureoff`](@ref) to restore the original stream and collect the
+captured text.
+
+# Returns
+
+The asynchronous `Task` that reads from the redirected stream.
+
+# Examples
+
+```julia
+NMFk.stderrcaptureon()
+print(stderr, "captured")
+text = NMFk.stderrcaptureoff()
+@assert text == "captured"
+```
 """
 function stderrcaptureon()
 	global errororiginal = stderr;
@@ -122,13 +151,14 @@ function stderrcaptureon()
 end
 
 """
-Restore stderr
+    stderrcaptureoff()
 
-$(DocumentFunction.documentfunction(stderrcaptureoff))
+Restore the `stderr` stream saved by [`stderrcaptureon`](@ref), close the
+capture pipe, and return the captured text.
 
-Returns:
+# Returns
 
-- standered error
+The captured standard-error text as a `String`.
 """
 function stderrcaptureoff()
 	redirect_stderr(errororiginal);
@@ -139,9 +169,15 @@ function stderrcaptureoff()
 end
 
 """
-Redirect stdout & stderr to readers
+    stdouterrcaptureon()
 
-$(DocumentFunction.documentfunction(stdouterrcaptureon))
+Redirect both `stdout` and `stderr` to asynchronous in-memory readers.
+Call [`stdouterrcaptureoff`](@ref) to restore both streams and collect their
+captured text.
+
+# Returns
+
+The asynchronous `Task` that reads from the redirected `stderr` stream.
 """
 function stdouterrcaptureon()
 	stdoutcaptureon()
@@ -149,31 +185,66 @@ function stdouterrcaptureon()
 end
 
 """
-Restore stdout & stderr
+    stdouterrcaptureoff()
 
-$(DocumentFunction.documentfunction(stdouterrcaptureoff))
+Restore the streams saved by [`stdouterrcaptureon`](@ref), close both capture
+pipes, and return their captured text separately.
 
-Returns:
+# Returns
 
-- standered output and standered error
+A tuple `(stdout_text, stderr_text)` containing two `String` values.
+
+# Examples
+
+```julia
+NMFk.stdouterrcaptureon()
+print("output")
+print(stderr, "error")
+stdout_text, stderr_text = NMFk.stdouterrcaptureoff()
+@assert (stdout_text, stderr_text) == ("output", "error")
+```
 """
 function stdouterrcaptureoff()
 	return stdoutcaptureoff(), stderrcaptureoff()
 end
 
 """
-Make NMFk quiet
+    quieton()
 
-$(DocumentFunction.documentfunction(quieton))
+Set `NMFk.global_quiet` to `true`, making it the default `quiet` value for
+NMFk operations that consult this module-level setting.
+
+# Returns
+
+`true`, the updated value of `NMFk.global_quiet`.
+
+# Examples
+
+```julia
+NMFk.quieton()
+@assert NMFk.global_quiet
+```
 """
 function quieton()
 	global global_quiet = true;
 end
 
 """
-Make NMFk not quiet
+    quietoff()
 
-$(DocumentFunction.documentfunction(quietoff))
+Set `NMFk.global_quiet` to `false`, making it the default `quiet` value for
+NMFk operations that consult this module-level setting.
+
+# Returns
+
+`false`, the updated value of `NMFk.global_quiet`.
+
+# Examples
+
+```julia
+NMFk.quietoff()
+@assert !NMFk.global_quiet
+```
 """
 function quietoff()
 	global global_quiet = false;

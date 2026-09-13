@@ -23,7 +23,6 @@ import Ipopt
 import JuMP
 import JLD2
 import ReusableFunctions
-import DocumentFunction
 
 const dir = Base.pkgdir(NMFk)
 

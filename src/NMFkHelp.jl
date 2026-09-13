@@ -1,5 +1,4 @@
 import Pkg
-import DocumentFunction
 
 function welcome()
 	c = Base.text_colors
@@ -25,6 +24,43 @@ function welcome()
 	println("NMFk offers visualization, pre-, and post-processing capabilities.")
 end
 
+"""
+	functions(string::AbstractString=""; stdout=false, quiet=false)
+	functions(re::Regex; stdout=false, quiet=false)
+	functions(m::Union{Symbol,Module}, string::AbstractString=""; stdout=false, quiet=false)
+	functions(m::Union{Symbol,Module}, re::Regex; stdout=false, quiet=false)
+
+List available names in NMFk's configured modules or in a selected module.
+
+An `AbstractString` pattern selects names containing that substring, while a `Regex` pattern selects matching names.
+An empty string lists all eligible names.
+
+# Arguments
+
+- `string`: Substring used to filter names; an empty string selects every eligible name.
+- `re`: Regular expression used to filter names.
+- `m`: Module object or symbol identifying the module to inspect.
+
+# Keywords
+
+- `stdout=false`: Render the list with a text display attached to `stdout` instead of the active display.
+- `quiet=false`: Suppress informational listing messages when no explicit substring filter is supplied.
+
+# Returns
+
+The module-specific methods return the number of matching names.
+The methods that inspect all configured NMFk modules return `nothing` after processing each module.
+
+# Examples
+
+```julia
+import NMFk
+
+NMFk.functions()
+NMFk.functions("get")
+NMFk.functions(NMFk, "tensor")
+```
+"""
 function functions(re::Regex; stdout::Bool=false, quiet::Bool=false)
 	n = 0
 	for i in modules
@@ -106,21 +142,6 @@ function functions(m::Union{Symbol, Module}, string::AbstractString=""; stdout::
 	n > 0 && string == "" && @info("Number of functions in module $m: $n")
 	return n
 end
-@doc """
-List available functions in the NMFk modules:
-
-$(DocumentFunction.documentfunction(functions;
-argtext=Dict("string"=>"string to display functions with matching names",
-			"m"=>"NMFk module")))
-
-Examples:
-
-```julia
-NMFk.functions()
-NMFk.functions("get")
-NMFk.functions(NMFk, "get")
-```
-""" functions
 
 "Checks if package is available"
 function ispkgavailable(modulename::AbstractString)

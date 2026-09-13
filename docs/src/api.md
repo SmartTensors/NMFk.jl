@@ -11,10 +11,13 @@ NMFk.NMFkResult
 NMFk.NMFkSweepResult
 ```
 
-## Factorization and persistence
+## Factorization, resampling, and persistence
 
 ```@docs
 NMFk.execute
+NMFk.tensorfactorization
+NMFk.bootstrapping
+NMFk.bootstrapping!
 NMFk.load
 NMFk.save
 ```
@@ -26,7 +29,15 @@ NMFk.normalizematrix_col
 ```
 
 The [grid-data manual](https://github.com/SmartTensors/NMFk.jl/blob/master/docs/griddata_manual.md) documents the current `NMFk.griddata` methods.
-Additional validation helpers, including `NMFk.checkmatrix`, retain legacy generated help text and can be inspected in Julia help mode while their static docstrings are modernized incrementally.
+Additional validation helpers, including `NMFk.checkmatrix`, can be inspected in Julia help mode while the curated API reference expands incrementally.
+
+## Coordinate conversion and distance
+
+```@docs
+NMFk.latlon_to_xy
+NMFk.xy_to_latlon
+NMFk.haversine
+```
 
 ## Structure-aware information
 
@@ -46,3 +57,18 @@ NMFk.mapbox_contour
 ```
 
 See the [Mapbox manual](https://github.com/SmartTensors/NMFk.jl/blob/master/docs/mapbox_manual.md), the [README visualization example](https://github.com/SmartTensors/NMFk.jl#examples), and the [notebooks directory](https://github.com/SmartTensors/NMFk.jl/tree/master/notebooks) for the broader legacy plotting and notebook interfaces.
+
+## Interactive and output helpers
+
+```@docs
+NMFk.functions
+NMFk.setdpi
+NMFk.stdoutcaptureon
+NMFk.stdoutcaptureoff
+NMFk.stderrcaptureon
+NMFk.stderrcaptureoff
+NMFk.stdouterrcaptureon
+NMFk.stdouterrcaptureoff
+NMFk.quieton
+NMFk.quietoff
+```

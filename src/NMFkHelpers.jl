@@ -1,4 +1,3 @@
-import DocumentFunction
 import Statistics
 import LinearAlgebra
 import Suppressor
@@ -11,9 +10,27 @@ function test()
 end
 
 """
-Set image dpi
+    setdpi(dpi::Integer)
 
-$(DocumentFunction.documentfunction(setdpi))
+Set the module-wide image resolution used as the default `dpi` value by NMFk
+plotting functions.
+
+# Arguments
+
+- `dpi`: Image resolution to store in `NMFk.imagedpi`.
+
+# Returns
+
+The configured `dpi` value.
+
+# Examples
+
+```julia
+previous_dpi = NMFk.imagedpi
+NMFk.setdpi(150)
+@assert NMFk.imagedpi == 150
+NMFk.setdpi(previous_dpi)
+```
 """
 function setdpi(dpi::Integer)
 	global imagedpi = dpi;
