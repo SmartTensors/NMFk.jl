@@ -143,8 +143,8 @@ function pureratiotest()
 			end
 		end
 		data = fill(NaN, size(truedata))
-		tol = Sys.islinux() ? 1e-10 : 1e-7
-		runtest(convert(Matrix{Float32}, data), buckets, ratiomatrix; conccomponents=Int[], ratiocomponents=ratiocomponents, tol=tol)
+		# Match the Float32 problem precision; tighter tolerances can make this scale-degenerate ratio-only fit stall.
+		runtest(convert(Matrix{Float32}, data), buckets, ratiomatrix; conccomponents=Int[], ratiocomponents=ratiocomponents, tol=1e-7)
 	end
 end
 
