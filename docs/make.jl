@@ -17,6 +17,7 @@ Documenter.makedocs(
 		"Getting started" => "getting-started.md",
 		"Guides and research" => "guides.md",
 		"API reference" => "api.md",
+		"Documentation authoring" => "documentation-authoring.md",
 	],
 )
 

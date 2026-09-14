@@ -19,6 +19,7 @@ import NMFk
 ```
 
 Start with the [getting-started example](getting-started.md), consult the [guides and research index](guides.md) for specialized workflows, or browse the [curated API reference](api.md).
+Contributors can use the [documentation-authoring workflow](documentation-authoring.md) to audit existing docstrings, collect implementation and call-site evidence, and prepare reviewable drafts.
 
 ## Documentation roles
 

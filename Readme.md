@@ -93,6 +93,17 @@ import Pkg
 Pkg.test("NMFk")
 ```
 
+## Documentation development
+
+DocumentFunction is available in the documentation environment for auditing and authoring NMFk's source-attached docstrings.
+Run the non-mutating audit from the repository root with Julia 1.12:
+
+```bash
+julia --startup-file=no --project=docs scripts/document.jl --check
+```
+
+See the [documentation-authoring guide](https://smarttensors.github.io/NMFk.jl/dev/documentation-authoring/) for evidence collection, targeted drafts, parameter and keyword descriptions, and isolated example verification.
+
 ## Examples
 
 A simple problem demonstrating **NMFk** can be executed as follows.
