@@ -388,7 +388,7 @@ function execute_run(X::AbstractArray{T,N}, nk::Int, nNMF::Int; clusterWmatrix::
 		if Distributed.nprocs() > 1 && !serial
 			cancel_check !== nothing && cancel_check()
 			!quiet && println("Parallel execution of $nNMF NMF runs ...")
-			r::AbstractVector
+			local r::AbstractVector
 			if base_seed !== nothing
 				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; quiet=true, seed=base_seed+i, run_keywords...)), 1:nNMF)
 			else
@@ -551,7 +551,7 @@ function execute_run(X::AbstractMatrix{T}, nk::Int, nNMF::Int; clusterWmatrix::B
 		if Distributed.nprocs() > 1 && !serial
 			cancel_check !== nothing && cancel_check()
 			!quiet && println("Parallel execution of $(nNMF) NMF runs ...")
-			r::AbstractVector
+			local r::AbstractVector
 			if base_seed !== nothing
 				r = Distributed.pmap(i->(NMFk.execute_singlerun(X, nk; modifymatrices=modifymatrices, quiet=true, transpose=transpose, deltas=deltas, ratios=ratios, mixture=mixture, method=method, algorithm=algorithm, clusterWmatrix=clusterWmatrix, weight=weight, seed=base_seed+i, run_keywords...)), 1:nNMF)
 			else
